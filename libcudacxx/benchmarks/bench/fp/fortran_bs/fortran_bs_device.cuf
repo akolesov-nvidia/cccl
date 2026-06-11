@@ -1,0 +1,630 @@
+! ============================================================================
+!  FPMP CUDA Fortran Benchmark — Black-Scholes Option Pricing (device)
+!
+!  Purpose
+!  -------
+!  Compares ACCURACY and THROUGHPUT of GPU European call pricing across two
+!  arithmetic types over a shared set of randomized inputs:
+!
+!    Type                  Hardware lane     Notes
+!    -------------------   ---------------   ------------------------------
+!    real(real64)           FP64             native double (baseline)
+!    type(fp32mp2)          FP32 (×2)        float-float; ~46-bit mantissa
+!
+!  This mirrors the C++ `benchmarks/bs/` benchmark but is scoped to the two
+!  precision paths the user actually compares for Fortran work: native fp64
+!  vs the FPMP fp32mp2 emulated-double type.  Both rows go through the same
+!  templated `bs_price` code path:
+!
+!     sqrtT  = sqrt(T)
+!     vsqrtT = sigma * sqrtT
+!     d1     = (log(S/K) + (r - q + 0.5*sigma*sigma)*T) / vsqrtT
+!     d2     = d1 - vsqrtT
+!     disc_r = exp(-r*T);  disc_q = exp(-q*T)
+!     N(x)   = 0.5 * erfc(-x * sqrt(0.5))
+!     price  = S*disc_q*N(d1) - K*disc_r*N(d2)
+!
+!  N(x) is evaluated through erfc rather than via `0.5*(1+erf(...))` to
+!  avoid catastrophic cancellation in the deep-OTM tails where one of
+!  Nd1, Nd2 is close to zero -- erfc returns those small tail values
+!  directly (no `1 + (something close to -1)` subtraction), so the
+!  fp64 reference and every device row are computed with the same
+!  cancellation-resistant form.  Matches the C++ `benchmarks/bs/`
+!  benchmark which uses the same erfc-based norm_cdf.
+!
+!  So the speedup column is an apples-to-apples arithmetic comparison: same
+!  algorithm, same transcendentals (sqrt/log/exp/erfc), only the underlying
+!  scalar type changes.
+!
+!  Why fp32mp2 is interesting on consumer GPUs
+!  -------------------------------------------
+!  Most consumer / RTX-class GPUs have FP64 throughput of 1/32 of FP32.
+!  fp32mp2 uses ~10-12 FP32 ops per add/mul and proportionally more for
+!  the transcendentals, so it can be noticeably faster than native fp64
+!  while keeping ~46-bit mantissa accuracy — much tighter than fp32.  BS
+!  is much more compute-bound than the recursive sum in `fortran_sum`,
+!  so this benchmark stresses that compute trade-off in a context where
+!  4 transcendentals (sqrt, log, exp, erfc) dominate the per-option cost.
+!
+!  Workload
+!  --------
+!  Each of the N options has randomized parameters:
+!     S, K  in [10, 200]   (spot, strike)
+!     T     in [0.05, 5.0] (time to maturity)
+!     sigma in [0.05, 1.0] (volatility)
+!  The risk-free rate r and dividend yield q are fixed globally to
+!  r = 0.02, q = 0.01.  All options are CALLS (matching bs.cpp's default).
+!
+!  Inputs are deterministic pseudo-random fp64 values derived from a
+!  golden-ratio low-discrepancy sequence on each parameter so the
+!  benchmark is fully reproducible without an RNG seed.
+!
+!  Reference
+!  ---------
+!  A per-option reference price array is computed ONCE on the host in
+!  fp64 using the Fortran intrinsic `sqrt`, `log`, `exp`, and `erfc`.
+!  This reference is then used to compute max / average relative error
+!  for every GPU row, including the fp64 row (so the host vs device
+!  fp64 mismatch — at most a few ULP, modulo FMA contraction — also
+!  shows up in the table).  fp32mp2's ~46-bit mantissa is well above
+!  fp64's ~53-bit, so it should track the reference to ~14 decimal
+!  digits.
+!
+!  Per-launch timing
+!  -----------------
+!  Each timed cudaEvent window covers a batch of back-to-back launches
+!  of the same kernel so even a sub-millisecond kernel produces a
+!  measurement well above timer noise.  The reported time is `elapsed
+!  / launches` per launch; throughput is `N / time` (options/second).
+!
+!  Auto-tuning: by default (KERNEL_LAUNCHES=0) the number of launches
+!  per timed window is chosen PER KERNEL so each batch runs for at
+!  least MIN_BATCH_MS milliseconds.  Set KERNEL_LAUNCHES to a positive
+!  value to disable auto-tuning and use a fixed batch count.
+!
+!  Compile-time controls (override on the make command line):
+!      -DNUM_OPTIONS=<int>     default: 1048576 (1M options)
+!      -DN_REPS=<int>          default: 5
+!      -DBLOCK_SIZE=<int>      default: 256
+!      -DNUM_BLOCKS=<int>      default: 2048
+!      -DMIN_BATCH_MS=<int>    default: 500 (≥ 0.5 s per timed window)
+!      -DKERNEL_LAUNCHES=<int> default: 0   (0 = auto-tune to MIN_BATCH_MS;
+!                                            >0 = fixed override)
+!      -DMAX_KERNEL_LAUNCHES=<int> default: 1000000 (auto-tune safety cap)
+!      -DCALIB_LAUNCHES=<int>  default: 32  (warm-up + calibration batch
+!                                            size; raise for more stable
+!                                            auto-tune at the cost of
+!                                            slightly longer startup)
+! ============================================================================
+
+#ifndef NUM_OPTIONS
+#define NUM_OPTIONS 1048576
+#endif
+
+#ifndef N_REPS
+#define N_REPS 5
+#endif
+
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 256
+#endif
+
+#ifndef NUM_BLOCKS
+#define NUM_BLOCKS 2048
+#endif
+
+#ifndef MIN_BATCH_MS
+#define MIN_BATCH_MS 500
+#endif
+
+#ifndef KERNEL_LAUNCHES
+#define KERNEL_LAUNCHES 0
+#endif
+
+#ifndef MAX_KERNEL_LAUNCHES
+#define MAX_KERNEL_LAUNCHES 1000000
+#endif
+
+#ifndef CALIB_LAUNCHES
+#define CALIB_LAUNCHES 32
+#endif
+
+! ----------------------------------------------------------------------------
+!  Black-Scholes kernels — one per arithmetic type.  Both kernels share the
+!  same grid-stride loop skeleton: each thread walks its slice of the input
+!  arrays, computes one option's BS call price, writes the price out, and
+!  accumulates a per-thread partial sum of prices that the host folds into
+!  a mean for a sanity-check row in the printed table.
+!
+!  The fp32mp2 kernel reads pre-converted fp32mp2 inputs (host pre-converts
+!  the fp64 S/K/T/sigma arrays once at startup).  This deliberately keeps
+!  the slow `double -> fp32mp2` conversion OUT of the timed window, which
+!  is the right place for it: fp32mp2 was introduced to replace fp64 in
+!  hot loops on FP64-limited hardware; nobody pays a per-option d->fp32mp2
+!  conversion at run time in practice.
+!
+!  Constants (0.5, 1.0, r=0.02, q=0.01, sqrt(0.5)) live in module-level
+!  device variables initialised once on the host (see `init_fp32mp2_consts`
+!  in the main program).  Re-deriving them inside every kernel would put a
+!  `double -> fp32mp2` conversion per constant per thread per launch into
+!  the timed path, which violates the "no double conversions in the hot
+!  path" principle even if the per-thread cost is small on the GPU.
+! ----------------------------------------------------------------------------
+module fortran_bs_kernels
+  use, intrinsic :: iso_fortran_env
+  use, intrinsic :: iso_c_binding
+  use fpmp_api
+  use cudafor
+  implicit none
+
+  integer, parameter :: BLK = BLOCK_SIZE
+
+  ! Fixed BS model parameters.
+  real(real64), parameter :: R_D    = 0.02_real64
+  real(real64), parameter :: Q_D    = 0.01_real64
+  real(real64), parameter :: HALF_D = 0.5_real64
+  ! 1/sqrt(2) to fp64 precision; used inside N(x) = 0.5*erfc(-x*sqrt(1/2)).
+  real(real64), parameter :: SQRT_1_2_D = 0.7071067811865475244_real64
+
+  ! Device-resident fp32mp2 constants.  Initialised once on the host (see
+  ! init_fp32mp2_consts() in the main program) by computing them in fp32mp2
+  ! and copying to device, so no `double -> fp32mp2` conversion ever lands
+  ! inside the timed kernels.
+  type(fp32mp2), device :: D_R_FF, D_Q_FF, D_SQRT_1_2_FF
+  type(fp32mp2), device :: D_HALF_FF
+
+contains
+
+  ! Per-option Black-Scholes call price in fp64.  Inlined into the kernel
+  ! by the compiler via -gpu=lto; pulled into a device function for source
+  ! readability so the kernel body matches the printed formula exactly.
+  ! Note: arguments are passed by reference (intent(in), not value).
+  ! nvfortran rejects `type(fp32mp2), value` on attributes(device)
+  ! functions ("Unexpected load datatype"), so the fp32mp2 sibling has
+  ! to be by-reference; we keep the fp64 sibling matching for symmetry.
+  ! With -gpu=lto both functions still inline cleanly into the kernel.
+  attributes(device) function bs_price_fp64(S, K, T, sigma) result(price)
+    real(real64), intent(in) :: S, K, T, sigma
+    real(real64) :: price
+    real(real64) :: sqrtT, vsqrtT, d1, d2, disc_r, disc_q, Nd1, Nd2
+    sqrtT  = sqrt(T)
+    vsqrtT = sigma * sqrtT
+    d1     = (log(S / K) + (R_D - Q_D + HALF_D * sigma * sigma) * T) / vsqrtT
+    d2     = d1 - vsqrtT
+    disc_r = exp(-R_D * T)
+    disc_q = exp(-Q_D * T)
+    Nd1    = HALF_D * erfc(-d1 * SQRT_1_2_D)
+    Nd2    = HALF_D * erfc(-d2 * SQRT_1_2_D)
+    price  = S * disc_q * Nd1 - K * disc_r * Nd2
+  end function bs_price_fp64
+
+  ! Per-option Black-Scholes call price in fp32mp2.  All transcendentals
+  ! resolve through the `fpmp_api` generic interfaces (`sqrt`, `log`,
+  ! `exp`, `erfc`) to the FPMP runtime's fp32mp2 entry points; arithmetic
+  ! operators resolve through the overloaded `operator(+,-,*,/)` for
+  ! `type(fp32mp2)` declared in the same module.
+  attributes(device) function bs_price_fp32mp2(S, K, T, sigma) result(price)
+    type(fp32mp2), intent(in) :: S, K, T, sigma
+    type(fp32mp2) :: price
+    type(fp32mp2) :: sqrtT, vsqrtT, d1, d2, disc_r, disc_q, Nd1, Nd2
+    sqrtT  = sqrt(T)
+    vsqrtT = sigma * sqrtT
+    d1     = (log(S / K) + (D_R_FF - D_Q_FF + D_HALF_FF * sigma * sigma) * T) / vsqrtT
+    d2     = d1 - vsqrtT
+    disc_r = exp(-D_R_FF * T)
+    disc_q = exp(-D_Q_FF * T)
+    Nd1    = D_HALF_FF * erfc(-d1 * D_SQRT_1_2_FF)
+    Nd2    = D_HALF_FF * erfc(-d2 * D_SQRT_1_2_FF)
+    price  = S * disc_q * Nd1 - K * disc_r * Nd2
+  end function bs_price_fp32mp2
+
+  ! Initialiser for the device-resident fp32mp2 constants.  One thread,
+  ! one launch — runs once at program startup, well before the timed
+  ! windows begin, so the `double -> fp32mp2` conversions it performs
+  ! never appear on the hot path.
+  attributes(global) subroutine init_fp32mp2_consts_kernel()
+    if (threadIdx%x == 1 .and. blockIdx%x == 1) then
+      D_R_FF        = fp32mp2(R_D)
+      D_Q_FF        = fp32mp2(Q_D)
+      D_SQRT_1_2_FF = fp32mp2(SQRT_1_2_D)
+      D_HALF_FF     = fp32mp2(HALF_D)
+    end if
+  end subroutine init_fp32mp2_consts_kernel
+
+  ! One-shot kernel that pre-converts fp64 inputs to fp32mp2 on the device.
+  ! Runs once before any timing starts; the conversion cost stays out of
+  ! the hot path.
+  attributes(global) subroutine convert_inputs_kernel(S, K, T, V, &
+                                                       S_ff, K_ff, T_ff, V_ff, n)
+    real(real64),  device, intent(in)  :: S(*), K(*), T(*), V(*)
+    type(fp32mp2), device, intent(out) :: S_ff(*), K_ff(*), T_ff(*), V_ff(*)
+    integer,       value               :: n
+    integer :: gid, stride, i
+    gid    = (blockIdx%x - 1) * blockDim%x + threadIdx%x
+    stride = blockDim%x * gridDim%x
+    i = gid
+    do while (i <= n)
+      S_ff(i) = fp32mp2(S(i))
+      K_ff(i) = fp32mp2(K(i))
+      T_ff(i) = fp32mp2(T(i))
+      V_ff(i) = fp32mp2(V(i))
+      i = i + stride
+    end do
+  end subroutine convert_inputs_kernel
+
+  attributes(global) subroutine bs_kernel_fp64(S, K, T, sigma, prices, partials, n)
+    real(real64), device, intent(in)  :: S(*), K(*), T(*), sigma(*)
+    real(real64), device, intent(out) :: prices(*)
+    real(real64), device, intent(out) :: partials(*)
+    integer,      value               :: n
+
+    integer      :: tid, gid, stride, i
+    real(real64) :: acc, price
+
+    tid    = threadIdx%x
+    gid    = (blockIdx%x - 1) * blockDim%x + tid
+    stride = blockDim%x * gridDim%x
+
+    acc = 0.0_real64
+    i   = gid
+    do while (i <= n)
+      price     = bs_price_fp64(S(i), K(i), T(i), sigma(i))
+      prices(i) = price
+      acc       = acc + price
+      i         = i + stride
+    end do
+    partials(gid) = acc
+  end subroutine bs_kernel_fp64
+
+  attributes(global) subroutine bs_kernel_fp32mp2(S, K, T, sigma, prices, partials, n)
+    type(fp32mp2), device, intent(in)  :: S(*), K(*), T(*), sigma(*)
+    type(fp32mp2), device, intent(out) :: prices(*)
+    real(real64),  device, intent(out) :: partials(*)
+    integer,       value               :: n
+
+    integer       :: tid, gid, stride, i
+    type(fp32mp2) :: price
+    real(real64)  :: acc
+
+    tid    = threadIdx%x
+    gid    = (blockIdx%x - 1) * blockDim%x + tid
+    stride = blockDim%x * gridDim%x
+
+    ! Fold the per-thread partial in fp64 — one fpmp_to_double conversion
+    ! per option, but only one accumulator's worth of work per thread; this
+    ! happens whether prices is written or not, so it cannot mask the
+    ! arithmetic difference between the two rows.  An fp32mp2 partial would
+    ! be more "pure", but pure fp32mp2 + final fpmp_to_double in the host
+    ! reduction does the same thing in two stages instead of one and the
+    ! conversion is one of the cheapest fpmp ops.
+    acc = 0.0_real64
+    i   = gid
+    do while (i <= n)
+      price     = bs_price_fp32mp2(S(i), K(i), T(i), sigma(i))
+      prices(i) = price
+      acc       = acc + fpmp_to_double(price)
+      i         = i + stride
+    end do
+    partials(gid) = acc
+  end subroutine bs_kernel_fp32mp2
+
+end module fortran_bs_kernels
+
+
+! ----------------------------------------------------------------------------
+!  Host driver: generate inputs, compute fp64 reference on the host, launch
+!  each kernel with auto-tuned batched cudaEvent timing, finalise on host,
+!  print accuracy + throughput.
+! ----------------------------------------------------------------------------
+program fortran_bs_device
+  use, intrinsic :: iso_fortran_env
+  use, intrinsic :: iso_c_binding
+  use fortran_bs_kernels
+  use cudafor
+  implicit none
+
+  integer, parameter :: N        = NUM_OPTIONS
+  integer, parameter :: REPS     = N_REPS
+  integer, parameter :: NB       = NUM_BLOCKS
+  integer, parameter :: NTH      = NB * BLK             ! one partial per thread
+  integer, parameter :: KL_FIXED = KERNEL_LAUNCHES      ! 0 = auto
+  integer, parameter :: KL_MAX   = MAX_KERNEL_LAUNCHES
+  integer, parameter :: KL_CALIB = CALIB_LAUNCHES       ! warm-up + calibration batch
+  real(real64), parameter :: TARGET_BATCH_S = real(MIN_BATCH_MS, real64) * 1.0e-3_real64
+
+  ! Golden-ratio LDS multipliers (φ - 1).  Four different irrationals so
+  ! the four input arrays decorrelate across the LDS — gives a wide
+  ! parameter mix without an RNG.
+  real(real64), parameter :: PHI_S  = 0.6180339887498948_real64  ! (sqrt(5)-1)/2
+  real(real64), parameter :: PHI_K  = 0.7548776662466928_real64  ! (sqrt(17)-3)/2
+  real(real64), parameter :: PHI_T  = 0.8392867552141612_real64  ! plastic constant - 1
+  real(real64), parameter :: PHI_V  = 0.5436890126920764_real64  ! sqrt(2)/2 - sqrt(2)/8
+
+  ! Parameter ranges (match bs.cpp).
+  real(real64), parameter :: S_LO = 10.0_real64,  S_HI = 200.0_real64
+  real(real64), parameter :: K_LO = 10.0_real64,  K_HI = 200.0_real64
+  real(real64), parameter :: T_LO = 0.05_real64,  T_HI = 5.0_real64
+  real(real64), parameter :: V_LO = 0.05_real64,  V_HI = 1.0_real64
+
+  ! Host input arrays (fp64) + per-option reference price array.
+  real(real64), allocatable :: S_h(:), K_h(:), T_h(:), V_h(:), ref_h(:)
+  ! Host scratch for reading device prices back at the end.
+  real(real64),  allocatable :: prices_fp64_h(:)
+  type(fp32mp2), allocatable :: prices_ff_h(:)
+  ! Per-thread partial-sum scratch (fp64 partial / one per kernel).
+  real(real64), allocatable :: partials_h(:)
+
+  ! Device input arrays — one set per arithmetic path.
+  real(real64),  device, allocatable :: S_d(:), K_d(:), T_d(:), V_d(:)
+  type(fp32mp2), device, allocatable :: S_ff_d(:), K_ff_d(:), T_ff_d(:), V_ff_d(:)
+  ! Device output arrays.
+  real(real64),  device, allocatable :: prices_fp64_d(:)
+  type(fp32mp2), device, allocatable :: prices_ff_d(:)
+  real(real64),  device, allocatable :: partials_d(:)
+
+  integer         :: istat, i
+  real(real64)    :: u, ref_mean
+  type(cudaEvent) :: evt_start, evt_stop
+  real            :: elapsed_ms
+  real(real64)    :: dt_min
+
+  ! Per-type results, indexed by `kind + 1` (1 = fp64, 2 = fp32mp2).
+  real(real64) :: mean_arr(2), max_re_arr(2), avg_re_arr(2), dt_arr(2)
+  integer      :: kl_arr(2)
+
+  allocate(S_h(N), K_h(N), T_h(N), V_h(N), ref_h(N))
+  allocate(prices_fp64_h(N), prices_ff_h(N), partials_h(NTH))
+  allocate(S_d(N), K_d(N), T_d(N), V_d(N))
+  allocate(S_ff_d(N), K_ff_d(N), T_ff_d(N), V_ff_d(N))
+  allocate(prices_fp64_d(N), prices_ff_d(N), partials_d(NTH))
+
+  ! ---- Generate inputs on the host (deterministic LDS) ----
+  do i = 1, N
+    u      = modulo(real(i, real64) * PHI_S, 1.0_real64)
+    S_h(i) = S_LO + u * (S_HI - S_LO)
+    u      = modulo(real(i, real64) * PHI_K, 1.0_real64)
+    K_h(i) = K_LO + u * (K_HI - K_LO)
+    u      = modulo(real(i, real64) * PHI_T, 1.0_real64)
+    T_h(i) = T_LO + u * (T_HI - T_LO)
+    u      = modulo(real(i, real64) * PHI_V, 1.0_real64)
+    V_h(i) = V_LO + u * (V_HI - V_LO)
+  end do
+
+  ! ---- Build the host fp64 reference (untimed) ----
+  ref_mean = 0.0_real64
+  do i = 1, N
+    ref_h(i) = bs_price_host_fp64(S_h(i), K_h(i), T_h(i), V_h(i))
+    ref_mean = ref_mean + ref_h(i)
+  end do
+  ref_mean = ref_mean / real(N, real64)
+
+  ! ---- Copy fp64 inputs to the device ----
+  S_d = S_h
+  K_d = K_h
+  T_d = T_h
+  V_d = V_h
+
+  ! ---- Pre-convert inputs to fp32mp2 on the device (untimed) ----
+  ! One conversion per option per parameter, done once before any timing
+  ! starts.  This is where the slow `double -> fp32mp2` casts land; the
+  ! timed kernels then read fp32mp2 inputs directly.
+  istat = cudaDeviceSynchronize()
+  call convert_inputs_kernel<<<NB, BLK>>>(S_d, K_d, T_d, V_d, &
+                                          S_ff_d, K_ff_d, T_ff_d, V_ff_d, N)
+  istat = cudaDeviceSynchronize()
+
+  ! ---- Initialise the device-resident fp32mp2 constants (untimed) ----
+  call init_fp32mp2_consts_kernel<<<1, 1>>>()
+  istat = cudaDeviceSynchronize()
+
+  istat = cudaEventCreate(evt_start)
+  istat = cudaEventCreate(evt_stop)
+
+  print '(A)',         '======================================================================================'
+  print '(A)',         '  FPMP CUDA Fortran Benchmark — Black-Scholes Option Pricing (device)'
+  print '(A)',         '======================================================================================'
+  print '(A,I0,A)',    '  N            = ', N, ' options'
+  print '(A,I0)',      '  blocks       = ', NB
+  print '(A,I0)',      '  threads/blk  = ', BLOCK_SIZE
+  print '(A,I0)',      '  repetitions  = ', REPS
+  if (KL_FIXED > 0) then
+    print '(A,I0,A)',  '  launches/rep = ', KL_FIXED, ' (fixed; per-launch time = elapsed / launches)'
+  else
+    print '(A,I0,A)',  '  launches/rep = auto-tune to ≥ ', MIN_BATCH_MS, &
+                       ' ms per timed window (per-kernel)'
+  end if
+  print '(A,F5.2,A,F5.2)', '  r, q         = ', R_D, ', ', Q_D
+  print '(A)',         '  inputs       = deterministic LDS (S, K ∈ [10,200]; T ∈ [0.05,5]; σ ∈ [0.05,1])'
+  print '(A)',         '  is_call      = .true.'
+  print '(A)',         '  reference    = host fp64 (intrinsic sqrt/log/exp/erfc)'
+  print '(A,ES22.15)', '  ref. mean    = ', ref_mean
+  print '(A)',         '--------------------------------------------------------------------------------------'
+  print '(A)',         '  Type           Max|RelErr|  Avg|RelErr|  Throughput        Time     Speedup  Launches'
+  print '(A)',         '                                           (Mopts/s)         (s)     vs fp64'
+  print '(A)',         '  -------------  -----------  -----------  ----------  ----------  ----------  --------'
+
+  call run_one(0)   ! fp64
+  call run_one(1)   ! fp32mp2
+
+  call print_table()
+
+  istat = cudaEventDestroy(evt_start)
+  istat = cudaEventDestroy(evt_stop)
+
+  print '(A)', '======================================================================================'
+
+  deallocate(S_h, K_h, T_h, V_h, ref_h)
+  deallocate(prices_fp64_h, prices_ff_h, partials_h)
+  deallocate(S_d, K_d, T_d, V_d)
+  deallocate(S_ff_d, K_ff_d, T_ff_d, V_ff_d)
+  deallocate(prices_fp64_d, prices_ff_d, partials_d)
+
+contains
+
+  ! Reference per-option BS call price computed on the host in fp64.
+  ! Uses Fortran's intrinsic `sqrt`, `log`, `exp`, `erfc` — i.e. libm on
+  ! the host.  Standalone helper (rather than re-using the device
+  ! `bs_price_fp64`) so the host build does not have to pull in CUDA
+  ! Fortran's device-function machinery for what is just a few lines.
+  function bs_price_host_fp64(S, K, T, sigma) result(price)
+    real(real64), intent(in) :: S, K, T, sigma
+    real(real64) :: price
+    real(real64) :: sqrtT, vsqrtT, d1, d2, disc_r, disc_q, Nd1, Nd2
+    sqrtT  = sqrt(T)
+    vsqrtT = sigma * sqrtT
+    d1     = (log(S / K) + (R_D - Q_D + HALF_D * sigma * sigma) * T) / vsqrtT
+    d2     = d1 - vsqrtT
+    disc_r = exp(-R_D * T)
+    disc_q = exp(-Q_D * T)
+    Nd1    = HALF_D * erfc(-d1 * SQRT_1_2_D)
+    Nd2    = HALF_D * erfc(-d2 * SQRT_1_2_D)
+    price  = S * disc_q * Nd1 - K * disc_r * Nd2
+  end function bs_price_host_fp64
+
+  ! Launch the chosen kernel, time with cudaEvents.  Each timed window
+  ! covers `kl` back-to-back launches; `kl` is auto-tuned per kernel by
+  ! default (KERNEL_LAUNCHES=0) using a CALIB_LAUNCHES-launch warm-up
+  ! followed by a CALIB_LAUNCHES-launch calibration batch.  Identical
+  ! discipline to `fortran_sum_device.cuf` so the speedup column is
+  ! directly comparable between the two benchmarks.
+  subroutine run_one(kind)
+    integer, intent(in) :: kind   ! 0 = fp64, 1 = fp32mp2
+
+    integer      :: rep, j, kl
+    real(real64) :: dt_per_launch, baseline_s
+
+    ! ---- 1. Pick the per-window launch count ----
+    if (KL_FIXED > 0) then
+      kl = KL_FIXED
+    else
+      ! Warm-up: CALIB_LAUNCHES launches.  A single warm-up is not enough
+      ! on the BS kernels — the first launch still pays JIT / runtime
+      ! init costs that bias the baseline.
+      do j = 1, KL_CALIB
+        call dispatch_kernel(kind)
+      end do
+      istat = cudaDeviceSynchronize()
+
+      ! Multi-launch calibration.
+      istat = cudaEventRecord(evt_start, 0)
+      do j = 1, KL_CALIB
+        call dispatch_kernel(kind)
+      end do
+      istat = cudaEventRecord(evt_stop, 0)
+      istat = cudaEventSynchronize(evt_stop)
+      istat = cudaEventElapsedTime(elapsed_ms, evt_start, evt_stop)
+
+      baseline_s = max(real(elapsed_ms, real64) * 1.0e-3_real64 / real(KL_CALIB, real64), &
+                       1.0e-9_real64)
+      kl         = int(ceiling(TARGET_BATCH_S / baseline_s))
+      kl         = max(1, min(KL_MAX, kl))
+    end if
+
+    ! ---- 2. Time REPS windows of `kl` back-to-back launches each ----
+    dt_min = huge(dt_min)
+    do rep = 1, REPS
+      istat = cudaEventRecord(evt_start, 0)
+      do j = 1, kl
+        call dispatch_kernel(kind)
+      end do
+      istat = cudaEventRecord(evt_stop, 0)
+      istat = cudaEventSynchronize(evt_stop)
+      istat = cudaEventElapsedTime(elapsed_ms, evt_start, evt_stop)
+      dt_per_launch = real(elapsed_ms, real64) * 1.0e-3_real64 / real(kl, real64)
+      dt_min = min(dt_min, dt_per_launch)
+    end do
+
+    ! ---- 3. Read prices back, accuracy & sanity check on host ----
+    call read_and_score(kind, kl)
+  end subroutine run_one
+
+  ! Dispatch one kernel launch of the chosen arithmetic type.  Pulled
+  ! into its own routine so calibration and timing share the exact same
+  ! launch path.
+  subroutine dispatch_kernel(kind)
+    integer, intent(in) :: kind
+    select case (kind)
+    case (0)
+      call bs_kernel_fp64    <<<NB, BLOCK_SIZE>>>(S_d,    K_d,    T_d,    V_d, &
+                                                   prices_fp64_d, partials_d, N)
+    case (1)
+      call bs_kernel_fp32mp2 <<<NB, BLOCK_SIZE>>>(S_ff_d, K_ff_d, T_ff_d, V_ff_d, &
+                                                   prices_ff_d,   partials_d, N)
+    end select
+  end subroutine dispatch_kernel
+
+  ! Copy prices back to host, compute max/avg relative error vs the
+  ! host fp64 reference, and stash the per-row results so print_table()
+  ! can render every row referencing the fp64 row's time for "Speedup
+  ! vs fp64".
+  subroutine read_and_score(kind, kl)
+    integer, intent(in) :: kind, kl
+    integer      :: ii, n_used
+    real(real64) :: pi, re, max_re, sum_re, mean_p
+
+    partials_h = partials_d
+
+    select case (kind)
+    case (0)
+      prices_fp64_h = prices_fp64_d
+    case (1)
+      prices_ff_h = prices_ff_d
+    end select
+
+    max_re = 0.0_real64
+    sum_re = 0.0_real64
+    n_used = 0
+    mean_p = 0.0_real64
+    do ii = 1, N
+      if (kind == 0) then
+        pi = prices_fp64_h(ii)
+      else
+        ! fpmp_to_double inlined on the host: `fpmp_api` only exposes the
+        ! device-callable form (attributes(device)).  fp32mp2 is just
+        ! (hi, lo) double-float, so the host conversion is a single fp64
+        ! add of the two components cast to real(real64) — identical to
+        ! the device function's body.  Outside the timed window, so
+        ! conversion cost does not contaminate the throughput numbers.
+        pi = real(prices_ff_h(ii)%hi, real64) + real(prices_ff_h(ii)%lo, real64)
+      end if
+      mean_p = mean_p + pi
+      if (abs(ref_h(ii)) >= 1.0e-12_real64) then
+        re     = abs(pi - ref_h(ii)) / abs(ref_h(ii))
+        if (re > max_re) max_re = re
+        sum_re = sum_re + re
+        n_used = n_used + 1
+      end if
+    end do
+    mean_p = mean_p / real(N, real64)
+
+    mean_arr  (kind + 1) = mean_p
+    max_re_arr(kind + 1) = max_re
+    avg_re_arr(kind + 1) = sum_re / real(max(1, n_used), real64)
+    dt_arr    (kind + 1) = dt_min
+    kl_arr    (kind + 1) = kl
+  end subroutine read_and_score
+
+  ! Print the two-row table in one pass so each row's "Speedup vs fp64"
+  ! column can reference dt_arr(1) (the fp64 row) regardless of the row
+  ! ordering above.
+  subroutine print_table()
+    call print_row('real(real64) ', 0)
+    call print_row('type(fp32mp2)', 1)
+  end subroutine print_table
+
+  ! Columns: 13-char label, ES11.3 Max|RelErr|, ES11.3 Avg|RelErr|,
+  ! ES10.3 throughput (Mopts/s), ES10.3 per-launch time (s),
+  ! F10.3 speedup vs fp64, I8 launches.  All numeric columns separated
+  ! by two-space gutters; units live in the header sub-line.
+  subroutine print_row(label, kind)
+    character(len=*), intent(in) :: label
+    integer,          intent(in) :: kind
+    real(real64) :: mopt_per_s, speedup
+    mopt_per_s = real(N, real64) / max(dt_arr(kind + 1), 1.0e-12_real64) * 1.0e-6_real64
+    speedup    = dt_arr(1) / max(dt_arr(kind + 1), 1.0e-12_real64)
+    print '(2X,A,2X,ES11.3,2X,ES11.3,2X,ES10.3,2X,ES10.3,2X,F10.3,2X,I8)', &
+      label, max_re_arr(kind + 1), avg_re_arr(kind + 1), mopt_per_s, &
+      dt_arr(kind + 1), speedup, kl_arr(kind + 1)
+  end subroutine print_row
+
+end program fortran_bs_device

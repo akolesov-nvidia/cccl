@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Composite-exp() Error &amp; GPU-Throughput Study</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+
+  <style>
+    :root {
+      --accent: #5ec8ff;
+      --accent2: #ffd166;
+      --good: #4ade80;
+      --bad: #f87171;
+      --muted: #9fb3c8;
+    }
+    .reveal { font-size: 30px; }
+    .reveal h2 { font-size: 1.2em; color: var(--accent); text-transform: none; letter-spacing: -0.01em; margin-bottom: 0.5em; }
+    .reveal table { font-size: 0.62em; margin: 0.4em auto; border-collapse: collapse; }
+    .reveal table th { color: var(--accent); border-bottom: 2px solid var(--accent); padding: 0.25em 0.6em; }
+    .reveal table td { padding: 0.22em 0.6em; border-bottom: 1px solid #2a3a4a; }
+    .reveal table tr.hl td { background: rgba(94,200,255,0.10); }
+    .reveal code { color: var(--accent2); background: rgba(255,255,255,0.06); padding: 0 0.25em; border-radius: 4px; }
+    .reveal .mono { font-family: "SFMono-Regular", Consolas, monospace; }
+    .reveal ul { width: 100%; }
+    .reveal li { margin: 0.3em 0; }
+    .good { color: var(--good); font-weight: 700; }
+    .bad { color: var(--bad); font-weight: 700; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--accent); }
+    .accent2 { color: var(--accent2); }
+    .cols { display: flex; gap: 1.2em; align-items: stretch; }
+    .cols > div { flex: 1; }
+    .card { background: rgba(255,255,255,0.04); border: 1px solid #2a3a4a; border-radius: 12px; padding: 0.7em 0.9em; }
+    .card h3 { margin-top: 0; font-size: 0.95em; text-transform: none; }
+    .reveal .small { font-size: 0.78em; }
+    .reveal .tiny { font-size: 0.6em; }
+    .reveal .formula { font-size: 0.95em; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 0.25em 0.6em; display: inline-block; }
+    .footer { position: fixed; bottom: 8px; left: 18px; font-size: 14px; color: #5a6a7a; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <!-- 1. The problem -->
+  <section>
+    <h2>The problem: error accumulation in long <span class="mono accent2">exp()</span> chains</h2>
+    <p class="small">Two mathematically identical ways to evaluate a chain of length <code>N</code>:</p>
+    <div class="cols">
+      <div class="card">
+        <h3 class="good">compose &mdash; product</h3>
+        <p class="mono small">p ← ∏ exp(xᵢ)</p>
+        <p class="tiny">Per-step error is <span class="accent">relative</span> (~1 ulp, random sign) → independent &amp; unbiased.</p>
+        <p class="tiny good">Random walk: error ~ ε·√N&nbsp;&nbsp;(α ≈ 0.5)</p>
+      </div>
+      <div class="card">
+        <h3 class="bad">expsum &mdash; sum then exp</h3>
+        <p class="mono small">s ← Σ xᵢ ,&nbsp; exp(s)</p>
+        <p class="tiny">Same-sign inputs make |s| grow linearly → late steps add larger <span class="accent">absolute</span> error.</p>
+        <p class="tiny bad">Super-linear: error ~ ε·N<sup>1.5</sup>&nbsp;&nbsp;(α ≈ 1.5)</p>
+      </div>
+    </div>
+    <p class="small" style="margin-top:0.7em;">Relative error scales as <span class="formula mono">ε · N<sup>α</sup></span> — so the α gap (0.5 vs 1.5) is a <span class="bad">100×</span> hit at N = 10⁴ and <span class="bad">1000×</span> at N = 10⁶.</p>
+    <p class="tiny muted">Workload: all-negative <code>xᵢ ∈ [-1e-2, -1e-4]</code>, evaluated in <span class="accent">float</span>, <span class="accent">double</span>, and <span class="accent">fp32mp2</span> (software double-float on FP32).</p>
+  </section>
+
+  <!-- 2. Accuracy -->
+  <section>
+    <h2>Accuracy — relative error at N = 10000 (vs <code>__float128</code>)</h2>
+    <table>
+      <thead><tr><th>variant</th><th>meanRelErr</th><th>fitted α</th><th>regime</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">float / compose</td><td>7.4e-06</td><td><b>0.79</b></td><td>linear-ish</td></tr>
+        <tr><td class="mono">float / expsum</td><td>1.5e-05</td><td class="bad"><b>1.47</b></td><td>super-linear</td></tr>
+        <tr class="hl"><td class="mono">double / compose</td><td>4.6e-15</td><td class="good"><b>0.51</b></td><td>√N</td></tr>
+        <tr><td class="mono">double / expsum</td><td>2.8e-14</td><td class="bad"><b>1.48</b></td><td>super-linear</td></tr>
+        <tr class="hl"><td class="mono accent">fp32mp2 / compose</td><td>1.3e-13</td><td class="good"><b>0.51</b></td><td>√N</td></tr>
+        <tr><td class="mono accent">fp32mp2 / expsum</td><td>6.6e-13</td><td class="bad"><b>1.48</b></td><td>super-linear</td></tr>
+      </tbody>
+    </table>
+    <ul class="small">
+      <li><span class="good">compose beats expsum ~6×</span> at N=10⁴ — pure α gap, and it <em>grows</em> with depth.</li>
+      <li><span class="accent">fp32mp2</span> matches <code>double</code>'s α exactly; it only pays a fixed <span class="accent2">~50× ε-floor</span> (ε ≈ 1e-14 vs 2e-16) — fine when tolerance is ~1e-12.</li>
+    </ul>
+  </section>
+
+  <!-- 3. Performance -->
+  <section>
+    <h2>Performance — Ada-class GPU (FP64 = 1/64 FP32)</h2>
+    <table>
+      <thead><tr><th>dtype</th><th>kernel</th><th>time [ms]</th><th>Gexps/s</th><th>vs FP64</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">float</td><td>compose</td><td>8.5</td><td>94.4</td><td class="good">27.4×</td></tr>
+        <tr class="hl"><td class="mono">double</td><td>compose</td><td class="bad">231.7</td><td class="bad">3.45</td><td>1.00× (baseline)</td></tr>
+        <tr class="hl"><td class="mono accent">fp32mp2</td><td>compose</td><td>38.6</td><td>20.7</td><td class="good">6.0×</td></tr>
+        <tr><td class="mono">double</td><td>expsum</td><td>15.2</td><td>52.5</td><td>1.00× (baseline)</td></tr>
+        <tr><td class="mono accent">fp32mp2</td><td>expsum</td><td>10.0</td><td>80.0</td><td>1.52×</td></tr>
+      </tbody>
+    </table>
+    <ul class="small">
+      <li><code>double / compose</code> collapses to <span class="bad">3.5 Gexps/s</span> — FP64-bound, the slow path to replace.</li>
+      <li><span class="accent">fp32mp2 / compose</span> is <span class="good">6.0×</span> faster on FP32 hardware — the win cuda_multi_fp targets.</li>
+      <li><code>expsum</code> is memory-/latency-bound → all dtypes within ~2×; precision is a wash.</li>
+    </ul>
+    <p class="tiny muted">Out of scope: A100/H100 (FP64 = 1/2 FP32), where native <code>double</code> wins.</p>
+  </section>
+
+</div></div>
+
+<div class="footer">cuda_multi_fp · hpc_exp_error</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    width: 1280,
+    height: 800,
+    margin: 0.06,
+  });
+</script>
+</body>
+</html>
