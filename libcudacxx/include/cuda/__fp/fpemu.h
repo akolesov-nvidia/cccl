@@ -80,8 +80,9 @@ namespace cuda::experimental
     */
     struct fpbits64_construct_t { explicit fpbits64_construct_t() = default; };
 
-    // Constexpr instance of fpbits64_construct_t for convenient usage
-    inline constexpr fpbits64_construct_t fpbits64_construct{};
+    // Global constant instance of fpbits64_construct_t for convenient usage
+    // (host/device accessible)
+    _CCCL_GLOBAL_CONSTANT fpbits64_construct_t fpbits64_construct{};
 
 #if __FPEMU_UNPACKED__ == 1
     // Forward declaration of unpacked floating-point class
