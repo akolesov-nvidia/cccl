@@ -378,8 +378,7 @@
 */
 #include <cuda/__fp/fpmp.h>
 #include <cuda/std/cmath>
-#include <cmath>
-#include <cassert>
+#include <cuda/std/cassert>
 
 #include <cuda/std/__cccl/prologue.h>
 

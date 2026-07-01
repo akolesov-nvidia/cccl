@@ -43,7 +43,7 @@
  */
 
 #if !defined(__CUDA_LIBDEVICE__)
-#include <cstdint>
+#include <cuda/std/cstdint>
 
 #include <cuda/std/__cccl/prologue.h>
 

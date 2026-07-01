@@ -36,10 +36,9 @@
  * platforms and compilers.
  */
 #if !defined(__CUDA_LIBDEVICE__)
-    #include <cstdint>
-    #include <cstring>
-    #include <stdlib.h>
-    #include <memory.h>
+    #include <cuda/std/cstdint>
+    #include <cuda/std/cstring>
+    #include <cuda/std/cstdlib>
 #endif
 
 #include <cuda/std/__bit/bit_cast.h>

@@ -57,10 +57,8 @@
  * can utilize different computational backends based on template parameters.
  */
  
-#include <cstdint>
-#include <iostream>
-#include <string>
-
+#include <cuda/std/cstdint>
+#include <cuda/std/type_traits>
 #include <cuda/__fp/fpemu_common.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -400,8 +398,6 @@ namespace cuda::experimental
         template<typename T1, typename T2>
             __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
             operator>=(const T1& x, const T2& y) { return fp64emu_t(x) >= fp64emu_t(y); }
-        // Friend function for stream insertion
-        __FPEMU_HOST_DEVICE_DECL__ friend ::std::ostream& operator<<(::std::ostream& os, const fp64emu_t& ef) { os << reinterpret_cast<const double&>(ef.bits); return os; }
     }; // class fp64emu_t 
 
 #if __FPEMU_UNPACKED__ == 1
@@ -645,10 +641,6 @@ namespace cuda::experimental
         template<typename T1, typename T2>
             __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
             operator>=(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) >= fp64emu_unpacked_t(y); }
-
-        // Friend function for stream insertion (defined after impl includes)
-        template<fp64emu_accuracy m>
-        __FPEMU_HOST_DEVICE_DECL__ friend ::std::ostream& operator<<(::std::ostream& os, const fp64emu_unpacked_t<m>& ef);
 
         // C++20-style bit_cast for unpacked floating-point types
         template<typename To, fp64emu_accuracy m> 

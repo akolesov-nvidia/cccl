@@ -58,7 +58,6 @@ The class supports:
 -  CUDA-style built-in functions (``__dadd_rn``, ``__dmul_rn``, ``__fma_rn``, etc.)
    that automatically deduce the accuracy level from the argument type
 -  Comparison operators (``==``, ``!=``, ``<``, ``>``, ``<=``, ``>=``)
--  Stream insertion (``operator<<``)
 
 Basic usage
 ~~~~~~~~~~~

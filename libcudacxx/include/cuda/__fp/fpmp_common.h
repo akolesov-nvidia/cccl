@@ -79,11 +79,11 @@
     - Provides fallback implementations for host-only compilation
 */
 
-#include <cstdint>
-#include <cstring>
+#include <cuda/std/cstdint>
+#include <cuda/std/cstring>
 #include <iostream>
 #include <string>
-#include <cmath>
+#include <cuda/std/cmath>
 
 #include <cuda/std/__cccl/prologue.h>
 

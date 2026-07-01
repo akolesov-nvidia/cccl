@@ -150,9 +150,9 @@
  * @license Apache 2.0
  */
 
-#include <cstdint>
-#include <cmath>
-#include <type_traits>
+#include <cuda/std/cstdint>
+#include <cuda/std/cmath>
+#include <cuda/std/type_traits>
 
 #if defined(__CUDACC__) && !defined(__CUDA_ARCH__)
     // Include CUDA runtime for host-side functions like cudaMemcpyToSymbol

@@ -368,15 +368,6 @@ namespace cuda::experimental
 
 #if __FPEMU_UNPACKED__ == 1
 
-    // Stream insertion for unpacked type (deferred from class definition)
-    template<fp64emu_accuracy m>
-    __FPEMU_HOST_DEVICE_DECL__ inline ::std::ostream& operator<<(::std::ostream& os, const fp64emu_unpacked_t<m>& ef)
-    {
-        double d = __nv_fp64emu_unpacked_to_double(ef.bits);
-        os << d;
-        return os;
-    }
-
     // Unary negation operator for unpacked - member function implementation
     template<fp64emu_accuracy m>
     __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t<m> fp64emu_unpacked_t<m>::operator-() const
