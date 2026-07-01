@@ -4,7 +4,7 @@
     Author:  generated
     Date:    2026
 
-    fpmp.hpp provides cross-precision converting constructors and assignment
+    fpmp.h provides cross-precision converting constructors and assignment
     operators between fp32mp2 (double-float) and fp64mp2 (double-double):
 
       * Upconvert  fp32mp2 -> fp64mp2 : implicit, lossless. Uses fast_two_sum

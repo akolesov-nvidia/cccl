@@ -153,4 +153,4 @@ benchmarks/pcm/
 ## Dependencies
 
 - **CUDA Toolkit** ≥ 13.0 (provides `double4_32a` in `vector_types.h`)
-- **fpmp headers**: `fpmp.hpp`, `fpmp_math.hpp` (for `fp32mp2`, `erf`, `rsqrt`)
+- **fpmp headers**: `fpmp.h`, `fpmp_math.h` (for `fp32mp2`, `erf`, `rsqrt`)

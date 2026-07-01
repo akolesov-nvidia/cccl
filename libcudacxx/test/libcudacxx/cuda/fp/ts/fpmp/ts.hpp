@@ -189,7 +189,7 @@
             // x86_64 and AArch64: a true 128-bit reference for every function that
             // has a native intrinsic, and a double-widen reference only for the
             // few that do not (atan2, cbrt, erf, erfc, scalbn). This mirrors the
-            // library dispatch in fpmp_math.hpp and replaces the older "base
+            // library dispatch in fpmp_math.h and replaces the older "base
             // defaults + #undef/#define override" two-step (the spelling macros
             // are already resolved here, since the crt header is included above).
             // When the intrinsics/spelling are NOT guaranteed, the conservative
@@ -222,7 +222,7 @@
             #define __TS_REMAINDERQ(x,y) __nv_fp128_remainder((x),(y))
             // No native __nv_fp128_cbrt: reconstruct from pow with a true fp128
             // 1/3 and restore the sign (pow rejects negative bases). Mirrors the
-            // library reference (__FPMP_CBRTQ in fpmp_math.hpp) so the cbrt
+            // library reference (__FPMP_CBRTQ in fpmp_math.h) so the cbrt
             // reference is ~fp128-accurate instead of being capped at ~53 bits.
             #define __TS_CBRTQ(x)        __nv_fp128_copysign(__nv_fp128_pow(__nv_fp128_fabs(x), (__ts_fp128)1 / (__ts_fp128)3), (x))
             // No native __nv_fp128_* for these -- widen through double.
@@ -430,7 +430,7 @@
         #define __FIXED_INPUTS__
     #endif
 
-// Debug print utilities (always available; add PRINTFP32/PRINTMP32 calls to fpmp_impl.hpp as needed)
+// Debug print utilities (always available; add PRINTFP32/PRINTMP32 calls to fpmp_impl.h as needed)
 #include "ts_debug.hpp"
 
     #undef MIN

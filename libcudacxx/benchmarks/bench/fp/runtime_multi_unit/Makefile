@@ -3,7 +3,7 @@
 #  File:    Makefile
 #  Purpose: Build and run FP64 Tool Runtime Multi-Unit Test
 #  
-#  This benchmark tests that fp64_tool.hpp can be safely included in multiple
+#  This benchmark tests that fp64_tool.h can be safely included in multiple
 #  compilation units without causing linker errors or symbol conflicts.
 #
 #                       USER GUIDE

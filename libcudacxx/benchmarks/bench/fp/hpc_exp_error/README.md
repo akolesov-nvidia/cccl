@@ -22,7 +22,7 @@ The questions the benchmark answers:
 This directory is self-contained: it depends only on `nvcc`, a recent
 `g++` (with `libquadmath` for the `__float128` reference oracle), and
 the cuda_multi_fp headers. cuda_multi_fp is **header-only** for the
-templates used here (`fpmp.hpp`, `fpmp_math.hpp`); nothing needs to be
+templates used here (`fpmp.h`, `fpmp_math.h`); nothing needs to be
 linked from it.
 
 Point the build at your cuda_multi_fp checkout and go:
@@ -38,12 +38,12 @@ Two equivalent ways to point at the headers:
 
 * `CUDA_MULTI_FP_DIR=<root of cuda_multi_fp>` — preferred, appends `/include`
   automatically.
-* `FPMP_INC=<path that already contains fpmp.hpp>` — lower-level direct
+* `FPMP_INC=<path that already contains fpmp.h>` — lower-level direct
   override.
 
 When both are unset the Makefile falls back to `../../include` relative to
 its own location (the layout when the benchmark sits inside a cuda_multi_fp
-checkout). If the resolved path doesn't actually contain `fpmp.hpp` the
+checkout). If the resolved path doesn't actually contain `fpmp.h` the
 build aborts immediately with a one-line hint listing the override knobs.
 
 Output goes to `_out/`. Running the executable prints three sections in
@@ -268,7 +268,7 @@ README.md                     - this file
 
 External dependencies:
 
-* **cuda_multi_fp headers** — `fpmp.hpp`, `fpmp_math.hpp`. Header-only;
+* **cuda_multi_fp headers** — `fpmp.h`, `fpmp_math.h`. Header-only;
   pointed at via `CUDA_MULTI_FP_DIR` or `FPMP_INC` (see Quick start).
 * **`g++`** — recent enough to provide `__float128` and `libquadmath`
   (any GCC ≥ 7 on x86_64 Linux). Used for both host TUs and for the

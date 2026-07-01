@@ -21,11 +21,11 @@
 #  pragma system_header
 #endif // no system header
 /*
-    fpmp_math.hpp - Math Extensions for fpmp2 Types
+    fpmp_math.h - Math Extensions for fpmp2 Types
     ======================================================================================================
     This header provides transcendental mathematical functions for fpmp2 types
     (fp32mp2 = double-float, fp64mp2 = double-double) beyond core arithmetic.
-    Include this header after fpmp.hpp to enable mathematical functions.
+    Include this header after fpmp.h to enable mathematical functions.
 
     All dedicated fp32mp2 implementations use pure float-float arithmetic
     (no double-precision operations), making them suitable for GPU architectures
@@ -161,7 +161,7 @@
     Warp Shuffle (CUDA-only, modern __shfl_sync family): the fpmp2_t overloads
     of __shfl_sync / __shfl_xor_sync / __shfl_down_sync / __shfl_up_sync are
     thread-cooperation primitives, not math, so they live in the core header
-    <cuda/__fp/fpmp.hpp> (available via <cuda/fpmp>), not here.
+    <cuda/__fp/fpmp.h> (available via <cuda/fpmp>), not here.
 
     Dedicated Implementation Details:
     -------------------------------------------------------------------------
@@ -376,7 +376,7 @@
       Note: this macro does NOT change the small-argument (|x| < 2^20) Cody-Waite
       path, which is always used and never depends on fp64.
 */
-#include <cuda/__fp/fpmp.hpp>
+#include <cuda/__fp/fpmp.h>
 #include <cuda/std/cmath>
 #include <cmath>
 #include <cassert>
@@ -7365,7 +7365,7 @@ __FPMP_NOEXCEPT__
 /*
 * Note: the fpmp2_t warp-shuffle overloads (__shfl_sync, __shfl_xor_sync,
 * __shfl_down_sync, __shfl_up_sync) are thread-cooperation primitives, not math
-* functions, so they live in the core header <cuda/__fp/fpmp.hpp> (available via
+* functions, so they live in the core header <cuda/__fp/fpmp.h> (available via
 * <cuda/fpmp>) rather than here.
 */
 

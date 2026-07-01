@@ -33,7 +33,7 @@ Features demonstrated:
 
 ### fp32mp2_math.cpp — Dedicated fp32mp2 Math Functions Demo
 
-Minimal example exercising every general-purpose dedicated `fp32mp2` math function provided by `fpmp_math.hpp` — no accuracy checks, just a single call per function with a printed result.  Covers:
+Minimal example exercising every general-purpose dedicated `fp32mp2` math function provided by `fpmp_math.h` — no accuracy checks, just a single call per function with a printed result.  Covers:
 
 - `exp`, `log`, `pow` (Exponential / Logarithmic)
 - `cbrt`, `rcbrt` (Power)

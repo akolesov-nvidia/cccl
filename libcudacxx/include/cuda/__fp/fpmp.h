@@ -22,7 +22,7 @@
 #  pragma system_header
 #endif // no system header
 /*
-    fpmp.hpp - Multi-Precision Floating-Point Types and Core Operations (double-float / double-double)
+    fpmp.h - Multi-Precision Floating-Point Types and Core Operations (double-float / double-double)
     ======================================================================================================
     This header defines the primary public types and core operations for multi-component floating-point
     arithmetic using pairs of IEEE-754 floating-point values. It supports both "double-float" (fp32mp2)
@@ -61,7 +61,7 @@
         * Bit-casting: Supports reinterpretation of the value as a 64-bit integer (IEEE-754 format).
         * Atomic Operations: Supports atomic addition and subtraction on multi-precision floating point numbers (CUDA only).
         * Warp Shuffle: Overloads of CUDA's __shfl_sync family for fpmp2 pairs (CUDA only, header-only,
-          declared in fpmp_math.hpp; not exposed via fpmp_lib).
+          declared in fpmp_math.h; not exposed via fpmp_lib).
         * GPU & Host Compatibility: All operations and members are decorated for both device and host use.
 
     - Implementation Aspects
@@ -81,8 +81,8 @@
 
     Example Usage:
     -------------------------------------------------------------------------
-        #include "fpmp.hpp"
-        #include "fpmp_math.hpp"
+        #include "fpmp.h"
+        #include "fpmp_math.h"
         
         // Basic arithmetic with double-float precision
         fp32mp2 a = 1.23456789123456789;       // double-float precision from double value
@@ -114,7 +114,7 @@
         * __nv_fpmp2_cmp_eq, __nv_fpmp2_cmp_lt, etc. : Comparison operations
         * __nv_fpmp2_atomicAdd, __nv_fpmp2_atomicSub : Atomic operations (CUDA only, slower than hardware atomics)
         * __shfl_sync, __shfl_xor_sync, __shfl_down_sync, __shfl_up_sync :
-          Warp shuffle overloads for fpmp2 pairs (CUDA only, header-only via fpmp_math.hpp).
+          Warp shuffle overloads for fpmp2 pairs (CUDA only, header-only via fpmp_math.h).
     
     - C++ class template:
         * fpmp2_t<FpType, fpmp2_accuracy> : Template class with operator overloading
@@ -173,8 +173,8 @@
 */
 
 
-#include <cuda/__fp/fpmp_common.hpp>
-#include <cuda/__fp/fpmp_impl.hpp>
+#include <cuda/__fp/fpmp_common.h>
+#include <cuda/__fp/fpmp_impl.h>
 
 #include <cuda/std/__cccl/prologue.h>
 

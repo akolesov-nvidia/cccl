@@ -49,8 +49,8 @@
 #
 #  Dependencies:
 #  -------------
-#    - cuda_multi_fp library (fpmp.hpp) for float-float and double-double
-#    - fpemu library (fpemu.hpp) for emulated FP64 types
+#    - cuda_multi_fp library (fpmp.h) for float-float and double-double
+#    - fpemu library (fpemu.h) for emulated FP64 types
 #
 ###########################################################################################
 

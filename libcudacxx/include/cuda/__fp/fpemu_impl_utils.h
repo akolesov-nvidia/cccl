@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 /**
- * @file fpemu_impl_utils.hpp
+ * @file fpemu_impl_utils.h
  * @brief Common utility functions and definitions for FPEMU library
  *
  * This header provides common utility functions and definitions used throughout
@@ -56,7 +56,7 @@ namespace cuda::experimental
 
 /*
  * Packed-via-unpacked TEST mode (__FPEMU_PACKED_VIA_UNPACKED__) is configured in
- * fpemu_common.hpp and set by the Makefile's PACKED_VIA_UNPACKED=y. When ON, the
+ * fpemu_common.h and set by the Makefile's PACKED_VIA_UNPACKED=y. When ON, the
  * packed (fpbits64_t) builtins are routed through the combined unpack ->
  * *_unpacked core -> pack pipeline so the packed test harness exercises the
  * unpacked cores. When OFF (default), the legacy fused packed kernels are used
@@ -1191,7 +1191,7 @@ namespace fpemu
 
     // NOTE: the representation pack/unpack routines
     //   impl::__nv_internal_fp64emu_unpack / impl::__nv_internal_fp64emu_pack
-    // live in fpemu_impl_unpack.hpp so that the common prologue/epilogue shared
+    // live in fpemu_impl_unpack.h so that the common prologue/epilogue shared
     // by every unpacked operation and method lives in a single header.
 } // namespace fpemu
 
@@ -1213,7 +1213,7 @@ namespace impl
 
 // ============================================================================
 // Shared fixed-point helpers for the native fp64 divide and square root
-// implementations (fpemu_impl_div.hpp / fpemu_impl_sqrt.hpp).
+// implementations (fpemu_impl_div.h / fpemu_impl_sqrt.h).
 // ============================================================================
 
 /// @brief High 64 bits of a 64x64 -> 128 unsigned multiply (host/device).
@@ -1281,7 +1281,7 @@ __FPEMU_INTERNAL_DECL__ fpbits64_t __nv_internal_fp64emu_round_pack (bool     si
 
 // NOTE: the fpbits64_unpacked_t pack/unpack routines
 //   impl::__nv_internal_fp64emu_unpack / impl::__nv_internal_fp64emu_pack
-// were moved to fpemu_impl_unpack.hpp (shared prologue/epilogue for every op).
+// were moved to fpemu_impl_unpack.h (shared prologue/epilogue for every op).
 
 } // namespace impl
 

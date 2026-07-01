@@ -23,7 +23,7 @@ struct fma_function
         // template arg under ROUNDING={rz,ru,rd}, we switch to the
         // explicitly-rounded entry points, which exist for both Tin=double
         // (CUDA double intrinsics) and Tin=__nv_fp64emu_t<m>
-        // (fpemu_impl_fma.hpp __fma_r{n,z,u,d} templates).
+        // (fpemu_impl_fma.h __fma_r{n,z,u,d} templates).
         // For rn we keep the unrounded `fma()` to preserve the original
         // test target (the C-style API), which already routes to _rn.
         #if defined __USE_CUDA_BUILTINS__

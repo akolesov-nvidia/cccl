@@ -74,7 +74,7 @@ namespace fix::hpc {
 // the kernels below resolve correctly for every working type:
 //   * float / double : finds std::exp via this using-declaration.
 //   * __nv_fpmp2_t<> : finds the freestanding exp() declared at global
-//                      scope in fpmp_math.hpp via argument-dependent
+//                      scope in fpmp_math.h via argument-dependent
 //                      lookup (the type's associated namespace).
 // __float128 is intentionally NOT used through these kernels — the
 // reference oracle in hpc_exp_error_ref.cpp inlines its own expq() loop.

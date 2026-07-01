@@ -42,7 +42,7 @@
         nvcc -std=c++17 -O2 -I../include fp64mp2.cpp -o fp64mp2.exe
 
     Add -quadmath to the linker flags to enable quad-precision math fallbacks
-    when using fpmp_math.hpp functions.
+    when using fpmp_math.h functions.
 
     Example:
     nvcc -std=c++17 -O2 -I../include fp64mp2.cpp -o fp64mp2.exe -lquadmath

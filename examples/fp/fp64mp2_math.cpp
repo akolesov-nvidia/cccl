@@ -2,7 +2,7 @@
     fp64mp2_math.cpp - fp64mp2 Math Functions Demo
     ======================================================================================================
 
-    Minimal example exercising every math function in the fpmp_math.hpp API for the
+    Minimal example exercising every math function in the fpmp_math.h API for the
     fp64mp2 (double-double) type.  No accuracy checks, no reference comparisons -
     just call each function and print the result.
 

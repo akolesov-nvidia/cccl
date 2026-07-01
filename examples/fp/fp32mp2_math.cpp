@@ -2,7 +2,7 @@
     fp32mp2_math.cpp - Dedicated fp32mp2 Math Functions Demo
     ======================================================================================================
 
-    Minimal example exercising every dedicated fp32mp2 math function provided by fpmp_math.hpp.
+    Minimal example exercising every dedicated fp32mp2 math function provided by fpmp_math.h.
     No accuracy checks, no reference comparisons - just call each function and print the result.
 
     Dedicated fp32mp2 implementations (all pure float-float, no fp64 ops) - exercised below:

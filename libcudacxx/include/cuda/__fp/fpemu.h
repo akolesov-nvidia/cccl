@@ -21,25 +21,25 @@
 #  pragma system_header
 #endif // no system header
 /**
- * @file fpemu.hpp
+ * @file fpemu.h
  * @brief Main header file for the FPEMU floating point scalar emulation library
  *
  * This is the main header file that provides access to the complete FPEMU library.
  * It includes all the necessary headers for:
  *
- * - Core definitions, macros and enumerations (fpemu_common.hpp)
+ * - Core definitions, macros and enumerations (fpemu_common.h)
  * - Class templates (fp64emu_t, fp64emu_unpacked_t)
  * - Public API functions (operators, builtins, conversions)
  * - Implementation files for specific scalar operations:
- *   - Comparison operations (fpemu_impl_cmp.hpp)
- *   - Type conversions (fpemu_impl_cvt.hpp)
- *   - Fused multiply-add (fpemu_impl_fma.hpp)
- *   - Addition (fpemu_impl_add.hpp)
- *   - Subtraction (fpemu_impl_sub.hpp)
- *   - Multiplication (fpemu_impl_mul.hpp)
- *   - Division (fpemu_impl_div.hpp)
- *   - Square root (fpemu_impl_sqrt.hpp)
- *   - Other operations (fpemu_impl_others.hpp)
+ *   - Comparison operations (fpemu_impl_cmp.h)
+ *   - Type conversions (fpemu_impl_cvt.h)
+ *   - Fused multiply-add (fpemu_impl_fma.h)
+ *   - Addition (fpemu_impl_add.h)
+ *   - Subtraction (fpemu_impl_sub.h)
+ *   - Multiplication (fpemu_impl_mul.h)
+ *   - Division (fpemu_impl_div.h)
+ *   - Square root (fpemu_impl_sqrt.h)
+ *   - Other operations (fpemu_impl_others.h)
  *
  * The library provides IEEE-754 compliant emulated scalar floating point operations
  * with configurable rounding modes and computation methods.
@@ -61,7 +61,7 @@
 #include <iostream>
 #include <string>
 
-#include <cuda/__fp/fpemu_common.hpp>
+#include <cuda/__fp/fpemu_common.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -120,7 +120,7 @@ namespace cuda::experimental
      public:
 
         // Internal representation of the floating-point value
-        // fpbits64_t is defined in fpemu_common.hpp
+        // fpbits64_t is defined in fpemu_common.h
         fpbits64_t bits;
         
         /*
@@ -370,7 +370,7 @@ namespace cuda::experimental
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator-=(const fp64emu_t& other) { *this = *this - other; return *this; }
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator*=(const fp64emu_t& other) { *this = *this * other; return *this; }
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator/=(const fp64emu_t& other) { *this = *this / other; return *this; }
-        // Unary negation operator (implementation in fpemu_impl_others.hpp)
+        // Unary negation operator (implementation in fpemu_impl_others.h)
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t  operator-() const;
 
         /*
@@ -412,7 +412,7 @@ namespace cuda::experimental
      public:
 
         // Internal representation of the unpacked floating-point value
-        // fpbits64_unpacked_t is defined in fpemu_common.hpp
+        // fpbits64_unpacked_t is defined in fpemu_common.h
         fpbits64_unpacked_t bits;
         
         /*
@@ -615,7 +615,7 @@ namespace cuda::experimental
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator-=(const fp64emu_unpacked_t& other) { *this = *this - other; return *this; }
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator*=(const fp64emu_unpacked_t& other) { *this = *this * other; return *this; }
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator/=(const fp64emu_unpacked_t& other) { *this = *this / other; return *this; }
-        // Unary negation operator (implementation in fpemu_impl_others.hpp)
+        // Unary negation operator (implementation in fpemu_impl_others.h)
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t  operator-() const;
 
         /*
@@ -681,14 +681,14 @@ namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>
 
-#include <cuda/__fp/fpemu_impl_cmp.hpp>
-#include <cuda/__fp/fpemu_impl_cvt.hpp>
-#include <cuda/__fp/fpemu_impl_fma.hpp>
-#include <cuda/__fp/fpemu_impl_add.hpp>
-#include <cuda/__fp/fpemu_impl_sub.hpp>
-#include <cuda/__fp/fpemu_impl_mul.hpp>
-#include <cuda/__fp/fpemu_impl_div.hpp>
-#include <cuda/__fp/fpemu_impl_sqrt.hpp>
-#include <cuda/__fp/fpemu_impl_others.hpp>
+#include <cuda/__fp/fpemu_impl_cmp.h>
+#include <cuda/__fp/fpemu_impl_cvt.h>
+#include <cuda/__fp/fpemu_impl_fma.h>
+#include <cuda/__fp/fpemu_impl_add.h>
+#include <cuda/__fp/fpemu_impl_sub.h>
+#include <cuda/__fp/fpemu_impl_mul.h>
+#include <cuda/__fp/fpemu_impl_div.h>
+#include <cuda/__fp/fpemu_impl_sqrt.h>
+#include <cuda/__fp/fpemu_impl_others.h>
 
 #endif // _CUDA___FP_FPEMU_H

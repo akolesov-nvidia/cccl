@@ -2,7 +2,7 @@
     fp64_tool_runtime.cpp - FP64 Precision Emulation Tool Runtime Size Demo
     ======================================================================================================
 
-    This example demonstrates the runtime size functionality of fp64_tool.hpp.
+    This example demonstrates the runtime size functionality of fp64_tool.h.
     It tests that precision can be changed at runtime using FP64_TOOL_RUNTIME_SIZE.
 
     Test Case:

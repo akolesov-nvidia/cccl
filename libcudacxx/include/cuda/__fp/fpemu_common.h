@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 /**
- * @file fpemu_common.hpp
+ * @file fpemu_common.h
  * @brief Common definitions, macros, and enumerations for the FPEMU library
  *
  * This header provides the core definitions, macros, and enumerations used throughout 

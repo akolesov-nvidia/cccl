@@ -16,7 +16,7 @@ This benchmark compares the throughput performance of various floating-point dat
 
 ### Library Dependencies
 
-- **float-float, double-double**: `cuda_multi_fp` library (`fpmp.hpp`)
+- **float-float, double-double**: `cuda_multi_fp` library (`fpmp.h`)
 - **efp64_cr, efp64_ha**: `cuda_fp64` library (`efp64.hpp`)
 
 ## Performance Metrics

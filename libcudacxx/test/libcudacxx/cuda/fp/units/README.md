@@ -49,7 +49,7 @@ Comprehensive volatile constructor/copy/assignment tests on both host and device
 CUDA-only compatibility test with `cooperative_groups::reduce`, confirming that trivially copyable FPMP types work with warp-level shuffle intrinsics.
 
 ### `fpmp_fp64_tool.cpp`
-Unit tests for the FP64 precision emulation tool (`fp64_tool.hpp`).
+Unit tests for the FP64 precision emulation tool (`fp64_tool.h`).
 
 ### `fpmp_limits.cpp`
 `cuda::std::numeric_limits<>` specialization checks for `fp32mp2`/`fp64mp2`: compile-time

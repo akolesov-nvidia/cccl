@@ -2,13 +2,13 @@
     runtime_multi_unit.cpp - FP64 Tool Runtime Size Multi-Unit Test
     ======================================================================================================
 
-    This benchmark tests that fp64_tool.hpp can be safely included in multiple compilation units
+    This benchmark tests that fp64_tool.h can be safely included in multiple compilation units
     within a single binary without causing linker errors or runtime issues.
 
     Test Structure:
     -------------------------------------------------------------------------
-    - Main compilation unit (this file): Includes fp64_tool.hpp and calls test functions
-    - Auxiliary compilation unit (runtime_multi_unit_aux.cpp): Also includes fp64_tool.hpp
+    - Main compilation unit (this file): Includes fp64_tool.h and calls test functions
+    - Auxiliary compilation unit (runtime_multi_unit_aux.cpp): Also includes fp64_tool.h
     - Both units use runtime size functionality and call kernels
     - Verifies that there are no symbol conflicts or overdefinition errors
 
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
     std::printf("FP64 Tool Runtime Size Multi-Unit Test\n");
     std::printf("======================================\n");
     std::printf("\n");
-    std::printf("This test verifies that fp64_tool.hpp can be included in\n");
+    std::printf("This test verifies that fp64_tool.h can be included in\n");
     std::printf("multiple compilation units without linker errors.\n");
     std::printf("\n");
     

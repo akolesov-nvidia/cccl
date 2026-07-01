@@ -35,7 +35,7 @@ Key Features
 
    -  Basic arithmetic: addition, subtraction, multiplication, division
    -  Core math: sqrt, rsqrt, fma/mad
-   -  Math extensions (in ``fpmp_math.hpp``): dedicated fp32mp2 implementations for ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``asin``, ``acos``, ``atan``, ``atan2``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``; remaining CUDA math functions are currently provided as **placeholders** delegating to standard higher precision math
+   -  Math extensions (in ``fpmp_math.h``): dedicated fp32mp2 implementations for ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``asin``, ``acos``, ``atan``, ``atan2``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``; remaining CUDA math functions are currently provided as **placeholders** delegating to standard higher precision math
    -  Comparison operators: ==, !=, <, <=, >, >=
    -  Type conversions: double, float, integer types
    -  Atomic operations: atomicAdd/atomicSub (CUDA device only)
@@ -150,10 +150,10 @@ fp32mp2 (Double-Float) & fp64mp2 (Double-Double)
 -  ✅ Multiple accuracy levels (low, mid [default], high) including error-free transformations (Dekker, Karp-Markstein algorithms)
 -  ✅ Comparison operators
 -  ✅ Type conversions
--  ✅ ``cuda::std::numeric_limits<>`` specialization (``fpmp_limits.hpp``)
+-  ✅ ``cuda::std::numeric_limits<>`` specialization (``fpmp_limits.h``)
 -  ✅ Atomic operations (CUDA device only)
--  ✅ Dedicated fp32mp2 math in ``fpmp_math.hpp``: ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``
--  ⬜ Remaining CUDA math functions are present in ``fpmp_math.hpp`` but are currently **placeholders** (delegating to standard higher precision math)
+-  ✅ Dedicated fp32mp2 math in ``fpmp_math.h``: ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``
+-  ⬜ Remaining CUDA math functions are present in ``fpmp_math.h`` but are currently **placeholders** (delegating to standard higher precision math)
 -  ✅ Examples
 
 Data Types
@@ -666,12 +666,12 @@ umbrella):
    ├── fpmp                       # Public umbrella header (core) — include via <cuda/fpmp>
    ├── fpmp_math                  # Public umbrella header (core + math) — include via <cuda/fpmp_math>
    └── __fp/                      # Internal implementation headers (do not include directly)
-       ├── fpmp.hpp               # Types, C++ class fpmp2_t, operators/conversions, core ops
-       ├── fpmp_common.hpp        # Platform/compiler macros, utilities, error-free transform building blocks
-       ├── fpmp_impl.hpp          # Low-level C-style API (builtins, conversions, comparisons, atomics)
-       ├── fpmp_lib.hpp           # Built-in function declarations for direct C-style usage
-       ├── fpmp_limits.hpp        # cuda::std::numeric_limits<> specialization for fp32mp2/fp64mp2
-       └── fpmp_math.hpp          # Math extensions (exp, log, pow, trig, ...) + placeholders
+       ├── fpmp.h               # Types, C++ class fpmp2_t, operators/conversions, core ops
+       ├── fpmp_common.h        # Platform/compiler macros, utilities, error-free transform building blocks
+       ├── fpmp_impl.h          # Low-level C-style API (builtins, conversions, comparisons, atomics)
+       ├── fpmp_lib.h           # Built-in function declarations for direct C-style usage
+       ├── fpmp_limits.h        # cuda::std::numeric_limits<> specialization for fp32mp2/fp64mp2
+       └── fpmp_math.h          # Math extensions (exp, log, pow, trig, ...) + placeholders
 
    examples/fp/                                # Example programs (fp32mp2.cpp, fp64mp2.cpp, *_math, *_thread, ...)
    libcudacxx/test/libcudacxx/cuda/fp/units/   # Unit tests
@@ -690,14 +690,14 @@ documented for reference only and should not be included directly.
 ============================= ===================================================================================================================================================================================================================================================================================================================================================================================================================
 Header                        Description
 ============================= ===================================================================================================================================================================================================================================================================================================================================================================================================================
-``<cuda/fpmp>``               Public umbrella header (core). Include this for the type and operations; it brings in ``cuda/__fp/fpmp.hpp`` and ``cuda/__fp/fpmp_limits.hpp``.
-``<cuda/fpmp_math>``          Public umbrella header (core + math). Brings in ``cuda/__fp/fpmp.hpp`` and ``cuda/__fp/fpmp_math.hpp``.
-``cuda/__fp/fpmp.hpp``        Types, C++ class ``fpmp2_t`` with operators/conversions, and core ops.
-``cuda/__fp/fpmp_common.hpp`` Platform/compiler macros, utilities, and shared building blocks for error-free transforms.
-``cuda/__fp/fpmp_impl.hpp``   Low-level C-style API (builtins for arithmetic, conversions, comparisons; CUDA atomics).
-``cuda/__fp/fpmp_lib.hpp``    Built-in function declarations for direct C-style usage (fp32mp2/fp64mp2 arithmetic, conversions, comparisons, math).
-``cuda/__fp/fpmp_limits.hpp`` ``cuda::std::numeric_limits<>`` specialization for the ``fp32mp2``/``fp64mp2`` types (and their method variants); pulled in by ``<cuda/fpmp>``.
-``cuda/__fp/fpmp_math.hpp``   Math extensions: dedicated fp32mp2 implementations for ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``asin``, ``acos``, ``atan``, ``atan2``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``; remaining CUDA math functions are placeholder wrappers (higher precision).
+``<cuda/fpmp>``               Public umbrella header (core). Include this for the type and operations; it brings in ``cuda/__fp/fpmp.h`` and ``cuda/__fp/fpmp_limits.h``.
+``<cuda/fpmp_math>``          Public umbrella header (core + math). Brings in ``cuda/__fp/fpmp.h`` and ``cuda/__fp/fpmp_math.h``.
+``cuda/__fp/fpmp.h``        Types, C++ class ``fpmp2_t`` with operators/conversions, and core ops.
+``cuda/__fp/fpmp_common.h`` Platform/compiler macros, utilities, and shared building blocks for error-free transforms.
+``cuda/__fp/fpmp_impl.h``   Low-level C-style API (builtins for arithmetic, conversions, comparisons; CUDA atomics).
+``cuda/__fp/fpmp_lib.h``    Built-in function declarations for direct C-style usage (fp32mp2/fp64mp2 arithmetic, conversions, comparisons, math).
+``cuda/__fp/fpmp_limits.h`` ``cuda::std::numeric_limits<>`` specialization for the ``fp32mp2``/``fp64mp2`` types (and their method variants); pulled in by ``<cuda/fpmp>``.
+``cuda/__fp/fpmp_math.h``   Math extensions: dedicated fp32mp2 implementations for ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``asin``, ``acos``, ``atan``, ``atan2``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``; remaining CUDA math functions are placeholder wrappers (higher precision).
 ============================= ===================================================================================================================================================================================================================================================================================================================================================================================================================
 
 Examples
@@ -1015,7 +1015,7 @@ Transcendental mathematical Functions
 
 .. code:: c++
 
-   // Roots and power functions (fpmp_math.hpp)
+   // Roots and power functions (fpmp_math.h)
    fp32mp2 exp(const fp32mp2& x);          // Exponential (e^x)
    fp32mp2 log(const fp32mp2& x);          // Natural logarithm
    fp32mp2 log2(const fp32mp2& x);         // Base-2 logarithm
@@ -1025,7 +1025,7 @@ Transcendental mathematical Functions
                  const fp32mp2& y);
    fp32mp2 cbrt(const fp32mp2& x);         // Cube root
 
-   // Trigonometric functions (fpmp_math.hpp)
+   // Trigonometric functions (fpmp_math.h)
    fp32mp2 sin(const fp32mp2& x);          // Sine
    fp32mp2 cos(const fp32mp2& x);          // Cosine
    void sincos(const fp32mp2& x,             // Simultaneous sine/cosine
@@ -1036,19 +1036,19 @@ Transcendental mathematical Functions
    fp32mp2 atan2(const fp32mp2& y,         // Two-argument arctangent
                    const fp32mp2& x);
 
-   // Hyperbolic functions (fpmp_math.hpp)
+   // Hyperbolic functions (fpmp_math.h)
    fp32mp2 sinh(const fp32mp2& x);         // Hyperbolic sine
    fp32mp2 cosh(const fp32mp2& x);         // Hyperbolic cosine
    fp32mp2 tanh(const fp32mp2& x);         // Hyperbolic tangent
 
-   // Error functions (fpmp_math.hpp)
+   // Error functions (fpmp_math.h)
    fp32mp2 erf(const fp32mp2& x);          // Error function
    fp32mp2 erfc(const fp32mp2& x);         // Complementary error function
 
-   // Probability / Gaussian RNG (fpmp_math.hpp)
+   // Probability / Gaussian RNG (fpmp_math.h)
    fp32mp2 normcdfinv(const fp32mp2& p);   // Inverse normal CDF: Φ⁻¹(p)
 
-   // Rounding (fpmp_math.hpp)
+   // Rounding (fpmp_math.h)
    fp32mp2 floor(const fp32mp2& x);        // Dedicated fp32mp2 optimization
    fp32mp2 ceil(const fp32mp2& x);         // Dedicated fp32mp2 optimization
    fp32mp2 round(const fp32mp2& x);        // Dedicated fp32mp2 optimization

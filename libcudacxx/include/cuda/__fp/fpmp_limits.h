@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 /*
-    fpmp_limits.hpp - cuda::std::numeric_limits specialization for fpmp2_t
+    fpmp_limits.h - cuda::std::numeric_limits specialization for fpmp2_t
     ======================================================================================================
     Provides a cuda::std::numeric_limits<> specialization for the multi-precision double-word types
     fpmp2_t<FpType, met> (fp32mp2 = double-float, fp64mp2 = double-double), mirroring the standard
@@ -46,7 +46,7 @@
       round-to-nearest behavior from the underlying FpType arithmetic.
 */
 
-#include <cuda/__fp/fpmp.hpp>
+#include <cuda/__fp/fpmp.h>
 #include <cuda/std/limits>
 
 #include <cuda/std/__cccl/prologue.h>

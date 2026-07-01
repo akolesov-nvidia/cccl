@@ -2,7 +2,7 @@
     fp64_tool.cpp - FP64 Precision Emulation Tool - Minimal Example
     ======================================================================================================
 
-    This example shows how to use fp64_tool.hpp to emulate reduced floating-point
+    This example shows how to use fp64_tool.h to emulate reduced floating-point
     precision using native FP64 hardware.
 
     Steps demonstrated:

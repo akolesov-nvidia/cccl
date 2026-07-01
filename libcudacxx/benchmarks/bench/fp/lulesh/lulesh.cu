@@ -105,7 +105,7 @@ __device__ __host__ inline real8  FMIN(real8  arg1,real8  arg2) { return fmin(ar
 #ifdef EMULATED_PRECISION
   #ifdef USE_FPMP
     // fp32mp2 path: dispatch directly to the dedicated native overloads in
-    // fpmp_math.hpp (sqrt / cbrt / fabs / fmax / fmin) — avoids the
+    // fpmp_math.h (sqrt / cbrt / fabs / fmax / fmin) — avoids the
     // mp2 -> double -> mp2 round-trip and the fp64 transcendental call.
     __device__ __host__ inline Real_t SQRT(Real_t arg)             { return sqrt(arg) ; }
     __device__ __host__ inline Real_t CBRT(Real_t arg)             { return cbrt(arg) ; }

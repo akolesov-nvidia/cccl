@@ -29,7 +29,7 @@
 #include <cuda/std/type_traits>
 
 /*
-    fpmp_common.hpp - Common Definitions and Internal Utilities for Multi-Precision Floating-Point Library
+    fpmp_common.h - Common Definitions and Internal Utilities for Multi-Precision Floating-Point Library
     ======================================================================================================
     This header provides common macros, type definitions, and internal utility functions used throughout
     the multi-precision floating-point arithmetic library. It serves as the foundation for both host and 
@@ -770,7 +770,7 @@ enum struct fpmp2_accuracy
 
     /*
     // Scalar rounding helpers (host + device)
-    // Intentionally named under fpmp:: namespace and used by fpmp_math.hpp
+    // Intentionally named under fpmp:: namespace and used by fpmp_math.h
     // dedicated fp32mp2 rounding implementations.
     */
     template<typename FpType = float>

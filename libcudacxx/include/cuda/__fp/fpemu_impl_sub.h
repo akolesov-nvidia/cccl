@@ -37,10 +37,10 @@
  * floating point units.
  */
 
-#include <cuda/__fp/fpemu_common.hpp>
-#include <cuda/__fp/fpemu_impl_utils.hpp>
-#include <cuda/__fp/fpemu_impl_unpack.hpp>
-#include <cuda/__fp/fpemu_impl_add.hpp>
+#include <cuda/__fp/fpemu_common.h>
+#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl_unpack.h>
+#include <cuda/__fp/fpemu_impl_add.h>
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

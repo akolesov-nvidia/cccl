@@ -4,7 +4,7 @@
     Author:  Andrei Kolesov
     Date:    2026
 
-    This unit test validates the fp64_tool.hpp precision emulation functionality:
+    This unit test validates the fp64_tool.h precision emulation functionality:
     - Basic arithmetic operations with precision callbacks
     - Math functions (sqrt, fma)
     - Precision-sensitive operations (catastrophic cancellation)

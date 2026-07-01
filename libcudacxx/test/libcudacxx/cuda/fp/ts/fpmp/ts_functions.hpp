@@ -863,7 +863,7 @@ template<typename T> struct _floor_
         {
         #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
             (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
-            // True binary128 floor -- mirrors the library (fpmp_math.hpp). Casting
+            // True binary128 floor -- mirrors the library (fpmp_math.h). Casting
             // the fp128 reference down to double first would drop the low bits and
             // round to the wrong integer for |x| > 2^52 (the work range reaches
             // 1e16), making the reference *less* precise than the library.

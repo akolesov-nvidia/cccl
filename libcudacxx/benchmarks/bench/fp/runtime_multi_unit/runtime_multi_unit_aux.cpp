@@ -2,7 +2,7 @@
     runtime_multi_unit_aux.cpp - FP64 Tool Runtime Size Multi-Unit Test (Auxiliary Unit)
     ======================================================================================================
 
-    This is the second compilation unit that also includes fp64_tool.hpp to test for
+    This is the second compilation unit that also includes fp64_tool.h to test for
     overdefinition issues when multiple units include the same header.
 
     This file is compiled separately and linked with runtime_multi_unit.cpp to verify

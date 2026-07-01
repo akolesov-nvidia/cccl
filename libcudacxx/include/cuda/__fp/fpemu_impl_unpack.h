@@ -22,7 +22,7 @@
 #endif // no system header
 
 /**
- * @file fpemu_impl_unpack.hpp
+ * @file fpemu_impl_unpack.h
  * @brief Common pack/unpack routines for the FPEMU library
  *
  * This header holds the two routines that convert between the packed IEEE-754
@@ -45,13 +45,13 @@
  * here. The packed (legacy non-unified) add/mul/fma kernels do their own inlined
  * lean unpack/pack and do not use these routines.
  *
- * They depend only on the primitives/constants in fpemu_impl_utils.hpp
+ * They depend only on the primitives/constants in fpemu_impl_utils.h
  * (bit_cast, __round, __fp64_ovfl_sat, __internal_clzll, the FP64_* masks,
  * EXTRA_BITS, BIAS, ...).
  */
 
-#include <cuda/__fp/fpemu_common.hpp>
-#include <cuda/__fp/fpemu_impl_utils.hpp>
+#include <cuda/__fp/fpemu_common.h>
+#include <cuda/__fp/fpemu_impl_utils.h>
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

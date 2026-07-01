@@ -45,9 +45,9 @@
 #define __FP64EMU_DADD_V2_EXTRA_BITS__    9
 #define __FP64EMU_DADD_FP32_FAST_ENABLE__ 1
 
-#include <cuda/__fp/fpemu_common.hpp>
-#include <cuda/__fp/fpemu_impl_utils.hpp>
-#include <cuda/__fp/fpemu_impl_unpack.hpp>
+#include <cuda/__fp/fpemu_common.h>
+#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl_unpack.h>
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

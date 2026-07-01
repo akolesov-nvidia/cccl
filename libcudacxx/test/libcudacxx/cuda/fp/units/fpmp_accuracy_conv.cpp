@@ -11,7 +11,7 @@
     operator double() + fpmp2_t(double) — an expensive round trip
     that is especially painful on GPUs with limited FP64 throughput.
 
-    fpmp.hpp provides an `explicit` cross-accuracy converting constructor
+    fpmp.h provides an `explicit` cross-accuracy converting constructor
     that simply bit-copies (hi, lo).  This unit verifies the contract:
 
       1. Cross-accuracy conversion is `explicit`:

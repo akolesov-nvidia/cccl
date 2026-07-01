@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 /**
- * @file fpemu_lib.hpp
+ * @file fpemu_lib.h
  * @brief Core function APIs for FPEMU floating point scalar emulation library
  *
  * This header provides the core function APIs for the FPEMU library for emulating
@@ -56,7 +56,7 @@
  * floating point units.
  */
 
-#include <cuda/__fp/fpemu_common.hpp>
+#include <cuda/__fp/fpemu_common.h>
 
 #include <cuda/std/__cccl/prologue.h>
 

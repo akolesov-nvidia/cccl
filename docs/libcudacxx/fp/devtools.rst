@@ -726,7 +726,7 @@ Parameter           Values   Default                                            
 ``RELEASE_TYPE``    ``nda``  ``nda``                                                                                    Release type (determines license/headers)
 ``RELEASE_NAME``    filename auto                                                                                       Custom tarball name
 ``RELEASE_INCLUDE`` paths    ``include examples docs/README_fpmp.md docs/README_fpmp_spec.md docs/README_fp64_tool.md`` Directories/files to include
-``RELEASE_EXCLUDE`` patterns ``./Makefile examples/fp64_tool.cpp include/fp64_tool.hpp``                                Patterns to exclude
+``RELEASE_EXCLUDE`` patterns ``./Makefile examples/fp64_tool.cpp include/fp64_tool.h``                                Patterns to exclude
 ``OUT``             path     ``_out``                                                                                   Output directory for tarball
 =================== ======== ========================================================================================== =========================================
 

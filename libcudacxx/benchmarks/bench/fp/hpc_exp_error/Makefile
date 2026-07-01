@@ -8,7 +8,7 @@
 #
 #  Pointing at the cuda_multi_fp headers
 #  -------------------------------------
-#  This benchmark needs the cuda_multi_fp headers (fpmp.hpp, fpmp_math.hpp).
+#  This benchmark needs the cuda_multi_fp headers (fpmp.h, fpmp_math.h).
 #  cuda_multi_fp is header-only for the templates we use here, so nothing
 #  needs to be linked from it. Two ways to point at a checkout:
 #
@@ -18,7 +18,7 @@
 #  When neither is set the Makefile falls back to ../../include relative to
 #  its own location (this matches the layout when the benchmark is shipped
 #  inside a cuda_multi_fp checkout). If the resolved include path doesn't
-#  contain fpmp.hpp the build aborts immediately with a one-line hint.
+#  contain fpmp.h the build aborts immediately with a one-line hint.
 #
 #  Performance-measurement knobs (compile-time defaults, all overridable):
 #    NUM_OPTIONS        = chains per launch (default: 10000 GPU / 1000 host)
@@ -54,7 +54,7 @@ CXXSTD   ?= -std=c++17
 # Resolve cuda_multi_fp headers. Two ways for the user to point the build at
 # an out-of-tree checkout:
 #   * CUDA_MULTI_FP_DIR=<root of cuda_multi_fp checkout>  (preferred)
-#   * FPMP_INC=<path that already contains fpmp.hpp>      (lower-level override)
+#   * FPMP_INC=<path that already contains fpmp.h>      (lower-level override)
 # When neither is set, fall back to the in-tree default (this Makefile lives
 # at $(CUDA_MULTI_FP)/benchmarks/hpc_exp_error/, so headers are at ../../include).
 ifdef CUDA_MULTI_FP_DIR
@@ -64,10 +64,10 @@ else
 endif
 OUT      ?= $(THIS_DIR)/_out
 
-# Validate that fpmp.hpp is actually findable at $(FPMP_INC). The check runs
+# Validate that fpmp.h is actually findable at $(FPMP_INC). The check runs
 # only for build-y targets (skip help/clean so users can always inspect/clean).
 ifeq (,$(filter help clean,$(MAKECMDGOALS)))
-ifeq (,$(wildcard $(FPMP_INC)/fpmp.hpp))
+ifeq (,$(wildcard $(FPMP_INC)/fpmp.h))
 $(error cuda_multi_fp headers not found at FPMP_INC=$(FPMP_INC). \
 Pass CUDA_MULTI_FP_DIR=<path to cuda_multi_fp checkout> or FPMP_INC=<path to its include dir>. \
 Example: make CUDA_MULTI_FP_DIR=$$HOME/src/cuda_multi_fp rerun)

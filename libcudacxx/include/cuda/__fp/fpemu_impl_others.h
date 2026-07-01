@@ -22,7 +22,7 @@
 #endif // no system header
 
 /**
- * @file fpemu_impl_others.hpp
+ * @file fpemu_impl_others.h
  * @brief Implementation of MAD, DOT, and CMUL operations for FPEMU floating point emulation library
  *
  * This header provides the implementation of other operations for the FPEMU library.
@@ -41,12 +41,12 @@
  #define __FP64EMU_USE_OPT_DOT_UNPACKED__  1
  #define __FP64EMU_USE_OPT_CMUL_UNPACKED__ 1
 
-#include <cuda/__fp/fpemu_common.hpp>
-#include <cuda/__fp/fpemu_impl_utils.hpp>
-#include <cuda/__fp/fpemu_impl_unpack.hpp>
-#include <cuda/__fp/fpemu_impl_mul.hpp>
-#include <cuda/__fp/fpemu_impl_add.hpp>
-#include <cuda/__fp/fpemu_impl_sub.hpp>
+#include <cuda/__fp/fpemu_common.h>
+#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl_unpack.h>
+#include <cuda/__fp/fpemu_impl_mul.h>
+#include <cuda/__fp/fpemu_impl_add.h>
+#include <cuda/__fp/fpemu_impl_sub.h>
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

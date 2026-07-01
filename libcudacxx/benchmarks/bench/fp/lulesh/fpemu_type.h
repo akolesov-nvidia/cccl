@@ -11,8 +11,8 @@
 
 #if defined(USE_FPMP)
   #define FPMP_EXPLICIT_CASTS 1
-  #include "fpmp.hpp"
-  #include "fpmp_math.hpp"
+  #include "fpmp.h"
+  #include "fpmp_math.h"
   using fp64emu_t = __nv_fpmp2_t<float, fpmp::method::__METHOD__>;
   #define EMULATED_PRECISION
   #define PRECISION_LABEL "fpmp (method: " ABC(__METHOD__) ")"
@@ -21,7 +21,7 @@
 #elif defined(NO_EMULATION)
   #define PRECISION_LABEL "double"
 #else
-  #include "fpemu.hpp"
+  #include "fpemu.h"
   using fp64emu_t = __nv_fp64emu_t<fpemu::method::__METHOD__>;
   #define EMULATED_PRECISION
   #define PRECISION_LABEL "fpemu (method: " ABC(__METHOD__) ")"

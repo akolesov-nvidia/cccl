@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 /*
-    fpmp_impl.hpp - Core Multi-Precision Arithmetic Operations
+    fpmp_impl.h - Core Multi-Precision Arithmetic Operations
     ======================================================================================================
     This header provides the core low-level (C-style) API for fpmp2 arithmetic.
     It implements fundamental operations using error-free transformations and supports multiple accuracy
@@ -90,7 +90,7 @@
     [5] Fukuda et al. (2010). FPAN: A Fast Pairwise Addition Normalization Algorithm. SC '10.
 */
 
-#include <cuda/__fp/fpmp_common.hpp>
+#include <cuda/__fp/fpmp_common.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -2109,7 +2109,7 @@ template<> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub<float>(float* addr
  */
 #ifdef __CUDACC__
 
-// Forward declaration of the class template (defined in fpmp.hpp)
+// Forward declaration of the class template (defined in fpmp.h)
 template <typename FpType, fpmp2_accuracy met> class fpmp2_t;
 
 // atomicAdd: Atomic addition for fpmp2_t

@@ -22,7 +22,7 @@
 #endif // no system header
 
 /**
- * @file fpemu_impl_cvt.hpp
+ * @file fpemu_impl_cvt.h
  * @brief Implementation of type conversion operations for FPEMU floating point emulation library
  *
  * This header provides the implementation of type conversion operations for the FPEMU library.
@@ -37,9 +37,9 @@
  * floating point units.    
  */
 
-#include <cuda/__fp/fpemu_common.hpp>
-#include <cuda/__fp/fpemu_impl_utils.hpp>
-#include <cuda/__fp/fpemu_impl_unpack.hpp>
+#include <cuda/__fp/fpemu_common.h>
+#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl_unpack.h>
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -61,7 +61,7 @@ namespace impl
     // ========================================================================
 
     // Right shift keeping a sticky (jam) bit: __nv_internal_fp64emu_shr_jam64,
-    // shared with the divide/sqrt cores (see fpemu_impl_utils.hpp).
+    // shared with the divide/sqrt cores (see fpemu_impl_utils.h).
 
     /// @brief Round a 64-bit fixed-point significand (12 fractional bits) to int32 (CUDA saturation).
     template<fpemu::rounding rm>

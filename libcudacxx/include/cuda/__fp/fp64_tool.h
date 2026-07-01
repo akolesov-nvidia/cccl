@@ -28,7 +28,7 @@
 #include <cuda/std/type_traits>
 
 /**
- * @file fp64_tool.hpp
+ * @file fp64_tool.h
  * @brief FP64 Precision Emulation Tool - A drop-in double replacement with configurable precision
  *
  * This header-only library provides a `fp64_tool_t` class that wraps native double-precision
@@ -44,7 +44,7 @@
  *
  * ```cpp
  * #define FP64_TOOL_MANTISSA_BITS 23  // Emulate float precision (52 bits -> 23 bits)
- * #include "fp64_tool.hpp"
+ * #include "fp64_tool.h"
  *
  * fp64_tool a = 1.5, b = 2.5;
  * fp64_tool result = a + b;  // Precision callbacks applied automatically
@@ -110,7 +110,7 @@
  * #define FP64_TOOL_RUNTIME_SIZE
  * #define FP64_TOOL_MANTISSA_BITS 52   // initial mantissa (full precision)
  * #define FP64_TOOL_EXPONENT_BITS 11   // initial exponent (full range)
- * #include "fp64_tool.hpp"
+ * #include "fp64_tool.h"
  * ```
  *
  * ### Setter Functions

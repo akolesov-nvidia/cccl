@@ -1,20 +1,20 @@
 Runtime Multi-Unit Test
 =======================
 
-This benchmark verifies that `fp64_tool.hpp` with `FP64_TOOL_RUNTIME_SIZE` can be safely included in **multiple compilation units** within a single binary without causing linker errors, symbol conflicts, or overdefinition issues.
+This benchmark verifies that `fp64_tool.h` with `FP64_TOOL_RUNTIME_SIZE` can be safely included in **multiple compilation units** within a single binary without causing linker errors, symbol conflicts, or overdefinition issues.
 
 Overview
 --------
 
-When `fp64_tool.hpp` is included in more than one `.cpp` file, the runtime-size global variables and setter functions must have the correct linkage to avoid duplicate-symbol errors at link time. This test compiles two separate translation units — each including `fp64_tool.hpp` — and links them into one executable.
+When `fp64_tool.h` is included in more than one `.cpp` file, the runtime-size global variables and setter functions must have the correct linkage to avoid duplicate-symbol errors at link time. This test compiles two separate translation units — each including `fp64_tool.h` — and links them into one executable.
 
 Test Structure
 --------------
 
 | File | Role |
 |------|------|
-| `runtime_multi_unit.cpp` | Main unit — includes `fp64_tool.hpp`, runs all tests, calls functions from both units |
-| `runtime_multi_unit_aux.cpp` | Auxiliary unit — also includes `fp64_tool.hpp`, exposes `test_from_aux_unit()` and `set_mantissa_from_aux_unit()` |
+| `runtime_multi_unit.cpp` | Main unit — includes `fp64_tool.h`, runs all tests, calls functions from both units |
+| `runtime_multi_unit_aux.cpp` | Auxiliary unit — also includes `fp64_tool.h`, exposes `test_from_aux_unit()` and `set_mantissa_from_aux_unit()` |
 | `Makefile` | Compiles each unit separately, then links them |
 
 Test Cases
@@ -87,7 +87,7 @@ Expected Output
 FP64 Tool Runtime Size Multi-Unit Test
 ======================================
 
-This test verifies that fp64_tool.hpp can be included in
+This test verifies that fp64_tool.h can be included in
 multiple compilation units without linker errors.
 
 Test 1: Main unit, full mantissa (52 bits)

@@ -12,7 +12,7 @@ Available Examples
 
 ### fp64_tool.cpp — FP64 Precision Tool Demo
 
-Demonstrates compile-time precision reduction using `fp64_tool.hpp`:
+Demonstrates compile-time precision reduction using `fp64_tool.h`:
 
 - **Use case**: Algorithm sensitivity analysis, mixed-precision research
 
