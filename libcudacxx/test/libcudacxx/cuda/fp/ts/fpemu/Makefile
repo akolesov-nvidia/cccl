@@ -242,22 +242,29 @@ ACCURACY ?= def
 ifeq ($(SET),all)
 	override FUNC     = $(ALL_FUNCS)
 	override ROUNDING = $(ALL_ROUNDINGS)
-	override ACCURACY   = $(ALL_METHODS)
+	override ACCURACY = $(ALL_METHODS)
 	override API      = $(ALL_APIS)
 endif
 ifeq ($(SET),ext)
 	override FUNC     = $(EXT_FUNCS)
 	override ROUNDING = $(ALL_ROUNDINGS)
-	override ACCURACY   = $(EXT_METHODS)
+	override ACCURACY = $(EXT_METHODS)
 	override API      = $(ALL_APIS)
 endif
 ifeq ($(SET),def)
-	override FUNC     = $(DEFAULT_FUNCS)
-	override ROUNDING = $(DEFAULT_ROUNDINGS)
-	override API      = $(ALL_APIS)
-	override ACCURACY   = $(ALL_METHODS)
+	override FUNC         = $(DEFAULT_FUNCS)
+	override ROUNDING     = $(DEFAULT_ROUNDINGS)
+	override API          = $(ALL_APIS)
+	override ACCURACY     = $(ALL_METHODS)
 	override DATASET      = mixed
 	override ACCURACY_LEN = 1000000
+endif
+ifeq ($(SET),ci)
+	override FUNC     = $(ALL_FUNCS)
+	override ROUNDING = $(ALL_ROUNDINGS)
+	override API      = $(ALL_APIS)
+	override ACCURACY = $(ALL_METHODS)
+	override DATASET  = mixed
 endif
 
 # selected operations, rounding modes, and accuracies

@@ -86,7 +86,7 @@ namespace cuda::experimental
 
 #if __FPEMU_UNPACKED__ == 1
     // Forward declaration of unpacked floating-point class
-    template <fp64emu_accuracy met> class fp64emu_unpacked_t;
+    template <fp64emu_accuracy _Met> class fp64emu_unpacked_t;
 #endif
 
     /**
@@ -113,7 +113,7 @@ namespace cuda::experimental
     *   fp64emu_t<> y = x + 2.0;
     *   double z = static_cast<double>(y);
     */
-    template <fp64emu_accuracy met = fp64emu_accuracy::def> 
+    template <fp64emu_accuracy _Met = fp64emu_accuracy::def> 
     class fp64emu_t 
     {
      public:
@@ -127,12 +127,12 @@ namespace cuda::experimental
         */
         // Basic constructors
         __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t() : bits{0u} {}
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(fpbits64_construct_t, const fpbits64_t& f) : bits(f) {}
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(fpbits64_construct_t, const fpbits64_t& __f) : bits(__f) {}
         /*
         // Defaulted copy constructor (trivially copyable)
         // Note: NVCC implicitly makes defaulted special members __host__ __device__
         */
-        fp64emu_t(const fp64emu_t& other) = default;
+        fp64emu_t(const fp64emu_t& __other) = default;
 
         /*
         // Copy constructor from volatile fp64emu_t
@@ -142,50 +142,50 @@ namespace cuda::experimental
         // operators (a template is never a copy constructor or copy assignment operator),
         // preserving trivial copyability while retaining volatile access support.
         */
-        template<typename Dummy = void>
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(const volatile fp64emu_t& other) : bits(other.bits) {}
+        template<typename _Dummy = void>
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(const volatile fp64emu_t& __other) : bits(__other.bits) {}
 
         // Defaulted copy assignment operator (trivially copyable)
-        fp64emu_t& operator=(const fp64emu_t& other) = default;
+        fp64emu_t& operator=(const fp64emu_t& __other) = default;
 
         /*
         // Assignment operator to volatile fp64emu_t
         // Template so it is NOT a copy assignment operator per the C++ standard
         // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
         */
-        template<typename Dummy = void>
-        __FPEMU_HOST_DEVICE_DECL__ inline void operator=(const fp64emu_t& other) volatile { bits = other.bits; }
+        template<typename _Dummy = void>
+        __FPEMU_HOST_DEVICE_DECL__ inline void operator=(const fp64emu_t& __other) volatile { bits = __other.bits; }
 
         /*
         // Assignment operator from volatile fp64emu_t
         // Template so it is NOT a copy assignment operator per the C++ standard
         */
-        template<typename Dummy = void>
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t& operator=(const volatile fp64emu_t& other) { bits = other.bits; return *this; }
+        template<typename _Dummy = void>
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t& operator=(const volatile fp64emu_t& __other) { bits = __other.bits; return *this; }
 
         /*
         // Conversion operators
         */
         // ==== Conversions from other types to fp64emu_t:
         // Implicit conversions from floating-point types
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(float f);
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(double d);
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(float __f);
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(double __d);
         // Implicit conversions from integer types
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(int32_t i);
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(uint32_t i);
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(int32_t __i);
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_t(uint32_t __i);
 
         // Explicit conversions from 64-bit integers 
         // required due to ambiguity with other constructors
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(int64_t i);
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(uint64_t i);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(int64_t __i);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(uint64_t __i);
         // Explicit conversion from long long int types when their range is wider than int64_t
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(long long unsigned int i) { *this = fp64emu_t((uint64_t)i); }
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(long long  int i)         { *this = fp64emu_t((int64_t)i);  }
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(long long unsigned int __i) { *this = fp64emu_t((uint64_t)__i); }
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_t(long long  int __i)         { *this = fp64emu_t((int64_t)__i);  }
         // Type conversion to fp64emu_t with other accuracy and range
-        template<fp64emu_accuracy m = met> __FPEMU_HOST_DEVICE_DECL__ inline operator fp64emu_t<m>() const;
+        template<fp64emu_accuracy _Acc = _Met> __FPEMU_HOST_DEVICE_DECL__ inline operator fp64emu_t<_Acc>() const;
 #if __FPEMU_UNPACKED__ == 1
         // Type conversion from fp64emu_t to fp64emu_unpacked_t (explicit to avoid overload ambiguity)
-        template<fp64emu_accuracy m = met> __FPEMU_HOST_DEVICE_DECL__ explicit inline operator fp64emu_unpacked_t<m>() const;
+        template<fp64emu_accuracy _Acc = _Met> __FPEMU_HOST_DEVICE_DECL__ explicit inline operator fp64emu_unpacked_t<_Acc>() const;
 #endif
 
         // ==== Conversion from fp64emu_t to other types:
@@ -205,170 +205,170 @@ namespace cuda::experimental
         //  CUDA builtins functions for conversions
         */
         // double to float
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline float  __double2float (fp64emu_t<m> x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline float  __double2float (fp64emu_t<_Acc> __x);
         // double to integer
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rn (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rz (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_ru (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rd (fp64emu_t<m> x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rn (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rz (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_ru (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rd (fp64emu_t<_Acc> __x);
         // double to unsigned integer
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rn (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rz (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_ru (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rd (fp64emu_t<m> x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rn (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rz (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_ru (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rd (fp64emu_t<_Acc> __x);
         // double to signed integer
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rn (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rz (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_ru (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rd (fp64emu_t<m> x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rn (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rz (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_ru (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rd (fp64emu_t<_Acc> __x);
         // double to unsigned integer
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rn (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rz (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_ru (fp64emu_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rd (fp64emu_t<m> x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rn (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rz (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_ru (fp64emu_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rd (fp64emu_t<_Acc> __x);
         // other types to double
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<m> __int2double   (int32_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<m> __uint2double  (uint32_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<m> __ll2double    (int64_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<m> __ull2double   (uint64_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<m> __float2double (float x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<_Acc> __int2double   (int32_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<_Acc> __uint2double  (uint32_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<_Acc> __ll2double    (int64_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<_Acc> __ull2double   (uint64_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_t<_Acc> __float2double (float __x);
     
         /*
         // Arithmetic operations:
         */
         // === mul ===
         // (*)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<m> operator*(const fp64emu_t<m>& x, const fp64emu_t<m>& y);
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator*(const T1& x, const T2& y) { return fp64emu_t(x) * fp64emu_t(y); }
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<_Acc> operator*(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y);
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator*(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) * fp64emu_t(__y); }
         // dmul_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_rn(const T1& x, const T2& y) { return __dmul_rn(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_rn(const _T1& __x, const _T2& __y) { return __dmul_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // dmul_rz
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_rz(const T1& x, const T2& y) { return __dmul_rz(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_rz(const _T1& __x, const _T2& __y) { return __dmul_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // dmul_ru
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_ru(const T1& x, const T2& y) { return __dmul_ru(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_ru(const _T1& __x, const _T2& __y) { return __dmul_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // dmul_rd
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_rd(const T1& x, const T2& y) { return __dmul_rd(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dmul_rd(const _T1& __x, const _T2& __y) { return __dmul_rd(fp64emu_t(__x), fp64emu_t(__y)); }
         
         // === div ===
         // (/)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<m> operator/(const fp64emu_t<m>& x, const fp64emu_t<m>& y);
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator/(const T1& x, const T2& y) { return fp64emu_t(x) / fp64emu_t(y); }
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<_Acc> operator/(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y);
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator/(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) / fp64emu_t(__y); }
         // ddiv_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_rn(const T1& x, const T2& y) { return __ddiv_rn(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_rn(const _T1& __x, const _T2& __y) { return __ddiv_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // ddiv_rz
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_rz(const T1& x, const T2& y) { return __ddiv_rz(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_rz(const _T1& __x, const _T2& __y) { return __ddiv_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // ddiv_ru
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_ru(const T1& x, const T2& y) { return __ddiv_ru(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_ru(const _T1& __x, const _T2& __y) { return __ddiv_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // ddiv_rd
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_rd(const T1& x, const T2& y) { return __ddiv_rd(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __ddiv_rd(const _T1& __x, const _T2& __y) { return __ddiv_rd(fp64emu_t(__x), fp64emu_t(__y)); }
 
         // === add ===
         // (+)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<m> operator+(const fp64emu_t<m>& x, const fp64emu_t<m>& y);
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator+(const T1& x, const T2& y) { return fp64emu_t(x) + fp64emu_t(y); }
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<_Acc> operator+(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y);
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator+(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) + fp64emu_t(__y); }
         // dadd_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_rn(const T1& x, const T2& y) {  return __dadd_rn(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_rn(const _T1& __x, const _T2& __y) {  return __dadd_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // dadd_rz
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_rz(const T1& x, const T2& y) {  return __dadd_rz(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_rz(const _T1& __x, const _T2& __y) {  return __dadd_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // dadd_ru
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_ru(const T1& x, const T2& y) { return __dadd_ru(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_ru(const _T1& __x, const _T2& __y) { return __dadd_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // dadd_rd
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_rd(const T1& x, const T2& y) { return __dadd_rd(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dadd_rd(const _T1& __x, const _T2& __y) { return __dadd_rd(fp64emu_t(__x), fp64emu_t(__y)); }
 
         // === sub ===
         // (-)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<m> operator-(const fp64emu_t<m>& x, const fp64emu_t<m>& y);
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator-(const T1& x, const T2& y) { return fp64emu_t(x) - fp64emu_t(y); }
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_t<_Acc> operator-(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y);
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t operator-(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) - fp64emu_t(__y); }
         // dsub_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_rn(const T1& x, const T2& y) { return __dsub_rn(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_rn(const _T1& __x, const _T2& __y) { return __dsub_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // dsub_rz
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_rz(const T1& x, const T2& y) { return __dsub_rz(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_rz(const _T1& __x, const _T2& __y) { return __dsub_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // dsub_ru
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_ru(const T1& x, const T2& y) { return __dsub_ru(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_ru(const _T1& __x, const _T2& __y) { return __dsub_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // dsub_rd
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_rd(const T1& x, const T2& y) { return __dsub_rd(fp64emu_t(x), fp64emu_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsub_rd(const _T1& __x, const _T2& __y) { return __dsub_rd(fp64emu_t(__x), fp64emu_t(__y)); }
 
         // === sqrt ===
         // sqrt
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t sqrt(const T1& x) { return sqrt(fp64emu_t(x)); }        
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t sqrt(const _T1& __x) { return sqrt(fp64emu_t(__x)); }        
         // dsqrt_rn
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_rn(const T1& x) { return __dsqrt_rn(fp64emu_t(x)); }
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_rn(const _T1& __x) { return __dsqrt_rn(fp64emu_t(__x)); }
 
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_rz(const T1& x) { return __dsqrt_rz(fp64emu_t(x)); }
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_rz(const _T1& __x) { return __dsqrt_rz(fp64emu_t(__x)); }
         // dsqrt_ru
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_ru(const T1& x) { return __dsqrt_ru(fp64emu_t(x)); }
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_ru(const _T1& __x) { return __dsqrt_ru(fp64emu_t(__x)); }
         // dsqrt_rd
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_rd(const T1& x) { return __dsqrt_rd(fp64emu_t(x)); }
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __dsqrt_rd(const _T1& __x) { return __dsqrt_rd(fp64emu_t(__x)); }
 
         // === fma ===
         // fma
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t fma(const T1& x, const T2& y, const T3& z) { return fma(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t fma(const _T1& __x, const _T2& __y, const _T3& __z) { return fma(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_rn
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_rn(const T1& x, const T2& y, const T3& z) { return __fma_rn(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_rn(const _T1& __x, const _T2& __y, const _T3& __z) { return __fma_rn(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_rz
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_rz(const T1& x, const T2& y, const T3& z) { return __fma_rz(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_rz(const _T1& __x, const _T2& __y, const _T3& __z) { return __fma_rz(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_ru
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_ru(const T1& x, const T2& y, const T3& z) { return __fma_ru(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_ru(const _T1& __x, const _T2& __y, const _T3& __z) { return __fma_ru(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_rd
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_rd(const T1& x, const T2& y, const T3& z) { return __fma_rd(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __fma_rd(const _T1& __x, const _T2& __y, const _T3& __z) { return __fma_rd(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
 
         // === mad ===
         // mad
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t mad(const T1& x, const T2& y, const T3& z) { return mad(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t mad(const _T1& __x, const _T2& __y, const _T3& __z) { return mad(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dmad_rn
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __mad_rn(const T1& x, const T2& y, const T3& z) { return __mad_rn(fp64emu_t(x), fp64emu_t(y), fp64emu_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t __mad_rn(const _T1& __x, const _T2& __y, const _T3& __z) { return __mad_rn(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
 
         // === dot ===
-        template<typename T1, typename T2, typename T3, typename T4, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value || std::is_same<T4,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value || std::is_arithmetic<T4>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t dot(const T1& x1, const T2& y1, const T3& x2, const T4& y2) { return dot(fp64emu_t(x1), fp64emu_t(y1), fp64emu_t(x2), fp64emu_t(y2)); }
+        template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value || std::is_same<_T4,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_t dot(const _T1& __x1, const _T2& __y1, const _T3& __x2, const _T4& __y2) { return dot(fp64emu_t(__x1), fp64emu_t(__y1), fp64emu_t(__x2), fp64emu_t(__y2)); }
 
          // === cmul ===
-         template<typename T1, typename T2, typename T3, typename T4, typename = typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value || std::is_same<T3,fp64emu_t>::value || std::is_same<T4,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value || std::is_arithmetic<T4>::value))>::type>
-             __FPEMU_HOST_DEVICE_DECL__ friend void cmul(const T1& x_re, const T2& x_im, const T3& y_re, const T4& y_im, fp64emu_t& r_re, fp64emu_t& r_im) { cmul(fp64emu_t(x_re), fp64emu_t(x_im), fp64emu_t(y_re), fp64emu_t(y_im), r_re, r_im); }
+         template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value || std::is_same<_T4,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+             __FPEMU_HOST_DEVICE_DECL__ friend void cmul(const _T1& __x_re, const _T2& __x_im, const _T3& __y_re, const _T4& __y_im, fp64emu_t& __r_re, fp64emu_t& __r_im) { cmul(fp64emu_t(__x_re), fp64emu_t(__x_im), fp64emu_t(__y_re), fp64emu_t(__y_im), __r_re, __r_im); }
 
         // Prefix increment/decrement
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator++() { this = this + fp64emu_t(1.0); return *this; }
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator--() { this = this - fp64emu_t(1.0); return *this; }
         // Postfix increment/decrement
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t  operator++(int) { fp64emu_t temp(*this); this = this + fp64emu_t(1.0); return temp; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t  operator--(int) { fp64emu_t temp(*this); this = this - fp64emu_t(1.0); return temp; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t  operator++(int) { fp64emu_t __temp(*this); this = this + fp64emu_t(1.0); return __temp; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t  operator--(int) { fp64emu_t __temp(*this); this = this - fp64emu_t(1.0); return __temp; }
         // Compound assignment operators
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator+=(const fp64emu_t& other) { *this = *this + other; return *this; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator-=(const fp64emu_t& other) { *this = *this - other; return *this; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator*=(const fp64emu_t& other) { *this = *this * other; return *this; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator/=(const fp64emu_t& other) { *this = *this / other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator+=(const fp64emu_t& __other) { *this = *this + __other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator-=(const fp64emu_t& __other) { *this = *this - __other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator*=(const fp64emu_t& __other) { *this = *this * __other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_t& operator/=(const fp64emu_t& __other) { *this = *this / __other; return *this; }
         // Unary negation operator (implementation in fpemu_impl_others.h)
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_t  operator-() const;
 
@@ -376,34 +376,34 @@ namespace cuda::experimental
         // Comparison operators:
         */       
         // equality (==)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator==(const T1& x, const T2& y) { return fp64emu_t(x) == fp64emu_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator==(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) == fp64emu_t(__y); }
         // inequality (!=)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator!=(const T1& x, const T2& y) { return fp64emu_t(x) != fp64emu_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator!=(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) != fp64emu_t(__y); }
         // less than (<)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator<(const T1& x, const T2& y) { return fp64emu_t(x) < fp64emu_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator<(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) < fp64emu_t(__y); }
         // greater than (>)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator>(const T1& x, const T2& y) { return fp64emu_t(x) > fp64emu_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator>(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) > fp64emu_t(__y); }
         // less than or equal to (<=)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator<=(const T1& x, const T2& y) { return fp64emu_t(x) <= fp64emu_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator<=(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) <= fp64emu_t(__y); }
         // greater than or equal to (>=)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_t>::value || std::is_same<T2,fp64emu_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator>=(const T1& x, const T2& y) { return fp64emu_t(x) >= fp64emu_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator>=(const _T1& __x, const _T2& __y) { return fp64emu_t(__x) >= fp64emu_t(__y); }
     }; // class fp64emu_t 
 
 #if __FPEMU_UNPACKED__ == 1
 
-    template <fp64emu_accuracy met = fp64emu_accuracy::def> 
+    template <fp64emu_accuracy _Met = fp64emu_accuracy::def> 
     class fp64emu_unpacked_t 
     {
      public:
@@ -417,12 +417,12 @@ namespace cuda::experimental
         */
         // Basic constructors
         __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t() : bits{0u, 0, 0} {}
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t(fpbits64_construct_t, const fpbits64_unpacked_t& f) : bits(f) {}
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t(fpbits64_construct_t, const fpbits64_unpacked_t& __f) : bits(__f) {}
         /*
         // Defaulted copy constructor (trivially copyable)
         // Note: NVCC implicitly makes defaulted special members __host__ __device__
         */
-        fp64emu_unpacked_t(const fp64emu_unpacked_t& other) = default;
+        fp64emu_unpacked_t(const fp64emu_unpacked_t& __other) = default;
 
         /*
         // Copy constructor from volatile fp64emu_unpacked_t
@@ -432,40 +432,40 @@ namespace cuda::experimental
         // operators (a template is never a copy constructor or copy assignment operator),
         // preserving trivial copyability while retaining volatile access support.
         */
-        template<typename Dummy = void>
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t(const volatile fp64emu_unpacked_t& other)
+        template<typename _Dummy = void>
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t(const volatile fp64emu_unpacked_t& __other)
         { 
-            bits.sign = other.bits.sign; 
-            bits.exponent = other.bits.exponent; 
-            bits.mantissa = other.bits.mantissa; 
+            bits.sign = __other.bits.sign; 
+            bits.exponent = __other.bits.exponent; 
+            bits.mantissa = __other.bits.mantissa; 
         }
 
         // Defaulted copy assignment operator (trivially copyable)
-        fp64emu_unpacked_t& operator=(const fp64emu_unpacked_t& other) = default;
+        fp64emu_unpacked_t& operator=(const fp64emu_unpacked_t& __other) = default;
 
         /*
         // Assignment operator to volatile fp64emu_unpacked_t
         // Template so it is NOT a copy assignment operator per the C++ standard
         // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
         */
-        template<typename Dummy = void>
-        __FPEMU_HOST_DEVICE_DECL__ inline void operator=(const fp64emu_unpacked_t& other) volatile
+        template<typename _Dummy = void>
+        __FPEMU_HOST_DEVICE_DECL__ inline void operator=(const fp64emu_unpacked_t& __other) volatile
         { 
-            bits.sign = other.bits.sign; 
-            bits.exponent = other.bits.exponent; 
-            bits.mantissa = other.bits.mantissa; 
+            bits.sign = __other.bits.sign; 
+            bits.exponent = __other.bits.exponent; 
+            bits.mantissa = __other.bits.mantissa; 
         }
 
         /*
         // Assignment operator from volatile fp64emu_unpacked_t
         // Template so it is NOT a copy assignment operator per the C++ standard
         */
-        template<typename Dummy = void>
-        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t& operator=(const volatile fp64emu_unpacked_t& other)
+        template<typename _Dummy = void>
+        __FPEMU_HOST_DEVICE_DECL__ inline fp64emu_unpacked_t& operator=(const volatile fp64emu_unpacked_t& __other)
         { 
-            bits.sign = other.bits.sign; 
-            bits.exponent = other.bits.exponent; 
-            bits.mantissa = other.bits.mantissa; 
+            bits.sign = __other.bits.sign; 
+            bits.exponent = __other.bits.exponent; 
+            bits.mantissa = __other.bits.mantissa; 
             return *this; 
         }
         /*
@@ -481,24 +481,24 @@ namespace cuda::experimental
         __FPEMU_HOST_DEVICE_DECL__  inline fp64emu_unpacked_t(uint32_t i);
 #else
         // Explicit conversions from floating-point types (to avoid ambiguity with packed type)
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(float f);
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(double d);        
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(float __f);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(double __d);        
         // Explicit conversions from integer types (to avoid ambiguity with packed type)
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(int32_t i);
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(uint32_t i);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(int32_t __i);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(uint32_t __i);
 #endif
         // Explicit conversions from 64-bit integers 
         // required due to ambiguity with other constructors
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(int64_t i);
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(uint64_t i);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(int64_t __i);
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(uint64_t __i);
 
         // Explicit conversion from long long int types when their range is wider than int64_t
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(long long unsigned int i) { *this = fp64emu_unpacked_t((uint64_t)i); }
-        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(long long  int i)         { *this = fp64emu_unpacked_t((int64_t)i);  }
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(long long unsigned int __i) { *this = fp64emu_unpacked_t((uint64_t)__i); }
+        __FPEMU_HOST_DEVICE_DECL__ explicit inline fp64emu_unpacked_t(long long  int __i)         { *this = fp64emu_unpacked_t((int64_t)__i);  }
         // Type conversion to fp64emu_unpacked_t with other accuracy and range
-        template<fp64emu_accuracy m = met> __FPEMU_HOST_DEVICE_DECL__ inline operator fp64emu_unpacked_t<m>() const;
+        template<fp64emu_accuracy _Acc = _Met> __FPEMU_HOST_DEVICE_DECL__ inline operator fp64emu_unpacked_t<_Acc>() const;
         // Type conversion from fp64emu_unpacked_t to fp64emu_t (explicit to avoid overload ambiguity)
-        template<fp64emu_accuracy m = met> __FPEMU_HOST_DEVICE_DECL__ explicit inline operator fp64emu_t<m>() const;
+        template<fp64emu_accuracy _Acc = _Met> __FPEMU_HOST_DEVICE_DECL__ explicit inline operator fp64emu_t<_Acc>() const;
 
         // ==== Conversion from fp64emu_unpacked_t to other types:
         // Implicit conversion to double
@@ -516,102 +516,102 @@ namespace cuda::experimental
         /*
         //  CUDA builtins functions for conversions
         */
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline float __double2float(fp64emu_unpacked_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rz(fp64emu_unpacked_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rz(fp64emu_unpacked_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rz(fp64emu_unpacked_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rz(fp64emu_unpacked_t<m> x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<m> __float2double (float x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<m> __int2double   (int32_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<m> __uint2double  (uint32_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<m> __ll2double    (int64_t x);
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<m> __ull2double   (uint64_t x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline float __double2float(fp64emu_unpacked_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int32_t __double2int_rz(fp64emu_unpacked_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint32_t __double2uint_rz(fp64emu_unpacked_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline int64_t __double2ll_rz(fp64emu_unpacked_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline uint64_t __double2ull_rz(fp64emu_unpacked_t<_Acc> __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<_Acc> __float2double (float __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<_Acc> __int2double   (int32_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<_Acc> __uint2double  (uint32_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<_Acc> __ll2double    (int64_t __x);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend inline fp64emu_unpacked_t<_Acc> __ull2double   (uint64_t __x);
 
         /*
         // Arithmetic operations:
         */
         // === mul ===
         // (*)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<m> operator*(const fp64emu_unpacked_t<m>& x, const fp64emu_unpacked_t<m>& y);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<_Acc> operator*(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y);
         // (/)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<m> operator/(const fp64emu_unpacked_t<m>& x, const fp64emu_unpacked_t<m>& y);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<_Acc> operator/(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y);
         // (+)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<m> operator+(const fp64emu_unpacked_t<m>& x, const fp64emu_unpacked_t<m>& y);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<_Acc> operator+(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y);
         // (-)
-        template<fp64emu_accuracy m> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<m> operator-(const fp64emu_unpacked_t<m>& x, const fp64emu_unpacked_t<m>& y);
+        template<fp64emu_accuracy _Acc> __FPEMU_HOST_DEVICE_DECL__ friend fp64emu_unpacked_t<_Acc> operator-(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y);
         
 
         // == mul ==
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator*(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) * fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator*(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) * fp64emu_unpacked_t(__y); }
         // dmul_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dmul_rn(const T1& x, const T2& y) { return __dmul_rn(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dmul_rn(const _T1& __x, const _T2& __y) { return __dmul_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === div ===
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator/(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) / fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator/(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) / fp64emu_unpacked_t(__y); }
         // ddiv_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __ddiv_rn(const T1& x, const T2& y) { return __ddiv_rn(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __ddiv_rn(const _T1& __x, const _T2& __y) { return __ddiv_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === add ===
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator+(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) + fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator+(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) + fp64emu_unpacked_t(__y); }
         // dadd_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dadd_rn(const T1& x, const T2& y) {  return __dadd_rn(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dadd_rn(const _T1& __x, const _T2& __y) {  return __dadd_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === sub ===
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type> 
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator-(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) - fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t operator-(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) - fp64emu_unpacked_t(__y); }
         // dsub_rn
-        template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dsub_rn(const T1& x, const T2& y) { return __dsub_rn(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y)); }
+        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dsub_rn(const _T1& __x, const _T2& __y) { return __dsub_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === sqrt ===
         // sqrt
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t sqrt(const T1& x) { return sqrt(fp64emu_unpacked_t(x)); }        
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t sqrt(const _T1& __x) { return sqrt(fp64emu_unpacked_t(__x)); }        
         // dsqrt_rn
-        template<typename T1, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dsqrt_rn(const T1& x) { return __dsqrt_rn(fp64emu_unpacked_t(x)); }
+        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __dsqrt_rn(const _T1& __x) { return __dsqrt_rn(fp64emu_unpacked_t(__x)); }
 
         // === fma ===
         // fma
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value || std::is_same<T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t fma(const T1& x, const T2& y, const T3& z) { return fma(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y), fp64emu_unpacked_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t fma(const _T1& __x, const _T2& __y, const _T3& __z) { return fma(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
         // dfma_rn
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value || std::is_same<T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __fma_rn(const T1& x, const T2& y, const T3& z) { return __fma_rn(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y), fp64emu_unpacked_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __fma_rn(const _T1& __x, const _T2& __y, const _T3& __z) { return __fma_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
 
         // === mad ===
         // mad
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value || std::is_same<T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t mad(const T1& x, const T2& y, const T3& z) { return mad(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y), fp64emu_unpacked_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t mad(const _T1& __x, const _T2& __y, const _T3& __z) { return mad(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
         // dmad_rn
-        template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value || std::is_same<T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __mad_rn(const T1& x, const T2& y, const T3& z) { return __mad_rn(fp64emu_unpacked_t(x), fp64emu_unpacked_t(y), fp64emu_unpacked_t(z)); }
+        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t __mad_rn(const _T1& __x, const _T2& __y, const _T3& __z) { return __mad_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
 
         // === dot ===
-        template<typename T1, typename T2, typename T3, typename T4, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value || std::is_same<T3,fp64emu_unpacked_t>::value || std::is_same<T4,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value || std::is_arithmetic<T4>::value))>::type>
-            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t dot(const T1& x1, const T2& y1, const T3& x2, const T4& y2) { return dot(fp64emu_unpacked_t(x1), fp64emu_unpacked_t(y1), fp64emu_unpacked_t(x2), fp64emu_unpacked_t(y2)); }
+        template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value || std::is_same<_T4,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+            __FPEMU_HOST_DEVICE_DECL__ friend  fp64emu_unpacked_t dot(const _T1& __x1, const _T2& __y1, const _T3& __x2, const _T4& __y2) { return dot(fp64emu_unpacked_t(__x1), fp64emu_unpacked_t(__y1), fp64emu_unpacked_t(__x2), fp64emu_unpacked_t(__y2)); }
 
          // === cmul ===
-         template<typename T1, typename T2, typename T3, typename T4, typename = typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value || std::is_same<T3,fp64emu_unpacked_t>::value || std::is_same<T4,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value || std::is_arithmetic<T4>::value))>::type>
-             __FPEMU_HOST_DEVICE_DECL__ friend void cmul(const T1& x_re, const T2& x_im, const T3& y_re, const T4& y_im, fp64emu_unpacked_t& r_re, fp64emu_unpacked_t& r_im) { cmul(fp64emu_unpacked_t(x_re), fp64emu_unpacked_t(x_im), fp64emu_unpacked_t(y_re), fp64emu_unpacked_t(y_im), r_re, r_im); }
+         template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value || std::is_same<_T4,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+             __FPEMU_HOST_DEVICE_DECL__ friend void cmul(const _T1& __x_re, const _T2& __x_im, const _T3& __y_re, const _T4& __y_im, fp64emu_unpacked_t& __r_re, fp64emu_unpacked_t& __r_im) { cmul(fp64emu_unpacked_t(__x_re), fp64emu_unpacked_t(__x_im), fp64emu_unpacked_t(__y_re), fp64emu_unpacked_t(__y_im), __r_re, __r_im); }
 
         // Prefix increment/decrement
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator++() { this = this + fp64emu_unpacked_t(1.0); return *this; }
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator--() { this = this - fp64emu_unpacked_t(1.0); return *this; }
         // Postfix increment/decrement
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t  operator++(int) { fp64emu_unpacked_t temp(*this); this = this + fp64emu_unpacked_t(1.0); return temp; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t  operator--(int) { fp64emu_unpacked_t temp(*this); this = this - fp64emu_unpacked_t(1.0); return temp; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t  operator++(int) { fp64emu_unpacked_t __temp(*this); this = this + fp64emu_unpacked_t(1.0); return __temp; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t  operator--(int) { fp64emu_unpacked_t __temp(*this); this = this - fp64emu_unpacked_t(1.0); return __temp; }
         // Compound assignment operators
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator+=(const fp64emu_unpacked_t& other) { *this = *this + other; return *this; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator-=(const fp64emu_unpacked_t& other) { *this = *this - other; return *this; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator*=(const fp64emu_unpacked_t& other) { *this = *this * other; return *this; }
-        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator/=(const fp64emu_unpacked_t& other) { *this = *this / other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator+=(const fp64emu_unpacked_t& __other) { *this = *this + __other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator-=(const fp64emu_unpacked_t& __other) { *this = *this - __other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator*=(const fp64emu_unpacked_t& __other) { *this = *this * __other; return *this; }
+        __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t& operator/=(const fp64emu_unpacked_t& __other) { *this = *this / __other; return *this; }
         // Unary negation operator (implementation in fpemu_impl_others.h)
         __FPEMU_HOST_DEVICE_DECL__ fp64emu_unpacked_t  operator-() const;
 
@@ -619,33 +619,33 @@ namespace cuda::experimental
         // Comparison operators:
         */       
         // equality (==)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator==(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) == fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator==(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) == fp64emu_unpacked_t(__y); }
         // inequality (!=)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator!=(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) != fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator!=(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) != fp64emu_unpacked_t(__y); }
         // less than (<)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator<(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) < fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator<(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) < fp64emu_unpacked_t(__y); }
         // greater than (>)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator>(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) > fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator>(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) > fp64emu_unpacked_t(__y); }
         // less than or equal to (<=)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator<=(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) <= fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator<=(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) <= fp64emu_unpacked_t(__y); }
         // greater than or equal to (>=)
-        template<typename T1, typename T2>
-            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<T1,fp64emu_unpacked_t>::value || std::is_same<T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value)), bool>::type
-            operator>=(const T1& x, const T2& y) { return fp64emu_unpacked_t(x) >= fp64emu_unpacked_t(y); }
+        template<typename _T1, typename _T2>
+            __FPEMU_HOST_DEVICE_DECL__ friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+            operator>=(const _T1& __x, const _T2& __y) { return fp64emu_unpacked_t(__x) >= fp64emu_unpacked_t(__y); }
 
         // C++20-style bit_cast for unpacked floating-point types
-        template<typename To, fp64emu_accuracy m> 
-        __FPEMU_HOST_DEVICE_DECL__ friend inline To bit_cast(const fp64emu_unpacked_t<m>& from);
+        template<typename _To, fp64emu_accuracy _Acc> 
+        __FPEMU_HOST_DEVICE_DECL__ friend inline _To bit_cast(const fp64emu_unpacked_t<_Acc>& __from);
 
     }; // class fp64emu_unpacked_t 
 #endif // __FPEMU_UNPACKED__ == 1

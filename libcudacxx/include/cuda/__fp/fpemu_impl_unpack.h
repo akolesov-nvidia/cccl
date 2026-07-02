@@ -73,42 +73,42 @@ namespace impl
  * @return The unpacked representation
  */
 __FPEMU_INTERNAL_DECL__
-fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t x)
+fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t __x)
 {
-    fpbits64_unpacked_t a_unpacked;
-    fpemu::uint32x2_t a32 = fpemu::bit_cast<fpemu::uint32x2_t>(x);
-    a_unpacked.sign = a32.x[1] & ( 1U << 31 );
-    a32.x[1] &= 0x7fffffff;
-    int32_t exponent = static_cast<int32_t>(a32.x[1] >> 20);
+    fpbits64_unpacked_t __a_unpacked;
+    fpemu::__uint32x2_t __a32 = fpemu::bit_cast<fpemu::__uint32x2_t>(__x);
+    __a_unpacked.sign = __a32.x[1] & ( 1U << 31 );
+    __a32.x[1] &= 0x7fffffff;
+    int32_t __exponent = static_cast<int32_t>(__a32.x[1] >> 20);
 
     // Normalize denormals: leading-zero count of the magnitude (clamped so a
     // normal stays at shift == EXTRA_BITS, and a true zero maps to the zero band).
-    uint64_t abs_a = fpemu::bit_cast<uint64_t>(a32);
-    int nzeros = fpemu::__internal_clzll(abs_a);
-    if (nzeros <  11 ) nzeros = 11;
-    if (nzeros == 64 ) nzeros = 2049;
-    a32.x[1] = a32.x[1] & 0x000fffff;
+    uint64_t __abs_a = fpemu::bit_cast<uint64_t>(__a32);
+    int __nzeros = fpemu::__internal_clzll(__abs_a);
+    if (__nzeros <  11 ) __nzeros = 11;
+    if (__nzeros == 64 ) __nzeros = 2049;
+    __a32.x[1] = __a32.x[1] & 0x000fffff;
 
-    if (exponent == 0x7ff)
+    if (__exponent == 0x7ff)
     {
         // inf -> 0x00007ff0 band, nan -> 0x0007ff00 band (recovered on pack).
-        exponent = (a32.x[1] == 0 && a32.x[0] == 0) ? 0x00007ff0 : 0x0007ff00;
+        __exponent = (__a32.x[1] == 0 && __a32.x[0] == 0) ? 0x00007ff0 : 0x0007ff00;
     }
-    if (exponent != 0)
+    if (__exponent != 0)
     {
-        a32.x[1] = a32.x[1] | ( 1 << 20 );   // set the implicit bit
+        __a32.x[1] = __a32.x[1] | ( 1 << 20 );   // set the implicit bit
     }
-    if (exponent == 0)
+    if (__exponent == 0)
     {
-        exponent = 12 - nzeros;              // denormal / zero
+        __exponent = 12 - __nzeros;              // denormal / zero
     }
 
-    int shift = EXTRA_BITS + nzeros - 11;
-    uint64_t a64 = fpemu::bit_cast<uint64_t>(a32);
+    int __shift = EXTRA_BITS + __nzeros - 11;
+    uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a32);
 
-    a_unpacked.exponent = static_cast<uint32_t>(exponent);
-    a_unpacked.mantissa = a64 << shift;
-    return a_unpacked;
+    __a_unpacked.exponent = static_cast<uint32_t>(__exponent);
+    __a_unpacked.mantissa = __a64 << __shift;
+    return __a_unpacked;
 }
 
 /**
@@ -130,75 +130,75 @@ fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t x)
  * @param  x  The unpacked value to pack
  * @return The packed 64-bit value
  */
-template<fpemu::rounding rm = fpemu::rounding::def>
+template<fpemu::rounding _Rm = fpemu::rounding::def>
 __FPEMU_INTERNAL_DECL__
-fpbits64_t __nv_internal_fp64emu_pack(fpbits64_unpacked_t x)
+fpbits64_t __nv_internal_fp64emu_pack(fpbits64_unpacked_t __x)
 {
-    const bool    sign     = x.sign != 0;
-    const bool    is_inf   = (static_cast<int32_t>(x.exponent) >= 0x2000);
-    const int32_t e        = static_cast<int32_t>(x.exponent) - 1;
-    int32_t       exponent = e > 0 ? e : 0;
+    const bool    __sign     = __x.sign != 0;
+    const bool    __is_inf   = (static_cast<int32_t>(__x.exponent) >= 0x2000);
+    const int32_t __e        = static_cast<int32_t>(__x.exponent) - 1;
+    int32_t       __exponent = __e > 0 ? __e : 0;
 
-    int shift = e > 0 ? 0 : -e;
+    int __shift = __e > 0 ? 0 : -__e;
 #ifndef __CUDA_ARCH__
-    shift = (shift > 0) ? (shift > 63) ? 63 : shift : 0;
+    __shift = (__shift > 0) ? (__shift > 63) ? 63 : __shift : 0;
 #endif
-    if (shift > 0)
+    if (__shift > 0)
     {
-        const uint64_t mask    = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1);
-        const bool     inexact = (x.mantissa & mask) != 0;
-        x.mantissa >>= shift;
-        if constexpr (rm == fpemu::rounding::rn)
+        const uint64_t __mask    = (__shift >= 64) ? ~0ULL : ((1ULL << __shift) - 1);
+        const bool     __inexact = (__x.mantissa & __mask) != 0;
+        __x.mantissa >>= __shift;
+        if constexpr (_Rm == fpemu::rounding::rn)
         {
-            if (inexact) x.mantissa |= 1;
+            if (__inexact) __x.mantissa |= 1;
         }
-        else if constexpr (rm == fpemu::rounding::ru)
+        else if constexpr (_Rm == fpemu::rounding::ru)
         {
-            if (!sign && inexact) x.mantissa |= 1;
+            if (!__sign && __inexact) __x.mantissa |= 1;
         }
-        else if constexpr (rm == fpemu::rounding::rd)
+        else if constexpr (_Rm == fpemu::rounding::rd)
         {
-            if (sign && inexact) x.mantissa |= 1;
+            if (__sign && __inexact) __x.mantissa |= 1;
         }
     }
 
-    fpemu::uint32x2_t mantissa32 = fpemu::bit_cast<fpemu::uint32x2_t>(x.mantissa);
-    mantissa32 = fpemu::__round<rm>(mantissa32, 0, sign);
+    fpemu::__uint32x2_t __mantissa32 = fpemu::bit_cast<fpemu::__uint32x2_t>(__x.mantissa);
+    __mantissa32 = fpemu::__round<_Rm>(__mantissa32, 0, __sign);
 
-    const bool is_nan = (exponent >= (int)(0x0007ff00 - fpemu::BIAS - 2048 - 1 - 128 + 0xC));
+    const bool __is_nan = (__exponent >= (int)(0x0007ff00 - fpemu::BIAS - 2048 - 1 - 128 + 0xC));
 
-    if (mantissa32.x[0] == 0 && mantissa32.x[1] == 0 && exponent < 0x000007ff)
+    if (__mantissa32.x[0] == 0 && __mantissa32.x[1] == 0 && __exponent < 0x000007ff)
     {
-        exponent = 0;
+        __exponent = 0;
     }
 
-    if (exponent >= 0x000007ff) exponent = 0x000007ff;
+    if (__exponent >= 0x000007ff) __exponent = 0x000007ff;
 
-    exponent <<= 20;
-    mantissa32.x[1] += exponent;
+    __exponent <<= 20;
+    __mantissa32.x[1] += __exponent;
 
-    if (mantissa32.x[1] >= 0x7ff00000)
+    if (__mantissa32.x[1] >= 0x7ff00000)
     {
-        if (is_nan)
+        if (__is_nan)
         {
-            mantissa32.x[0] = 0;
-            mantissa32.x[1] = 0x7fffffff;
+            __mantissa32.x[0] = 0;
+            __mantissa32.x[1] = 0x7fffffff;
         }
-        else if (is_inf)
+        else if (__is_inf)
         {
-            mantissa32.x[0] = 0;
-            mantissa32.x[1] = 0x7ff00000;
+            __mantissa32.x[0] = 0;
+            __mantissa32.x[1] = 0x7ff00000;
         }
         else
         {
-            int32_t sat_exp = 0;
-            fpemu::__fp64_ovfl_sat<rm>(sign, sat_exp, mantissa32);
-            mantissa32.x[1] |= (uint32_t)sat_exp << FP64_HI_MANT_SHIFT;
+            int32_t __sat_exp = 0;
+            fpemu::__fp64_ovfl_sat<_Rm>(__sign, __sat_exp, __mantissa32);
+            __mantissa32.x[1] |= (uint32_t)__sat_exp << FP64_HI_MANT_SHIFT;
         }
     }
 
-    mantissa32.x[1] += x.sign;
-    return fpemu::bit_cast<fpbits64_t>(mantissa32);
+    __mantissa32.x[1] += __x.sign;
+    return fpemu::bit_cast<fpbits64_t>(__mantissa32);
 }
 
 } // namespace impl

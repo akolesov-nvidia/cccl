@@ -201,35 +201,35 @@ namespace fpemu
 
     // In-house bit cast polyfill, kept available as the __FPEMU_BIT_CAST__
     // fallback target. Similar to C++20 std::bit_cast.
-    template<typename T, typename R>
-    __FPEMU_HOST_DEVICE_DECL__ T __fpemu_builtin_bit_cast(const R value) 
+    template<typename _Tp, typename _Rp>
+    __FPEMU_HOST_DEVICE_DECL__ _Tp __fpemu_builtin_bit_cast(const _Rp __value) 
     {
-        T dst;
+        _Tp __dst;
     #if defined __DO_NOT_USE_MEMCPY__
-        for (unsigned i = 0U; i < sizeof(T); i++)
+        for (unsigned __i = 0U; __i < sizeof(_Tp); __i++)
         {
-            unsigned char * ptrSRC = i + (unsigned char *)(&value);
-            unsigned char * ptrDST = i + (unsigned char *)(&dst);
-            *ptrDST = *ptrSRC;
+            unsigned char * __ptrSRC = __i + (unsigned char *)(&__value);
+            unsigned char * __ptrDST = __i + (unsigned char *)(&__dst);
+            *__ptrDST = *__ptrSRC;
         }
     #else
         #if !defined(__CUDA_LIBDEVICE__)
-            std::memcpy(static_cast<void*>(&dst), static_cast<const void*>(&value),
-                        sizeof(T));
+            std::memcpy(static_cast<void*>(&__dst), static_cast<const void*>(&__value),
+                        sizeof(_Tp));
         #else
-            memcpy(static_cast<void*>(&dst), static_cast<const void*>(&value),
-                        sizeof(T));
+            memcpy(static_cast<void*>(&__dst), static_cast<const void*>(&__value),
+                        sizeof(_Tp));
         #endif
     #endif
-            return dst;
+            return __dst;
     }
 
     // Internal bit cast utility used throughout the library. Delegates to the
     // __FPEMU_BIT_CAST__ switch macro (cuda::std::bit_cast by default).
-    template<typename T, typename R>
-    __FPEMU_HOST_DEVICE_DECL__ T bit_cast(const R value)
+    template<typename _Tp, typename _Rp>
+    __FPEMU_HOST_DEVICE_DECL__ _Tp bit_cast(const _Rp __value)
     {
-        return __FPEMU_BIT_CAST__(T, value);
+        return __FPEMU_BIT_CAST__(_Tp, __value);
     }
     
 
@@ -246,7 +246,7 @@ namespace fpemu
      * - nan: Not a Number (quiet or signaling)
      * - denormal: Denormalized number with leading zeros
      */
-    enum struct fpclass_t
+    enum struct __fpclass_t
     {
         normal     = 0,
         zero       = 1,
@@ -266,8 +266,8 @@ namespace fpemu
      * @var sign The sign bit (0 for positive, 1<<31 for negative)
      * @var fpclass The floating point class (normal, zero, inf, nan, denormal)
      *
-     * @note `fpclass` carries a default member initializer (`fpclass_t::normal`)
-     *       so that any code path producing an `fp64emu_unpacked` that does not
+     * @note `fpclass` carries a default member initializer (`__fpclass_t::normal`)
+     *       so that any code path producing an `__fp64emu_unpacked` that does not
      *       explicitly classify the value (e.g. intermediate result structs
      *       in fma/add/mul) leaves the field with
      *       a defined value. Reading an indeterminate `fpclass` is undefined
@@ -278,12 +278,12 @@ namespace fpemu
      *       uninitialized by design (they are written unconditionally by every
      *       producer and we don't want to pessimize the optimizer's SROA).
      */
-    struct fp64emu_unpacked 
+    struct __fp64emu_unpacked 
     {
         uint64_t mantissa;
         int32_t exponent;
         uint32_t sign;
-        fpclass_t fpclass = fpclass_t::normal;
+        __fpclass_t fpclass = __fpclass_t::normal;
     };
 
     /**
@@ -293,7 +293,7 @@ namespace fpemu
      * which is useful for certain operations that require 64-bit arithmetic
      * but can be performed by 32-bit operations.    
      */
-    struct uint32x2_t 
+    struct __uint32x2_t 
     {
         uint32_t x[2];
     };
@@ -305,7 +305,7 @@ namespace fpemu
      * which is useful for certain operations that require 64-bit arithmetic
      * but can be performed by 32-bit operations.    
      */
-    struct uint64x2_t 
+    struct __uint64x2_t 
     {
         uint64_t x[2];
     };
@@ -317,10 +317,10 @@ namespace fpemu
      * which is useful for certain operations that require 128-bit arithmetic
      * but can be performed by 64-bit operations.    
      */
-    struct uint32x4_t
+    struct __uint32x4_t
     {
-        uint32x2_t lo;
-        uint32x2_t hi;
+        __uint32x2_t lo;
+        __uint32x2_t hi;
     };
 
     #ifndef __CUDA_ARCH__
@@ -333,20 +333,20 @@ namespace fpemu
          * @param x The 32-bit integer to count leading zeros in
          * @return The number of leading zeros in the integer
          */
-        __FPEMU_INTERNAL_DECL__ int __internal_clz(int x) 
+        __FPEMU_INTERNAL_DECL__ int __internal_clz(int __x) 
         {
-            if (x == 0) return 32;
+            if (__x == 0) return 32;
 
-            int n = 0;
-            unsigned int u = (unsigned int)x;
+            int __n = 0;
+            unsigned int __u = (unsigned int)__x;
 
-            if ((u >> 16) == 0) { n += 16; u <<= 16; }
-            if ((u >> 24) == 0) { n += 8;  u <<= 8;  }
-            if ((u >> 28) == 0) { n += 4;  u <<= 4;  }
-            if ((u >> 30) == 0) { n += 2;  u <<= 2;  }
-            if ((u >> 31) == 0) { n += 1; }
+            if ((__u >> 16) == 0) { __n += 16; __u <<= 16; }
+            if ((__u >> 24) == 0) { __n += 8;  __u <<= 8;  }
+            if ((__u >> 28) == 0) { __n += 4;  __u <<= 4;  }
+            if ((__u >> 30) == 0) { __n += 2;  __u <<= 2;  }
+            if ((__u >> 31) == 0) { __n += 1; }
 
-            return n;
+            return __n;
         }
 
         /**
@@ -358,23 +358,23 @@ namespace fpemu
          * @param x The 64-bit integer to count leading zeros in
          * @return The number of leading zeros in the integer
          */
-        __FPEMU_INTERNAL_DECL__ int __internal_clzll(int64_t x) 
+        __FPEMU_INTERNAL_DECL__ int __internal_clzll(int64_t __x) 
         {
-            uint64_t ux = (uint64_t)x;
-            if (ux == 0)
+            uint64_t __ux = (uint64_t)__x;
+            if (__ux == 0)
                 return 64;
 
-            int count = 0;
-            for (int i = 63; i >= 0; --i) {
-                if (ux & (1ULL << i))
+            int __count = 0;
+            for (int __i = 63; __i >= 0; --__i) {
+                if (__ux & (1ULL << __i))
                     break;
-                count++;
+                __count++;
             }
-            return count;
+            return __count;
         }
     #else
-        __FPEMU_INTERNAL_DECL__ int __internal_clz(int x)       { return __clz(x); }
-        __FPEMU_INTERNAL_DECL__ int __internal_clzll(int64_t x) { return __clzll(x); }
+        __FPEMU_INTERNAL_DECL__ int __internal_clz(int __x)       { return __clz(__x); }
+        __FPEMU_INTERNAL_DECL__ int __internal_clzll(int64_t __x) { return __clzll(__x); }
     #endif //__CUDA_ARCH__
 
         #undef  __max_fp64emu
@@ -399,7 +399,7 @@ namespace fpemu
      * @param sign The 32-bit integer to invert the sign of
      * @return The inverted sign
      */
-    __FPEMU_INTERNAL_DECL__ uint32_t __invert_msb(uint32_t sign)
+    __FPEMU_INTERNAL_DECL__ uint32_t __invert_msb(uint32_t __sign)
     {
     #if __FP64EMU_PTX_XOR__ == 1
         uint32_t result;
@@ -412,7 +412,7 @@ namespace fpemu
             : "r"(sign));
         return result;
     #else
-        return sign ^ 0x80000000u;
+        return __sign ^ 0x80000000u;
     #endif
     }
 
@@ -421,7 +421,7 @@ namespace fpemu
      * @brief Multiply two 64-bit integers and return the high 32 bits of the result
      * 
      * This function performs multiplication of two 64-bit integers represented as pairs
-     * of 32-bit integers (uint32x2_t). It returns only the high 32 bits of the 128-bit
+     * of 32-bit integers (__uint32x2_t). It returns only the high 32 bits of the 128-bit
      * multiplication result.
      * 
      * The implementation is optimized differently for CUDA and CPU:
@@ -433,19 +433,19 @@ namespace fpemu
      * 2. Handles carries between the partial products
      * 3. Extracts and combines the high bits to form the final 32-bit result
      * 
-     * @tparam meth The accuracy level (fp64emu_accuracy)
+     * @tparam _Acc The accuracy level (fp64emu_accuracy)
      * @param a_ First 64-bit multiplicand as two 32-bit integers
      * @param b_ Second 64-bit multiplicand as two 32-bit integers
      * @return The high 32 bits of the multiplication result
      */
-    template<fp64emu_accuracy meth = fp64emu_accuracy::high>
-    __FPEMU_INTERNAL_DECL__ uint32_t __mul_32(uint32x2_t a_, uint32x2_t b_)
+    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
+    __FPEMU_INTERNAL_DECL__ uint32_t __mul_32(__uint32x2_t __a, __uint32x2_t __b)
     {
-        uint32_t res;
+        uint32_t __res;
 #if defined  __CUDA_ARCH__
-        uint32x2_t a64 = fpemu::bit_cast<uint32x2_t>(a_);
-        uint32x2_t b64 = fpemu::bit_cast<uint32x2_t>(b_);
-        uint32_t res32;
+        __uint32x2_t __a64 = fpemu::bit_cast<__uint32x2_t>(__a);
+        __uint32x2_t __b64 = fpemu::bit_cast<__uint32x2_t>(__b);
+        uint32_t __res32;
         asm ("{\n\t"
             ".reg .u32 r0, ahi, bhi;\n\t"
             "mov.b32         ahi, %1;   \n\t"
@@ -453,19 +453,19 @@ namespace fpemu
             "mad.hi.u32      r0, ahi, bhi,  0;\n\t"
             "mov.b32         %0, r0;     \n\t"
             "}"
-            : "=r"(res32)
-            : "r"(a64.x[1]), "r"(b64.x[1]));
-        res = res32;
+            : "=r"(__res32)
+            : "r"(__a64.x[1]), "r"(__b64.x[1]));
+        __res = __res32;
 #else
         // Split inputs into 32-bit parts
-        uint32_t ahi = a_.x[1];
-        uint32_t bhi = b_.x[1];
+        uint32_t __ahi = __a.x[1];
+        uint32_t __bhi = __b.x[1];
 
         // Compute high 32 bits directly
-        uint64_t hi_hi = uint64_t(ahi) * bhi;  // (a.hi * b.hi)
-        res = uint32_t(hi_hi >> 32);
+        uint64_t __hi_hi = uint64_t(__ahi) * __bhi;  // (a.hi * b.hi)
+        __res = uint32_t(__hi_hi >> 32);
 #endif
-        return res;
+        return __res;
     } //__mul_32
 
 
@@ -473,25 +473,25 @@ namespace fpemu
      * @brief Multiply two 64-bit integers and return the high 64 bits of the result
      * 
      * This function performs multiplication of two 64-bit integers represented as pairs
-     * of 32-bit integers (uint32x2_t). It returns the high 64 bits of the 128-bit result.
+     * of 32-bit integers (__uint32x2_t). It returns the high 64 bits of the 128-bit result.
      * 
      * The implementation is optimized differently for CUDA and CPU:
      * - On CUDA: Uses PTX assembly instructions for efficient 64-bit multiplication
      * - On CPU: Uses standard C++ arithmetic with careful handling of carries
      * 
-     * @tparam meth The accuracy level (fp64emu_accuracy)
+     * @tparam _Acc The accuracy level (fp64emu_accuracy)
      * @param a_ First 64-bit multiplicand as two 32-bit integers
      * @param b_ Second 64-bit multiplicand as two 32-bit integers
      * @return The high 64 bits of the multiplication result as two 32-bit integers
      */
-    template<fp64emu_accuracy meth = fp64emu_accuracy::high>
-    __FPEMU_INTERNAL_DECL__ uint32x2_t __mul_64(uint32x2_t a_, uint32x2_t b_)
+    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
+    __FPEMU_INTERNAL_DECL__ __uint32x2_t __mul_64(__uint32x2_t __a, __uint32x2_t __b)
     {
-        uint32x2_t res;
+        __uint32x2_t __res;
 #if defined  __CUDA_ARCH__
-        uint64_t a64 = fpemu::bit_cast<uint64_t>(a_);
-        uint64_t b64 = fpemu::bit_cast<uint64_t>(b_);
-        uint64_t res64;
+        uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
+        uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+        uint64_t __res64;
         asm ("{\n\t"
             ".reg .u32 r0, r1, r2, r3, alo, ahi, blo, bhi;\n\t"
             "mov.b64         {alo,ahi}, %1;   \n\t"
@@ -505,33 +505,33 @@ namespace fpemu
             "addc.u32        r3, r3,  0;      \n\t"
             "mov.b64         %0, {r2,r3};     \n\t"
             "}"
-            : "=l"(res64)
-            : "l"(a64), "l"(b64));
-        res = fpemu::bit_cast<uint32x2_t>(res64);
+            : "=l"(__res64)
+            : "l"(__a64), "l"(__b64));
+        __res = fpemu::bit_cast<__uint32x2_t>(__res64);
 #else
         // Split inputs into 32-bit parts
-        uint32_t alo = a_.x[0], ahi = a_.x[1];
-        uint32_t blo = b_.x[0], bhi = b_.x[1];
+        uint32_t __alo = __a.x[0], __ahi = __a.x[1];
+        uint32_t __blo = __b.x[0], __bhi = __b.x[1];
 
         // Compute partial products that contribute to high 64 bits
-        uint64_t lo_hi = uint64_t(alo) * bhi;  // (a.lo * b.hi)
-        uint64_t hi_lo = uint64_t(ahi) * blo;  // (a.hi * b.lo)
-        uint64_t hi_hi = uint64_t(ahi) * bhi;  // (a.hi * b.hi)
+        uint64_t __lo_hi = uint64_t(__alo) * __bhi;  // (a.lo * b.hi)
+        uint64_t __hi_lo = uint64_t(__ahi) * __blo;  // (a.hi * b.lo)
+        uint64_t __hi_hi = uint64_t(__ahi) * __bhi;  // (a.hi * b.hi)
 
         // Extract high parts and combine
-        uint32_t lo_hi_hi = uint32_t(lo_hi >> 32);
-        uint32_t hi_lo_hi = uint32_t(hi_lo >> 32);
-        uint32_t hi_hi_lo = uint32_t(hi_hi);
-        uint32_t hi_hi_hi = uint32_t(hi_hi >> 32);
+        uint32_t __lo_hi_hi = uint32_t(__lo_hi >> 32);
+        uint32_t __hi_lo_hi = uint32_t(__hi_lo >> 32);
+        uint32_t __hi_hi_lo = uint32_t(__hi_hi);
+        uint32_t __hi_hi_hi = uint32_t(__hi_hi >> 32);
 
         // Combine high parts with carries
-        uint64_t hi = uint64_t(lo_hi_hi) + hi_lo_hi + hi_hi_lo;
+        uint64_t __hi = uint64_t(__lo_hi_hi) + __hi_lo_hi + __hi_hi_lo;
         
         // Store high result
-        res.x[0] = uint32_t(hi);
-        res.x[1] = uint32_t(hi >> 32) + hi_hi_hi;
+        __res.x[0] = uint32_t(__hi);
+        __res.x[1] = uint32_t(__hi >> 32) + __hi_hi_hi;
 #endif
-        return res;
+        return __res;
     } //__mul_64
 
 
@@ -539,8 +539,8 @@ namespace fpemu
      * @brief Multiply two 64-bit integers and return the full 128-bit result
      * 
      * This function performs multiplication of two 64-bit integers represented as pairs
-     * of 32-bit integers (uint32x2_t). It returns the full 128-bit result stored in
-     * a uint32x4_t structure containing both high and low 64 bits.
+     * of 32-bit integers (__uint32x2_t). It returns the full 128-bit result stored in
+     * a __uint32x4_t structure containing both high and low 64 bits.
      * 
      * The implementation handles the multiplication by:
      * 1. Computing partial products (lo*lo, lo*hi, hi*lo, hi*hi)
@@ -551,58 +551,58 @@ namespace fpemu
      * - On CUDA: Uses built-in __umul64hi for high bits
      * - On CPU: Uses standard C++ arithmetic with careful handling of carries
      * 
-     * @tparam meth The accuracy level (fp64emu_accuracy)
+     * @tparam _Acc The accuracy level (fp64emu_accuracy)
      * @param a_ First 64-bit multiplicand as two 32-bit integers
      * @param b_ Second 64-bit multiplicand as two 32-bit integers
      * @return The full 128-bit multiplication result as four 32-bit integers
      */
-    template<fp64emu_accuracy meth = fp64emu_accuracy::high>
-    __FPEMU_INTERNAL_DECL__ uint32x4_t __mul_128(uint32x2_t a_, uint32x2_t b_)
+    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
+    __FPEMU_INTERNAL_DECL__ __uint32x4_t __mul_128(__uint32x2_t __a, __uint32x2_t __b)
     {
-        uint32x4_t res;
+        __uint32x4_t __res;
 
         // Split inputs into 32-bit parts
-        uint32_t alo = a_.x[0], ahi = a_.x[1];
-        uint32_t blo = b_.x[0], bhi = b_.x[1];
+        uint32_t __alo = __a.x[0], __ahi = __a.x[1];
+        uint32_t __blo = __b.x[0], __bhi = __b.x[1];
 
         // Compute partial products
-        uint64_t lo_lo = uint64_t(alo) * blo;  // (a.lo * b.lo)
-        uint64_t lo_hi = uint64_t(alo) * bhi;  // (a.lo * b.hi) 
-        uint64_t hi_lo = uint64_t(ahi) * blo;  // (a.hi * b.lo)
+        uint64_t __lo_lo = uint64_t(__alo) * __blo;  // (a.lo * b.lo)
+        uint64_t __lo_hi = uint64_t(__alo) * __bhi;  // (a.lo * b.hi) 
+        uint64_t __hi_lo = uint64_t(__ahi) * __blo;  // (a.hi * b.lo)
 
         // Extract 32-bit parts of intermediate results
-        uint32_t lo_lo_lo = uint32_t(lo_lo);
-        uint32_t lo_lo_hi = uint32_t(lo_lo >> 32);
-        uint32_t lo_hi_lo = uint32_t(lo_hi);
-        uint32_t hi_lo_lo = uint32_t(hi_lo);
+        uint32_t __lo_lo_lo = uint32_t(__lo_lo);
+        uint32_t __lo_lo_hi = uint32_t(__lo_lo >> 32);
+        uint32_t __lo_hi_lo = uint32_t(__lo_hi);
+        uint32_t __hi_lo_lo = uint32_t(__hi_lo);
 
         // Compute final low result with carries
-        uint64_t mid = uint64_t(lo_lo_hi) + lo_hi_lo + hi_lo_lo;
-        uint32_t mid_lo = uint32_t(mid);
+        uint64_t __mid = uint64_t(__lo_lo_hi) + __lo_hi_lo + __hi_lo_lo;
+        uint32_t __mid_lo = uint32_t(__mid);
         
         // Store low result
-        res.lo.x[0] = lo_lo_lo;
-        res.lo.x[1] = mid_lo;
+        __res.lo.x[0] = __lo_lo_lo;
+        __res.lo.x[1] = __mid_lo;
 
 #if defined  __CUDA_ARCH__
-        uint64_t a64 = fpemu::bit_cast<uint64_t>(a_);
-        uint64_t b64 = fpemu::bit_cast<uint64_t>(b_);
-        uint64_t res64 = __umul64hi(a64, b64);
-        res.hi = fpemu::bit_cast<uint32x2_t>(res64);
+        uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
+        uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+        uint64_t __res64 = __umul64hi(__a64, __b64);
+        __res.hi = fpemu::bit_cast<__uint32x2_t>(__res64);
 #else
-        uint64_t hi_hi = uint64_t(ahi) * bhi;  // (a.hi * b.hi)
-        uint32_t lo_hi_hi = uint32_t(lo_hi >> 32);
-        uint32_t hi_lo_hi = uint32_t(hi_lo >> 32);
-        uint32_t hi_hi_lo = uint32_t(hi_hi);
-        uint32_t mid_hi = uint32_t(mid >> 32);
-        uint64_t hi = uint64_t(mid_hi) + lo_hi_hi + hi_lo_hi + hi_hi_lo;
-        uint32_t hi_hi_hi = uint32_t(hi_hi >> 32);
+        uint64_t __hi_hi = uint64_t(__ahi) * __bhi;  // (a.hi * b.hi)
+        uint32_t __lo_hi_hi = uint32_t(__lo_hi >> 32);
+        uint32_t __hi_lo_hi = uint32_t(__hi_lo >> 32);
+        uint32_t __hi_hi_lo = uint32_t(__hi_hi);
+        uint32_t __mid_hi = uint32_t(__mid >> 32);
+        uint64_t __hi = uint64_t(__mid_hi) + __lo_hi_hi + __hi_lo_hi + __hi_hi_lo;
+        uint32_t __hi_hi_hi = uint32_t(__hi_hi >> 32);
 
         // Store high result
-        res.hi.x[0] = uint32_t(hi);
-        res.hi.x[1] = uint32_t(hi >> 32) + hi_hi_hi;
+        __res.hi.x[0] = uint32_t(__hi);
+        __res.hi.x[1] = uint32_t(__hi >> 32) + __hi_hi_hi;
 #endif
-        return res;
+        return __res;
     } //__mul_128
 
     /**
@@ -615,11 +615,11 @@ namespace fpemu
      * @param shift The number of bits to shift (positive for left shift)
      * @return The shifted value as two 32-bit integers
      */
-     __FPEMU_INTERNAL_DECL__ uint32x2_t __shl_64 (uint32x2_t man, int shift)
+     __FPEMU_INTERNAL_DECL__ __uint32x2_t __shl_64 (__uint32x2_t __man, int __shift)
      {
-         uint64_t man64 = fpemu::bit_cast<uint64_t>(man);
-         man64 <<= shift;
-         return fpemu::bit_cast<uint32x2_t>(man64);
+         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
+         __man64 <<= __shift;
+         return fpemu::bit_cast<__uint32x2_t>(__man64);
      } //__shl_64
  
      /**
@@ -632,14 +632,14 @@ namespace fpemu
       * @param shift The number of bits to shift (positive for right shift)
       * @return The shifted value as two 32-bit integers
       */
-     __FPEMU_INTERNAL_DECL__ uint32x2_t __shr_64 (uint32x2_t man, int shift)
+     __FPEMU_INTERNAL_DECL__ __uint32x2_t __shr_64 (__uint32x2_t __man, int __shift)
      {
-         uint64_t man64 = fpemu::bit_cast<uint64_t>(man);
+         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
-         shift = (shift > 0) ? (shift>64) ? 64 : shift : 0;
+         __shift = (__shift > 0) ? (__shift>64) ? 64 : __shift : 0;
  #endif
-         man64 = man64 >> shift;
-         return fpemu::bit_cast<uint32x2_t>(man64);
+         __man64 = __man64 >> __shift;
+         return fpemu::bit_cast<__uint32x2_t>(__man64);
      } //__shr_64
 
      /**
@@ -659,17 +659,17 @@ namespace fpemu
      *
      * Uses CUDA intrinsics on device; host falls back to native multiply (RN).
      */
-    template<fpemu::rounding rm = fpemu::rounding::rn>
-    __FPEMU_INTERNAL_DECL__ float __fmul_dir (float x, float y)
+    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    __FPEMU_INTERNAL_DECL__ float __fmul_dir (float __x, float __y)
     {
 #if defined(__CUDA_ARCH__)
-        if constexpr (rm == fpemu::rounding::rn) return __fmul_rn(x, y);
-        else if constexpr (rm == fpemu::rounding::rz) return __fmul_rz(x, y);
-        else if constexpr (rm == fpemu::rounding::ru) return __fmul_ru(x, y);
-        else return __fmul_rd(x, y);
+        if constexpr (_Rm == fpemu::rounding::rn) return __fmul_rn(__x, __y);
+        else if constexpr (_Rm == fpemu::rounding::rz) return __fmul_rz(__x, __y);
+        else if constexpr (_Rm == fpemu::rounding::ru) return __fmul_ru(__x, __y);
+        else return __fmul_rd(__x, __y);
 #else
-        (void)rm;
-        return x * y;
+        (void)_Rm;
+        return __x * __y;
 #endif
     } //__fmul_dir
 
@@ -678,82 +678,82 @@ namespace fpemu
      *
      * Uses CUDA intrinsics on device; host falls back to native add (RN).
      */
-    template<fpemu::rounding rm = fpemu::rounding::rn>
-    __FPEMU_INTERNAL_DECL__ float __fadd_dir (float x, float y)
+    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    __FPEMU_INTERNAL_DECL__ float __fadd_dir (float __x, float __y)
     {
 #if defined(__CUDA_ARCH__)
-        if constexpr (rm == fpemu::rounding::rn) return __fadd_rn(x, y);
-        else if constexpr (rm == fpemu::rounding::rz) return __fadd_rz(x, y);
-        else if constexpr (rm == fpemu::rounding::ru) return __fadd_ru(x, y);
-        else return __fadd_rd(x, y);
+        if constexpr (_Rm == fpemu::rounding::rn) return __fadd_rn(__x, __y);
+        else if constexpr (_Rm == fpemu::rounding::rz) return __fadd_rz(__x, __y);
+        else if constexpr (_Rm == fpemu::rounding::ru) return __fadd_ru(__x, __y);
+        else return __fadd_rd(__x, __y);
 #else
-        (void)rm;
-        return x + y;
+        (void)_Rm;
+        return __x + __y;
 #endif
     } //__fadd_dir
 
-     template<fpemu::rounding rm = fpemu::rounding::rn>
-     __FPEMU_INTERNAL_DECL__ uint32x2_t __shr_64_rnd (uint32x2_t man, int shift, bool sign = false)
+     template<fpemu::rounding _Rm = fpemu::rounding::rn>
+     __FPEMU_INTERNAL_DECL__ __uint32x2_t __shr_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false)
      {
-         uint64_t man64 = fpemu::bit_cast<uint64_t>(man);
+         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
-         shift = (shift > 0) ? (shift>64) ? 64 : shift : 0;
+         __shift = (__shift > 0) ? (__shift>64) ? 64 : __shift : 0;
  #endif
-         if (shift <= 0) return man;
+         if (__shift <= 0) return __man;
 
-         const uint64_t discard_mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1);
-         const bool inexact = (man64 & discard_mask) != 0;
-         man64 >>= shift;
+         const uint64_t __discard_mask = (__shift >= 64) ? ~0ULL : ((1ULL << __shift) - 1);
+         const bool __inexact = (__man64 & __discard_mask) != 0;
+         __man64 >>= __shift;
 
-         if constexpr (rm == fpemu::rounding::ru)
+         if constexpr (_Rm == fpemu::rounding::ru)
          {
-             if (!sign && inexact) man64++;
+             if (!__sign && __inexact) __man64++;
          }
-         else if constexpr (rm == fpemu::rounding::rd)
+         else if constexpr (_Rm == fpemu::rounding::rd)
          {
-             if (sign && inexact) man64++;
+             if (__sign && __inexact) __man64++;
          }
-         return fpemu::bit_cast<uint32x2_t>(man64);
+         return fpemu::bit_cast<__uint32x2_t>(__man64);
      } //__shr_64_rnd
 
     /**
      * @brief Logical right shift of 128-bit mantissa with directed rounding
      */
-    template<fpemu::rounding rm = fpemu::rounding::rn>
-    __FPEMU_INTERNAL_DECL__ __uint128_t __shr_128_rnd (__uint128_t man, int shift, bool sign = false)
+    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    __FPEMU_INTERNAL_DECL__ __uint128_t __shr_128_rnd (__uint128_t __man, int __shift, bool __sign = false)
     {
 #ifndef __CUDA_ARCH__
-        shift = (shift > 0) ? ((shift > 127) ? 127 : shift) : 0;
+        __shift = (__shift > 0) ? ((__shift > 127) ? 127 : __shift) : 0;
 #endif
-        if (shift <= 0) return man;
+        if (__shift <= 0) return __man;
 
-        const __uint128_t discard_mask =
-            (shift >= 128) ? ~(__uint128_t)0 : ((((__uint128_t)1) << shift) - 1);
-        const bool inexact = (man & discard_mask) != 0;
-        man >>= shift;
+        const __uint128_t __discard_mask =
+            (__shift >= 128) ? ~(__uint128_t)0 : ((((__uint128_t)1) << __shift) - 1);
+        const bool __inexact = (__man & __discard_mask) != 0;
+        __man >>= __shift;
 
-        if constexpr (rm == fpemu::rounding::rn || rm == fpemu::rounding::rz)
+        if constexpr (_Rm == fpemu::rounding::rn || _Rm == fpemu::rounding::rz)
         {
-            if (inexact) man |= 1;
+            if (__inexact) __man |= 1;
         }
-        else if constexpr (rm == fpemu::rounding::ru)
+        else if constexpr (_Rm == fpemu::rounding::ru)
         {
-            if (!sign && inexact) man |= 1;
+            if (!__sign && __inexact) __man |= 1;
         }
-        else if constexpr (rm == fpemu::rounding::rd)
+        else if constexpr (_Rm == fpemu::rounding::rd)
         {
-            if (sign && inexact) man |= 1;
+            if (__sign && __inexact) __man |= 1;
         }
-        return man;
+        return __man;
     } //__shr_128_rnd
 
     /**
      * @brief Logical right shift of 128-bit mantissa with jam (sticky) only.
      * Used during FMA alignment; directed rounding is deferred to the pack epilogue.
      */
-    __FPEMU_INTERNAL_DECL__ __uint128_t __shr_128_jam (__uint128_t man, int shift)
+    __FPEMU_INTERNAL_DECL__ __uint128_t __shr_128_jam (__uint128_t __man, int __shift)
     {
-        return __shr_128_rnd<fpemu::rounding::rn>(man, shift);
+        return __shr_128_rnd<fpemu::rounding::rn>(__man, __shift);
     } //__shr_128_jam
  
           /**
@@ -767,16 +767,16 @@ namespace fpemu
       * @param shift The number of bits to shift (positive for right shift)
       * @return The shifted and rounded value as two 32-bit integers
       */
-      template<fp64emu_accuracy meth = fp64emu_accuracy::high>
-     __FPEMU_INTERNAL_DECL__ uint32x2_t __sar_64 (uint32x2_t man, int shift)
+      template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
+     __FPEMU_INTERNAL_DECL__ __uint32x2_t __sar_64 (__uint32x2_t __man, int __shift)
      {
  #ifndef __CUDA_ARCH__
-         shift = (shift > 0) ? (shift>63) ? 63 : shift : 0;
+         __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
  #endif
-         int64_t man64 = fpemu::bit_cast<int64_t>(man);
-        man64 = man64 >> shift;
-         uint32x2_t res = fpemu::bit_cast<uint32x2_t>(man64);
-         return res;
+         int64_t __man64 = fpemu::bit_cast<int64_t>(__man);
+        __man64 = __man64 >> __shift;
+         __uint32x2_t __res = fpemu::bit_cast<__uint32x2_t>(__man64);
+         return __res;
      } //__sar_64_rnd
 
 
@@ -788,45 +788,45 @@ namespace fpemu
       * as two 32-bit integers, with rounding according to the specified mode.
       * The shift amount can be positive or negative.
       * 
-      * @tparam meth Accuracy level (sticky-bit preservation applies only for high)
+      * @tparam _Acc Accuracy level (sticky-bit preservation applies only for high)
       * @tparam rm  Rounding mode (default: nearest-even)
       * @param man  The 64-bit value to shift as two 32-bit integers
       * @param shift The number of bits to shift (positive for right shift)
       * @param sign Result sign (used for directed rounding modes ru/rd)
       * @return The shifted and rounded value as two 32-bit integers
       */
-      template<fp64emu_accuracy meth = fp64emu_accuracy::high,
-               fpemu::rounding rm = fpemu::rounding::rn>
-     __FPEMU_INTERNAL_DECL__ uint32x2_t __sar_64_rnd (uint32x2_t man, int shift, bool sign = false)
+      template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
+               fpemu::rounding _Rm = fpemu::rounding::rn>
+     __FPEMU_INTERNAL_DECL__ __uint32x2_t __sar_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false)
      {
  #ifndef __CUDA_ARCH__
-         shift = (shift > 0) ? (shift>63) ? 63 : shift : 0;
+         __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
  #endif
-         int64_t man64 = fpemu::bit_cast<int64_t>(man);
-         int64_t man64_res = man64 >> shift;
-         uint32x2_t res = fpemu::bit_cast<uint32x2_t>(man64_res);
-         if constexpr (meth == fp64emu_accuracy::high)
+         int64_t __man64 = fpemu::bit_cast<int64_t>(__man);
+         int64_t __man64_res = __man64 >> __shift;
+         __uint32x2_t __res = fpemu::bit_cast<__uint32x2_t>(__man64_res);
+         if constexpr (_Acc == fp64emu_accuracy::high)
          {
-            uint64_t mask = (1LLU << shift) - 1;
-            bool sticky = (man64 & mask) != 0;
-            if constexpr (rm == fpemu::rounding::rn)
+            uint64_t __mask = (1LLU << __shift) - 1;
+            bool __sticky = (__man64 & __mask) != 0;
+            if constexpr (_Rm == fpemu::rounding::rn)
             {
-                res.x[0] |= sticky;
+                __res.x[0] |= __sticky;
             }
-            else if constexpr (rm == fpemu::rounding::rz)
+            else if constexpr (_Rm == fpemu::rounding::rz)
             {
                 // truncate toward zero
             }
-            else if constexpr (rm == fpemu::rounding::ru)
+            else if constexpr (_Rm == fpemu::rounding::ru)
             {
-                if (!sign && sticky) res.x[0] |= 1;
+                if (!__sign && __sticky) __res.x[0] |= 1;
             }
-            else if constexpr (rm == fpemu::rounding::rd)
+            else if constexpr (_Rm == fpemu::rounding::rd)
             {
-                if (sign && sticky) res.x[0] |= 1;
+                if (__sign && __sticky) __res.x[0] |= 1;
             }
          }
-         return res;
+         return __res;
      } //__sar_64_rnd
  
 
@@ -837,41 +837,41 @@ namespace fpemu
      * represented as two 32-bit integers. It handles the exponent extraction
      * according to IEEE-754 double precision format.
      * 
-     * @tparam meth Accuracy level (full-range special handling only for high)
+     * @tparam _Acc Accuracy level (full-range special handling only for high)
      * @param input The input number as two 32-bit integers
      * @return The extracted exponent value
      */
-     template<fp64emu_accuracy meth = fp64emu_accuracy::high>
-    __FPEMU_INTERNAL_DECL__ int32_t __unpack_exp(uint32x2_t input)
+     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
+    __FPEMU_INTERNAL_DECL__ int32_t __unpack_exp(__uint32x2_t __input)
     {
-        int32_t exp;
+        int32_t __exp;
 
         //remove sign bit
-        input.x[1] &= 0x7fffffff;
+        __input.x[1] &= 0x7fffffff;
 
         //Shift exponent bits to the beggining
-        exp = input.x[1] >> 20;
+        __exp = __input.x[1] >> 20;
 
         //Extract mantissa bits
-        input.x[1] = input.x[1] & 0x000fffff;
+        __input.x[1] = __input.x[1] & 0x000fffff;
 
         //Check for NAN and INF
-        if constexpr (meth == fp64emu_accuracy::high) 
+        if constexpr (_Acc == fp64emu_accuracy::high) 
         {
-            if (exp == 0x7ff) 
+            if (__exp == 0x7ff) 
             {
-                if (input.x[0] == 0 && input.x[1] == 0) 
+                if (__input.x[0] == 0 && __input.x[1] == 0) 
                 {
-                    exp = 0x000017ff; //Magic value for INF
+                    __exp = 0x000017ff; //Magic value for INF
                 } 
                 else 
                 {
-                    exp = 0x000047ff; //Magic value for NAN
+                    __exp = 0x000047ff; //Magic value for NAN
                 }
             }
         }
 
-        return exp;
+        return __exp;
     } //__unpack_exp
 
     /**
@@ -882,29 +882,29 @@ namespace fpemu
      * numbers according to IEEE-754 double precision format.
      * 
      * @tparam twos_comp_flag Whether to use two's complement representation
-     * @tparam meth Accuracy level (full-range special handling only for high)
+     * @tparam _Acc Accuracy level (full-range special handling only for high)
      * @param sign Pointer to store the sign bit
      * @param input The input number as two 32-bit integers
      * @param is_zero_exp Whether the exponent is zero (denormal case)
      * @return The extracted mantissa as two 32-bit integers
      */
-    template<fp64emu_accuracy meth = fp64emu_accuracy::high>
-    __FPEMU_INTERNAL_DECL__ uint32x2_t __unpack_mant(bool *sign, uint32x2_t input, bool is_zero_exp)
+    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
+    __FPEMU_INTERNAL_DECL__ __uint32x2_t __unpack_mant(bool *__sign, __uint32x2_t __input, bool __is_zero_exp)
     {
-        uint32x2_t man32x2;
+        __uint32x2_t __man32x2;
 
         //Extract sign
-        *sign = (input.x[1] & 0x80000000) != 0;
+        *__sign = (__input.x[1] & 0x80000000) != 0;
 
         //Extract mantissa bits
-        man32x2.x[0] = input.x[0];
-        man32x2.x[1] = input.x[1] & 0x000fffff;
+        __man32x2.x[0] = __input.x[0];
+        __man32x2.x[1] = __input.x[1] & 0x000fffff;
 
         //Set implicit-bit for normal numbers
-        if (!is_zero_exp) man32x2.x[1] |= ( 1 << 20 );
+        if (!__is_zero_exp) __man32x2.x[1] |= ( 1 << 20 );
 
-        man32x2 = __shl_64(man32x2, EXTRA_BITS);
-        return man32x2;
+        __man32x2 = __shl_64(__man32x2, EXTRA_BITS);
+        return __man32x2;
     } //__unpack_mant
 
     /**
@@ -919,44 +919,44 @@ namespace fpemu
      * @param exp   Output unbiased exponent field
      * @param man   Output mantissa as two 32-bit integers
      */
-    template<fpemu::rounding rm = fpemu::rounding::rn>
+    template<fpemu::rounding _Rm = fpemu::rounding::rn>
     __FPEMU_INTERNAL_DECL__
-    void __fp64_ovfl_sat (bool sign, int32_t& exp, uint32x2_t& man)
+    void __fp64_ovfl_sat (bool __sign, int32_t& __exp, __uint32x2_t& __man)
     {
-        if constexpr (rm == fpemu::rounding::rz)
+        if constexpr (_Rm == fpemu::rounding::rz)
         {
-            exp = FP64_BIAS * 2;
-            man = {0xffffffff, FP64_HI_MANT_MASK};
+            __exp = FP64_BIAS * 2;
+            __man = {0xffffffff, FP64_HI_MANT_MASK};
         }
-        else if constexpr (rm == fpemu::rounding::rn)
+        else if constexpr (_Rm == fpemu::rounding::rn)
         {
-            exp = FP64_BIAS * 2 + 1;
-            man = {0, 0};
+            __exp = FP64_BIAS * 2 + 1;
+            __man = {0, 0};
         }
-        else if constexpr (rm == fpemu::rounding::ru)
+        else if constexpr (_Rm == fpemu::rounding::ru)
         {
-            if (sign)
+            if (__sign)
             {
-                exp = FP64_BIAS * 2;
-                man = {0xffffffff, FP64_HI_MANT_MASK};
+                __exp = FP64_BIAS * 2;
+                __man = {0xffffffff, FP64_HI_MANT_MASK};
             }
             else
             {
-                exp = FP64_BIAS * 2 + 1;
-                man = {0, 0};
+                __exp = FP64_BIAS * 2 + 1;
+                __man = {0, 0};
             }
         }
         else // rd
         {
-            if (sign)
+            if (__sign)
             {
-                exp = FP64_BIAS * 2 + 1;
-                man = {0, 0};
+                __exp = FP64_BIAS * 2 + 1;
+                __man = {0, 0};
             }
             else
             {
-                exp = FP64_BIAS * 2;
-                man = {0xffffffff, FP64_HI_MANT_MASK};
+                __exp = FP64_BIAS * 2;
+                __man = {0xffffffff, FP64_HI_MANT_MASK};
             }
         }
     } //__fp64_ovfl_sat
@@ -968,27 +968,27 @@ namespace fpemu
      * into a 64-bit double precision floating point number according to
      * IEEE-754 format.
      * 
-     * @tparam meth Accuracy level (full-range special handling only for high)
+     * @tparam _Acc Accuracy level (full-range special handling only for high)
      * @tparam rm  Rounding mode for overflow/underflow saturation (default: nearest-even)
      * @param sign The sign bit (true for negative)
      * @param exp The exponent value
      * @param man The mantissa as two 32-bit integers
      * @return The packed 64-bit double precision number
      */
-    template<fp64emu_accuracy meth = fp64emu_accuracy::high,
-             fpemu::rounding rm = fpemu::rounding::rn>
-    __FPEMU_INTERNAL_DECL__ uint64_t __pack (bool sign, uint32_t exp, uint32x2_t man)
+    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
+             fpemu::rounding _Rm = fpemu::rounding::rn>
+    __FPEMU_INTERNAL_DECL__ uint64_t __pack (bool __sign, uint32_t __exp, __uint32x2_t __man)
     {
 
-        bool zero_mantissa = man.x[0] == 0 && man.x[1] == 0;
-        bool is_nan = false;
+        bool __zero_mantissa = __man.x[0] == 0 && __man.x[1] == 0;
+        bool __is_nan = false;
         // Check for NAN
-        if constexpr (meth == fp64emu_accuracy::high)
+        if constexpr (_Acc == fp64emu_accuracy::high)
         {
-            is_nan =
-                exp >= (0x000047ff - BIAS - 52 - 1) ||     //NAN * x && NAN + x
-                exp == (0x000017ff - BIAS - 52 - 1) ||     //INF * 0
-                (exp == 0x000017ff - 64 && zero_mantissa); //INF + (-INF)
+            __is_nan =
+                __exp >= (0x000047ff - BIAS - 52 - 1) ||     //NAN * x && NAN + x
+                __exp == (0x000017ff - BIAS - 52 - 1) ||     //INF * 0
+                (__exp == 0x000017ff - 64 && __zero_mantissa); //INF + (-INF)
 
         }
         // A true infinity (inf+x, inf*x, inf+inf/inf*inf, etc.) reaches pack with an
@@ -1001,55 +1001,55 @@ namespace fpemu
         // than (0x17ff - BIAS - 52 - 1) -- the very value the INF*0 NaN test uses --
         // far above the largest finite-overflow exponent. Reuse that magic as the
         // inf floor so the discriminator is operation-independent.
-        bool is_inf = false;
-        if constexpr (meth == fp64emu_accuracy::high)
+        bool __is_inf = false;
+        if constexpr (_Acc == fp64emu_accuracy::high)
         {
-            is_inf = (exp >= (0x000017ff - BIAS - 52 - 1)) && !is_nan;
+            __is_inf = (__exp >= (0x000017ff - BIAS - 52 - 1)) && !__is_nan;
         }
         // Check for exact zero result
-        if ( zero_mantissa && exp < 0x000007ff) exp = 0;
+        if ( __zero_mantissa && __exp < 0x000007ff) __exp = 0;
     
-        if constexpr (meth == fp64emu_accuracy::high)
+        if constexpr (_Acc == fp64emu_accuracy::high)
         {
             // Convert special value of NAN|INF back to IEEE
-            if (exp >= 0x000007ff) exp = 0x000007ff;
+            if (__exp >= 0x000007ff) __exp = 0x000007ff;
         }
 
 
         // Shift exponent back to high bits
-        exp <<= 20; 
+        __exp <<= 20; 
 
         // Adds up exponent and mantissa to count implicit-bit
-        man.x[1] += exp;
+        __man.x[1] += __exp;
 
         // Check for the final overflow
-        if (man.x[1] >= 0x7ff00000) 
+        if (__man.x[1] >= 0x7ff00000) 
         {
-            if (is_nan)
+            if (__is_nan)
             {
-                man.x[0] = 0;
-                man.x[1] = 0x7fffffff;
+                __man.x[0] = 0;
+                __man.x[1] = 0x7fffffff;
             }
-            else if (is_inf)
+            else if (__is_inf)
             {
                 // True infinity: emit inf for every rounding mode (do NOT saturate
                 // to DBL_MAX as a finite overflow would under rz/ru/rd).
-                man.x[0] = 0;
-                man.x[1] = 0x7ff00000;
+                __man.x[0] = 0;
+                __man.x[1] = 0x7ff00000;
             }
             else
             {
-                int32_t sat_exp = 0;
-                __fp64_ovfl_sat<rm>(sign, sat_exp, man);
-                man.x[1] |= (uint32_t)sat_exp << FP64_HI_MANT_SHIFT;
+                int32_t __sat_exp = 0;
+                __fp64_ovfl_sat<_Rm>(__sign, __sat_exp, __man);
+                __man.x[1] |= (uint32_t)__sat_exp << FP64_HI_MANT_SHIFT;
             }
         }
 
 
         // Pack everything to FP64
-        uint32x2_t res = {man.x[0], man.x[1] | (sign << 31)};
+        __uint32x2_t __res = {__man.x[0], __man.x[1] | (__sign << 31)};
 
-        return fpemu::bit_cast<uint64_t>(res);
+        return fpemu::bit_cast<uint64_t>(__res);
     } //__pack
 
 
@@ -1066,11 +1066,11 @@ namespace fpemu
      * @param c The 64-bit value to convert as two 32-bit integers
      * @return The two's complement of the input value
      */
-    __FPEMU_INTERNAL_DECL__ uint32x2_t __two_comp (uint32x2_t c)
+    __FPEMU_INTERNAL_DECL__ __uint32x2_t __two_comp (__uint32x2_t __c)
     {
-        uint64_t c64   = fpemu::bit_cast<uint64_t>(c);
-        uint64_t res64 = 0 - c64; //IMAD.WIDE.U32 Rd, RZ, RZ, -Rc
-        return fpemu::bit_cast<uint32x2_t>(res64);
+        uint64_t __c64   = fpemu::bit_cast<uint64_t>(__c);
+        uint64_t __res64 = 0 - __c64; //IMAD.WIDE.U32 Rd, RZ, RZ, -Rc
+        return fpemu::bit_cast<__uint32x2_t>(__res64);
     } //__imad_wide_sub
 
 
@@ -1084,10 +1084,10 @@ namespace fpemu
      * @param x The 64-bit value to analyze as two 32-bit integers
      * @return The position of the most significant set bit (0-based)
      */
-    __FPEMU_INTERNAL_DECL__ int32_t __flo_s64 (uint32x2_t x)
+    __FPEMU_INTERNAL_DECL__ int32_t __flo_s64 (__uint32x2_t __x)
     {
-        int64_t x64 = fpemu::bit_cast<int64_t>(x);
-        return __internal_clzll(x64<<1);
+        int64_t __x64 = fpemu::bit_cast<int64_t>(__x);
+        return __internal_clzll(__x64<<1);
     } //__flo_s64
 
     /**
@@ -1099,11 +1099,11 @@ namespace fpemu
      * @param x The 64-bit value to analyze as two 32-bit integers
      * @return The position of the most significant set bit (0-based)
      */
-    __FPEMU_INTERNAL_DECL__ int32_t __flo_u64 (uint32x2_t x)
+    __FPEMU_INTERNAL_DECL__ int32_t __flo_u64 (__uint32x2_t __x)
     {
-        uint64_t x64 = fpemu::bit_cast<uint64_t>(x);
+        uint64_t __x64 = fpemu::bit_cast<uint64_t>(__x);
         //Skip sign bit
-        return __internal_clzll(x64 & __FPEMU_ABS_64__);
+        return __internal_clzll(__x64 & __FPEMU_ABS_64__);
     } //__flo_u64
 
     /**
@@ -1116,12 +1116,12 @@ namespace fpemu
      * @param b Second operand as two 32-bit integers
      * @return The sum as two 32-bit integers
      */
-    __FPEMU_INTERNAL_DECL__ uint32x2_t __iadd_u64 (uint32x2_t a, uint32x2_t b)
+    __FPEMU_INTERNAL_DECL__ __uint32x2_t __iadd_u64 (__uint32x2_t __a, __uint32x2_t __b)
     {
-        uint64_t a64 = fpemu::bit_cast<uint64_t>(a);
-        uint64_t b64 = fpemu::bit_cast<uint64_t>(b);
-        uint64_t res64 = a64 + b64;
-        return fpemu::bit_cast<uint32x2_t>(res64);
+        uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
+        uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+        uint64_t __res64 = __a64 + __b64;
+        return fpemu::bit_cast<__uint32x2_t>(__res64);
     } //__iadd_u64
 
     /**
@@ -1134,12 +1134,12 @@ namespace fpemu
      * @param b Second operand as two 32-bit integers
      * @return The difference as two 32-bit integers
      */
-     __FPEMU_INTERNAL_DECL__ uint32x2_t __isub_u64 (uint32x2_t a, uint32x2_t b)
+     __FPEMU_INTERNAL_DECL__ __uint32x2_t __isub_u64 (__uint32x2_t __a, __uint32x2_t __b)
      {
-         uint64_t a64 = fpemu::bit_cast<uint64_t>(a);
-         uint64_t b64 = fpemu::bit_cast<uint64_t>(b);
-         uint64_t res64 = a64 - b64;
-         return fpemu::bit_cast<uint32x2_t>(res64);
+         uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
+         uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+         uint64_t __res64 = __a64 - __b64;
+         return fpemu::bit_cast<__uint32x2_t>(__res64);
      } //__isub_u64
 
     /**
@@ -1154,38 +1154,38 @@ namespace fpemu
      * @param sign Result sign (used for directed rounding modes ru/rd)
      * @return The rounded value as two 32-bit integers
      */
-    template<fpemu::rounding rm = fpemu::rounding::rn>
-    __FPEMU_INTERNAL_DECL__ uint32x2_t __round (uint32x2_t man, const int shift, bool sign = false)
+    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    __FPEMU_INTERNAL_DECL__ __uint32x2_t __round (__uint32x2_t __man, const int __shift, bool __sign = false)
     {
-        uint64_t man64 = fpemu::bit_cast<uint64_t>(man);
-        const int rshift = EXTRA_BITS + shift;
-        const uint64_t round_bit = 1ULL << (rshift - 1);
-        const uint64_t sticky_mask = (round_bit << 1) - 1;
-        const uint64_t tie_mask    = (round_bit << 2) - 1;
+        uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
+        const int __rshift = EXTRA_BITS + __shift;
+        const uint64_t __round_bit = 1ULL << (__rshift - 1);
+        const uint64_t __sticky_mask = (__round_bit << 1) - 1;
+        const uint64_t __tie_mask    = (__round_bit << 2) - 1;
 
-        if constexpr (rm == fpemu::rounding::rz)
+        if constexpr (_Rm == fpemu::rounding::rz)
         {
-            man64 >>= rshift;
+            __man64 >>= __rshift;
         }
-        else if constexpr (rm == fpemu::rounding::rn)
+        else if constexpr (_Rm == fpemu::rounding::rn)
         {
-            const int not_sticky = (int)((man64 & tie_mask) == round_bit);
-            man64 = (((man64 + round_bit) >> rshift) - not_sticky);
+            const int __not_sticky = (int)((__man64 & __tie_mask) == __round_bit);
+            __man64 = (((__man64 + __round_bit) >> __rshift) - __not_sticky);
         }
         else
         {
-            const bool inexact = (man64 & sticky_mask) != 0;
-            man64 >>= rshift;
-            if constexpr (rm == fpemu::rounding::ru)
+            const bool __inexact = (__man64 & __sticky_mask) != 0;
+            __man64 >>= __rshift;
+            if constexpr (_Rm == fpemu::rounding::ru)
             {
-                if (!sign && inexact) man64++;
+                if (!__sign && __inexact) __man64++;
             }
             else // rd
             {
-                if (sign && inexact) man64++;
+                if (__sign && __inexact) __man64++;
             }
         }
-        return fpemu::bit_cast<uint32x2_t>(man64);
+        return fpemu::bit_cast<__uint32x2_t>(__man64);
     } //__round
 
     // NOTE: the representation pack/unpack routines
@@ -1216,13 +1216,13 @@ namespace impl
 // ============================================================================
 
 /// @brief High 64 bits of a 64x64 -> 128 unsigned multiply (host/device).
-__FPEMU_INTERNAL_DECL__ uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t a, 
-                                                                uint64_t b)
+__FPEMU_INTERNAL_DECL__ uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t __a, 
+                                                                uint64_t __b)
 {
 #if defined(__CUDA_ARCH__)
-    return __umul64hi(a, b);
+    return __umul64hi(__a, __b);
 #elif defined(__SIZEOF_INT128__)
-    return (uint64_t)(((unsigned __int128)a * (unsigned __int128)b) >> 64);
+    return (uint64_t)(((unsigned __int128)__a * (unsigned __int128)__b) >> 64);
 #else
     uint64_t al = (uint32_t)a, ah = a >> 32;
     uint64_t bl = (uint32_t)b, bh = b >> 32;
@@ -1233,49 +1233,49 @@ __FPEMU_INTERNAL_DECL__ uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t a,
 } // __nv_internal_fp64emu_mulhi64
 
 /// @brief Right shift keeping a sticky bit.
-__FPEMU_INTERNAL_DECL__ uint64_t __nv_internal_fp64emu_shr_jam64 (uint64_t a, 
-                                                                  uint32_t dist)
+__FPEMU_INTERNAL_DECL__ uint64_t __nv_internal_fp64emu_shr_jam64 (uint64_t __a, 
+                                                                  uint32_t __dist)
 {
-    return (dist < 63) ? (a >> dist) | ((uint64_t)((a << (-dist & 63)) != 0)) : (uint64_t)(a != 0);
+    return (__dist < 63) ? (__a >> __dist) | ((uint64_t)((__a << (-__dist & 63)) != 0)) : (uint64_t)(__a != 0);
 } // __nv_internal_fp64emu_shr_jam64
 
 /// @brief Round and pack a result whose 'sig' carries its leading significand
 ///        bit at bit 62 and whose 'exp' is the biased exponent minus one.
 ///        Shared by divide and square root (square root passes sign = false).
-template<fpemu::rounding rm>
-__FPEMU_INTERNAL_DECL__ fpbits64_t __nv_internal_fp64emu_round_pack (bool     sign, 
-                                                                     int32_t  exp, 
-                                                                     uint64_t sig)
+template<fpemu::rounding _Rm>
+__FPEMU_INTERNAL_DECL__ fpbits64_t __nv_internal_fp64emu_round_pack (bool     __sign, 
+                                                                     int32_t  __exp, 
+                                                                     uint64_t __sig)
 {
-    constexpr bool round_near_even = (rm == fpemu::rounding::rn);
-    uint32_t round_increment = 0x200;
-    if      constexpr (rm == fpemu::rounding::rz) round_increment = 0;
-    else if constexpr (rm == fpemu::rounding::ru) round_increment = sign ? 0     : 0x3FF;
-    else if constexpr (rm == fpemu::rounding::rd) round_increment = sign ? 0x3FF : 0;
+    constexpr bool __round_near_even = (_Rm == fpemu::rounding::rn);
+    uint32_t __round_increment = 0x200;
+    if      constexpr (_Rm == fpemu::rounding::rz) __round_increment = 0;
+    else if constexpr (_Rm == fpemu::rounding::ru) __round_increment = __sign ? 0     : 0x3FF;
+    else if constexpr (_Rm == fpemu::rounding::rd) __round_increment = __sign ? 0x3FF : 0;
 
-    uint32_t round_bits = (uint32_t)(sig & 0x3FF);
+    uint32_t __round_bits = (uint32_t)(__sig & 0x3FF);
 
-    if ((uint16_t)exp >= 0x7FD)
+    if ((uint16_t)__exp >= 0x7FD)
     {
-        if (exp < 0)
+        if (__exp < 0)
         {
-            sig        = __nv_internal_fp64emu_shr_jam64(sig, (uint32_t)(-exp));
-            exp        = 0;
-            round_bits = (uint32_t)(sig & 0x3FF);
+            __sig        = __nv_internal_fp64emu_shr_jam64(__sig, (uint32_t)(-__exp));
+            __exp        = 0;
+            __round_bits = (uint32_t)(__sig & 0x3FF);
         }
-        else if ((exp > 0x7FD) || (sig + round_increment >= __FPEMU_SIGN_64__))
+        else if ((__exp > 0x7FD) || (__sig + __round_increment >= __FPEMU_SIGN_64__))
         {
-            uint64_t ui64_z = (((uint64_t)sign << 63) + __FPEMU_INF_64__) - (uint64_t)(round_increment == 0 ? 1 : 0);
-            return (fpbits64_t)ui64_z;
+            uint64_t __ui64_z = (((uint64_t)__sign << 63) + __FPEMU_INF_64__) - (uint64_t)(__round_increment == 0 ? 1 : 0);
+            return (fpbits64_t)__ui64_z;
         }
     }
 
-    sig = (sig + round_increment) >> 10;
-    sig &= ~(uint64_t)((round_bits == 0x200) && round_near_even);
-    if (!sig) exp = 0;
+    __sig = (__sig + __round_increment) >> 10;
+    __sig &= ~(uint64_t)((__round_bits == 0x200) && __round_near_even);
+    if (!__sig) __exp = 0;
 
-    uint64_t ui64_z = ((uint64_t)sign << 63) + ((uint64_t)(uint32_t)exp << 52) + sig;
-    return (fpbits64_t)ui64_z;
+    uint64_t __ui64_z = ((uint64_t)__sign << 63) + ((uint64_t)(uint32_t)__exp << 52) + __sig;
+    return (fpbits64_t)__ui64_z;
 } // __nv_internal_fp64emu_round_pack
 
 // NOTE: the fpbits64_unpacked_t pack/unpack routines

@@ -202,12 +202,19 @@ ACCURACY   ?= $(DEFAULT_METHODS)
 ifeq ($(SET),all)
 	override FUNC     = $(ALL_FUNCS)
 	override TYPE     = $(ALL_TYPES)
-	override ACCURACY   = $(ALL_METHODS)
+	override ACCURACY = $(ALL_METHODS)
 endif
 ifeq ($(SET),def)
 	override FUNC     = $(DEFAULT_FUNCS)
 	override TYPE     = $(DEFAULT_TYPES)
-	override ACCURACY   = $(DEFAULT_METHODS)
+	override ACCURACY = $(DEFAULT_METHODS)
+endif
+ifeq ($(SET),ci)
+	override FUNC     = $(ALL_FUNCS)
+	override TYPE     = $(ALL_TYPES)
+	override ACCURACY = $(ALL_METHODS)
+	override DATASET  = pattern
+	override TIMING   = 0
 endif
 
 # selected operations, rounding modes, accuracies and ranges
