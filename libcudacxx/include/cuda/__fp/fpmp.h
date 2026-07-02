@@ -238,8 +238,8 @@ namespace cuda::experimental
 //     - fpmp2_accuracy::mid (default): Dekker-based split and error accumulation technique
 //     - fpmp2_accuracy::high: Thall-based and other techniques
 //     - fpmp2_accuracy::low: fast arithmetic operation without re-normalizations
-template <typename FpType = float, fpmp2_accuracy met = fpmp2_accuracy::def>
-class alignas(2 * alignof(FpType)) fpmp2_t 
+template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
+class alignas(2 * alignof(_FpType)) fpmp2_t 
 {
     public:
 
@@ -248,8 +248,8 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // constexpr so the cross-method converting constructor below (and any
     // other context that needs (hi, lo) at compile time) can stay constexpr.
     */
-    constexpr __FPMP_API_DECL__ FpType hi() const { return mp2_hi; }
-    constexpr __FPMP_API_DECL__ FpType lo() const { return mp2_lo; }
+    constexpr __FPMP_API_DECL__ _FpType hi() const { return mp2_hi; }
+    constexpr __FPMP_API_DECL__ _FpType lo() const { return mp2_lo; }
 
     /*
     // Basic constructors
@@ -261,13 +261,13 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // Constructor from hi and lo floats (direct initialization).
     // constexpr so constant `fpmp2_t` arrays can live in constexpr
     // context
-    constexpr __FPMP_API_DECL__ fpmp2_t(FpType hi, FpType lo) : mp2_hi(hi), mp2_lo(lo) {}
+    constexpr __FPMP_API_DECL__ fpmp2_t(_FpType __hi, _FpType __lo) : mp2_hi(__hi), mp2_lo(__lo) {}
 
     /*
     // Defaulted copy constructor (trivially copyable)
     // Note: NVCC implicitly makes defaulted special members __host__ __device__
     */
-    fpmp2_t(const fpmp2_t& other) = default;
+    fpmp2_t(const fpmp2_t& __other) = default;
 
     /*
     // Copy constructor from volatile fpmp2_t
@@ -277,37 +277,37 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // operators (a template is never a copy constructor or copy assignment operator),
     // preserving trivial copyability while retaining volatile access support.
     */
-    template<typename Dummy = void>
-    __FPMP_API_DECL__ fpmp2_t(const volatile fpmp2_t& other)  
+    template<typename _Dummy = void>
+    __FPMP_API_DECL__ fpmp2_t(const volatile fpmp2_t& __other)  
     { 
-        mp2_hi = other.mp2_hi; 
-        mp2_lo = other.mp2_lo;  
+        mp2_hi = __other.mp2_hi; 
+        mp2_lo = __other.mp2_lo;  
     }
 
     // Defaulted copy assignment operator (trivially copyable)
-    constexpr fpmp2_t& operator=(const fpmp2_t& other) = default;
+    constexpr fpmp2_t& operator=(const fpmp2_t& __other) = default;
 
     /*
     // Assignment operator to volatile fpmp2_t
     // Template so it is NOT a copy assignment operator per the C++ standard
     // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
     */
-    template<typename Dummy = void>
-    __FPMP_API_DECL__ void operator=(const fpmp2_t& other) volatile 
+    template<typename _Dummy = void>
+    __FPMP_API_DECL__ void operator=(const fpmp2_t& __other) volatile 
     { 
-        mp2_hi = other.mp2_hi; 
-        mp2_lo = other.mp2_lo; 
+        mp2_hi = __other.mp2_hi; 
+        mp2_lo = __other.mp2_lo; 
     }
 
     /*
     // Assignment operator from volatile fpmp2_t
     // Template so it is NOT a copy assignment operator per the C++ standard
     */
-    template<typename Dummy = void>
-    __FPMP_API_DECL__ fpmp2_t& operator=(const volatile fpmp2_t& other) 
+    template<typename _Dummy = void>
+    __FPMP_API_DECL__ fpmp2_t& operator=(const volatile fpmp2_t& __other) 
     { 
-        mp2_hi = other.mp2_hi; 
-        mp2_lo = other.mp2_lo; 
+        mp2_hi = __other.mp2_hi; 
+        mp2_lo = __other.mp2_lo; 
         return *this; 
     }
 
@@ -337,10 +337,10 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // SFINAE excludes met2 == met to avoid clashing with the defaulted
     // copy constructor.
     */
-    template<fpmp2_accuracy met2,
-             typename = typename std::enable_if<met2 != met>::type>
-    constexpr __FPMP_API_DECL__ explicit fpmp2_t(const fpmp2_t<FpType, met2>& other)
-        : mp2_hi(other.hi()), mp2_lo(other.lo())
+    template<fpmp2_accuracy _TypeAcc2,
+             typename = typename std::enable_if<_TypeAcc2 != _TypeAcc>::type>
+    constexpr __FPMP_API_DECL__ explicit fpmp2_t(const fpmp2_t<_FpType, _TypeAcc2>& __other)
+        : mp2_hi(__other.hi()), mp2_lo(__other.lo())
     {
     }
 
@@ -368,23 +368,23 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // (no precision loss). Accepts any source `met2`; the destination
     // method tag is preserved.
     */
-    template<typename U = FpType, fpmp2_accuracy met2,
-             typename = typename std::enable_if<std::is_same<U, double>::value>::type>
-    __FPMP_API_DECL__ fpmp2_t(const fpmp2_t<float, met2>& src)
+    template<typename _Up = _FpType, fpmp2_accuracy _TypeAcc2,
+             typename = typename std::enable_if<std::is_same<_Up, double>::value>::type>
+    __FPMP_API_DECL__ fpmp2_t(const fpmp2_t<float, _TypeAcc2>& __src)
     {
-        const double d_hi_in = static_cast<double>(src.hi());
-        const double d_lo_in = static_cast<double>(src.lo());
+        const double __d_hi_in = static_cast<double>(__src.hi());
+        const double __d_lo_in = static_cast<double>(__src.lo());
         // Renormalized fp32mp2 has |hi| >= |lo|, so fast_two_sum is safe.
-        mp2_hi = fpmp::fast_two_sum(d_hi_in, d_lo_in, &mp2_lo);
+        mp2_hi = fpmp::fast_two_sum(__d_hi_in, __d_lo_in, &mp2_lo);
     }
 
-    template<typename U = FpType, fpmp2_accuracy met2,
-             typename = typename std::enable_if<std::is_same<U, double>::value>::type>
-    __FPMP_API_DECL__ fpmp2_t& operator=(const fpmp2_t<float, met2>& src)
+    template<typename _Up = _FpType, fpmp2_accuracy _TypeAcc2,
+             typename = typename std::enable_if<std::is_same<_Up, double>::value>::type>
+    __FPMP_API_DECL__ fpmp2_t& operator=(const fpmp2_t<float, _TypeAcc2>& __src)
     {
-        const double d_hi_in = static_cast<double>(src.hi());
-        const double d_lo_in = static_cast<double>(src.lo());
-        mp2_hi = fpmp::fast_two_sum(d_hi_in, d_lo_in, &mp2_lo);
+        const double __d_hi_in = static_cast<double>(__src.hi());
+        const double __d_lo_in = static_cast<double>(__src.lo());
+        mp2_hi = fpmp::fast_two_sum(__d_hi_in, __d_lo_in, &mp2_lo);
         return *this;
     }
 
@@ -406,24 +406,24 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // The companion assignment operator is provided for symmetry; both
     // perform the same precision-preserving 2-pair add.
     */
-    template<typename U = FpType, fpmp2_accuracy met2,
-             typename = typename std::enable_if<std::is_same<U, float>::value>::type>
-    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(const fpmp2_t<double, met2>& src)
+    template<typename _Up = _FpType, fpmp2_accuracy _TypeAcc2,
+             typename = typename std::enable_if<std::is_same<_Up, float>::value>::type>
+    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(const fpmp2_t<double, _TypeAcc2>& __src)
     {
-        float a_hi, a_lo, b_hi, b_lo;
-        __nv_fpmp2_from_double<float>(src.hi(), &a_hi, &a_lo);
-        __nv_fpmp2_from_double<float>(src.lo(), &b_hi, &b_lo);
-        __nv_fpmp2_add<float>(a_hi, a_lo, b_hi, b_lo, &mp2_hi, &mp2_lo);
+        float __a_hi, __a_lo, __b_hi, __b_lo;
+        __nv_fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+        __nv_fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+        __nv_fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
     }
 
-    template<typename U = FpType, fpmp2_accuracy met2,
-             typename = typename std::enable_if<std::is_same<U, float>::value>::type>
-    __FPMP_API_DECL__ fpmp2_t& operator=(const fpmp2_t<double, met2>& src)
+    template<typename _Up = _FpType, fpmp2_accuracy _TypeAcc2,
+             typename = typename std::enable_if<std::is_same<_Up, float>::value>::type>
+    __FPMP_API_DECL__ fpmp2_t& operator=(const fpmp2_t<double, _TypeAcc2>& __src)
     {
-        float a_hi, a_lo, b_hi, b_lo;
-        __nv_fpmp2_from_double<float>(src.hi(), &a_hi, &a_lo);
-        __nv_fpmp2_from_double<float>(src.lo(), &b_hi, &b_lo);
-        __nv_fpmp2_add<float>(a_hi, a_lo, b_hi, b_lo, &mp2_hi, &mp2_lo);
+        float __a_hi, __a_lo, __b_hi, __b_lo;
+        __nv_fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+        __nv_fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+        __nv_fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
         return *this;
     }
 #endif // FPMP_FP64MP2_ENABLE == 1
@@ -435,8 +435,8 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // Implicit conversion from a single FpType (lo == 0).
     // constexpr so float/double constants flow into constexpr coefficient
     // tables without forcing callers to materialise the (hi, lo) pair.
-    constexpr __FPMP_API_DECL__ fpmp2_t(FpType f)
-        : mp2_hi(f), mp2_lo((FpType)0)
+    constexpr __FPMP_API_DECL__ fpmp2_t(_FpType __f)
+        : mp2_hi(__f), mp2_lo((_FpType)0)
     {
     }
 
@@ -446,20 +446,20 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // C++17: always uses simple float casts (member initializer list, constexpr-safe)
     // When FpType is double, use the regular FpType constructor instead
     */
-    template<typename U = FpType, typename = typename std::enable_if<std::is_same<U, float>::value>::type>
+    template<typename _Up = _FpType, typename = typename std::enable_if<std::is_same<_Up, float>::value>::type>
 #if __cplusplus >= 202002L
-    constexpr __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(double d)
+    constexpr __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(double __d)
     {
         if (__FPMP_IS_CONSTEVAL__()) {
-            mp2_hi = (FpType)d;
-            mp2_lo = (FpType)(d - (double)(FpType)d);
+            mp2_hi = (_FpType)__d;
+            mp2_lo = (_FpType)(__d - (double)(_FpType)__d);
         } else {
-            __nv_fpmp2_from_double(d, &mp2_hi, &mp2_lo);
+            __nv_fpmp2_from_double(__d, &mp2_hi, &mp2_lo);
         }
     }
 #else
-    constexpr __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(double d)
-        : mp2_hi((FpType)d), mp2_lo((FpType)(d - (double)(FpType)d))
+    constexpr __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(double __d)
+        : mp2_hi((_FpType)__d), mp2_lo((_FpType)(__d - (double)(_FpType)__d))
     {
     }
 #endif
@@ -471,19 +471,19 @@ class alignas(2 * alignof(FpType)) fpmp2_t
             // Constructor from __fpmp_fp128 (only for FpType == double)
             // C++20: compile-time uses simple double casts, runtime delegates to __nv_fpmp2_from_quad
             // C++17: always uses simple double casts (member initializer list, same as original)
-            template<typename U = FpType, typename = typename std::enable_if<std::is_same<U, double>::value>::type>
-            constexpr __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(__fpmp_fp128 d)
+            template<typename _Up = _FpType, typename = typename std::enable_if<std::is_same<_Up, double>::value>::type>
+            constexpr __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(__fpmp_fp128 __d)
         #if __cplusplus >= 202002L
             {
                 if (__FPMP_IS_CONSTEVAL__()) {
-                    mp2_hi = (FpType)d;
-                    mp2_lo = (FpType)(d - (__fpmp_fp128)(FpType)d);
+                    mp2_hi = (_FpType)__d;
+                    mp2_lo = (_FpType)(__d - (__fpmp_fp128)(_FpType)__d);
                 } else {
-                    __nv_fpmp2_from_quad(d, &mp2_hi, &mp2_lo);
+                    __nv_fpmp2_from_quad(__d, &mp2_hi, &mp2_lo);
                 }
             }
         #else
-                : mp2_hi((FpType)d), mp2_lo((FpType)(d - (__fpmp_fp128)(FpType)d))
+                : mp2_hi((_FpType)__d), mp2_lo((_FpType)(__d - (__fpmp_fp128)(_FpType)__d))
             {
             }
         #endif
@@ -495,16 +495,16 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     #endif // FPMP_FP64MP2_ENABLE == 1
 
     // Constructor from int32_t
-    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(int32_t i) { __nv_fpmp2_from_int(i, &mp2_hi, &mp2_lo);}
+    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(int32_t __i) { __nv_fpmp2_from_int(__i, &mp2_hi, &mp2_lo);}
 
     // Constructor from uint32_t
-    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(uint32_t i) { __nv_fpmp2_from_uint(i, &mp2_hi, &mp2_lo);}
+    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(uint32_t __i) { __nv_fpmp2_from_uint(__i, &mp2_hi, &mp2_lo);}
 
     // Constructor from int64_t
-    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(int64_t i) { __nv_fpmp2_from_ll(i, &mp2_hi, &mp2_lo);}
+    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(int64_t __i) { __nv_fpmp2_from_ll(__i, &mp2_hi, &mp2_lo);}
     
     // Constructor from uint64_t
-    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(uint64_t i) { __nv_fpmp2_from_ull(i, &mp2_hi, &mp2_lo);}
+    __FPMP_API_DECL__ __FPMP_EXPLICIT__ fpmp2_t(uint64_t __i) { __nv_fpmp2_from_ull(__i, &mp2_hi, &mp2_lo);}
 
     // ==== Conversion from fpmp2_t to other types:
     // Conversion to double is ALWAYS implicit (never gated by FPMP_EXPLICIT_CASTS).
@@ -539,94 +539,94 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     __FPMP_API_DECL__ explicit operator uint64_t() const volatile { return __nv_fpmp2_to_ull(mp2_hi, mp2_lo);}
     
     // (renormalize)
-    __FPMP_API_DECL__ friend fpmp2_t renormalize(const fpmp2_t& x) 
+    __FPMP_API_DECL__ friend fpmp2_t renormalize(const fpmp2_t& __x) 
     { 
-        fpmp2_t res; 
-        __nv_fpmp2_renormalize(x.mp2_hi, x.mp2_lo, &res.mp2_hi, &res.mp2_lo);
-        return res; 
+        fpmp2_t __res; 
+        __nv_fpmp2_renormalize(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
+        return __res; 
     }
     
     /*
     // Arithmetic operations:
     */
     // (+)
-    __FPMP_API_DECL__ friend fpmp2_t operator+(const fpmp2_t& x, const fpmp2_t& y) 
+    __FPMP_API_DECL__ friend fpmp2_t operator+(const fpmp2_t& __x, const fpmp2_t& __y) 
     { 
-        fpmp2_t res; 
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_add  (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_add (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else                                               { __nv_fpmp2_add      (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); }
-        return res; 
+        fpmp2_t __res; 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_add  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_add (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __nv_fpmp2_add      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        return __res; 
     }
 
     // (-)
-    __FPMP_API_DECL__ friend fpmp2_t operator-(const fpmp2_t& x, const fpmp2_t& y) 
+    __FPMP_API_DECL__ friend fpmp2_t operator-(const fpmp2_t& __x, const fpmp2_t& __y) 
     { 
-        fpmp2_t res;
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_sub  (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_sub (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else                                               { __nv_fpmp2_sub      (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); }
-        return res; 
+        fpmp2_t __res;
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_sub  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_sub (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __nv_fpmp2_sub      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        return __res; 
     }
 
     // (*)
-    __FPMP_API_DECL__ friend fpmp2_t operator*(const fpmp2_t& x, const fpmp2_t& y) 
+    __FPMP_API_DECL__ friend fpmp2_t operator*(const fpmp2_t& __x, const fpmp2_t& __y) 
     { 
-        fpmp2_t res; 
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
+        fpmp2_t __res; 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
         #if __FPMP_USE_ACCURATE_MUL__ == 1
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         #endif
-        else                                               { __nv_fpmp2_mul      (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); }
-        return res; 
+        else                                               { __nv_fpmp2_mul      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        return __res; 
     }
 
     // (/)
-    __FPMP_API_DECL__ friend fpmp2_t operator/(const fpmp2_t& x, const fpmp2_t& y) 
+    __FPMP_API_DECL__ friend fpmp2_t operator/(const fpmp2_t& __x, const fpmp2_t& __y) 
     { 
-        fpmp2_t res;
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
+        fpmp2_t __res;
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
         #if __FPMP_USE_ACCURATE_DIV__ == 1
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         #endif
-        else                                               { __nv_fpmp2_div      (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        return res; 
+        else                                               { __nv_fpmp2_div      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        return __res; 
     }
 
     // (sqrt)
-    __FPMP_API_DECL__ friend fpmp2_t sqrt(const fpmp2_t& x) 
+    __FPMP_API_DECL__ friend fpmp2_t sqrt(const fpmp2_t& __x) 
     { 
-        fpmp2_t res; 
-        __nv_fpmp2_sqrt(x.mp2_hi, x.mp2_lo, &res.mp2_hi, &res.mp2_lo); 
-        return res; 
+        fpmp2_t __res; 
+        __nv_fpmp2_sqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); 
+        return __res; 
     }
 
     // (rsqrt)
-    __FPMP_API_DECL__ friend fpmp2_t rsqrt(const fpmp2_t& x) 
+    __FPMP_API_DECL__ friend fpmp2_t rsqrt(const fpmp2_t& __x) 
     { 
-        fpmp2_t res; 
-        __nv_fpmp2_rsqrt(x.mp2_hi, x.mp2_lo, &res.mp2_hi, &res.mp2_lo);
-        return res; 
+        fpmp2_t __res; 
+        __nv_fpmp2_rsqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
+        return __res; 
     }
     
     // (fma)
-    __FPMP_API_DECL__ friend fpmp2_t fma(const fpmp2_t& x, const fpmp2_t& y, const fpmp2_t& z) 
+    __FPMP_API_DECL__ friend fpmp2_t fma(const fpmp2_t& __x, const fpmp2_t& __y, const fpmp2_t& __z) 
     { 
-        fpmp2_t res; 
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_fma (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, z.mp2_hi, z.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_fma(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, z.mp2_hi, z.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else                                               { __nv_fpmp2_fma     (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, z.mp2_hi, z.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        return res; 
+        fpmp2_t __res; 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_fma (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_fma(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __nv_fpmp2_fma     (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        return __res; 
     }
 
     // (mad)
-    __FPMP_API_DECL__ friend fpmp2_t mad(const fpmp2_t& x, const fpmp2_t& y, const fpmp2_t& z) 
+    __FPMP_API_DECL__ friend fpmp2_t mad(const fpmp2_t& __x, const fpmp2_t& __y, const fpmp2_t& __z) 
     { 
-        fpmp2_t res; 
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_mad  (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, z.mp2_hi, z.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_mad (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, z.mp2_hi, z.mp2_lo, &res.mp2_hi, &res.mp2_lo); } 
-        else                                               { __nv_fpmp2_mad      (x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo, z.mp2_hi, z.mp2_lo, &res.mp2_hi, &res.mp2_lo); }
-        return res; 
+        fpmp2_t __res; 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mad  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mad (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __nv_fpmp2_mad      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        return __res; 
     }
 
     /*
@@ -634,149 +634,149 @@ class alignas(2 * alignof(FpType)) fpmp2_t
     // Uses specialized __nv_fpmp2_acc functions which are more efficient than
     // full mp2+mp2 addition (saves ~6 operations by avoiding low-part 2Sum).
     */
-    __FPMP_API_DECL__ fpmp2_t& operator+=(const FpType c) { 
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_acc  (c, &mp2_hi, &mp2_lo); }
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_acc (c, &mp2_hi, &mp2_lo); }
-        else                                               { __nv_fpmp2_acc      (c, &mp2_hi, &mp2_lo); }
+    __FPMP_API_DECL__ fpmp2_t& operator+=(const _FpType __c) { 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_acc  (__c, &mp2_hi, &mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_acc (__c, &mp2_hi, &mp2_lo); }
+        else                                               { __nv_fpmp2_acc      (__c, &mp2_hi, &mp2_lo); }
         return *this; 
     }
-    __FPMP_API_DECL__ fpmp2_t& operator-=(const FpType c) { 
-        if constexpr (met == fpmp2_accuracy::low)          { __nv_fpmp2_low_acc  (-c, &mp2_hi, &mp2_lo); }
-        else if constexpr (met == fpmp2_accuracy::high)    { __nv_fpmp2_high_acc (-c, &mp2_hi, &mp2_lo); }
-        else                                               { __nv_fpmp2_acc      (-c, &mp2_hi, &mp2_lo); }
+    __FPMP_API_DECL__ fpmp2_t& operator-=(const _FpType __c) { 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_acc  (-__c, &mp2_hi, &mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_acc (-__c, &mp2_hi, &mp2_lo); }
+        else                                               { __nv_fpmp2_acc      (-__c, &mp2_hi, &mp2_lo); }
         return *this; 
     }
 
     // (neg)
     __FPMP_API_DECL__ fpmp2_t  operator-() const 
     { 
-        fpmp2_t res;
-        __nv_fpmp2_neg(mp2_hi, mp2_lo, &res.mp2_hi, &res.mp2_lo); 
-        return res; 
+        fpmp2_t __res;
+        __nv_fpmp2_neg(mp2_hi, mp2_lo, &__res.mp2_hi, &__res.mp2_lo); 
+        return __res; 
     }
 
     /*
     // Comparison operators:
     */ 
     // equality (==)
-    __FPMP_API_DECL__ friend bool operator==(const fpmp2_t& x, const fpmp2_t& y) { 
-        return __nv_fpmp2_cmp_eq(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo); }
+    __FPMP_API_DECL__ friend bool operator==(const fpmp2_t& __x, const fpmp2_t& __y) { 
+        return __nv_fpmp2_cmp_eq(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // inequality (!=)
-    __FPMP_API_DECL__ friend bool operator!=(const fpmp2_t& x, const fpmp2_t& y) { 
-        return __nv_fpmp2_cmp_ne(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo); }
+    __FPMP_API_DECL__ friend bool operator!=(const fpmp2_t& __x, const fpmp2_t& __y) { 
+        return __nv_fpmp2_cmp_ne(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // less than (<)
-    __FPMP_API_DECL__ friend bool operator<(const fpmp2_t& x, const fpmp2_t& y) { 
-        return __nv_fpmp2_cmp_lt(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo); }
+    __FPMP_API_DECL__ friend bool operator<(const fpmp2_t& __x, const fpmp2_t& __y) { 
+        return __nv_fpmp2_cmp_lt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // greater than (>)
-    __FPMP_API_DECL__ friend bool operator>(const fpmp2_t& x, const fpmp2_t& y) { 
-        return __nv_fpmp2_cmp_gt(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo); }
+    __FPMP_API_DECL__ friend bool operator>(const fpmp2_t& __x, const fpmp2_t& __y) { 
+        return __nv_fpmp2_cmp_gt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // less than or equal to (<=)
-    __FPMP_API_DECL__ friend bool operator<=(const fpmp2_t& x, const fpmp2_t& y) { 
-        return __nv_fpmp2_cmp_le(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo); }
+    __FPMP_API_DECL__ friend bool operator<=(const fpmp2_t& __x, const fpmp2_t& __y) { 
+        return __nv_fpmp2_cmp_le(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // greater than or equal to (>=)
-    __FPMP_API_DECL__ friend bool operator>=(const fpmp2_t& x, const fpmp2_t& y) { 
-        return __nv_fpmp2_cmp_ge(x.mp2_hi, x.mp2_lo, y.mp2_hi, y.mp2_lo); }
+    __FPMP_API_DECL__ friend bool operator>=(const fpmp2_t& __x, const fpmp2_t& __y) { 
+        return __nv_fpmp2_cmp_ge(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
 
     /*
     // C++20-style bit_cast for unpacked floating-point types
     // Bit-cast to 64-bit integer (IEEE-754 format)
     */
-    template<typename To> 
-    __FPMP_API_DECL__ friend To bit_cast(const fpmp2_t& from) 
+    template<typename _To> 
+    __FPMP_API_DECL__ friend _To bit_cast(const fpmp2_t& __from) 
     { 
-        return static_cast<To>(__nv_fpmp2_bit_cast(from.mp2_hi, from.mp2_lo)); 
+        return static_cast<_To>(__nv_fpmp2_bit_cast(__from.mp2_hi, __from.mp2_lo)); 
     }
 
     // Prefix increment/decrement
     __FPMP_API_DECL__ fpmp2_t& operator++() { *this = *this + fpmp2_t(1.0f); return *this; }
     __FPMP_API_DECL__ fpmp2_t& operator--() { *this = *this - fpmp2_t(1.0f); return *this; }
     // Postfix increment/decrement
-    __FPMP_API_DECL__ fpmp2_t  operator++(int) { fpmp2_t temp(*this); *this = *this + fpmp2_t(1.0f); return temp; }
-    __FPMP_API_DECL__ fpmp2_t  operator--(int) { fpmp2_t temp(*this); *this = *this - fpmp2_t(1.0f); return temp; }
+    __FPMP_API_DECL__ fpmp2_t  operator++(int) { fpmp2_t __temp(*this); *this = *this + fpmp2_t(1.0f); return __temp; }
+    __FPMP_API_DECL__ fpmp2_t  operator--(int) { fpmp2_t __temp(*this); *this = *this - fpmp2_t(1.0f); return __temp; }
     // Compound assignment operators (multi-precision operand)
-    __FPMP_API_DECL__ fpmp2_t& operator+=(const fpmp2_t& other) { *this = *this + other; return *this; }
-    __FPMP_API_DECL__ fpmp2_t& operator-=(const fpmp2_t& other) { *this = *this - other; return *this; }
-    __FPMP_API_DECL__ fpmp2_t& operator*=(const fpmp2_t& other) { *this = *this * other; return *this; }
-    __FPMP_API_DECL__ fpmp2_t& operator/=(const fpmp2_t& other) { *this = *this / other; return *this; }
+    __FPMP_API_DECL__ fpmp2_t& operator+=(const fpmp2_t& __other) { *this = *this + __other; return *this; }
+    __FPMP_API_DECL__ fpmp2_t& operator-=(const fpmp2_t& __other) { *this = *this - __other; return *this; }
+    __FPMP_API_DECL__ fpmp2_t& operator*=(const fpmp2_t& __other) { *this = *this * __other; return *this; }
+    __FPMP_API_DECL__ fpmp2_t& operator/=(const fpmp2_t& __other) { *this = *this / __other; return *this; }
     
     /*
     // Mixed types arithmetic operations
     // Support for mixed arithmetic and emulation types
     */
     // === mul ===
-    template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                                           (std::is_arithmetic<T1>::value          || std::is_arithmetic<T2>::value))>::type> 
-        __FPMP_API_DECL__ friend  fpmp2_t operator*(const T1& x, const T2& y) { 
-            return fpmp2_t(x) * fpmp2_t(y); }
+    template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                                           (std::is_arithmetic<_T1>::value          || std::is_arithmetic<_T2>::value))>::type> 
+        __FPMP_API_DECL__ friend  fpmp2_t operator*(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) * fpmp2_t(__y); }
     // === div ===
-    template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                                           (std::is_arithmetic<T1>::value          || std::is_arithmetic<T2>::value))>::type> 
-        __FPMP_API_DECL__ friend  fpmp2_t operator/(const T1& x, const T2& y) { 
-            return fpmp2_t(x) / fpmp2_t(y); }
+    template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                                           (std::is_arithmetic<_T1>::value          || std::is_arithmetic<_T2>::value))>::type> 
+        __FPMP_API_DECL__ friend  fpmp2_t operator/(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) / fpmp2_t(__y); }
     // === add ===
-    template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                                           (std::is_arithmetic<T1>::value          || std::is_arithmetic<T2>::value))>::type> 
-        __FPMP_API_DECL__ friend  fpmp2_t operator+(const T1& x, const T2& y) { 
-            return fpmp2_t(x) + fpmp2_t(y); }
+    template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                                           (std::is_arithmetic<_T1>::value          || std::is_arithmetic<_T2>::value))>::type> 
+        __FPMP_API_DECL__ friend  fpmp2_t operator+(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) + fpmp2_t(__y); }
     // === sub ===
-    template<typename T1, typename T2, typename = typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                                           (std::is_arithmetic<T1>::value          || std::is_arithmetic<T2>::value))>::type> 
-        __FPMP_API_DECL__ friend  fpmp2_t operator-(const T1& x, const T2& y) { 
-            return fpmp2_t(x) - fpmp2_t(y); }
+    template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                                           (std::is_arithmetic<_T1>::value          || std::is_arithmetic<_T2>::value))>::type> 
+        __FPMP_API_DECL__ friend  fpmp2_t operator-(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) - fpmp2_t(__y); }
     // === fma ===
-    template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value || std::is_same<T3,fpmp2_t>::value) && 
-                                                                                        (std::is_arithmetic<T1>::value          || std::is_arithmetic<T2>::value              || std::is_arithmetic<T3>::value))>::type>
-        __FPMP_API_DECL__ friend fpmp2_t fma(const T1& x, const T2& y, const T3& z) { 
-            return fma(fpmp2_t(x), fpmp2_t(y), fpmp2_t(z)); }
+    template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value || std::is_same<_T3,fpmp2_t>::value) && 
+                                                                                        (std::is_arithmetic<_T1>::value          || std::is_arithmetic<_T2>::value              || std::is_arithmetic<_T3>::value))>::type>
+        __FPMP_API_DECL__ friend fpmp2_t fma(const _T1& __x, const _T2& __y, const _T3& __z) { 
+            return fma(fpmp2_t(__x), fpmp2_t(__y), fpmp2_t(__z)); }
     // === mad ===
-    template<typename T1, typename T2, typename T3, typename = typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value || std::is_same<T3,fpmp2_t>::value) && 
-                                                                                        (std::is_arithmetic<T1>::value          || std::is_arithmetic<T2>::value              || std::is_arithmetic<T3>::value))>::type>
-        __FPMP_API_DECL__ friend fpmp2_t mad(const T1& x, const T2& y, const T3& z) { 
-            return mad(fpmp2_t(x), fpmp2_t(y), fpmp2_t(z)); }
+    template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value || std::is_same<_T3,fpmp2_t>::value) && 
+                                                                                        (std::is_arithmetic<_T1>::value          || std::is_arithmetic<_T2>::value              || std::is_arithmetic<_T3>::value))>::type>
+        __FPMP_API_DECL__ friend fpmp2_t mad(const _T1& __x, const _T2& __y, const _T3& __z) { 
+            return mad(fpmp2_t(__x), fpmp2_t(__y), fpmp2_t(__z)); }
 
     // equality (==)
-    template<typename T1, typename T2>
-        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                              (std::is_arithmetic<T1>::value         || std::is_arithmetic<T2>::value)), bool>::type
-        operator==(const T1& x, const T2& y) { 
-            return fpmp2_t(x) == fpmp2_t(y); }
+    template<typename _T1, typename _T2>
+        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                              (std::is_arithmetic<_T1>::value         || std::is_arithmetic<_T2>::value)), bool>::type
+        operator==(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) == fpmp2_t(__y); }
     // inequality (!=)
-    template<typename T1, typename T2>
-        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                              (std::is_arithmetic<T1>::value         || std::is_arithmetic<T2>::value)), bool>::type
-        operator!=(const T1& x, const T2& y) { 
-            return fpmp2_t(x) != fpmp2_t(y); }
+    template<typename _T1, typename _T2>
+        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                              (std::is_arithmetic<_T1>::value         || std::is_arithmetic<_T2>::value)), bool>::type
+        operator!=(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) != fpmp2_t(__y); }
     // less than (<)
-    template<typename T1, typename T2>
-        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                              (std::is_arithmetic<T1>::value         || std::is_arithmetic<T2>::value)), bool>::type
-        operator<(const T1& x, const T2& y) { 
-            return fpmp2_t(x) < fpmp2_t(y); }
+    template<typename _T1, typename _T2>
+        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                              (std::is_arithmetic<_T1>::value         || std::is_arithmetic<_T2>::value)), bool>::type
+        operator<(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) < fpmp2_t(__y); }
     // greater than (>)
-    template<typename T1, typename T2>
-        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                              (std::is_arithmetic<T1>::value         || std::is_arithmetic<T2>::value)), bool>::type
-        operator>(const T1& x, const T2& y) { 
-            return fpmp2_t(x) > fpmp2_t(y); }
+    template<typename _T1, typename _T2>
+        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                              (std::is_arithmetic<_T1>::value         || std::is_arithmetic<_T2>::value)), bool>::type
+        operator>(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) > fpmp2_t(__y); }
     // less than or equal to (<=)
-    template<typename T1, typename T2>
-        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                              (std::is_arithmetic<T1>::value         || std::is_arithmetic<T2>::value)), bool>::type
-        operator<=(const T1& x, const T2& y) { 
-            return fpmp2_t(x) <= fpmp2_t(y); }
+    template<typename _T1, typename _T2>
+        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                              (std::is_arithmetic<_T1>::value         || std::is_arithmetic<_T2>::value)), bool>::type
+        operator<=(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) <= fpmp2_t(__y); }
     // greater than or equal to (>=)
-    template<typename T1, typename T2>
-        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<T1,fpmp2_t>::value || std::is_same<T2,fpmp2_t>::value) && 
-                                                              (std::is_arithmetic<T1>::value         || std::is_arithmetic<T2>::value)), bool>::type
-        operator>=(const T1& x, const T2& y) { 
-            return fpmp2_t(x) >= fpmp2_t(y); }
+    template<typename _T1, typename _T2>
+        __FPMP_API_DECL__ friend typename std::enable_if<((std::is_same<_T1,fpmp2_t>::value || std::is_same<_T2,fpmp2_t>::value) && 
+                                                              (std::is_arithmetic<_T1>::value         || std::is_arithmetic<_T2>::value)), bool>::type
+        operator>=(const _T1& __x, const _T2& __y) { 
+            return fpmp2_t(__x) >= fpmp2_t(__y); }
 
     private:
     /*
     // Internal storage - two floats (hi, lo) representing double-float precision
     */
-    FpType mp2_hi;
-    FpType mp2_lo;
+    _FpType mp2_hi;
+    _FpType mp2_lo;
 }; // class fpmp2_t 
 
 /*********************************************************************
@@ -810,137 +810,137 @@ class alignas(2 * alignof(FpType)) fpmp2_t
 // Trait: detect any specialization of fpmp2_t<FpType, met>.
 // Kept in namespace fpmp to avoid polluting the global namespace.
 namespace fpmp {
-    template<typename T> struct is_fpmp2 : std::false_type {};
-    template<typename FpType, fpmp2_accuracy met>
-    struct is_fpmp2<fpmp2_t<FpType, met>> : std::true_type {};
+    template<typename _Tp> struct is_fpmp2 : std::false_type {};
+    template<typename _FpType, fpmp2_accuracy _TypeAcc>
+    struct is_fpmp2<fpmp2_t<_FpType, _TypeAcc>> : std::true_type {};
 }
 
-template<fpmp2_accuracy m, typename FpType, fpmp2_accuracy met>
-__FPMP_API_DECL__ fpmp2_t<FpType, met> add (const fpmp2_t<FpType, met>& x,
-                                                 const fpmp2_t<FpType, met>& y) 
+template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DECL__ fpmp2_t<_FpType, _TypeAcc> add (const fpmp2_t<_FpType, _TypeAcc>& __x,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __y) 
 {
-    FpType rhi, rlo;
-    if constexpr (m == fpmp2_accuracy::low)          { __nv_fpmp2_low_add  (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    else if constexpr (m == fpmp2_accuracy::high)    { __nv_fpmp2_high_add (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    else                                             { __nv_fpmp2_add      (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    return fpmp2_t<FpType, met>(rhi, rlo);
+    _FpType __rhi, __rlo;
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_add  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_add (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else                                             { __nv_fpmp2_add      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
-template<fpmp2_accuracy m, typename T1, typename T2,
-         typename = typename std::enable_if<((fpmp::is_fpmp2<T1>::value     || fpmp::is_fpmp2<T2>::value) &&
-                                             (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-__FPMP_API_DECL__ auto add(const T1& x, const T2& y)
+template<fpmp2_accuracy _Acc, typename _T1, typename _T2,
+         typename = typename std::enable_if<((fpmp::is_fpmp2<_T1>::value     || fpmp::is_fpmp2<_T2>::value) &&
+                                             (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+__FPMP_API_DECL__ auto add(const _T1& __x, const _T2& __y)
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<T1>::value, T1, T2>::type;
-    return add<m>(mp2(x), mp2(y));
+    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    return add<_Acc>(mp2(__x), mp2(__y));
 }
 
-template<fpmp2_accuracy m, typename FpType, fpmp2_accuracy met>
-__FPMP_API_DECL__ fpmp2_t<FpType, met> sub (const fpmp2_t<FpType, met>& x,
-                                                 const fpmp2_t<FpType, met>& y) 
+template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DECL__ fpmp2_t<_FpType, _TypeAcc> sub (const fpmp2_t<_FpType, _TypeAcc>& __x,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __y) 
 {
-    FpType rhi, rlo;
-    if constexpr (m == fpmp2_accuracy::low)          { __nv_fpmp2_low_sub  (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    else if constexpr (m == fpmp2_accuracy::high)    { __nv_fpmp2_high_sub (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    else                                             { __nv_fpmp2_sub      (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    return fpmp2_t<FpType, met>(rhi, rlo);
+    _FpType __rhi, __rlo;
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_sub  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_sub (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else                                             { __nv_fpmp2_sub      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
-template<fpmp2_accuracy m, typename T1, typename T2,
-         typename = typename std::enable_if<((fpmp::is_fpmp2<T1>::value     || fpmp::is_fpmp2<T2>::value) &&
-                                             (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-__FPMP_API_DECL__ auto sub(const T1& x, const T2& y)
+template<fpmp2_accuracy _Acc, typename _T1, typename _T2,
+         typename = typename std::enable_if<((fpmp::is_fpmp2<_T1>::value     || fpmp::is_fpmp2<_T2>::value) &&
+                                             (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+__FPMP_API_DECL__ auto sub(const _T1& __x, const _T2& __y)
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<T1>::value, T1, T2>::type;
-    return sub<m>(mp2(x), mp2(y));
+    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    return sub<_Acc>(mp2(__x), mp2(__y));
 }
 
-template<fpmp2_accuracy m, typename FpType, fpmp2_accuracy met>
-__FPMP_API_DECL__ fpmp2_t<FpType, met> mul (const fpmp2_t<FpType, met>& x,
-                                                 const fpmp2_t<FpType, met>& y) 
+template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DECL__ fpmp2_t<_FpType, _TypeAcc> mul (const fpmp2_t<_FpType, _TypeAcc>& __x,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __y) 
 {
-    FpType rhi, rlo;
-    if constexpr (m == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
+    _FpType __rhi, __rlo;
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #if __FPMP_USE_ACCURATE_MUL__ == 1
-    else if constexpr (m == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #endif
-    else                                             { __nv_fpmp2_mul      (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    return fpmp2_t<FpType, met>(rhi, rlo);
+    else                                             { __nv_fpmp2_mul      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
-template<fpmp2_accuracy m, typename T1, typename T2,
-         typename = typename std::enable_if<((fpmp::is_fpmp2<T1>::value     || fpmp::is_fpmp2<T2>::value) &&
-                                             (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-__FPMP_API_DECL__ auto mul(const T1& x, const T2& y)
+template<fpmp2_accuracy _Acc, typename _T1, typename _T2,
+         typename = typename std::enable_if<((fpmp::is_fpmp2<_T1>::value     || fpmp::is_fpmp2<_T2>::value) &&
+                                             (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+__FPMP_API_DECL__ auto mul(const _T1& __x, const _T2& __y)
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<T1>::value, T1, T2>::type;
-    return mul<m>(mp2(x), mp2(y));
+    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    return mul<_Acc>(mp2(__x), mp2(__y));
 }
 
-template<fpmp2_accuracy m, typename FpType, fpmp2_accuracy met>
-__FPMP_API_DECL__ fpmp2_t<FpType, met> div (const fpmp2_t<FpType, met>& x,
-                                                 const fpmp2_t<FpType, met>& y) 
+template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DECL__ fpmp2_t<_FpType, _TypeAcc> div (const fpmp2_t<_FpType, _TypeAcc>& __x,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __y) 
 {
-    FpType rhi, rlo;
-    if constexpr (m == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
+    _FpType __rhi, __rlo;
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #if __FPMP_USE_ACCURATE_DIV__ == 1
-    else if constexpr (m == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #endif
-    else                                             { __nv_fpmp2_div      (x.hi(), x.lo(), y.hi(), y.lo(), &rhi, &rlo); }
-    return fpmp2_t<FpType, met>(rhi, rlo);
+    else                                             { __nv_fpmp2_div      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
-template<fpmp2_accuracy m, typename T1, typename T2,
-         typename = typename std::enable_if<((fpmp::is_fpmp2<T1>::value     || fpmp::is_fpmp2<T2>::value) &&
-                                             (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value))>::type>
-__FPMP_API_DECL__ auto div(const T1& x, const T2& y)
+template<fpmp2_accuracy _Acc, typename _T1, typename _T2,
+         typename = typename std::enable_if<((fpmp::is_fpmp2<_T1>::value     || fpmp::is_fpmp2<_T2>::value) &&
+                                             (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+__FPMP_API_DECL__ auto div(const _T1& __x, const _T2& __y)
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<T1>::value, T1, T2>::type;
-    return div<m>(mp2(x), mp2(y));
+    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    return div<_Acc>(mp2(__x), mp2(__y));
 }
 
-template<fpmp2_accuracy m, typename FpType, fpmp2_accuracy met>
-__FPMP_API_DECL__ fpmp2_t<FpType, met> fma (const fpmp2_t<FpType, met>& x,
-                                                 const fpmp2_t<FpType, met>& y,
-                                                 const fpmp2_t<FpType, met>& z) 
+template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DECL__ fpmp2_t<_FpType, _TypeAcc> fma (const fpmp2_t<_FpType, _TypeAcc>& __x,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __y,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __z) 
 {
-    FpType rhi, rlo;
-    if constexpr (m == fpmp2_accuracy::low)          { __nv_fpmp2_low_fma  (x.hi(), x.lo(), y.hi(), y.lo(), z.hi(), z.lo(), &rhi, &rlo); }
-    else if constexpr (m == fpmp2_accuracy::high)    { __nv_fpmp2_high_fma (x.hi(), x.lo(), y.hi(), y.lo(), z.hi(), z.lo(), &rhi, &rlo); }
-    else                                             { __nv_fpmp2_fma      (x.hi(), x.lo(), y.hi(), y.lo(), z.hi(), z.lo(), &rhi, &rlo); }
-    return fpmp2_t<FpType, met>(rhi, rlo);
+    _FpType __rhi, __rlo;
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_fma  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_fma (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else                                             { __nv_fpmp2_fma      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
-template<fpmp2_accuracy m, typename T1, typename T2, typename T3,
-         typename = typename std::enable_if<((fpmp::is_fpmp2<T1>::value     || fpmp::is_fpmp2<T2>::value     || fpmp::is_fpmp2<T3>::value) &&
-                                             (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-__FPMP_API_DECL__ auto fma(const T1& x, const T2& y, const T3& z)
+template<fpmp2_accuracy _Acc, typename _T1, typename _T2, typename _T3,
+         typename = typename std::enable_if<((fpmp::is_fpmp2<_T1>::value     || fpmp::is_fpmp2<_T2>::value     || fpmp::is_fpmp2<_T3>::value) &&
+                                             (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+__FPMP_API_DECL__ auto fma(const _T1& __x, const _T2& __y, const _T3& __z)
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<T1>::value, T1,
-                typename std::conditional<fpmp::is_fpmp2<T2>::value, T2, T3>::type>::type;
-    return fma<m>(mp2(x), mp2(y), mp2(z));
+    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1,
+                typename std::conditional<fpmp::is_fpmp2<_T2>::value, _T2, _T3>::type>::type;
+    return fma<_Acc>(mp2(__x), mp2(__y), mp2(__z));
 }
 
-template<fpmp2_accuracy m, typename FpType, fpmp2_accuracy met>
-__FPMP_API_DECL__ fpmp2_t<FpType, met> mad (const fpmp2_t<FpType, met>& x,
-                                                 const fpmp2_t<FpType, met>& y,
-                                                 const fpmp2_t<FpType, met>& z) 
+template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DECL__ fpmp2_t<_FpType, _TypeAcc> mad (const fpmp2_t<_FpType, _TypeAcc>& __x,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __y,
+                                                 const fpmp2_t<_FpType, _TypeAcc>& __z) 
 {
-    FpType rhi, rlo;
-    if constexpr (m == fpmp2_accuracy::low)          { __nv_fpmp2_low_mad  (x.hi(), x.lo(), y.hi(), y.lo(), z.hi(), z.lo(), &rhi, &rlo); }
-    else if constexpr (m == fpmp2_accuracy::high)    { __nv_fpmp2_high_mad (x.hi(), x.lo(), y.hi(), y.lo(), z.hi(), z.lo(), &rhi, &rlo); }
-    else                                             { __nv_fpmp2_mad      (x.hi(), x.lo(), y.hi(), y.lo(), z.hi(), z.lo(), &rhi, &rlo); }
-    return fpmp2_t<FpType, met>(rhi, rlo);
+    _FpType __rhi, __rlo;
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mad  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mad (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else                                             { __nv_fpmp2_mad      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
-template<fpmp2_accuracy m, typename T1, typename T2, typename T3,
-         typename = typename std::enable_if<((fpmp::is_fpmp2<T1>::value     || fpmp::is_fpmp2<T2>::value     || fpmp::is_fpmp2<T3>::value) &&
-                                             (std::is_arithmetic<T1>::value || std::is_arithmetic<T2>::value || std::is_arithmetic<T3>::value))>::type>
-__FPMP_API_DECL__ auto mad(const T1& x, const T2& y, const T3& z)
+template<fpmp2_accuracy _Acc, typename _T1, typename _T2, typename _T3,
+         typename = typename std::enable_if<((fpmp::is_fpmp2<_T1>::value     || fpmp::is_fpmp2<_T2>::value     || fpmp::is_fpmp2<_T3>::value) &&
+                                             (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+__FPMP_API_DECL__ auto mad(const _T1& __x, const _T2& __y, const _T3& __z)
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<T1>::value, T1,
-                typename std::conditional<fpmp::is_fpmp2<T2>::value, T2, T3>::type>::type;
-    return mad<m>(mp2(x), mp2(y), mp2(z));
+    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1,
+                typename std::conditional<fpmp::is_fpmp2<_T2>::value, _T2, _T3>::type>::type;
+    return mad<_Acc>(mp2(__x), mp2(__y), mp2(__z));
 }
 
 
@@ -973,45 +973,45 @@ __FPMP_API_DECL__ auto mad(const T1& x, const T2& y, const T3& z)
 * ============================================================================
 */
 
-template <typename FpType, fpmp2_accuracy met>
-__FPMP_API_DEVICE_DECL__ fpmp2_t<FpType, met>
-__shfl_sync(unsigned mask, const fpmp2_t<FpType, met>& var,
+template <typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc>
+__shfl_sync(unsigned mask, const fpmp2_t<_FpType, _TypeAcc>& var,
             int srcLane, int width = warpSize)
 {
-    return fpmp2_t<FpType, met>(
+    return fpmp2_t<_FpType, _TypeAcc>(
         ::__shfl_sync(mask, var.hi(), srcLane, width),
         ::__shfl_sync(mask, var.lo(), srcLane, width)
     );
 }
 
-template <typename FpType, fpmp2_accuracy met>
-__FPMP_API_DEVICE_DECL__ fpmp2_t<FpType, met>
-__shfl_xor_sync(unsigned mask, const fpmp2_t<FpType, met>& var,
+template <typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc>
+__shfl_xor_sync(unsigned mask, const fpmp2_t<_FpType, _TypeAcc>& var,
                 int laneMask, int width = warpSize)
 {
-    return fpmp2_t<FpType, met>(
+    return fpmp2_t<_FpType, _TypeAcc>(
         ::__shfl_xor_sync(mask, var.hi(), laneMask, width),
         ::__shfl_xor_sync(mask, var.lo(), laneMask, width)
     );
 }
 
-template <typename FpType, fpmp2_accuracy met>
-__FPMP_API_DEVICE_DECL__ fpmp2_t<FpType, met>
-__shfl_down_sync(unsigned mask, const fpmp2_t<FpType, met>& var,
+template <typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc>
+__shfl_down_sync(unsigned mask, const fpmp2_t<_FpType, _TypeAcc>& var,
                  unsigned int delta, int width = warpSize)
 {
-    return fpmp2_t<FpType, met>(
+    return fpmp2_t<_FpType, _TypeAcc>(
         ::__shfl_down_sync(mask, var.hi(), delta, width),
         ::__shfl_down_sync(mask, var.lo(), delta, width)
     );
 }
 
-template <typename FpType, fpmp2_accuracy met>
-__FPMP_API_DEVICE_DECL__ fpmp2_t<FpType, met>
-__shfl_up_sync(unsigned mask, const fpmp2_t<FpType, met>& var,
+template <typename _FpType, fpmp2_accuracy _TypeAcc>
+__FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc>
+__shfl_up_sync(unsigned mask, const fpmp2_t<_FpType, _TypeAcc>& var,
                unsigned int delta, int width = warpSize)
 {
-    return fpmp2_t<FpType, met>(
+    return fpmp2_t<_FpType, _TypeAcc>(
         ::__shfl_up_sync(mask, var.hi(), delta, width),
         ::__shfl_up_sync(mask, var.lo(), delta, width)
     );

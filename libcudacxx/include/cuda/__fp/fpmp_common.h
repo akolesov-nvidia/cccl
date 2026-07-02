@@ -525,22 +525,22 @@ enum struct fpmp2_accuracy
     // In-house bit cast polyfill, kept available as the __FPMP_BIT_CAST__
     // fallback target. Provides C++20 bit_cast functionality when it's absent.
     */
-    template<typename To, typename From>
-    __FPMP_INTERNAL_DECL__ To __fpmp_builtin_bit_cast(From v)
+    template<typename _To, typename _From>
+    __FPMP_INTERNAL_DECL__ _To __fpmp_builtin_bit_cast(_From __v)
     {
         // Static checks to ensure bit_cast requirements
-        static_assert(sizeof(To) == sizeof(From),              "bit_cast requires source and destination types to have the same size");
-        static_assert(std::is_trivially_copyable<From>::value, "bit_cast requires From to be trivially copyable");
-        static_assert(std::is_trivially_copyable<To>::value,   "bit_cast requires To to be trivially copyable");
+        static_assert(sizeof(_To) == sizeof(_From),              "bit_cast requires source and destination types to have the same size");
+        static_assert(std::is_trivially_copyable<_From>::value, "bit_cast requires From to be trivially copyable");
+        static_assert(std::is_trivially_copyable<_To>::value,   "bit_cast requires To to be trivially copyable");
         
     #if __FPMP_HAS_BIT_CAST__
         // Prefer compiler builtin if available (C++20 or compiler extension)
-        return __builtin_bit_cast(To, v);
+        return __builtin_bit_cast(_To, __v);
     #else
         // Fallback using reinterpret_cast for performance
         // Note: This technically violates strict aliasing rules but is widely supported
         // and works correctly in practice on all target platforms
-        return *reinterpret_cast<To*>(&v);
+        return *reinterpret_cast<To*>(&__v);
     #endif
     } // __fpmp_builtin_bit_cast
 
@@ -548,10 +548,10 @@ enum struct fpmp2_accuracy
     // Internal bit cast utility used throughout the library. Delegates to the
     // __FPMP_BIT_CAST__ switch macro (cuda::std::bit_cast by default).
     */
-    template<typename To, typename From>
-    __FPMP_INTERNAL_DECL__ To internal_bit_cast(From v)
+    template<typename _To, typename _From>
+    __FPMP_INTERNAL_DECL__ _To internal_bit_cast(_From __v)
     {
-        return __FPMP_BIT_CAST__(To, v);
+        return __FPMP_BIT_CAST__(_To, __v);
     } // internal_bit_cast
 
     /*
@@ -561,85 +561,85 @@ enum struct fpmp2_accuracy
     // the fallback is the appropriate arithmetic operation
     */
     #ifdef __CUDA_ARCH__    
-        __FPMP_INTERNAL_DECL__ float    internal_fabs(float x)   {return fabsf(x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(float x)  {return ::isnan(x);}
-        __FPMP_INTERNAL_DECL__ float    add_rn(float x, float y) {return __fadd_rn(x, y);}
-        __FPMP_INTERNAL_DECL__ float    add_rz(float x, float y) {return __fadd_rz(x, y);}
-        __FPMP_INTERNAL_DECL__ float    sub_rn(float x, float y) {return __fsub_rn(x, y);}
-        __FPMP_INTERNAL_DECL__ float    mul_rn(float x, float y) {return __fmul_rn(x, y);}
-        __FPMP_INTERNAL_DECL__ float    fma_rn(float x, float y, float z) {return __fmaf_ieee_rn(x, y, z);}
+        __FPMP_INTERNAL_DECL__ float    internal_fabs(float __x)   {return fabsf(__x);}
+        __FPMP_INTERNAL_DECL__ bool     internal_isnan(float __x)  {return ::isnan(__x);}
+        __FPMP_INTERNAL_DECL__ float    add_rn(float __x, float __y) {return __fadd_rn(__x, __y);}
+        __FPMP_INTERNAL_DECL__ float    add_rz(float __x, float __y) {return __fadd_rz(__x, __y);}
+        __FPMP_INTERNAL_DECL__ float    sub_rn(float __x, float __y) {return __fsub_rn(__x, __y);}
+        __FPMP_INTERNAL_DECL__ float    mul_rn(float __x, float __y) {return __fmul_rn(__x, __y);}
+        __FPMP_INTERNAL_DECL__ float    fma_rn(float __x, float __y, float __z) {return __fmaf_ieee_rn(__x, __y, __z);}
         #if __FPMP_USE_INLINE_ASM_RCP__ == 1
-        __FPMP_INTERNAL_DECL__ float    rcp_rn(float x)  { float r; asm ("rcp.approx.ftz.f32 %0,%1;" : "=f"(r) : "f"(x)); return r; }
+        __FPMP_INTERNAL_DECL__ float    rcp_rn(float __x)  { float __r; asm ("rcp.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        __FPMP_INTERNAL_DECL__ float    rcp_rn(float x)  {return __frcp_rn(x);}
+        __FPMP_INTERNAL_DECL__ float    rcp_rn(float __x)  {return __frcp_rn(__x);}
         #endif
         #if __FPMP_USE_INLINE_ASM_RSQRT__ == 1
-        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float x) { float r; asm ("rsqrt.approx.ftz.f32 %0,%1;" : "=f"(r) : "f"(x)); return r; }
+        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float __x) { float __r; asm ("rsqrt.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float x) {return __frsqrt_rn(x);}
+        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float __x) {return __frsqrt_rn(__x);}
         #endif
         // Fast single-precision base-2 exp / log mapped to the FP32 SFU
         // approximation units (ex2.approx / lg2.approx). These are not
         // correctly rounded; they are used as initial estimates for
         // higher-precision Newton/Halley refinement.
         #if __FPMP_USE_INLINE_ASM_EX2_LG2__ == 1
-        __FPMP_INTERNAL_DECL__ float    fast_exp2(float x) { float r; asm ("ex2.approx.ftz.f32 %0,%1;" : "=f"(r) : "f"(x)); return r; }
-        __FPMP_INTERNAL_DECL__ float    fast_log2(float x) { float r; asm ("lg2.approx.ftz.f32 %0,%1;" : "=f"(r) : "f"(x)); return r; }
+        __FPMP_INTERNAL_DECL__ float    fast_exp2(float __x) { float __r; asm ("ex2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        __FPMP_INTERNAL_DECL__ float    fast_log2(float __x) { float __r; asm ("lg2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        __FPMP_INTERNAL_DECL__ float    fast_exp2(float x) {return __exp2f(x);}
-        __FPMP_INTERNAL_DECL__ float    fast_log2(float x) {return __log2f(x);}
+        __FPMP_INTERNAL_DECL__ float    fast_exp2(float __x) {return __exp2f(__x);}
+        __FPMP_INTERNAL_DECL__ float    fast_log2(float __x) {return __log2f(__x);}
         #endif
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(float x)  {return __float2int_rz(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(float x)  {return __float2int_rn(x);}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(float x) {return __float2uint_rz(x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(float x)   {return __float2ll_rz(x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(float x)  {return __float2ull_rz(x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(float __x)  {return __float2int_rz(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(float __x)  {return __float2int_rn(__x);}
+        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(float __x) {return __float2uint_rz(__x);}
+        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(float __x)   {return __float2ll_rz(__x);}
+        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(float __x)  {return __float2ull_rz(__x);}
 
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType int2fp_rn(int32_t x)   {return static_cast<FpType>(__int2float_rn(x));}
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType int2fp_rz(int32_t x)   {return static_cast<FpType>(__int2float_rz(x));}
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType uint2fp_rz(uint32_t x) {return static_cast<FpType>(__uint2float_rz(x));}
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType ll2fp_rz(int64_t x)    {return static_cast<FpType>(__ll2float_rz(x));}
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType ull2fp_rz(uint64_t x)  {return static_cast<FpType>(__ull2float_rz(x));}
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rn(int32_t __x)   {return static_cast<_FpType>(__int2float_rn(__x));}
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rz(int32_t __x)   {return static_cast<_FpType>(__int2float_rz(__x));}
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType uint2fp_rz(uint32_t __x) {return static_cast<_FpType>(__uint2float_rz(__x));}
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ll2fp_rz(int64_t __x)    {return static_cast<_FpType>(__ll2float_rz(__x));}
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ull2fp_rz(uint64_t __x)  {return static_cast<_FpType>(__ull2float_rz(__x));}
     #else // !__CUDA_ARCH__
-        __FPMP_INTERNAL_DECL__ float    internal_fabs(float x)   {return fabsf(x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(float x)  {return std::isnan(x);}
-        __FPMP_INTERNAL_DECL__ float    add_rn(float x, float y) {return x + y;}
-        __FPMP_INTERNAL_DECL__ float    add_rz(float x, float y)             
+        __FPMP_INTERNAL_DECL__ float    internal_fabs(float __x)   {return fabsf(__x);}
+        __FPMP_INTERNAL_DECL__ bool     internal_isnan(float __x)  {return std::isnan(__x);}
+        __FPMP_INTERNAL_DECL__ float    add_rn(float __x, float __y) {return __x + __y;}
+        __FPMP_INTERNAL_DECL__ float    add_rz(float __x, float __y)             
         {
-            float sum = x + y;
-            if (sum == 0.0f) return sum; 
-            float error = fmaf(-1.0f, sum, x) + y;
-            if (error == 0.0f) return sum;          
-            if ((sum > 0.0f && error < 0.0f) || 
-                (sum < 0.0f && error > 0.0f)) 
+            float __sum = __x + __y;
+            if (__sum == 0.0f) return __sum; 
+            float __error = fmaf(-1.0f, __sum, __x) + __y;
+            if (__error == 0.0f) return __sum;          
+            if ((__sum > 0.0f && __error < 0.0f) || 
+                (__sum < 0.0f && __error > 0.0f)) 
             {
                 // Rounded away from zero - need to adjust mantissa toward zero
-                uint32_t bits = internal_bit_cast<uint32_t>(sum);
+                uint32_t __bits = internal_bit_cast<uint32_t>(__sum);
                 // Decrement mantissa (moves toward zero for both positive and negative)
-                bits--;
-                sum = internal_bit_cast<float>(bits);
+                __bits--;
+                __sum = internal_bit_cast<float>(__bits);
             }
-            return sum;
+            return __sum;
         }
-        __FPMP_INTERNAL_DECL__ float    sub_rn(float x, float y) {return x - y;}
-        __FPMP_INTERNAL_DECL__ float    mul_rn(float x, float y) {return x * y;}
-        __FPMP_INTERNAL_DECL__ float    fma_rn(float x, float y, float z) {return fmaf(x, y, z);}
-        __FPMP_INTERNAL_DECL__ float    rcp_rn(float x)   {return 1.0f / x;}
-        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float x) {return 1.0f / sqrtf(x);}
+        __FPMP_INTERNAL_DECL__ float    sub_rn(float __x, float __y) {return __x - __y;}
+        __FPMP_INTERNAL_DECL__ float    mul_rn(float __x, float __y) {return __x * __y;}
+        __FPMP_INTERNAL_DECL__ float    fma_rn(float __x, float __y, float __z) {return fmaf(__x, __y, __z);}
+        __FPMP_INTERNAL_DECL__ float    rcp_rn(float __x)   {return 1.0f / __x;}
+        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float __x) {return 1.0f / sqrtf(__x);}
         // Host fallback for the fast SFU-style exp2 / log2; uses the libm
         // single-precision routines.  Same use case as the device path:
         // a low-cost initial estimate for Newton/Halley refinement.
-        __FPMP_INTERNAL_DECL__ float    fast_exp2(float x) {return ::exp2f(x);}
-        __FPMP_INTERNAL_DECL__ float    fast_log2(float x) {return ::log2f(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(float x)  {return static_cast<int32_t>(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(float x)  {return static_cast<int32_t>(roundf(x));}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(float x) {return static_cast<uint32_t>(x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(float x)   {return static_cast<int64_t>(x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(float x)  {return static_cast<uint64_t>(x);}
+        __FPMP_INTERNAL_DECL__ float    fast_exp2(float __x) {return ::exp2f(__x);}
+        __FPMP_INTERNAL_DECL__ float    fast_log2(float __x) {return ::log2f(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(float __x)  {return static_cast<int32_t>(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(float __x)  {return static_cast<int32_t>(roundf(__x));}
+        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(float __x) {return static_cast<uint32_t>(__x);}
+        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(float __x)   {return static_cast<int64_t>(__x);}
+        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(float __x)  {return static_cast<uint64_t>(__x);}
 
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType int2fp_rn(int32_t x) 
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rn(int32_t __x) 
         {
-            return static_cast<FpType>(roundf(x));
+            return static_cast<_FpType>(roundf(__x));
         }
         
         /*
@@ -649,121 +649,121 @@ enum struct fpmp2_accuracy
         // Using double for exact comparison (double has 53 bits, enough for int32_t's 32 bits)
         // Template versions for both float and double
         */
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType int2fp_rz(int32_t x) 
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rz(int32_t __x) 
         {
-            FpType f = static_cast<FpType>(x);
-            double exact = static_cast<double>(x);
-            if ((x > 0 && f > exact) || (x < 0 && f < exact)) { 
-                f = std::is_same<FpType, float>::value ? nextafterf(f, 0.0f) : nextafter(f, 0.0);
+            _FpType __f = static_cast<_FpType>(__x);
+            double __exact = static_cast<double>(__x);
+            if ((__x > 0 && __f > __exact) || (__x < 0 && __f < __exact)) { 
+                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
-            return f;
+            return __f;
         }
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType uint2fp_rz(uint32_t x) 
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType uint2fp_rz(uint32_t __x) 
         {
-            FpType f = static_cast<FpType>(x);
-            double exact = static_cast<double>(x);
-            if (f > exact) { 
-                f = std::is_same<FpType, float>::value ? nextafterf(f, 0.0f) : nextafter(f, 0.0);
+            _FpType __f = static_cast<_FpType>(__x);
+            double __exact = static_cast<double>(__x);
+            if (__f > __exact) { 
+                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
-            return f;
+            return __f;
         }
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType ll2fp_rz(int64_t x) 
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ll2fp_rz(int64_t __x) 
         {
-            FpType f = static_cast<FpType>(x);
-            double exact = static_cast<double>(x);
-            if ((x > 0 && f > exact) || (x < 0 && f < exact)) { 
-                f = std::is_same<FpType, float>::value ? nextafterf(f, 0.0f) : nextafter(f, 0.0);
+            _FpType __f = static_cast<_FpType>(__x);
+            double __exact = static_cast<double>(__x);
+            if ((__x > 0 && __f > __exact) || (__x < 0 && __f < __exact)) { 
+                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
-            return f;
+            return __f;
         }
-        template<typename FpType = float> __FPMP_INTERNAL_DECL__ FpType ull2fp_rz(uint64_t x) 
+        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ull2fp_rz(uint64_t __x) 
         {
-            FpType f = static_cast<FpType>(x);
-            double exact = static_cast<double>(x);
-            if (f > exact) { 
-                f = std::is_same<FpType, float>::value ? nextafterf(f, 0.0f) : nextafter(f, 0.0);
+            _FpType __f = static_cast<_FpType>(__x);
+            double __exact = static_cast<double>(__x);
+            if (__f > __exact) { 
+                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
-            return f;
+            return __f;
         }
     #endif // __CUDA_ARCH__
 
 #if FPMP_FP64MP2_ENABLE == 1
     #ifdef __CUDA_ARCH__
-        __FPMP_INTERNAL_DECL__ double   internal_fabs(double x)    {return ::fabs(x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(double x)   {return ::isnan(x);}
-        __FPMP_INTERNAL_DECL__ double   add_rn(double x, double y) {return __dadd_rn(x, y);}
-        __FPMP_INTERNAL_DECL__ double   add_rz(double x, double y) {return __dadd_rz(x, y);}
-        __FPMP_INTERNAL_DECL__ double   sub_rn(double x, double y) {return __dsub_rn(x, y);}
-        __FPMP_INTERNAL_DECL__ double   mul_rn(double x, double y) {return __dmul_rn(x, y);}
-        __FPMP_INTERNAL_DECL__ double   fma_rn(double x, double y, double z) {return __fma_rn(x, y, z);}
-        __FPMP_INTERNAL_DECL__ double   rcp_rn(double x)     {return __drcp_rn(x);}
-        __FPMP_INTERNAL_DECL__ double   rsqrt_rn(double x)   {return rsqrt(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(double x)  {return __double2int_rz(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(double x)  {return __double2int_rn(x);}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(double x) {return __double2uint_rz(x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(double x)   {return __double2ll_rz(x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(double x)  {return __double2ull_rz(x);}
+        __FPMP_INTERNAL_DECL__ double   internal_fabs(double __x)    {return ::fabs(__x);}
+        __FPMP_INTERNAL_DECL__ bool     internal_isnan(double __x)   {return ::isnan(__x);}
+        __FPMP_INTERNAL_DECL__ double   add_rn(double __x, double __y) {return __dadd_rn(__x, __y);}
+        __FPMP_INTERNAL_DECL__ double   add_rz(double __x, double __y) {return __dadd_rz(__x, __y);}
+        __FPMP_INTERNAL_DECL__ double   sub_rn(double __x, double __y) {return __dsub_rn(__x, __y);}
+        __FPMP_INTERNAL_DECL__ double   mul_rn(double __x, double __y) {return __dmul_rn(__x, __y);}
+        __FPMP_INTERNAL_DECL__ double   fma_rn(double __x, double __y, double __z) {return __fma_rn(__x, __y, __z);}
+        __FPMP_INTERNAL_DECL__ double   rcp_rn(double __x)     {return __drcp_rn(__x);}
+        __FPMP_INTERNAL_DECL__ double   rsqrt_rn(double __x)   {return rsqrt(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(double __x)  {return __double2int_rz(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(double __x)  {return __double2int_rn(__x);}
+        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(double __x) {return __double2uint_rz(__x);}
+        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(double __x)   {return __double2ll_rz(__x);}
+        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(double __x)  {return __double2ull_rz(__x);}
         // int32_t and uint32_t always fit exactly in double (52-bit mantissa vs 32-bit values)
-        template<> __FPMP_API_DECL__ double int2fp_rn<double>(int32_t x)   {return __int2double_rn(x);}
-        template<> __FPMP_API_DECL__ double int2fp_rz<double>(int32_t x)   {return static_cast<double>(x);}
-        template<> __FPMP_API_DECL__ double uint2fp_rz<double>(uint32_t x) {return static_cast<double>(x);}
+        template<> __FPMP_API_DECL__ double int2fp_rn<double>(int32_t __x)   {return __int2double_rn(__x);}
+        template<> __FPMP_API_DECL__ double int2fp_rz<double>(int32_t __x)   {return static_cast<double>(__x);}
+        template<> __FPMP_API_DECL__ double uint2fp_rz<double>(uint32_t __x) {return static_cast<double>(__x);}
         // int64_t and uint64_t: use CUDA intrinsics for round-toward-zero
-        template<> __FPMP_API_DECL__ double ll2fp_rz<double>(int64_t x)    {return __ll2double_rz(x);}
-        template<> __FPMP_API_DECL__ double ull2fp_rz<double>(uint64_t x)  {return __ull2double_rz(x);}
+        template<> __FPMP_API_DECL__ double ll2fp_rz<double>(int64_t __x)    {return __ll2double_rz(__x);}
+        template<> __FPMP_API_DECL__ double ull2fp_rz<double>(uint64_t __x)  {return __ull2double_rz(__x);}
     #else // !__CUDA_ARCH__
-        __FPMP_INTERNAL_DECL__ double   internal_fabs(double x)    {return ::fabs(x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(double x)   {return std::isnan(x);}
-        __FPMP_INTERNAL_DECL__ double   add_rn(double x, double y) {return x + y;}
-        __FPMP_INTERNAL_DECL__ double   add_rz(double x, double y)             
+        __FPMP_INTERNAL_DECL__ double   internal_fabs(double __x)    {return ::fabs(__x);}
+        __FPMP_INTERNAL_DECL__ bool     internal_isnan(double __x)   {return std::isnan(__x);}
+        __FPMP_INTERNAL_DECL__ double   add_rn(double __x, double __y) {return __x + __y;}
+        __FPMP_INTERNAL_DECL__ double   add_rz(double __x, double __y)             
         {
-            double sum = x + y;
-            if (sum == 0.0) return sum; 
-            double error = fma(-1.0, sum, x) + y;
-            if (error == 0.0) return sum;          
-            if ((sum > 0.0 && error < 0.0) || 
-                (sum < 0.0 && error > 0.0)) 
+            double __sum = __x + __y;
+            if (__sum == 0.0) return __sum; 
+            double __error = fma(-1.0, __sum, __x) + __y;
+            if (__error == 0.0) return __sum;          
+            if ((__sum > 0.0 && __error < 0.0) || 
+                (__sum < 0.0 && __error > 0.0)) 
             {
                 // Rounded away from zero - need to adjust mantissa toward zero
-                uint64_t bits = internal_bit_cast<uint64_t>(sum);
+                uint64_t __bits = internal_bit_cast<uint64_t>(__sum);
                 // Decrement mantissa (moves toward zero for both positive and negative)
-                bits--;
-                sum = internal_bit_cast<double>(bits);
+                __bits--;
+                __sum = internal_bit_cast<double>(__bits);
             }
-            return sum;
+            return __sum;
         }
-        __FPMP_INTERNAL_DECL__ double   sub_rn(double x, double y) {return x - y;}
-        __FPMP_INTERNAL_DECL__ double   mul_rn(double x, double y) {return x * y;}
-        __FPMP_INTERNAL_DECL__ double   fma_rn(double x, double y, double z) {return fma(x, y, z);}
-        __FPMP_INTERNAL_DECL__ double   rcp_rn(double x)     {return 1.0 / x;}
-        __FPMP_INTERNAL_DECL__ double   rsqrt_rn(double x)   {return 1.0 / sqrt(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(double x)  {return static_cast<int32_t>(x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(double x)  {return static_cast<int32_t>(round(x));}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(double x) {return static_cast<uint32_t>(x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(double x)   {return static_cast<int64_t>(x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(double x)  {return static_cast<uint64_t>(x);}
+        __FPMP_INTERNAL_DECL__ double   sub_rn(double __x, double __y) {return __x - __y;}
+        __FPMP_INTERNAL_DECL__ double   mul_rn(double __x, double __y) {return __x * __y;}
+        __FPMP_INTERNAL_DECL__ double   fma_rn(double __x, double __y, double __z) {return fma(__x, __y, __z);}
+        __FPMP_INTERNAL_DECL__ double   rcp_rn(double __x)     {return 1.0 / __x;}
+        __FPMP_INTERNAL_DECL__ double   rsqrt_rn(double __x)   {return 1.0 / sqrt(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(double __x)  {return static_cast<int32_t>(__x);}
+        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(double __x)  {return static_cast<int32_t>(round(__x));}
+        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(double __x) {return static_cast<uint32_t>(__x);}
+        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(double __x)   {return static_cast<int64_t>(__x);}
+        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(double __x)  {return static_cast<uint64_t>(__x);}
         /*
         // Round-toward-zero (truncation) versions for integer-to-double constructors
         // For double, we need to use long double for exact comparison where possible
         // Template specializations for double type
         */
-        template<> __FPMP_API_DECL__ double int2fp_rn<double>(int32_t x)   { return round(x); }
-        template<> __FPMP_API_DECL__ double int2fp_rz<double>(int32_t x)   { return static_cast<double>(x); }
-        template<> __FPMP_API_DECL__ double uint2fp_rz<double>(uint32_t x) { return static_cast<double>(x); }
-        template<> __FPMP_API_DECL__ double ll2fp_rz<double>(int64_t x) 
+        template<> __FPMP_API_DECL__ double int2fp_rn<double>(int32_t __x)   { return round(__x); }
+        template<> __FPMP_API_DECL__ double int2fp_rz<double>(int32_t __x)   { return static_cast<double>(__x); }
+        template<> __FPMP_API_DECL__ double uint2fp_rz<double>(uint32_t __x) { return static_cast<double>(__x); }
+        template<> __FPMP_API_DECL__ double ll2fp_rz<double>(int64_t __x) 
         {
             // int64_t may not fit exactly in double
-            double d = static_cast<double>(x);
-            long double exact = static_cast<long double>(x);
-            if ((x > 0 && d > exact) || (x < 0 && d < exact)) {  d = nextafter(d, 0.0); }
-            return d;
+            double __d = static_cast<double>(__x);
+            long double __exact = static_cast<long double>(__x);
+            if ((__x > 0 && __d > __exact) || (__x < 0 && __d < __exact)) {  __d = nextafter(__d, 0.0); }
+            return __d;
         }
-        template<> __FPMP_API_DECL__ double ull2fp_rz<double>(uint64_t x) 
+        template<> __FPMP_API_DECL__ double ull2fp_rz<double>(uint64_t __x) 
         {
             // uint64_t may not fit exactly in double
-            double d = static_cast<double>(x);
-            long double exact = static_cast<long double>(x);
-            if (d > exact) { d = nextafter(d, 0.0); }
-            return d;
+            double __d = static_cast<double>(__x);
+            long double __exact = static_cast<long double>(__x);
+            if (__d > __exact) { __d = nextafter(__d, 0.0); }
+            return __d;
         }
     #endif // __CUDA_ARCH__
 #endif // FPMP_FP64MP2_ENABLE == 1
@@ -773,64 +773,64 @@ enum struct fpmp2_accuracy
     // Intentionally named under fpmp:: namespace and used by fpmp_math.h
     // dedicated fp32mp2 rounding implementations.
     */
-    template<typename FpType = float>
-    __FPMP_INTERNAL_DECL__ FpType internal_trunc (const FpType x)
+    template<typename _FpType = float>
+    __FPMP_INTERNAL_DECL__ _FpType internal_trunc (const _FpType __x)
     {
-        if constexpr (std::is_same<FpType, float>::value)
+        if constexpr (std::is_same<_FpType, float>::value)
         {
-            const FpType abs_x = fpmp::internal_fabs(x);
-            if (abs_x >= FpType(0x1.0p23f)) { return x; }
+            const _FpType __abs_x = fpmp::internal_fabs(__x);
+            if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
         #if defined(__CUDA_ARCH__)
-            const int32_t xi = __float2int_rz(x);
-            return __int2float_rz(xi);
+            const int32_t __xi = __float2int_rz(__x);
+            return __int2float_rz(__xi);
         #else
-            const int32_t xi = fpmp::fp2int_rz(x);
-            return fpmp::int2fp_rz<FpType>(xi);
+            const int32_t __xi = fpmp::fp2int_rz(__x);
+            return fpmp::int2fp_rz<_FpType>(__xi);
         #endif
         }
         else
         {
-            return static_cast<FpType>(::trunc(static_cast<double>(x)));
+            return static_cast<_FpType>(::trunc(static_cast<double>(__x)));
         }
     }
 
-    template<typename FpType = float>
-    __FPMP_INTERNAL_DECL__ FpType internal_floor (const FpType x)
+    template<typename _FpType = float>
+    __FPMP_INTERNAL_DECL__ _FpType internal_floor (const _FpType __x)
     {
-        if constexpr (std::is_same<FpType, float>::value)
+        if constexpr (std::is_same<_FpType, float>::value)
         {
-            const FpType abs_x = fpmp::internal_fabs(x);
-            if (abs_x >= FpType(0x1.0p23f)) { return x; }
+            const _FpType __abs_x = fpmp::internal_fabs(__x);
+            if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
         #if defined(__CUDA_ARCH__)
-            const int32_t xi = __float2int_rd(x);
-            return __int2float_rn(xi);
+            const int32_t __xi = __float2int_rd(__x);
+            return __int2float_rn(__xi);
         #else
-            return floorf(x);
+            return floorf(__x);
         #endif
         }
         else
         {
-            return static_cast<FpType>(::floor(static_cast<double>(x)));
+            return static_cast<_FpType>(::floor(static_cast<double>(__x)));
         }
     }
 
-    template<typename FpType = float>
-    __FPMP_INTERNAL_DECL__ FpType internal_ceil (const FpType x)
+    template<typename _FpType = float>
+    __FPMP_INTERNAL_DECL__ _FpType internal_ceil (const _FpType __x)
     {
-        if constexpr (std::is_same<FpType, float>::value)
+        if constexpr (std::is_same<_FpType, float>::value)
         {
-            const FpType abs_x = fpmp::internal_fabs(x);
-            if (abs_x >= FpType(0x1.0p23f)) { return x; }
+            const _FpType __abs_x = fpmp::internal_fabs(__x);
+            if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
         #if defined(__CUDA_ARCH__)
-            const int32_t xi = __float2int_ru(x);
-            return __int2float_rn(xi);
+            const int32_t __xi = __float2int_ru(__x);
+            return __int2float_rn(__xi);
         #else
-            return ceilf(x);
+            return ceilf(__x);
         #endif
         }
         else
         {
-            return static_cast<FpType>(::ceil(static_cast<double>(x)));
+            return static_cast<_FpType>(::ceil(static_cast<double>(__x)));
         }
     }
 
@@ -838,55 +838,55 @@ enum struct fpmp2_accuracy
     // Internal operations for 2-precision arithmetic
     */
     // Multiply 2 floats exactly, assuming no over/underflow.
-    template<typename FpType = float>
-    __FPMP_INTERNAL_DECL__ FpType two_mult_fma (const FpType x, 
-                                                const FpType y,
-                                                FpType* const res_lo)
+    template<typename _FpType = float>
+    __FPMP_INTERNAL_DECL__ _FpType two_mult_fma (const _FpType __x, 
+                                                const _FpType __y,
+                                                _FpType* const __res_lo)
     {
-        FpType res_hi = mul_rn(x, y);
-        *res_lo       = fma_rn(x, y, -res_hi);
-        return res_hi;
+        _FpType __res_hi = mul_rn(__x, __y);
+        *__res_lo       = fma_rn(__x, __y, -__res_hi);
+        return __res_hi;
     }
 
     // Add 2 floats, returning the answer exactly in 'hi' and 'lo' parts.
     // Assumes the exponent of 'x' is >= exponent of 'y'.
     // (Usually we just check if |x| >= |y|).
     // If this is not known use the function below.
-    template<typename FpType = float>
-    __FPMP_INTERNAL_DECL__ FpType fast_two_sum (const FpType x, 
-                                                const FpType y, 
-                                                FpType* const res_lo)
+    template<typename _FpType = float>
+    __FPMP_INTERNAL_DECL__ _FpType fast_two_sum (const _FpType __x, 
+                                                const _FpType __y, 
+                                                _FpType* const __res_lo)
     {
-        FpType res_hi = add_rn(x, y);
-        FpType diff   = sub_rn(res_hi, x);
-        *res_lo       = sub_rn(y, diff);
-        return res_hi;
+        _FpType __res_hi = add_rn(__x, __y);
+        _FpType __diff   = sub_rn(__res_hi, __x);
+        *__res_lo       = sub_rn(__y, __diff);
+        return __res_hi;
     }
 
     // Add 2 floats, returning the answer exactly in 'hi' and 'lo' parts.
     // This makes no assumptions on the magnitudes of |x| and |y|.
-    template<typename FpType = float>
-    __FPMP_INTERNAL_DECL__ FpType two_sum (const FpType x, 
-                                           const FpType y,
-                                           FpType* const res_lo)
+    template<typename _FpType = float>
+    __FPMP_INTERNAL_DECL__ _FpType two_sum (const _FpType __x, 
+                                           const _FpType __y,
+                                           _FpType* const __res_lo)
     {
-        FpType res_hi  = add_rn(x, y);
-        FpType a_prime = sub_rn(res_hi, y);
-        FpType b_prime = sub_rn(res_hi, a_prime);
-        FpType delta_a = sub_rn(x, a_prime);
-        FpType delta_b = sub_rn(y, b_prime);
-        *res_lo        = add_rn(delta_a, delta_b);
-        return res_hi;
+        _FpType __res_hi  = add_rn(__x, __y);
+        _FpType __a_prime = sub_rn(__res_hi, __y);
+        _FpType __b_prime = sub_rn(__res_hi, __a_prime);
+        _FpType __delta_a = sub_rn(__x, __a_prime);
+        _FpType __delta_b = sub_rn(__y, __b_prime);
+        *__res_lo        = add_rn(__delta_a, __delta_b);
+        return __res_hi;
     }
 
     // double -> (hi, lo) conversions (plain versions)
     // only for the C++ class below to be optimized in compile-time
-    __FPMP_CONSTEXPR__ __FPMP_API_DECL__ void from_double (const double x, 
-                                                           float*       res_hi, 
-                                                           float*       res_lo) __FPMP_NOEXCEPT__
+    __FPMP_CONSTEXPR__ __FPMP_API_DECL__ void from_double (const double __x, 
+                                                           float*       __res_hi, 
+                                                           float*       __res_lo) __FPMP_NOEXCEPT__
     {
-        *res_hi = (float)x;
-        *res_lo = (float)(x - (double)(float)x);
+        *__res_hi = (float)__x;
+        *__res_lo = (float)(__x - (double)(float)__x);
     }
 
  } // namespace fpmp
