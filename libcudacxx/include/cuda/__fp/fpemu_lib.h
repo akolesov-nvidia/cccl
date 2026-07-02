@@ -214,10 +214,10 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dadd_ru          (fpbits64_t __
 __FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dadd_rd          (fpbits64_t __x, fpbits64_t __y);
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
 __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_dadd_rn (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rn      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rz      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_ru      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rd      (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rn  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rz  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_ru  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rd     (fpbits64_t __x, fpbits64_t __y);
 __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rn     (fpbits64_t __x, fpbits64_t __y);
 __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rz     (fpbits64_t __x, fpbits64_t __y);
 __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_ru     (fpbits64_t __x, fpbits64_t __y);
@@ -233,20 +233,20 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rd     (fpbits64_t __x,
 * The default kernel __nv_fp64emu_dmul_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rn          (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rz          (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_ru          (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rd          (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rn     (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rz     (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_ru     (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rd     (fpbits64_t __x, fpbits64_t __y);
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
 __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_dmul_rn (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rn      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rz      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_ru      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rd      (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rn     (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rz     (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_ru     (fpbits64_t __x, fpbits64_t __y);
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rd     (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rn  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rz  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_ru  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rd  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rn  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rz  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_ru  (fpbits64_t __x, fpbits64_t __y);
+__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rd  (fpbits64_t __x, fpbits64_t __y);
 
 
 /**
