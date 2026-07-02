@@ -124,37 +124,19 @@ namespace cuda::experimental
  * Declaration macros
  *********************************************************************/
 
-// Define the target device declaration
-#if defined __FPEMU_DEVICE__
-    #define __FPEMU_INLINE_DECL__      __forceinline__
-    #define __FPEMU_HOST_DECL__        __host__
-    #define __FPEMU_DEVICE_DECL__      __device__
-    #define __FPEMU_HOST_DEVICE_DECL__ __host__ __device__
-    #define __FPEMU_MANAGED_DECL__     __managed__
-#else // defined __FPEMU_HOST__
-    #define __FPEMU_INLINE_DECL__      inline
-    #define __FPEMU_HOST_DECL__ 
-    #define __FPEMU_DEVICE_DECL__
-    #define __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_MANAGED_DECL__
-#endif
-
-// Define the subkernel declaration
+// Header (inline) builds decorate functions at the call site with CCCL
+// visibility macros directly:
+//   _CCCL_API         — public entry points (host/device, hidden from ABI)
+//   _CCCL_TRIVIAL_API — force-inlined internal/impl helpers (hot paths)
+//   _CCCL_DEVICE_API  — device-only overloads
+// The only decorator that still needs a dedicated macro is the extern-"C"
+// ABI symbol used when building or linking the standalone libcufp library.
 #if defined __CUDA_LIBDEVICE__
-    #define __FPEMU_INTERNAL_DECL__  static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_IMPL_DECL__      static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_BUILTIN_DECL__   __FPEMU_ABI__ extern "C" __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_API_DECL__       static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
+    #define __FPEMU_BUILTIN_DECL__   __FPEMU_ABI__ extern "C" _CCCL_HOST_DEVICE
 #elif defined __FPEMU_INLINE__
-    #define __FPEMU_INTERNAL_DECL__  static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_IMPL_DECL__      static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_BUILTIN_DECL__   static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__  
-    #define __FPEMU_API_DECL__       static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
+    #define __FPEMU_BUILTIN_DECL__   _CCCL_TRIVIAL_API
 #else // __FPEMU_BUILD_LIB__ or __FPEMU_USE_LIB__
-    #define __FPEMU_INTERNAL_DECL__  static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_IMPL_DECL__      static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_BUILTIN_DECL__   __FPEMU_ABI__ extern "C" __FPEMU_HOST_DEVICE_DECL__
-    #define __FPEMU_API_DECL__       static __FPEMU_INLINE_DECL__ __FPEMU_HOST_DEVICE_DECL__
+    #define __FPEMU_BUILTIN_DECL__   __FPEMU_ABI__ extern "C" _CCCL_HOST_DEVICE
 #endif
 
 /*********************************************************************

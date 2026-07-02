@@ -41,13 +41,13 @@ constexpr double epsilon = 1e-4;
 #if __cplusplus >= 202002L
     #include <bit>
     template<typename T, typename R>
-    __FPEMU_DEVICE_DECL__ T bit_cast(const R value) {
+    _CCCL_DEVICE T bit_cast(const R value) {
         return std::bit_cast<T>(value);
     }
 #else
     // Custom implementation for C++17 and earlier
     template<typename T, typename R>
-    __FPEMU_DEVICE_DECL__ T bit_cast(const R value) {
+    _CCCL_DEVICE T bit_cast(const R value) {
         T dst;
         // memcpy implementation
         std::memcpy(static_cast<void*>(&dst), static_cast<const void*>(&value), sizeof(T));
@@ -226,7 +226,7 @@ int main()
     double* results_native;   // Our template exp results for double
     double* results_fp64emu;    // Our template exp results for fp64emu
     
-#if defined __FPEMU_DEVICE__
+#if defined(__CUDACC__)
     // Allocate device memory
     cudaMallocManaged(&inputs, num_tests * sizeof(double));
     cudaMallocManaged(&results_std, num_tests * sizeof(double));
@@ -272,7 +272,7 @@ int main()
     }
     printf("fpemu_exp: %s (%d errors)\n\n", errors ? "FAIL" : "PASS", errors);
     
-#if defined __FPEMU_DEVICE__
+#if defined(__CUDACC__)
     // Free device memory
     cudaFree(inputs);
     cudaFree(results_std);

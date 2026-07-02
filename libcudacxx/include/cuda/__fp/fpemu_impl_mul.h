@@ -78,7 +78,7 @@ namespace impl
      */
     template<fpemu::rounding    _Rm  = fpemu::rounding::def, 
              fp64emu_accuracy   _Acc = fp64emu_accuracy::def>
-    __FPEMU_INTERNAL_DECL__
+    _CCCL_TRIVIAL_API
     fpbits64_t __nv_internal_fp64emu_dmul_accurate(fpbits64_t __x, 
                                                    fpbits64_t __y)
     {
@@ -207,7 +207,7 @@ namespace impl
      */
     template<fpemu::rounding    _Rm  = fpemu::rounding::def, 
              fp64emu_accuracy   _Acc = fp64emu_accuracy::def>
-    __FPEMU_INTERNAL_DECL__
+    _CCCL_TRIVIAL_API
     fpbits64_t __nv_internal_fp64emu_dmul_def(fpbits64_t __x, 
                                               fpbits64_t __y)
     {
@@ -330,7 +330,7 @@ namespace impl
      */
     template<fpemu::rounding    _Rm  = fpemu::rounding::def, 
              fp64emu_accuracy   _Acc = fp64emu_accuracy::def>
-    __FPEMU_INTERNAL_DECL__
+    _CCCL_TRIVIAL_API
     fpbits64_t __nv_internal_fp64emu_dmul_fast(fpbits64_t __x, 
                                                fpbits64_t __y)
     {
@@ -434,7 +434,7 @@ namespace impl
      *     fast kernel), re-expressed on the universal scale, same flush/saturate.
      */
     template<fp64emu_accuracy   _Acc = fp64emu_accuracy::def>
-    __FPEMU_INTERNAL_DECL__
+    _CCCL_TRIVIAL_API
     fpbits64_unpacked_t __nv_internal_fp64emu_dmul_unpacked(fpbits64_unpacked_t __a,
                                                         fpbits64_unpacked_t __b)
     {
@@ -594,7 +594,7 @@ namespace impl
      */
     template<fpemu::rounding    _Rm  = fpemu::rounding::def, 
              fp64emu_accuracy   _Acc = fp64emu_accuracy::def>
-    __FPEMU_INTERNAL_DECL__
+    _CCCL_TRIVIAL_API
     fpbits64_t __nv_internal_fp64emu_dmul(fpbits64_t __x, 
                                           fpbits64_t __y)
     {
@@ -705,7 +705,7 @@ namespace cuda::experimental
 
     // Default API implementation
     template<fp64emu_accuracy _Acc>  
-    __FPEMU_DEVICE_DECL__ static fp64emu_t<_Acc> operator* (const fp64emu_t<_Acc>& __x, 
+    _CCCL_DEVICE_API static fp64emu_t<_Acc> operator* (const fp64emu_t<_Acc>& __x, 
                                                                    const fp64emu_t<_Acc>& __y)
     {
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_high_dmul_rn(__x.bits, __y.bits)); }
@@ -716,27 +716,27 @@ namespace cuda::experimental
 
 
     template<fp64emu_accuracy _Acc>
-    __FPEMU_API_DECL__ fp64emu_t<_Acc> __dmul_rn (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) { 
+    _CCCL_API fp64emu_t<_Acc> __dmul_rn (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) { 
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_high_dmul_rn(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::low)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_low_dmul_rn(__x.bits, __y.bits)); }
         else                                               { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_mid_dmul_rn(__x.bits, __y.bits)); }
     }
     template<fp64emu_accuracy _Acc>
-    __FPEMU_API_DECL__ fp64emu_t<_Acc> __dmul_rz (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) {
+    _CCCL_API fp64emu_t<_Acc> __dmul_rz (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) {
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_dmul_rz(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::mid)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_mid_dmul_rz(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::low)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_low_dmul_rz(__x.bits, __y.bits)); }
         else                                               { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_dmul_rz(__x.bits, __y.bits)); }
     }
     template<fp64emu_accuracy _Acc>
-    __FPEMU_API_DECL__ fp64emu_t<_Acc> __dmul_ru (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) {
+    _CCCL_API fp64emu_t<_Acc> __dmul_ru (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) {
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_dmul_ru(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::mid)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_mid_dmul_ru(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::low)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_low_dmul_ru(__x.bits, __y.bits)); }
         else                                               { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_dmul_ru(__x.bits, __y.bits)); }
     }
     template<fp64emu_accuracy _Acc>
-    __FPEMU_API_DECL__ fp64emu_t<_Acc> __dmul_rd (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) {
+    _CCCL_API fp64emu_t<_Acc> __dmul_rd (const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) {
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_dmul_rd(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::mid)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_mid_dmul_rd(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::low)  { return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_low_dmul_rd(__x.bits, __y.bits)); }
@@ -747,7 +747,7 @@ namespace cuda::experimental
 
     // Operator* for unpacked multiplication
     template<fp64emu_accuracy _Acc>
-    __FPEMU_DEVICE_DECL__ static fp64emu_unpacked_t<_Acc> operator* (const fp64emu_unpacked_t<_Acc>& __x, 
+    _CCCL_DEVICE_API static fp64emu_unpacked_t<_Acc> operator* (const fp64emu_unpacked_t<_Acc>& __x, 
                                                                             const fp64emu_unpacked_t<_Acc>& __y)
     {
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_unpacked_t<_Acc>(fpbits64_construct, __nv_fp64emu_unpacked_high_dmul(__x.bits, __y.bits)); }
@@ -758,7 +758,7 @@ namespace cuda::experimental
 
 
     template<fp64emu_accuracy _Acc>
-    __FPEMU_API_DECL__ fp64emu_unpacked_t<_Acc> __dmul_rn (const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) { 
+    _CCCL_API fp64emu_unpacked_t<_Acc> __dmul_rn (const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) { 
         if      constexpr (_Acc == fp64emu_accuracy::high) { return fp64emu_unpacked_t<_Acc>(fpbits64_construct, __nv_fp64emu_unpacked_high_dmul(__x.bits, __y.bits)); }
         else if constexpr (_Acc == fp64emu_accuracy::low)  { return fp64emu_unpacked_t<_Acc>(fpbits64_construct, __nv_fp64emu_unpacked_low_dmul(__x.bits, __y.bits)); }
         else                                               { return fp64emu_unpacked_t<_Acc>(fpbits64_construct, __nv_fp64emu_unpacked_mid_dmul(__x.bits, __y.bits)); }

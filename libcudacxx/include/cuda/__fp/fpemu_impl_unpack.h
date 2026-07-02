@@ -72,7 +72,7 @@ namespace impl
  * @param  x The packed 64-bit value to unpack
  * @return The unpacked representation
  */
-__FPEMU_INTERNAL_DECL__
+_CCCL_TRIVIAL_API
 fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t __x)
 {
     fpbits64_unpacked_t __a_unpacked;
@@ -131,7 +131,7 @@ fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t __x)
  * @return The packed 64-bit value
  */
 template<fpemu::rounding _Rm = fpemu::rounding::def>
-__FPEMU_INTERNAL_DECL__
+_CCCL_TRIVIAL_API
 fpbits64_t __nv_internal_fp64emu_pack(fpbits64_unpacked_t __x)
 {
     const bool    __sign     = __x.sign != 0;
