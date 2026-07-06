@@ -202,7 +202,7 @@ namespace fpemu
     // In-house bit cast polyfill, kept available as the __FPEMU_BIT_CAST__
     // fallback target. Similar to C++20 std::bit_cast.
     template<typename _Tp, typename _Rp>
-    _CCCL_API _Tp __fpemu_builtin_bit_cast(const _Rp __value) 
+    _CCCL_API _Tp __fpemu_builtin_bit_cast(const _Rp __value) noexcept 
     {
         _Tp __dst;
     #if defined __DO_NOT_USE_MEMCPY__
@@ -227,7 +227,7 @@ namespace fpemu
     // Internal bit cast utility used throughout the library. Delegates to the
     // __FPEMU_BIT_CAST__ switch macro (cuda::std::bit_cast by default).
     template<typename _Tp, typename _Rp>
-    _CCCL_API _Tp bit_cast(const _Rp __value)
+    _CCCL_API _Tp bit_cast(const _Rp __value) noexcept
     {
         return __FPEMU_BIT_CAST__(_Tp, __value);
     }
@@ -333,7 +333,7 @@ namespace fpemu
          * @param x The 32-bit integer to count leading zeros in
          * @return The number of leading zeros in the integer
          */
-        _CCCL_TRIVIAL_API int __internal_clz(int __x) 
+        _CCCL_TRIVIAL_API int __internal_clz(int __x) noexcept 
         {
             if (__x == 0) return 32;
 
@@ -358,7 +358,7 @@ namespace fpemu
          * @param x The 64-bit integer to count leading zeros in
          * @return The number of leading zeros in the integer
          */
-        _CCCL_TRIVIAL_API int __internal_clzll(int64_t __x) 
+        _CCCL_TRIVIAL_API int __internal_clzll(int64_t __x) noexcept 
         {
             uint64_t __ux = (uint64_t)__x;
             if (__ux == 0)
@@ -373,8 +373,8 @@ namespace fpemu
             return __count;
         }
     #else
-        _CCCL_TRIVIAL_API int __internal_clz(int __x)       { return __clz(__x); }
-        _CCCL_TRIVIAL_API int __internal_clzll(int64_t __x) { return __clzll(__x); }
+        _CCCL_TRIVIAL_API int __internal_clz(int __x) noexcept       { return __clz(__x); }
+        _CCCL_TRIVIAL_API int __internal_clzll(int64_t __x) noexcept { return __clzll(__x); }
     #endif //__CUDA_ARCH__
 
         #undef  __max_fp64emu
@@ -399,7 +399,7 @@ namespace fpemu
      * @param sign The 32-bit integer to invert the sign of
      * @return The inverted sign
      */
-    _CCCL_TRIVIAL_API uint32_t __invert_msb(uint32_t __sign)
+    _CCCL_TRIVIAL_API uint32_t __invert_msb(uint32_t __sign) noexcept
     {
     #if __FP64EMU_PTX_XOR__ == 1
         uint32_t result;
@@ -439,7 +439,7 @@ namespace fpemu
      * @return The high 32 bits of the multiplication result
      */
     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API uint32_t __mul_32(__uint32x2_t __a, __uint32x2_t __b)
+    _CCCL_TRIVIAL_API uint32_t __mul_32(__uint32x2_t __a, __uint32x2_t __b) noexcept
     {
         uint32_t __res;
 #if defined  __CUDA_ARCH__
@@ -485,7 +485,7 @@ namespace fpemu
      * @return The high 64 bits of the multiplication result as two 32-bit integers
      */
     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API __uint32x2_t __mul_64(__uint32x2_t __a, __uint32x2_t __b)
+    _CCCL_TRIVIAL_API __uint32x2_t __mul_64(__uint32x2_t __a, __uint32x2_t __b) noexcept
     {
         __uint32x2_t __res;
 #if defined  __CUDA_ARCH__
@@ -557,7 +557,7 @@ namespace fpemu
      * @return The full 128-bit multiplication result as four 32-bit integers
      */
     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API __uint32x4_t __mul_128(__uint32x2_t __a, __uint32x2_t __b)
+    _CCCL_TRIVIAL_API __uint32x4_t __mul_128(__uint32x2_t __a, __uint32x2_t __b) noexcept
     {
         __uint32x4_t __res;
 
@@ -615,7 +615,7 @@ namespace fpemu
      * @param shift The number of bits to shift (positive for left shift)
      * @return The shifted value as two 32-bit integers
      */
-     _CCCL_TRIVIAL_API __uint32x2_t __shl_64 (__uint32x2_t __man, int __shift)
+     _CCCL_TRIVIAL_API __uint32x2_t __shl_64 (__uint32x2_t __man, int __shift) noexcept
      {
          uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
          __man64 <<= __shift;
@@ -632,7 +632,7 @@ namespace fpemu
       * @param shift The number of bits to shift (positive for right shift)
       * @return The shifted value as two 32-bit integers
       */
-     _CCCL_TRIVIAL_API __uint32x2_t __shr_64 (__uint32x2_t __man, int __shift)
+     _CCCL_TRIVIAL_API __uint32x2_t __shr_64 (__uint32x2_t __man, int __shift) noexcept
      {
          uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
@@ -660,7 +660,7 @@ namespace fpemu
      * Uses CUDA intrinsics on device; host falls back to native multiply (RN).
      */
     template<fpemu::rounding _Rm = fpemu::rounding::rn>
-    _CCCL_TRIVIAL_API float __fmul_dir (float __x, float __y)
+    _CCCL_TRIVIAL_API float __fmul_dir (float __x, float __y) noexcept
     {
 #if defined(__CUDA_ARCH__)
         if constexpr (_Rm == fpemu::rounding::rn) return __fmul_rn(__x, __y);
@@ -679,7 +679,7 @@ namespace fpemu
      * Uses CUDA intrinsics on device; host falls back to native add (RN).
      */
     template<fpemu::rounding _Rm = fpemu::rounding::rn>
-    _CCCL_TRIVIAL_API float __fadd_dir (float __x, float __y)
+    _CCCL_TRIVIAL_API float __fadd_dir (float __x, float __y) noexcept
     {
 #if defined(__CUDA_ARCH__)
         if constexpr (_Rm == fpemu::rounding::rn) return __fadd_rn(__x, __y);
@@ -693,7 +693,7 @@ namespace fpemu
     } //__fadd_dir
 
      template<fpemu::rounding _Rm = fpemu::rounding::rn>
-     _CCCL_TRIVIAL_API __uint32x2_t __shr_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false)
+     _CCCL_TRIVIAL_API __uint32x2_t __shr_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false) noexcept
      {
          uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
@@ -720,7 +720,7 @@ namespace fpemu
      * @brief Logical right shift of 128-bit mantissa with directed rounding
      */
     template<fpemu::rounding _Rm = fpemu::rounding::rn>
-    _CCCL_TRIVIAL_API __uint128_t __shr_128_rnd (__uint128_t __man, int __shift, bool __sign = false)
+    _CCCL_TRIVIAL_API __uint128_t __shr_128_rnd (__uint128_t __man, int __shift, bool __sign = false) noexcept
     {
 #ifndef __CUDA_ARCH__
         __shift = (__shift > 0) ? ((__shift > 127) ? 127 : __shift) : 0;
@@ -751,7 +751,7 @@ namespace fpemu
      * @brief Logical right shift of 128-bit mantissa with jam (sticky) only.
      * Used during FMA alignment; directed rounding is deferred to the pack epilogue.
      */
-    _CCCL_TRIVIAL_API __uint128_t __shr_128_jam (__uint128_t __man, int __shift)
+    _CCCL_TRIVIAL_API __uint128_t __shr_128_jam (__uint128_t __man, int __shift) noexcept
     {
         return __shr_128_rnd<fpemu::rounding::rn>(__man, __shift);
     } //__shr_128_jam
@@ -768,7 +768,7 @@ namespace fpemu
       * @return The shifted and rounded value as two 32-bit integers
       */
       template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-     _CCCL_TRIVIAL_API __uint32x2_t __sar_64 (__uint32x2_t __man, int __shift)
+     _CCCL_TRIVIAL_API __uint32x2_t __sar_64 (__uint32x2_t __man, int __shift) noexcept
      {
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
@@ -797,7 +797,7 @@ namespace fpemu
       */
       template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
                fpemu::rounding _Rm = fpemu::rounding::rn>
-     _CCCL_TRIVIAL_API __uint32x2_t __sar_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false)
+     _CCCL_TRIVIAL_API __uint32x2_t __sar_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false) noexcept
      {
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
@@ -842,7 +842,7 @@ namespace fpemu
      * @return The extracted exponent value
      */
      template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API int32_t __unpack_exp(__uint32x2_t __input)
+    _CCCL_TRIVIAL_API int32_t __unpack_exp(__uint32x2_t __input) noexcept
     {
         int32_t __exp;
 
@@ -889,7 +889,7 @@ namespace fpemu
      * @return The extracted mantissa as two 32-bit integers
      */
     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API __uint32x2_t __unpack_mant(bool *__sign, __uint32x2_t __input, bool __is_zero_exp)
+    _CCCL_TRIVIAL_API __uint32x2_t __unpack_mant(bool *__sign, __uint32x2_t __input, bool __is_zero_exp) noexcept
     {
         __uint32x2_t __man32x2;
 
@@ -921,7 +921,7 @@ namespace fpemu
      */
     template<fpemu::rounding _Rm = fpemu::rounding::rn>
     _CCCL_TRIVIAL_API
-    void __fp64_ovfl_sat (bool __sign, int32_t& __exp, __uint32x2_t& __man)
+    void __fp64_ovfl_sat (bool __sign, int32_t& __exp, __uint32x2_t& __man) noexcept
     {
         if constexpr (_Rm == fpemu::rounding::rz)
         {
@@ -977,7 +977,7 @@ namespace fpemu
      */
     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
              fpemu::rounding _Rm = fpemu::rounding::rn>
-    _CCCL_TRIVIAL_API uint64_t __pack (bool __sign, uint32_t __exp, __uint32x2_t __man)
+    _CCCL_TRIVIAL_API uint64_t __pack (bool __sign, uint32_t __exp, __uint32x2_t __man) noexcept
     {
 
         bool __zero_mantissa = __man.x[0] == 0 && __man.x[1] == 0;
@@ -1066,7 +1066,7 @@ namespace fpemu
      * @param c The 64-bit value to convert as two 32-bit integers
      * @return The two's complement of the input value
      */
-    _CCCL_TRIVIAL_API __uint32x2_t __two_comp (__uint32x2_t __c)
+    _CCCL_TRIVIAL_API __uint32x2_t __two_comp (__uint32x2_t __c) noexcept
     {
         uint64_t __c64   = fpemu::bit_cast<uint64_t>(__c);
         uint64_t __res64 = 0 - __c64; //IMAD.WIDE.U32 Rd, RZ, RZ, -Rc
@@ -1084,7 +1084,7 @@ namespace fpemu
      * @param x The 64-bit value to analyze as two 32-bit integers
      * @return The position of the most significant set bit (0-based)
      */
-    _CCCL_TRIVIAL_API int32_t __flo_s64 (__uint32x2_t __x)
+    _CCCL_TRIVIAL_API int32_t __flo_s64 (__uint32x2_t __x) noexcept
     {
         int64_t __x64 = fpemu::bit_cast<int64_t>(__x);
         return __internal_clzll(__x64<<1);
@@ -1099,7 +1099,7 @@ namespace fpemu
      * @param x The 64-bit value to analyze as two 32-bit integers
      * @return The position of the most significant set bit (0-based)
      */
-    _CCCL_TRIVIAL_API int32_t __flo_u64 (__uint32x2_t __x)
+    _CCCL_TRIVIAL_API int32_t __flo_u64 (__uint32x2_t __x) noexcept
     {
         uint64_t __x64 = fpemu::bit_cast<uint64_t>(__x);
         //Skip sign bit
@@ -1116,7 +1116,7 @@ namespace fpemu
      * @param b Second operand as two 32-bit integers
      * @return The sum as two 32-bit integers
      */
-    _CCCL_TRIVIAL_API __uint32x2_t __iadd_u64 (__uint32x2_t __a, __uint32x2_t __b)
+    _CCCL_TRIVIAL_API __uint32x2_t __iadd_u64 (__uint32x2_t __a, __uint32x2_t __b) noexcept
     {
         uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
         uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
@@ -1134,7 +1134,7 @@ namespace fpemu
      * @param b Second operand as two 32-bit integers
      * @return The difference as two 32-bit integers
      */
-     _CCCL_TRIVIAL_API __uint32x2_t __isub_u64 (__uint32x2_t __a, __uint32x2_t __b)
+     _CCCL_TRIVIAL_API __uint32x2_t __isub_u64 (__uint32x2_t __a, __uint32x2_t __b) noexcept
      {
          uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
          uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
@@ -1155,7 +1155,7 @@ namespace fpemu
      * @return The rounded value as two 32-bit integers
      */
     template<fpemu::rounding _Rm = fpemu::rounding::rn>
-    _CCCL_TRIVIAL_API __uint32x2_t __round (__uint32x2_t __man, const int __shift, bool __sign = false)
+    _CCCL_TRIVIAL_API __uint32x2_t __round (__uint32x2_t __man, const int __shift, bool __sign = false) noexcept
     {
         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
         const int __rshift = EXTRA_BITS + __shift;
@@ -1217,7 +1217,7 @@ namespace impl
 
 /// @brief High 64 bits of a 64x64 -> 128 unsigned multiply (host/device).
 _CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t __a, 
-                                                                uint64_t __b)
+                                                                uint64_t __b) noexcept
 {
 #if defined(__CUDA_ARCH__)
     return __umul64hi(__a, __b);
@@ -1234,7 +1234,7 @@ _CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t __a,
 
 /// @brief Right shift keeping a sticky bit.
 _CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_shr_jam64 (uint64_t __a, 
-                                                                  uint32_t __dist)
+                                                                  uint32_t __dist) noexcept
 {
     return (__dist < 63) ? (__a >> __dist) | ((uint64_t)((__a << (-__dist & 63)) != 0)) : (uint64_t)(__a != 0);
 } // __nv_internal_fp64emu_shr_jam64
@@ -1245,7 +1245,7 @@ _CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_shr_jam64 (uint64_t __a,
 template<fpemu::rounding _Rm>
 _CCCL_TRIVIAL_API fpbits64_t __nv_internal_fp64emu_round_pack (bool     __sign, 
                                                                      int32_t  __exp, 
-                                                                     uint64_t __sig)
+                                                                     uint64_t __sig) noexcept
 {
     constexpr bool __round_near_even = (_Rm == fpemu::rounding::rn);
     uint32_t __round_increment = 0x200;
