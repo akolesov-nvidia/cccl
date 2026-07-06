@@ -498,8 +498,8 @@ enum struct fpmp2_accuracy
     {
         // Static checks to ensure bit_cast requirements
         static_assert(sizeof(_To) == sizeof(_From),              "bit_cast requires source and destination types to have the same size");
-        static_assert(std::is_trivially_copyable<_From>::value, "bit_cast requires From to be trivially copyable");
-        static_assert(std::is_trivially_copyable<_To>::value,   "bit_cast requires To to be trivially copyable");
+        static_assert(::cuda::std::is_trivially_copyable_v<_From>, "bit_cast requires From to be trivially copyable");
+        static_assert(::cuda::std::is_trivially_copyable_v<_To>,   "bit_cast requires To to be trivially copyable");
         
     #if __FPMP_HAS_BIT_CAST__
         // Prefer compiler builtin if available (C++20 or compiler extension)
@@ -622,7 +622,7 @@ enum struct fpmp2_accuracy
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
             if ((__x > 0 && __f > __exact) || (__x < 0 && __f < __exact)) { 
-                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+                __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
             return __f;
         }
@@ -631,7 +631,7 @@ enum struct fpmp2_accuracy
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
             if (__f > __exact) { 
-                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+                __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
             return __f;
         }
@@ -640,7 +640,7 @@ enum struct fpmp2_accuracy
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
             if ((__x > 0 && __f > __exact) || (__x < 0 && __f < __exact)) { 
-                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+                __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
             return __f;
         }
@@ -649,7 +649,7 @@ enum struct fpmp2_accuracy
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
             if (__f > __exact) { 
-                __f = std::is_same<_FpType, float>::value ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+                __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
             }
             return __f;
         }
@@ -744,7 +744,7 @@ enum struct fpmp2_accuracy
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API _FpType internal_trunc (const _FpType __x) noexcept
     {
-        if constexpr (std::is_same<_FpType, float>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
             const _FpType __abs_x = fpmp::internal_fabs(__x);
             if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
@@ -765,7 +765,7 @@ enum struct fpmp2_accuracy
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API _FpType internal_floor (const _FpType __x) noexcept
     {
-        if constexpr (std::is_same<_FpType, float>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
             const _FpType __abs_x = fpmp::internal_fabs(__x);
             if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
@@ -785,7 +785,7 @@ enum struct fpmp2_accuracy
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API _FpType internal_ceil (const _FpType __x) noexcept
     {
-        if constexpr (std::is_same<_FpType, float>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
             const _FpType __abs_x = fpmp::internal_fabs(__x);
             if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }

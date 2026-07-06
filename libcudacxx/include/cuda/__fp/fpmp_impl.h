@@ -154,7 +154,7 @@ namespace cuda::experimental
                                                          _FpType*      __res_lo) noexcept 
     {
 #if __FPMP_USE_OPT_FROM_DOUBLE__ == 1
-        if constexpr (std::is_same<_FpType, float>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
             uint64_t __dbits = fpmp::internal_bit_cast<uint64_t>(__x);
             uint32_t __sign  = (uint32_t)(__dbits >> 63);
@@ -210,7 +210,7 @@ namespace cuda::experimental
                 *__res_hi = fpmp::fast_two_sum(*__res_hi, *__res_lo, __res_lo);
             }
         }
-        else if constexpr (std::is_same<_FpType, double>::value)
+        else if constexpr (::cuda::std::is_same_v<_FpType, double>)
         {
             // FpType == double (fp64mp2): the cast-based split below would
             // compute (double)(x - (double)x) == 0.0 and the compiler folds
@@ -228,7 +228,7 @@ namespace cuda::experimental
             *__res_lo = static_cast<_FpType>(__x - static_cast<double>(*__res_hi));
         }
 #else // !__FPMP_USE_OPT_FROM_DOUBLE__ == 1
-        if constexpr (std::is_same<_FpType, double>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, double>)
         {
             // FpType == double (fp64mp2): trivial split, see comment above.
             *__res_hi = __x;
@@ -354,7 +354,7 @@ namespace cuda::experimental
                                                          const _FpType __x_lo_in) noexcept
     { 
 #if __FPMP_USE_OPT_TO_DOUBLE__ == 1
-        if constexpr (std::is_same<_FpType, float>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
             // Renormalize input to canonical form. See "Step 0" in the
             // function's docstring for why this is required for the integer
@@ -429,7 +429,7 @@ namespace cuda::experimental
         _FpType __abs_hi    = fpmp::internal_fabs(__x_hi);
         // Check threshold BEFORE computing sum - for large values, addition loses precision
         // 2^24 for float, 2^53 for double
-        _FpType __threshold = std::is_same<_FpType, float>::value ? 0x1.0p24f : 
+        _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
                                                                 0x1.0p53;  
         if (__abs_hi < __threshold)
         {
@@ -454,7 +454,7 @@ namespace cuda::experimental
 
         // Check threshold BEFORE computing sum
         // 2^24 for float, 2^53 for double
-        _FpType __threshold = std::is_same<_FpType, float>::value ? 0x1.0p24f : 
+        _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
                                                                 0x1.0p53;  
         if (__x_hi < __threshold)
         {
@@ -480,7 +480,7 @@ namespace cuda::experimental
         _FpType __abs_hi    = fpmp::internal_fabs(__x_hi);
         // Check threshold BEFORE computing sum
         // 2^24 for float, 2^53 for double
-        _FpType __threshold = std::is_same<_FpType, float>::value ? 0x1.0p24f : 
+        _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
                                                                 0x1.0p53;  
         if (__abs_hi < __threshold)
         {
@@ -505,7 +505,7 @@ namespace cuda::experimental
 
         // Check threshold BEFORE computing sum
         // 2^24 for float, 2^53 for double
-        _FpType __threshold = std::is_same<_FpType, float>::value ? 0x1.0p24f : 
+        _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
                                                                 0x1.0p53;  
         if (__x_hi < __threshold)
         {
@@ -930,22 +930,22 @@ namespace cuda::experimental
 
         
         // Type-specific constants for conditional scaling
-        using UintType = typename std::conditional<std::is_same<_FpType, float>::value, uint32_t, uint64_t>::type;
+        using UintType = ::cuda::std::conditional_t<::cuda::std::is_same_v<_FpType, float>, uint32_t, uint64_t>;
         
-        constexpr int __exp_bits   = std::is_same<_FpType, float>::value ? 8 : 11;
-        constexpr int __mant_bits  = std::is_same<_FpType, float>::value ? 23 : 52;
-        constexpr int __exp_bias   = std::is_same<_FpType, float>::value ? 127 : 1023;
+        constexpr int __exp_bits   = ::cuda::std::is_same_v<_FpType, float> ? 8 : 11;
+        constexpr int __mant_bits  = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
+        constexpr int __exp_bias   = ::cuda::std::is_same_v<_FpType, float> ? 127 : 1023;
         constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
         
         // Threshold: if combined exponent < this, we need scaling
         // For float: scale_shift=64, threshold=190 (2*127-64)
         // For double: scale_shift=512, threshold=1534 (2*1023-512)
-        constexpr int __scale_shift = std::is_same<_FpType, float>::value ? 64 : 512;
+        constexpr int __scale_shift = ::cuda::std::is_same_v<_FpType, float> ? 64 : 512;
         constexpr int __exp_threshold = 2 * __exp_bias - __scale_shift;
         
         // Scale factors
-        constexpr _FpType __scale_up   = std::is_same<_FpType, float>::value ? _FpType(0x1.0p64f)  : _FpType(0x1.0p512);
-        constexpr _FpType __scale_down = std::is_same<_FpType, float>::value ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
+        constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f)  : _FpType(0x1.0p512);
+        constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
         
         // Extract exponents and compute conditional scale (branch-free)
         UintType __x_bits = fpmp::internal_bit_cast<UintType>(__x_hi);
@@ -1102,20 +1102,20 @@ namespace cuda::experimental
 
         
         // Type-specific constants for conditional scaling
-        using UintType = typename std::conditional<std::is_same<_FpType, float>::value, uint32_t, uint64_t>::type;
+        using UintType = ::cuda::std::conditional_t<::cuda::std::is_same_v<_FpType, float>, uint32_t, uint64_t>;
         
-        constexpr int __exp_bits   = std::is_same<_FpType, float>::value ? 8 : 11;
-        constexpr int __mant_bits  = std::is_same<_FpType, float>::value ? 23 : 52;
+        constexpr int __exp_bits   = ::cuda::std::is_same_v<_FpType, float> ? 8 : 11;
+        constexpr int __mant_bits  = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
         constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
         
         // Threshold for scaling: exponent < threshold means we should scale up
         // For float: if exp < 32 (value < 2^-95), scale up by 2^64
         // For double: if exp < 64 (value < 2^-959), scale up by 2^512
-        constexpr int __exp_threshold_low = std::is_same<_FpType, float>::value ? 32 : 64;
+        constexpr int __exp_threshold_low = ::cuda::std::is_same_v<_FpType, float> ? 32 : 64;
         
         // Scale factors
-        constexpr _FpType __scale_up   = std::is_same<_FpType, float>::value ? _FpType(0x1.0p64f)  : _FpType(0x1.0p512);
-        constexpr _FpType __scale_down = std::is_same<_FpType, float>::value ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
+        constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f)  : _FpType(0x1.0p512);
+        constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
         
         // Extract exponents
         UintType __a_bits = fpmp::internal_bit_cast<UintType>(__a_hi);
@@ -2126,11 +2126,11 @@ _CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicAdd(fpmp2_t<_FpType, _T
     _FpType* __res_lo  = __res_hi + 1;
   #if defined(__FPMP_USE_LIB__)
     // In library mode, call the library function directly
-    if constexpr (std::is_same<_FpType, float>::value) {
+    if constexpr (::cuda::std::is_same_v<_FpType, float>) {
         __nv_fp32mp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
     } 
     #if FPMP_FP64MP2_ENABLE == 1
-    else if constexpr (std::is_same<_FpType, double>::value) {
+    else if constexpr (::cuda::std::is_same_v<_FpType, double>) {
         __nv_fp64mp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
     }
     #endif
@@ -2154,11 +2154,11 @@ _CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicSub(fpmp2_t<_FpType, _T
     _FpType* __res_lo  = __res_hi + 1;
   #if defined(__FPMP_USE_LIB__)
     // In library mode, call the library function directly
-    if constexpr (std::is_same<_FpType, float>::value) {
+    if constexpr (::cuda::std::is_same_v<_FpType, float>) {
         __nv_fp32mp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
     } 
     #if FPMP_FP64MP2_ENABLE == 1
-    else if constexpr (std::is_same<_FpType, double>::value) {
+    else if constexpr (::cuda::std::is_same_v<_FpType, double>) {
         __nv_fp64mp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
     }
     #endif

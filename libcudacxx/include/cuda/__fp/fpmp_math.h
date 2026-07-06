@@ -1005,7 +1005,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_log1p is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -1139,7 +1139,7 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_log2 is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -1184,7 +1184,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_log10 is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -1419,7 +1419,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        if constexpr (std::is_same<_FpType, float>::value)
+        if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
             using namespace fpmp;
             using ffloat = fp32mp2_low;
@@ -1669,7 +1669,7 @@ namespace fpmp
                                                 const _FpType __y_hi, const _FpType __y_lo,
                                                 _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_fmod is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -1719,7 +1719,7 @@ namespace fpmp
                                                      const _FpType __y_hi, const _FpType __y_lo,
                                                      _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_remainder is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -1837,7 +1837,7 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_exp2 is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -1931,7 +1931,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_exp10 is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -2061,7 +2061,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_expm1 is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -2192,7 +2192,7 @@ namespace fpmp
                                                 _FpType*      __res_hi,
                                                 _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_pow is fp32mp2 only; fp64mp2 has its own specialization");
 
         /* ---- (1,2) pow(1,b) = pow(a,0) = 1, highest priority per IEEE 754-2008 ---- */
@@ -3383,7 +3383,7 @@ namespace fpmp
         const _FpType __x_hi, const _FpType __x_lo,
         _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_atan is fp32mp2 only; "
                       "fp64mp2 has its own specialization");
 
@@ -3418,7 +3418,7 @@ namespace fpmp
         const _FpType __x_hi, const _FpType __x_lo,
         _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_atan2 is fp32mp2 only; "
                       "fp64mp2 has its own specialization");
 
@@ -3541,7 +3541,7 @@ namespace fpmp
         const _FpType __x_hi, const _FpType __x_lo,
         _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_asin is fp32mp2 only; "
                       "fp64mp2 has its own specialization");
 
@@ -3591,7 +3591,7 @@ namespace fpmp
         const _FpType __x_hi, const _FpType __x_lo,
         _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_acos is fp32mp2 only; "
                       "fp64mp2 has its own specialization");
 
@@ -3680,7 +3680,7 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_tanh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -3818,7 +3818,7 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_sinh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -3912,7 +3912,7 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_cosh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -3996,7 +3996,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_asinh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -4095,7 +4095,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_acosh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -4202,7 +4202,7 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        static_assert(std::is_same<_FpType, float>::value,
+        static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __nv_fpmp2_atanh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using namespace fpmp;
@@ -5305,7 +5305,7 @@ namespace fpmp
         }
 
         const _FpType __abs_hi = fpmp::internal_fabs(__x_hi);
-        const _FpType __int_scale = std::is_same<_FpType, float>::value ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+        const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
         if (__abs_hi >= __int_scale) 
         {
             // x_hi is already an integer at this scale; floor(x_hi + x_lo) = x_hi + floor(x_lo).
@@ -5343,7 +5343,7 @@ namespace fpmp
         }
 
         const _FpType __abs_hi = fpmp::internal_fabs(__x_hi);
-        const _FpType __int_scale = std::is_same<_FpType, float>::value ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+        const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
         if (__abs_hi >= __int_scale) 
         {
             // x_hi is already an integer at this scale; ceil(x_hi + x_lo) = x_hi + ceil(x_lo).
@@ -5404,7 +5404,7 @@ namespace fpmp
         }
 
         const _FpType __abs_hi = fpmp::internal_fabs(__x_hi);
-        const _FpType __int_scale = std::is_same<_FpType, float>::value ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+        const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
         if (__abs_hi >= __int_scale) 
         {
             // x_hi is integral at this scale and dominates sign, so trunc is:

@@ -838,9 +838,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
 // Trait: detect any specialization of fpmp2_t<FpType, met>.
 // Kept in namespace fpmp to avoid polluting the global namespace.
 namespace fpmp {
-    template<typename _Tp> struct is_fpmp2 : std::false_type {};
+    template<typename _Tp> struct is_fpmp2 : ::cuda::std::false_type {};
     template<typename _FpType, fpmp2_accuracy _TypeAcc>
-    struct is_fpmp2<fpmp2_t<_FpType, _TypeAcc>> : std::true_type {};
+    struct is_fpmp2<fpmp2_t<_FpType, _TypeAcc>> : ::cuda::std::true_type {};
 }
 
 template<fpmp2_accuracy _Acc, typename _FpType, fpmp2_accuracy _TypeAcc>
@@ -858,7 +858,7 @@ _CCCL_TEMPLATE(fpmp2_accuracy _Acc, typename _T1, typename _T2)
 _CCCL_REQUIRES(((fpmp::is_fpmp2<_T1>::value || fpmp::is_fpmp2<_T2>::value) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
 _CCCL_API inline auto add(const _T1& __x, const _T2& __y) noexcept
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    using mp2 = ::cuda::std::conditional_t<fpmp::is_fpmp2<_T1>::value, _T1, _T2>;
     return add<_Acc>(mp2(__x), mp2(__y));
 }
 
@@ -877,7 +877,7 @@ _CCCL_TEMPLATE(fpmp2_accuracy _Acc, typename _T1, typename _T2)
 _CCCL_REQUIRES(((fpmp::is_fpmp2<_T1>::value || fpmp::is_fpmp2<_T2>::value) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
 _CCCL_API inline auto sub(const _T1& __x, const _T2& __y) noexcept
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    using mp2 = ::cuda::std::conditional_t<fpmp::is_fpmp2<_T1>::value, _T1, _T2>;
     return sub<_Acc>(mp2(__x), mp2(__y));
 }
 
@@ -898,7 +898,7 @@ _CCCL_TEMPLATE(fpmp2_accuracy _Acc, typename _T1, typename _T2)
 _CCCL_REQUIRES(((fpmp::is_fpmp2<_T1>::value || fpmp::is_fpmp2<_T2>::value) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
 _CCCL_API inline auto mul(const _T1& __x, const _T2& __y) noexcept
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    using mp2 = ::cuda::std::conditional_t<fpmp::is_fpmp2<_T1>::value, _T1, _T2>;
     return mul<_Acc>(mp2(__x), mp2(__y));
 }
 
@@ -919,7 +919,7 @@ _CCCL_TEMPLATE(fpmp2_accuracy _Acc, typename _T1, typename _T2)
 _CCCL_REQUIRES(((fpmp::is_fpmp2<_T1>::value || fpmp::is_fpmp2<_T2>::value) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
 _CCCL_API inline auto div(const _T1& __x, const _T2& __y) noexcept
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1, _T2>::type;
+    using mp2 = ::cuda::std::conditional_t<fpmp::is_fpmp2<_T1>::value, _T1, _T2>;
     return div<_Acc>(mp2(__x), mp2(__y));
 }
 
@@ -939,8 +939,8 @@ _CCCL_TEMPLATE(fpmp2_accuracy _Acc, typename _T1, typename _T2, typename _T3)
 _CCCL_REQUIRES(((fpmp::is_fpmp2<_T1>::value || fpmp::is_fpmp2<_T2>::value || fpmp::is_fpmp2<_T3>::value) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
 _CCCL_API inline auto fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1,
-                typename std::conditional<fpmp::is_fpmp2<_T2>::value, _T2, _T3>::type>::type;
+    using mp2 = ::cuda::std::conditional_t<fpmp::is_fpmp2<_T1>::value, _T1,
+                ::cuda::std::conditional_t<fpmp::is_fpmp2<_T2>::value, _T2, _T3>>;
     return fma<_Acc>(mp2(__x), mp2(__y), mp2(__z));
 }
 
@@ -960,8 +960,8 @@ _CCCL_TEMPLATE(fpmp2_accuracy _Acc, typename _T1, typename _T2, typename _T3)
 _CCCL_REQUIRES(((fpmp::is_fpmp2<_T1>::value || fpmp::is_fpmp2<_T2>::value || fpmp::is_fpmp2<_T3>::value) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
 _CCCL_API inline auto mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
 {
-    using mp2 = typename std::conditional<fpmp::is_fpmp2<_T1>::value, _T1,
-                typename std::conditional<fpmp::is_fpmp2<_T2>::value, _T2, _T3>::type>::type;
+    using mp2 = ::cuda::std::conditional_t<fpmp::is_fpmp2<_T1>::value, _T1,
+                ::cuda::std::conditional_t<fpmp::is_fpmp2<_T2>::value, _T2, _T3>>;
     return mad<_Acc>(mp2(__x), mp2(__y), mp2(__z));
 }
 
