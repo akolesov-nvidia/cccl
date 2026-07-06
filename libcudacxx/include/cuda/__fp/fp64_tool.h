@@ -883,42 +883,50 @@ _CCCL_API inline fp64_tool_t fma(const fp64_tool_t& __x, const fp64_tool_t& __y,
  */
 ///@{
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator+(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x + fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator+(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) + __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator-(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x - fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator-(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) - __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator*(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x * fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator*(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) * __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator/(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x / fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline fp64_tool_t operator/(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) / __y; 
 }
@@ -931,62 +939,74 @@ _CCCL_API inline fp64_tool_t operator/(_Tp __x, const fp64_tool_t& __y) noexcept
  */
 ///@{
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator==(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x == fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator==(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) == __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator!=(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x != fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator!=(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) != __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator<(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x < fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator<(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) < __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator>(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x > fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator>(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) > __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator<=(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x <= fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator<=(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) <= __y; 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator>=(const fp64_tool_t& __x, _Tp __y) noexcept { 
     return __x >= fp64_tool_t(static_cast<double>(__y)); 
 }
 
-template<typename _Tp, typename = typename std::enable_if<std::is_arithmetic<_Tp>::value>::type>
+_CCCL_TEMPLATE(typename _Tp)
+_CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
 _CCCL_API inline bool operator>=(_Tp __x, const fp64_tool_t& __y) noexcept { 
     return fp64_tool_t(static_cast<double>(__x)) >= __y; 
 }

@@ -273,123 +273,157 @@ namespace cuda::experimental
         // === mul ===
         // (*)
         template<fp64emu_accuracy _Acc> _CCCL_API friend fp64emu_t<_Acc> operator*(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept ;
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t operator*(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) * fp64emu_t(__y); }
         // dmul_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dmul_rn(const _T1& __x, const _T2& __y) noexcept { return __dmul_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // dmul_rz
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dmul_rz(const _T1& __x, const _T2& __y) noexcept { return __dmul_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // dmul_ru
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dmul_ru(const _T1& __x, const _T2& __y) noexcept { return __dmul_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // dmul_rd
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dmul_rd(const _T1& __x, const _T2& __y) noexcept { return __dmul_rd(fp64emu_t(__x), fp64emu_t(__y)); }
         
         // === div ===
         // (/)
         template<fp64emu_accuracy _Acc> _CCCL_API friend fp64emu_t<_Acc> operator/(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept ;
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t operator/(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) / fp64emu_t(__y); }
         // ddiv_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __ddiv_rn(const _T1& __x, const _T2& __y) noexcept { return __ddiv_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // ddiv_rz
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __ddiv_rz(const _T1& __x, const _T2& __y) noexcept { return __ddiv_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // ddiv_ru
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __ddiv_ru(const _T1& __x, const _T2& __y) noexcept { return __ddiv_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // ddiv_rd
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __ddiv_rd(const _T1& __x, const _T2& __y) noexcept { return __ddiv_rd(fp64emu_t(__x), fp64emu_t(__y)); }
 
         // === add ===
         // (+)
         template<fp64emu_accuracy _Acc> _CCCL_API friend fp64emu_t<_Acc> operator+(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept ;
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t operator+(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) + fp64emu_t(__y); }
         // dadd_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dadd_rn(const _T1& __x, const _T2& __y) noexcept {  return __dadd_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // dadd_rz
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dadd_rz(const _T1& __x, const _T2& __y) noexcept {  return __dadd_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // dadd_ru
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dadd_ru(const _T1& __x, const _T2& __y) noexcept { return __dadd_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // dadd_rd
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dadd_rd(const _T1& __x, const _T2& __y) noexcept { return __dadd_rd(fp64emu_t(__x), fp64emu_t(__y)); }
 
         // === sub ===
         // (-)
         template<fp64emu_accuracy _Acc> _CCCL_API friend fp64emu_t<_Acc> operator-(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept ;
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t operator-(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) - fp64emu_t(__y); }
         // dsub_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dsub_rn(const _T1& __x, const _T2& __y) noexcept { return __dsub_rn(fp64emu_t(__x), fp64emu_t(__y)); }
         // dsub_rz
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dsub_rz(const _T1& __x, const _T2& __y) noexcept { return __dsub_rz(fp64emu_t(__x), fp64emu_t(__y)); }
         // dsub_ru
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dsub_ru(const _T1& __x, const _T2& __y) noexcept { return __dsub_ru(fp64emu_t(__x), fp64emu_t(__y)); }
         // dsub_rd
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_t __dsub_rd(const _T1& __x, const _T2& __y) noexcept { return __dsub_rd(fp64emu_t(__x), fp64emu_t(__y)); }
 
         // === sqrt ===
         // sqrt
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_t sqrt(const _T1& __x) noexcept { return sqrt(fp64emu_t(__x)); }        
         // dsqrt_rn
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_t __dsqrt_rn(const _T1& __x) noexcept { return __dsqrt_rn(fp64emu_t(__x)); }
 
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_t __dsqrt_rz(const _T1& __x) noexcept { return __dsqrt_rz(fp64emu_t(__x)); }
         // dsqrt_ru
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_t __dsqrt_ru(const _T1& __x) noexcept { return __dsqrt_ru(fp64emu_t(__x)); }
         // dsqrt_rd
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_t __dsqrt_rd(const _T1& __x) noexcept { return __dsqrt_rd(fp64emu_t(__x)); }
 
         // === fma ===
         // fma
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return fma(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_rn
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t __fma_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __fma_rn(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_rz
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t __fma_rz(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __fma_rz(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_ru
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t __fma_ru(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __fma_ru(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dfma_rd
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t __fma_rd(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __fma_rd(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
 
         // === mad ===
         // mad
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return mad(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
         // dmad_rn
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_t __mad_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __mad_rn(fp64emu_t(__x), fp64emu_t(__y), fp64emu_t(__z)); }
 
         // === dot ===
-        template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value || std::is_same<_T4,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t> || ::cuda::std::is_same_v<_T4,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>)))
             _CCCL_API friend  fp64emu_t dot(const _T1& __x1, const _T2& __y1, const _T3& __x2, const _T4& __y2) noexcept { return dot(fp64emu_t(__x1), fp64emu_t(__y1), fp64emu_t(__x2), fp64emu_t(__y2)); }
 
          // === cmul ===
-         template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value || std::is_same<_T3,fp64emu_t>::value || std::is_same<_T4,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+         _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
+         _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t> || ::cuda::std::is_same_v<_T3,fp64emu_t> || ::cuda::std::is_same_v<_T4,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>)))
              _CCCL_API friend void cmul(const _T1& __x_re, const _T2& __x_im, const _T3& __y_re, const _T4& __y_im, fp64emu_t& __r_re, fp64emu_t& __r_im) noexcept { cmul(fp64emu_t(__x_re), fp64emu_t(__x_im), fp64emu_t(__y_re), fp64emu_t(__y_im), __r_re, __r_im); }
 
         // Prefix increment/decrement
@@ -410,28 +444,34 @@ namespace cuda::experimental
         // Comparison operators:
         */       
         // equality (==)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator==(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) == fp64emu_t(__y); }
         // inequality (!=)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator!=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) != fp64emu_t(__y); }
         // less than (<)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator<(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) < fp64emu_t(__y); }
         // greater than (>)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator>(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) > fp64emu_t(__y); }
         // less than or equal to (<=)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator<=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) <= fp64emu_t(__y); }
         // greater than or equal to (>=)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_t>::value || std::is_same<_T2,fp64emu_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_t> || ::cuda::std::is_same_v<_T2,fp64emu_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator>=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) >= fp64emu_t(__y); }
     }; // class fp64emu_t 
 
@@ -609,63 +649,79 @@ namespace cuda::experimental
         
 
         // == mul ==
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t operator*(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) * fp64emu_unpacked_t(__y); }
         // dmul_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t __dmul_rn(const _T1& __x, const _T2& __y) noexcept { return __dmul_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === div ===
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t operator/(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) / fp64emu_unpacked_t(__y); }
         // ddiv_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t __ddiv_rn(const _T1& __x, const _T2& __y) noexcept { return __ddiv_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === add ===
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t operator+(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) + fp64emu_unpacked_t(__y); }
         // dadd_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t __dadd_rn(const _T1& __x, const _T2& __y) noexcept {  return __dadd_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === sub ===
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type> 
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t operator-(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) - fp64emu_unpacked_t(__y); }
         // dsub_rn
-        template<typename _T1, typename _T2, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
             _CCCL_API friend  fp64emu_unpacked_t __dsub_rn(const _T1& __x, const _T2& __y) noexcept { return __dsub_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y)); }
 
         // === sqrt ===
         // sqrt
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_unpacked_t sqrt(const _T1& __x) noexcept { return sqrt(fp64emu_unpacked_t(__x)); }        
         // dsqrt_rn
-        template<typename _T1, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1>)))
             _CCCL_API friend  fp64emu_unpacked_t __dsqrt_rn(const _T1& __x) noexcept { return __dsqrt_rn(fp64emu_unpacked_t(__x)); }
 
         // === fma ===
         // fma
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T3,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_unpacked_t fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return fma(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
         // dfma_rn
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T3,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_unpacked_t __fma_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __fma_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
 
         // === mad ===
         // mad
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T3,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_unpacked_t mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return mad(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
         // dmad_rn
-        template<typename _T1, typename _T2, typename _T3, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T3,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>)))
             _CCCL_API friend  fp64emu_unpacked_t __mad_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept { return __mad_rn(fp64emu_unpacked_t(__x), fp64emu_unpacked_t(__y), fp64emu_unpacked_t(__z)); }
 
         // === dot ===
-        template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value || std::is_same<_T4,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+        _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T3,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T4,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>)))
             _CCCL_API friend  fp64emu_unpacked_t dot(const _T1& __x1, const _T2& __y1, const _T3& __x2, const _T4& __y2) noexcept { return dot(fp64emu_unpacked_t(__x1), fp64emu_unpacked_t(__y1), fp64emu_unpacked_t(__x2), fp64emu_unpacked_t(__y2)); }
 
          // === cmul ===
-         template<typename _T1, typename _T2, typename _T3, typename _T4, typename = typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value || std::is_same<_T3,fp64emu_unpacked_t>::value || std::is_same<_T4,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value || std::is_arithmetic<_T3>::value || std::is_arithmetic<_T4>::value))>::type>
+         _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
+         _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T3,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T4,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>)))
              _CCCL_API friend void cmul(const _T1& __x_re, const _T2& __x_im, const _T3& __y_re, const _T4& __y_im, fp64emu_unpacked_t& __r_re, fp64emu_unpacked_t& __r_im) noexcept { cmul(fp64emu_unpacked_t(__x_re), fp64emu_unpacked_t(__x_im), fp64emu_unpacked_t(__y_re), fp64emu_unpacked_t(__y_im), __r_re, __r_im); }
 
         // Prefix increment/decrement
@@ -686,28 +742,34 @@ namespace cuda::experimental
         // Comparison operators:
         */       
         // equality (==)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator==(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) == fp64emu_unpacked_t(__y); }
         // inequality (!=)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator!=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) != fp64emu_unpacked_t(__y); }
         // less than (<)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator<(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) < fp64emu_unpacked_t(__y); }
         // greater than (>)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator>(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) > fp64emu_unpacked_t(__y); }
         // less than or equal to (<=)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator<=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) <= fp64emu_unpacked_t(__y); }
         // greater than or equal to (>=)
-        template<typename _T1, typename _T2>
-            _CCCL_API friend typename std::enable_if<((std::is_same<_T1,fp64emu_unpacked_t>::value || std::is_same<_T2,fp64emu_unpacked_t>::value) && (std::is_arithmetic<_T1>::value || std::is_arithmetic<_T2>::value)), bool>::type
+        _CCCL_TEMPLATE(typename _T1, typename _T2)
+        _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1,fp64emu_unpacked_t> || ::cuda::std::is_same_v<_T2,fp64emu_unpacked_t>) && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>)))
+            _CCCL_API friend bool
             operator>=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_unpacked_t(__x) >= fp64emu_unpacked_t(__y); }
 
         // C++20-style bit_cast for unpacked floating-point types
