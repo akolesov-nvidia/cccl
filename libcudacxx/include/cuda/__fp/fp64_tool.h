@@ -22,6 +22,7 @@
 #endif // no system header
 
 #include <cuda/std/__bit/bit_cast.h>
+#include <cuda/std/__type_traits/is_integer.h>
 // Pulling in cuda::std::bit_cast above surfaces the cuda::std namespace; make the
 // type-trait set complete so this header's unqualified std:: traits keep
 // resolving (to cuda::std equivalents).
@@ -604,17 +605,12 @@ public:
     /** @brief Construct from float (implicit conversion with promotion) */
     _CCCL_API inline fp64_tool_t(float __f) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__f))) {}
 
-    /** @brief Construct from int32_t */
-    _CCCL_API inline fp64_tool_t(int32_t __i) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__i))) {}
-    
-    /** @brief Construct from uint32_t */
-    _CCCL_API inline fp64_tool_t(uint32_t __i) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__i))) {}
-    
-    /** @brief Construct from int64_t */
-    _CCCL_API inline fp64_tool_t(int64_t __i) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__i))) {}
-    
-    /** @brief Construct from unsigned long long */
-    _CCCL_API inline fp64_tool_t(unsigned long long __i) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__i))) {}
+    /** @brief Construct from any standard integer type (int / long / long long + unsigned).
+     *  Routes through double, so every width/signedness is handled uniformly and
+     *  portably (LP64 and LLP64). Excludes bool / character types by design. */
+    _CCCL_TEMPLATE(class _Tp)
+    _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+    _CCCL_API inline fp64_tool_t(_Tp __i) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__i))) {}
 
     //=========================================================================
     // Assignment Operators
@@ -646,24 +642,12 @@ public:
         return static_cast<float>(__FP64_TOOL_BIT_CAST__(double, bits)); 
     }
     
-    /** @brief Convert to int32_t (explicit, truncates toward zero) */
-    _CCCL_API inline explicit operator int32_t() const noexcept { 
-        return static_cast<int32_t>(__FP64_TOOL_BIT_CAST__(double, bits)); 
-    }
-    
-    /** @brief Convert to uint32_t (explicit) */
-    _CCCL_API inline explicit operator uint32_t() const noexcept { 
-        return static_cast<uint32_t>(__FP64_TOOL_BIT_CAST__(double, bits)); 
-    }
-    
-    /** @brief Convert to int64_t (explicit) */
-    _CCCL_API inline explicit operator int64_t() const noexcept { 
-        return static_cast<int64_t>(__FP64_TOOL_BIT_CAST__(double, bits)); 
-    }
-    
-    /** @brief Convert to uint64_t (explicit) */
-    _CCCL_API inline explicit operator uint64_t() const noexcept { 
-        return static_cast<uint64_t>(__FP64_TOOL_BIT_CAST__(double, bits)); 
+    /** @brief Convert to any standard integer type (explicit, truncates toward zero).
+     *  Covers int / long / long long + unsigned uniformly; excludes bool / char. */
+    _CCCL_TEMPLATE(class _Tp)
+    _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+    _CCCL_API inline explicit operator _Tp() const noexcept { 
+        return static_cast<_Tp>(__FP64_TOOL_BIT_CAST__(double, bits)); 
     }
 
     //=========================================================================

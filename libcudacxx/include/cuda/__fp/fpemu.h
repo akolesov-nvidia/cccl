@@ -59,6 +59,7 @@
  
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
+#include <cuda/std/__type_traits/is_integer.h>
 #include <cuda/__fp/fpemu_common.h>
 
 #include <cuda/std/__cccl/prologue.h>
@@ -170,17 +171,26 @@ namespace cuda::experimental
         // Implicit conversions from floating-point types
         _CCCL_API inline fp64emu_t(float __f) noexcept ;
         _CCCL_API inline fp64emu_t(double __d) noexcept ;
-        // Implicit conversions from integer types
-        _CCCL_API inline fp64emu_t(int32_t __i) noexcept ;
-        _CCCL_API inline fp64emu_t(uint32_t __i) noexcept ;
-
-        // Explicit conversions from 64-bit integers 
-        // required due to ambiguity with other constructors
-        _CCCL_API explicit inline fp64emu_t(int64_t __i) noexcept ;
-        _CCCL_API explicit inline fp64emu_t(uint64_t __i) noexcept ;
-        // Explicit conversion from long long int types when their range is wider than int64_t
-        _CCCL_API explicit inline fp64emu_t(long long unsigned int __i) noexcept { *this = fp64emu_t((uint64_t)__i); }
-        _CCCL_API explicit inline fp64emu_t(long long  int __i) noexcept         { *this = fp64emu_t((int64_t)__i);  }
+        // Construction from any standard integer type (int / long / long long + unsigned).
+        // 32-bit and narrower are lossless in double and stay implicit; 64-bit may lose
+        // precision and are explicit (as the prior fixed-width API required). Dispatch is
+        // by width and signedness to the accuracy-correct integer builtins (via the private
+        // out-of-line helpers below), so every integer type is handled portably.
+        // bool / character types are excluded by __cccl_is_integer_v.
+        _CCCL_TEMPLATE(class _Tp)
+        _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
+        _CCCL_API inline fp64emu_t(_Tp __i) noexcept
+        {
+            if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>) { __set_from_int (static_cast<int32_t>(__i)); }
+            else                                                        { __set_from_uint(static_cast<uint32_t>(__i)); }
+        }
+        _CCCL_TEMPLATE(class _Tp)
+        _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) > sizeof(int32_t)))
+        _CCCL_API explicit inline fp64emu_t(_Tp __i) noexcept
+        {
+            if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>) { __set_from_ll (static_cast<int64_t>(__i)); }
+            else                                                        { __set_from_ull(static_cast<uint64_t>(__i)); }
+        }
         // Type conversion to fp64emu_t with other accuracy and range
         template<fp64emu_accuracy _Acc = _Met> _CCCL_API inline operator fp64emu_t<_Acc>() const noexcept ;
 #if __FPEMU_UNPACKED__ == 1
@@ -193,13 +203,37 @@ namespace cuda::experimental
         _CCCL_API inline operator double() const noexcept ;
         // Explicit conversions to other types
         _CCCL_API explicit inline operator float()    const noexcept ;
-        _CCCL_API explicit inline operator int32_t()  const noexcept ;
-        _CCCL_API explicit inline operator uint32_t() const noexcept ;
-        _CCCL_API explicit inline operator int64_t()  const noexcept ;
-        _CCCL_API explicit inline operator uint64_t() const noexcept ;
-        // Explicit conversion to long long int types when their range is wider than int64_t
-        _CCCL_API explicit inline operator long long unsigned int() const noexcept { return (uint64_t)(*this); }
-        _CCCL_API explicit inline operator long long int() const noexcept          { return (int64_t)(*this); }
+        // Explicit conversion to any standard integer type (int / long / long long + unsigned).
+        // Dispatches by width and signedness to the accuracy-correct integer builtins (via the
+        // private out-of-line helpers below); excludes bool / character types.
+        _CCCL_TEMPLATE(class _Tp)
+        _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+        _CCCL_API inline explicit operator _Tp() const noexcept
+        {
+            if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+            {
+                if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__to_int()); }
+                else                                          { return static_cast<_Tp>(__to_ll());  }
+            }
+            else
+            {
+                if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__to_uint()); }
+                else                                           { return static_cast<_Tp>(__to_ull());  }
+            }
+        }
+
+     private:
+        // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
+        // builtins are visible). Kept non-template so the definitions stay out-of-line.
+        _CCCL_API inline void     __set_from_int (int32_t  __i) noexcept ;
+        _CCCL_API inline void     __set_from_uint(uint32_t __i) noexcept ;
+        _CCCL_API inline void     __set_from_ll  (int64_t  __i) noexcept ;
+        _CCCL_API inline void     __set_from_ull (uint64_t __i) noexcept ;
+        _CCCL_API inline int32_t  __to_int () const noexcept ;
+        _CCCL_API inline uint32_t __to_uint() const noexcept ;
+        _CCCL_API inline int64_t  __to_ll  () const noexcept ;
+        _CCCL_API inline uint64_t __to_ull () const noexcept ;
+     public:
 
         /*
         //  CUDA builtins functions for conversions
@@ -476,25 +510,34 @@ namespace cuda::experimental
         // Implicit conversions from floating-point types 
         _CCCL_API  inline fp64emu_unpacked_t(float f) noexcept ;
         _CCCL_API  inline fp64emu_unpacked_t(double d) noexcept ;        
-        // Explicit conversions from integer types
-        _CCCL_API  inline fp64emu_unpacked_t(int32_t i) noexcept ;
-        _CCCL_API  inline fp64emu_unpacked_t(uint32_t i) noexcept ;
+#  define __FPEMU_UNP_NARROW_EXPLICIT__
 #else
         // Explicit conversions from floating-point types (to avoid ambiguity with packed type)
         _CCCL_API explicit inline fp64emu_unpacked_t(float __f) noexcept ;
         _CCCL_API explicit inline fp64emu_unpacked_t(double __d) noexcept ;        
-        // Explicit conversions from integer types (to avoid ambiguity with packed type)
-        _CCCL_API explicit inline fp64emu_unpacked_t(int32_t __i) noexcept ;
-        _CCCL_API explicit inline fp64emu_unpacked_t(uint32_t __i) noexcept ;
+#  define __FPEMU_UNP_NARROW_EXPLICIT__ explicit
 #endif
-        // Explicit conversions from 64-bit integers 
-        // required due to ambiguity with other constructors
-        _CCCL_API explicit inline fp64emu_unpacked_t(int64_t __i) noexcept ;
-        _CCCL_API explicit inline fp64emu_unpacked_t(uint64_t __i) noexcept ;
-
-        // Explicit conversion from long long int types when their range is wider than int64_t
-        _CCCL_API explicit inline fp64emu_unpacked_t(long long unsigned int __i) noexcept { *this = fp64emu_unpacked_t((uint64_t)__i); }
-        _CCCL_API explicit inline fp64emu_unpacked_t(long long  int __i) noexcept         { *this = fp64emu_unpacked_t((int64_t)__i);  }
+        // Construction from any standard integer type (int / long / long long + unsigned).
+        // 32-bit and narrower are lossless in double; 64-bit values may lose precision. The
+        // narrow-integer explicitness follows the surrounding float ctors (implicit on device,
+        // explicit on host) to avoid ambiguity with the packed type; 64-bit is always explicit.
+        // Dispatch is by width and signedness to the accuracy-correct integer builtins (via the
+        // private out-of-line helpers below); bool / character types are excluded.
+        _CCCL_TEMPLATE(class _Tp)
+        _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
+        _CCCL_API __FPEMU_UNP_NARROW_EXPLICIT__ inline fp64emu_unpacked_t(_Tp __i) noexcept
+        {
+            if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>) { __set_from_int (static_cast<int32_t>(__i)); }
+            else                                                        { __set_from_uint(static_cast<uint32_t>(__i)); }
+        }
+        _CCCL_TEMPLATE(class _Tp)
+        _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) > sizeof(int32_t)))
+        _CCCL_API explicit inline fp64emu_unpacked_t(_Tp __i) noexcept
+        {
+            if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>) { __set_from_ll (static_cast<int64_t>(__i)); }
+            else                                                        { __set_from_ull(static_cast<uint64_t>(__i)); }
+        }
+#undef __FPEMU_UNP_NARROW_EXPLICIT__
         // Type conversion to fp64emu_unpacked_t with other accuracy and range
         template<fp64emu_accuracy _Acc = _Met> _CCCL_API inline operator fp64emu_unpacked_t<_Acc>() const noexcept ;
         // Type conversion from fp64emu_unpacked_t to fp64emu_t (explicit to avoid overload ambiguity)
@@ -505,13 +548,37 @@ namespace cuda::experimental
         _CCCL_API inline operator double() const noexcept ;
         // Explicit conversions to other types
         _CCCL_API explicit inline operator float()    const noexcept ;
-        _CCCL_API explicit inline operator int32_t()  const noexcept ;
-        _CCCL_API explicit inline operator uint32_t() const noexcept ;
-        _CCCL_API explicit inline operator int64_t()  const noexcept ;
-        _CCCL_API explicit inline operator uint64_t() const noexcept ;
-        // Explicit conversion to long long int types when their range is wider than int64_t
-        _CCCL_API explicit inline operator long long unsigned int() const noexcept { return (uint64_t)(*this); }
-        _CCCL_API explicit inline operator long long int() const noexcept          { return (int64_t)(*this); }
+        // Explicit conversion to any standard integer type (int / long / long long + unsigned).
+        // Dispatches by width and signedness to the accuracy-correct integer builtins (via the
+        // private out-of-line helpers below); excludes bool / character types.
+        _CCCL_TEMPLATE(class _Tp)
+        _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+        _CCCL_API inline explicit operator _Tp() const noexcept
+        {
+            if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+            {
+                if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__to_int()); }
+                else                                          { return static_cast<_Tp>(__to_ll());  }
+            }
+            else
+            {
+                if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__to_uint()); }
+                else                                           { return static_cast<_Tp>(__to_ull());  }
+            }
+        }
+
+     private:
+        // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
+        // builtins are visible). Kept non-template so the definitions stay out-of-line.
+        _CCCL_API inline void     __set_from_int (int32_t  __i) noexcept ;
+        _CCCL_API inline void     __set_from_uint(uint32_t __i) noexcept ;
+        _CCCL_API inline void     __set_from_ll  (int64_t  __i) noexcept ;
+        _CCCL_API inline void     __set_from_ull (uint64_t __i) noexcept ;
+        _CCCL_API inline int32_t  __to_int () const noexcept ;
+        _CCCL_API inline uint32_t __to_uint() const noexcept ;
+        _CCCL_API inline int64_t  __to_ll  () const noexcept ;
+        _CCCL_API inline uint64_t __to_ull () const noexcept ;
+     public:
 
         /*
         //  CUDA builtins functions for conversions

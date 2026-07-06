@@ -494,17 +494,25 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
         #endif // FPMP_FP128_ENABLE == 1
     #endif // FPMP_FP64MP2_ENABLE == 1
 
-    // Constructor from int32_t
-    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(int32_t __i) noexcept { __nv_fpmp2_from_int(__i, &mp2_hi, &mp2_lo);}
-
-    // Constructor from uint32_t
-    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(uint32_t __i) noexcept { __nv_fpmp2_from_uint(__i, &mp2_hi, &mp2_lo);}
-
-    // Constructor from int64_t
-    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(int64_t __i) noexcept { __nv_fpmp2_from_ll(__i, &mp2_hi, &mp2_lo);}
-    
-    // Constructor from uint64_t
-    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(uint64_t __i) noexcept { __nv_fpmp2_from_ull(__i, &mp2_hi, &mp2_lo);}
+    // Constructor from any standard integer type (int / long / long long + unsigned).
+    // Dispatches by width and signedness to the fixed-width builtins, so every
+    // integer type is handled unambiguously and portably (LP64 and LLP64).
+    // bool / character types are excluded by __cccl_is_integer_v.
+    _CCCL_TEMPLATE(class _Tp)
+    _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(_Tp __i) noexcept
+    {
+        if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+        {
+            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { __nv_fpmp2_from_int(static_cast<int32_t>(__i), &mp2_hi, &mp2_lo); }
+            else                                          { __nv_fpmp2_from_ll (static_cast<int64_t>(__i), &mp2_hi, &mp2_lo); }
+        }
+        else
+        {
+            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { __nv_fpmp2_from_uint(static_cast<uint32_t>(__i), &mp2_hi, &mp2_lo); }
+            else                                           { __nv_fpmp2_from_ull (static_cast<uint64_t>(__i), &mp2_hi, &mp2_lo); }
+        }
+    }
 
     // ==== Conversion from fpmp2_t to other types:
     // Conversion to double is ALWAYS implicit (never gated by FPMP_EXPLICIT_CASTS).
@@ -522,21 +530,39 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API inline explicit operator float() const noexcept          { return __nv_fpmp2_to_float(mp2_hi, mp2_lo);}
     _CCCL_API inline explicit operator float() const volatile noexcept { return __nv_fpmp2_to_float(mp2_hi, mp2_lo);}
     
-    // Conversion to int32_t
-    _CCCL_API inline explicit operator int32_t() const noexcept          { return __nv_fpmp2_to_int(mp2_hi, mp2_lo);}
-    _CCCL_API inline explicit operator int32_t() const volatile noexcept { return __nv_fpmp2_to_int(mp2_hi, mp2_lo);}
-    
-    // Conversion to uint32_t
-    _CCCL_API inline explicit operator uint32_t() const noexcept          { return __nv_fpmp2_to_uint(mp2_hi, mp2_lo);}
-    _CCCL_API inline explicit operator uint32_t() const volatile noexcept { return __nv_fpmp2_to_uint(mp2_hi, mp2_lo);}
-    
-    // Conversion to int64_t
-    _CCCL_API inline explicit operator int64_t() const noexcept          { return __nv_fpmp2_to_ll(mp2_hi, mp2_lo);}
-    _CCCL_API inline explicit operator int64_t() const volatile noexcept { return __nv_fpmp2_to_ll(mp2_hi, mp2_lo);}
-    
-    // Conversion to uint64_t
-    _CCCL_API inline explicit operator uint64_t() const noexcept          { return __nv_fpmp2_to_ull(mp2_hi, mp2_lo);}
-    _CCCL_API inline explicit operator uint64_t() const volatile noexcept { return __nv_fpmp2_to_ull(mp2_hi, mp2_lo);}
+    // Conversion to any standard integer type (int / long / long long + unsigned).
+    // Dispatches by width and signedness to the fixed-width builtins; excludes
+    // bool / character types. Provided for both const and const volatile objects.
+    _CCCL_TEMPLATE(class _Tp)
+    _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+    _CCCL_API inline explicit operator _Tp() const noexcept
+    {
+        if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+        {
+            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_int(mp2_hi, mp2_lo)); }
+            else                                          { return static_cast<_Tp>(__nv_fpmp2_to_ll (mp2_hi, mp2_lo)); }
+        }
+        else
+        {
+            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_uint(mp2_hi, mp2_lo)); }
+            else                                           { return static_cast<_Tp>(__nv_fpmp2_to_ull (mp2_hi, mp2_lo)); }
+        }
+    }
+    _CCCL_TEMPLATE(class _Tp)
+    _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
+    _CCCL_API inline explicit operator _Tp() const volatile noexcept
+    {
+        if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+        {
+            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_int(mp2_hi, mp2_lo)); }
+            else                                          { return static_cast<_Tp>(__nv_fpmp2_to_ll (mp2_hi, mp2_lo)); }
+        }
+        else
+        {
+            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_uint(mp2_hi, mp2_lo)); }
+            else                                           { return static_cast<_Tp>(__nv_fpmp2_to_ull (mp2_hi, mp2_lo)); }
+        }
+    }
     
     // (renormalize)
     _CCCL_API friend inline fpmp2_t renormalize(const fpmp2_t& __x) noexcept 

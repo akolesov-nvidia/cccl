@@ -22,6 +22,7 @@
 #endif // no system header
 
 #include <cuda/std/__bit/bit_cast.h>
+#include <cuda/std/__type_traits/is_integer.h>
 // Pulling in cuda::std::bit_cast above surfaces the cuda::std namespace; make the
 // type-trait and <cmath> sets complete so the library's unqualified std:: names
 // inside namespace cuda::experimental keep resolving (to cuda::std equivalents).

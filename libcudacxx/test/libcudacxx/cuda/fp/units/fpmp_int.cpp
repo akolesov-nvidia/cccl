@@ -230,6 +230,53 @@ int test_uint32_cpu()
 }
 
 /**
+ * @brief Verify every standard integer type (short/int/long/long long + unsigned)
+ * constructs fp32mp2 and converts back, and that same-width standard types agree
+ * with the fixed-width path (long / long long vs int64_t). This exercises the
+ * constrained integer constructor/conversion template (size/signedness dispatch).
+ * @return Number of errors detected (0 = all tests passed)
+ */
+int test_standard_integer_types_cpu()
+{
+    int err = 0;
+    std::cout << "\n=== Testing all standard integer types on CPU ===" << std::endl;
+
+    // Values chosen to be exactly representable in the float-float significand.
+    const long long vals[] = {0, 1, -1, 42, -42, 65535, -65536, 1048576, -1048576};
+
+    for (long long v : vals)
+    {
+        const short     s  = static_cast<short>(v % 30000);
+        const int       i  = static_cast<int>(v);
+        const long      l  = static_cast<long>(v);
+        const long long ll = v;
+
+        bool ok = static_cast<short>(ffloat(s)) == s && static_cast<int>(ffloat(i)) == i
+               && static_cast<long>(ffloat(l)) == l && static_cast<long long>(ffloat(ll)) == ll
+               // long / long long must agree with the fixed-width int64_t path
+               && static_cast<long long>(ffloat(ll)) == static_cast<int64_t>(ffloat(static_cast<int64_t>(v)));
+
+        if (v >= 0)
+        {
+            const unsigned int       ui  = static_cast<unsigned int>(v);
+            const unsigned long      ul  = static_cast<unsigned long>(v);
+            const unsigned long long ull = static_cast<unsigned long long>(v);
+            ok = ok && static_cast<unsigned int>(ffloat(ui)) == ui
+                    && static_cast<unsigned long>(ffloat(ul)) == ul
+                    && static_cast<unsigned long long>(ffloat(ull)) == ull;
+        }
+
+        std::cout << "  value " << v << (ok ? " = PASS" : " = FAIL") << std::endl;
+        if (!ok)
+        {
+            err += 1;
+        }
+    }
+
+    return err;
+}
+
+/**
  * @brief Test double->fp32mp2->int32_t conversion with negative low parts
  * Tests cases where double converts to {hi_int, -low} representation
  * Example: 19.9999999123... -> {20.0f, -8.766e-8f} -> should convert to 19, not 20
@@ -773,6 +820,7 @@ int main()
     std::cout << "\n########## CPU Tests ##########" << std::endl;
     err += test_int32_cpu();
     err += test_uint32_cpu();
+    err += test_standard_integer_types_cpu();
     err += test_truncation_cpu();
     err += test_negative_low_part_cpu();
     

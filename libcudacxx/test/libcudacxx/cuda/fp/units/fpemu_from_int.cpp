@@ -71,6 +71,25 @@ TARGET void kern_from_uint64(const uint64_t* in, double* emu, double* ref, int n
     }
 }
 
+// long long / unsigned long long are distinct C++ types from int64_t / uint64_t
+// (even where they share the same width). These exercise the constrained integer
+// constructor template, which routes them through the same 64-bit builtins.
+TARGET void kern_from_longlong(const long long* in, double* emu, double* ref, int n) {
+    for (int i = 0; i < n; i++) {
+        fp64emu e(in[i]);
+        emu[i] = (double)e;
+        ref[i] = (double)in[i];
+    }
+}
+
+TARGET void kern_from_ulonglong(const unsigned long long* in, double* emu, double* ref, int n) {
+    for (int i = 0; i < n; i++) {
+        fp64emu e(in[i]);
+        emu[i] = (double)e;
+        ref[i] = (double)in[i];
+    }
+}
+
 // ============================================================================
 // Generic test runner
 // ============================================================================
@@ -152,6 +171,23 @@ static const uint64_t uint64_vals[] = {
     123456789012345ULL, 9999999999999999ULL,
 };
 
+static const long long longlong_vals[] = {
+    0, 1, -1, 2, -2,
+    INT32_MAX, INT32_MIN, (long long)INT32_MAX + 1, (long long)INT32_MIN - 1,
+    INT64_MAX, INT64_MIN, INT64_MIN + 1, INT64_MAX - 1,
+    (1LL << 53), -(1LL << 53), (1LL << 53) + 1, (1LL << 53) - 1,
+    (1LL << 62), -(1LL << 62), 123456789012345LL, -123456789012345LL,
+};
+
+static const unsigned long long ulonglong_vals[] = {
+    0, 1, 2,
+    (unsigned long long)UINT32_MAX, (unsigned long long)UINT32_MAX + 1,
+    UINT64_MAX, UINT64_MAX - 1,
+    (1ULL << 53), (1ULL << 53) + 1, (1ULL << 53) - 1,
+    (1ULL << 63), 0x8000000000000000ULL, 0xFFFFFFFF00000000ULL,
+    123456789012345ULL, 9999999999999999ULL,
+};
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -177,6 +213,14 @@ int main() {
     errors += run_test("uint64_t", uint64_vals,
                        (int)(sizeof(uint64_vals)/sizeof(uint64_vals[0])),
                        kern_from_uint64);
+
+    errors += run_test("longlong", longlong_vals,
+                       (int)(sizeof(longlong_vals)/sizeof(longlong_vals[0])),
+                       kern_from_longlong);
+
+    errors += run_test("ulonglong", ulonglong_vals,
+                       (int)(sizeof(ulonglong_vals)/sizeof(ulonglong_vals[0])),
+                       kern_from_ulonglong);
 
     printf("\nfpemu_from_int: %s (%d errors)\n", errors ? "FAIL" : "PASS", errors);
     return errors ? 1 : 0;
