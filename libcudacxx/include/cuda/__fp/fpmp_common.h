@@ -37,11 +37,10 @@
     
     Key Components:
     -------------------------------------------------------------------------
-    - Compiler Detection and Attributes:
-        * __FPMP_API_DECL__, __FPMP_API_DEVICE_DECL__ : API function declarations
-        * __FPMP_INTERNAL_DECL__, __FPMP_INTERNAL_DEVICE_DECL__ : Internal function declarations
-        * __FPMP_BUILTIN_DECL__, __FPMP_BUILTIN_DEVICE_DECL__ : Built-in function declarations
-        * Cross-platform __forceinline__ support (CUDA, GCC, Clang, MSVC)
+    - Function decorators (CCCL visibility macros applied at each call site):
+        * _CCCL_API inline / _CCCL_DEVICE_API inline   : public host/device API functions
+        * _CCCL_TRIVIAL_API / _CCCL_TRIVIAL_DEVICE_API : force-inlined internal helpers
+        * __FPMP_BUILTIN_DECL__, __FPMP_BUILTIN_DEVICE_DECL__ : extern-"C" ABI builtins (libcufp)
     
     - Configuration Macros:
         * FPMP_EXPLICIT_CASTS : Control implicit/explicit conversion behavior
@@ -329,54 +328,22 @@ namespace cuda::experimental
 #endif
 
 /*
-// Internal defines for API, builtin, and internal declarations
-// For CUDA, use __host__ __device__ and static __forceinline__
-// For host, use __forceinline__ with compiler-specific attributes
+// Builtin declaration macros.
+//
+// Public and internal functions are decorated at each call site with CCCL
+// visibility macros directly (_CCCL_API inline, _CCCL_DEVICE_API inline,
+// _CCCL_TRIVIAL_API, _CCCL_TRIVIAL_DEVICE_API); these expand correctly for both
+// CUDA and host-only compilation. The only decorators that still need dedicated
+// macros are the extern-"C" ABI symbols used when building or linking the
+// standalone libcufp library.
 */
-#if defined __CUDACC__
-
-    #define __FPMP_API_DECL__                  __forceinline__ __host__ __device__ 
-    #define __FPMP_API_DEVICE_DECL__           __forceinline__ __device__ 
-    #define __FPMP_INTERNAL_DECL__             static __forceinline__ __host__ __device__
-    #define __FPMP_INTERNAL_DEVICE_DECL__      static __forceinline__  __device__
-
-
-    #if (defined __FPMP_BUILD_LIB__) || (defined __FPMP_USE_LIB__)
-      #define __FPMP_BUILTIN_DECL__            __FPMP_ABI__ extern "C"  __host__ __device__
-      #define __FPMP_BUILTIN_DEVICE_DECL__     __FPMP_ABI__ extern "C"  __device__
-    #else
-      #define __FPMP_BUILTIN_DECL__            static __forceinline__ __host__ __device__
-      #define __FPMP_BUILTIN_DEVICE_DECL__     static __forceinline__ __device__
-    #endif
-
-#else // !defined __CUDACC__
-
-    // Define __forceinline__ for non-CUDA compilers
-    #ifndef __forceinline__
-        #if defined(__GNUC__) || defined(__clang__)
-            #define __forceinline__            inline __attribute__((always_inline))
-        #elif defined(_MSC_VER)
-            #define __forceinline__            __forceinline
-        #else
-            #define __forceinline__            inline
-        #endif
-    #endif
-
-    #define __FPMP_API_DECL__                  __forceinline__
-    #define __FPMP_API_DEVICE_DECL__           __forceinline__
-    #define __FPMP_INTERNAL_DECL__             static __forceinline__
-    #define __FPMP_INTERNAL_DEVICE_DECL__      static __forceinline__
-
-
-    #if (defined __FPMP_BUILD_LIB__) || (defined __FPMP_USE_LIB__)
-      #define __FPMP_BUILTIN_DECL__            extern "C"
-      #define __FPMP_BUILTIN_DEVICE_DECL__     extern "C"
-    #else
-      #define __FPMP_BUILTIN_DECL__            static __forceinline__
-      #define __FPMP_BUILTIN_DEVICE_DECL__     static __forceinline__
-    #endif
-
-#endif // !defined __CUDACC__
+#if (defined __FPMP_BUILD_LIB__) || (defined __FPMP_USE_LIB__)
+    #define __FPMP_BUILTIN_DECL__            __FPMP_ABI__ extern "C" _CCCL_HOST_DEVICE
+    #define __FPMP_BUILTIN_DEVICE_DECL__     __FPMP_ABI__ extern "C" _CCCL_DEVICE
+#else
+    #define __FPMP_BUILTIN_DECL__            _CCCL_TRIVIAL_API
+    #define __FPMP_BUILTIN_DEVICE_DECL__     _CCCL_TRIVIAL_DEVICE_API
+#endif
 
 /*
 // Optional function qualifiers for portable API annotation.
@@ -526,7 +493,7 @@ enum struct fpmp2_accuracy
     // fallback target. Provides C++20 bit_cast functionality when it's absent.
     */
     template<typename _To, typename _From>
-    __FPMP_INTERNAL_DECL__ _To __fpmp_builtin_bit_cast(_From __v)
+    _CCCL_TRIVIAL_API _To __fpmp_builtin_bit_cast(_From __v)
     {
         // Static checks to ensure bit_cast requirements
         static_assert(sizeof(_To) == sizeof(_From),              "bit_cast requires source and destination types to have the same size");
@@ -549,7 +516,7 @@ enum struct fpmp2_accuracy
     // __FPMP_BIT_CAST__ switch macro (cuda::std::bit_cast by default).
     */
     template<typename _To, typename _From>
-    __FPMP_INTERNAL_DECL__ _To internal_bit_cast(_From __v)
+    _CCCL_TRIVIAL_API _To internal_bit_cast(_From __v)
     {
         return __FPMP_BIT_CAST__(_To, __v);
     } // internal_bit_cast
@@ -561,50 +528,50 @@ enum struct fpmp2_accuracy
     // the fallback is the appropriate arithmetic operation
     */
     #ifdef __CUDA_ARCH__    
-        __FPMP_INTERNAL_DECL__ float    internal_fabs(float __x)   {return fabsf(__x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(float __x)  {return ::isnan(__x);}
-        __FPMP_INTERNAL_DECL__ float    add_rn(float __x, float __y) {return __fadd_rn(__x, __y);}
-        __FPMP_INTERNAL_DECL__ float    add_rz(float __x, float __y) {return __fadd_rz(__x, __y);}
-        __FPMP_INTERNAL_DECL__ float    sub_rn(float __x, float __y) {return __fsub_rn(__x, __y);}
-        __FPMP_INTERNAL_DECL__ float    mul_rn(float __x, float __y) {return __fmul_rn(__x, __y);}
-        __FPMP_INTERNAL_DECL__ float    fma_rn(float __x, float __y, float __z) {return __fmaf_ieee_rn(__x, __y, __z);}
+        _CCCL_TRIVIAL_API float    internal_fabs(float __x)   {return fabsf(__x);}
+        _CCCL_TRIVIAL_API bool     internal_isnan(float __x)  {return ::isnan(__x);}
+        _CCCL_TRIVIAL_API float    add_rn(float __x, float __y) {return __fadd_rn(__x, __y);}
+        _CCCL_TRIVIAL_API float    add_rz(float __x, float __y) {return __fadd_rz(__x, __y);}
+        _CCCL_TRIVIAL_API float    sub_rn(float __x, float __y) {return __fsub_rn(__x, __y);}
+        _CCCL_TRIVIAL_API float    mul_rn(float __x, float __y) {return __fmul_rn(__x, __y);}
+        _CCCL_TRIVIAL_API float    fma_rn(float __x, float __y, float __z) {return __fmaf_ieee_rn(__x, __y, __z);}
         #if __FPMP_USE_INLINE_ASM_RCP__ == 1
-        __FPMP_INTERNAL_DECL__ float    rcp_rn(float __x)  { float __r; asm ("rcp.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    rcp_rn(float __x)  { float __r; asm ("rcp.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        __FPMP_INTERNAL_DECL__ float    rcp_rn(float __x)  {return __frcp_rn(__x);}
+        _CCCL_TRIVIAL_API float    rcp_rn(float __x)  {return __frcp_rn(__x);}
         #endif
         #if __FPMP_USE_INLINE_ASM_RSQRT__ == 1
-        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float __x) { float __r; asm ("rsqrt.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    rsqrt_rn(float __x) { float __r; asm ("rsqrt.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float __x) {return __frsqrt_rn(__x);}
+        _CCCL_TRIVIAL_API float    rsqrt_rn(float __x) {return __frsqrt_rn(__x);}
         #endif
         // Fast single-precision base-2 exp / log mapped to the FP32 SFU
         // approximation units (ex2.approx / lg2.approx). These are not
         // correctly rounded; they are used as initial estimates for
         // higher-precision Newton/Halley refinement.
         #if __FPMP_USE_INLINE_ASM_EX2_LG2__ == 1
-        __FPMP_INTERNAL_DECL__ float    fast_exp2(float __x) { float __r; asm ("ex2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
-        __FPMP_INTERNAL_DECL__ float    fast_log2(float __x) { float __r; asm ("lg2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    fast_exp2(float __x) { float __r; asm ("ex2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    fast_log2(float __x) { float __r; asm ("lg2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        __FPMP_INTERNAL_DECL__ float    fast_exp2(float __x) {return __exp2f(__x);}
-        __FPMP_INTERNAL_DECL__ float    fast_log2(float __x) {return __log2f(__x);}
+        _CCCL_TRIVIAL_API float    fast_exp2(float __x) {return __exp2f(__x);}
+        _CCCL_TRIVIAL_API float    fast_log2(float __x) {return __log2f(__x);}
         #endif
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(float __x)  {return __float2int_rz(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(float __x)  {return __float2int_rn(__x);}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(float __x) {return __float2uint_rz(__x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(float __x)   {return __float2ll_rz(__x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(float __x)  {return __float2ull_rz(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rz(float __x)  {return __float2int_rz(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rn(float __x)  {return __float2int_rn(__x);}
+        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(float __x) {return __float2uint_rz(__x);}
+        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(float __x)   {return __float2ll_rz(__x);}
+        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(float __x)  {return __float2ull_rz(__x);}
 
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rn(int32_t __x)   {return static_cast<_FpType>(__int2float_rn(__x));}
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rz(int32_t __x)   {return static_cast<_FpType>(__int2float_rz(__x));}
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType uint2fp_rz(uint32_t __x) {return static_cast<_FpType>(__uint2float_rz(__x));}
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ll2fp_rz(int64_t __x)    {return static_cast<_FpType>(__ll2float_rz(__x));}
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ull2fp_rz(uint64_t __x)  {return static_cast<_FpType>(__ull2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rn(int32_t __x)   {return static_cast<_FpType>(__int2float_rn(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rz(int32_t __x)   {return static_cast<_FpType>(__int2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType uint2fp_rz(uint32_t __x) {return static_cast<_FpType>(__uint2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ll2fp_rz(int64_t __x)    {return static_cast<_FpType>(__ll2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ull2fp_rz(uint64_t __x)  {return static_cast<_FpType>(__ull2float_rz(__x));}
     #else // !__CUDA_ARCH__
-        __FPMP_INTERNAL_DECL__ float    internal_fabs(float __x)   {return fabsf(__x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(float __x)  {return std::isnan(__x);}
-        __FPMP_INTERNAL_DECL__ float    add_rn(float __x, float __y) {return __x + __y;}
-        __FPMP_INTERNAL_DECL__ float    add_rz(float __x, float __y)             
+        _CCCL_TRIVIAL_API float    internal_fabs(float __x)   {return fabsf(__x);}
+        _CCCL_TRIVIAL_API bool     internal_isnan(float __x)  {return std::isnan(__x);}
+        _CCCL_TRIVIAL_API float    add_rn(float __x, float __y) {return __x + __y;}
+        _CCCL_TRIVIAL_API float    add_rz(float __x, float __y)             
         {
             float __sum = __x + __y;
             if (__sum == 0.0f) return __sum; 
@@ -621,23 +588,23 @@ enum struct fpmp2_accuracy
             }
             return __sum;
         }
-        __FPMP_INTERNAL_DECL__ float    sub_rn(float __x, float __y) {return __x - __y;}
-        __FPMP_INTERNAL_DECL__ float    mul_rn(float __x, float __y) {return __x * __y;}
-        __FPMP_INTERNAL_DECL__ float    fma_rn(float __x, float __y, float __z) {return fmaf(__x, __y, __z);}
-        __FPMP_INTERNAL_DECL__ float    rcp_rn(float __x)   {return 1.0f / __x;}
-        __FPMP_INTERNAL_DECL__ float    rsqrt_rn(float __x) {return 1.0f / sqrtf(__x);}
+        _CCCL_TRIVIAL_API float    sub_rn(float __x, float __y) {return __x - __y;}
+        _CCCL_TRIVIAL_API float    mul_rn(float __x, float __y) {return __x * __y;}
+        _CCCL_TRIVIAL_API float    fma_rn(float __x, float __y, float __z) {return fmaf(__x, __y, __z);}
+        _CCCL_TRIVIAL_API float    rcp_rn(float __x)   {return 1.0f / __x;}
+        _CCCL_TRIVIAL_API float    rsqrt_rn(float __x) {return 1.0f / sqrtf(__x);}
         // Host fallback for the fast SFU-style exp2 / log2; uses the libm
         // single-precision routines.  Same use case as the device path:
         // a low-cost initial estimate for Newton/Halley refinement.
-        __FPMP_INTERNAL_DECL__ float    fast_exp2(float __x) {return ::exp2f(__x);}
-        __FPMP_INTERNAL_DECL__ float    fast_log2(float __x) {return ::log2f(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(float __x)  {return static_cast<int32_t>(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(float __x)  {return static_cast<int32_t>(roundf(__x));}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(float __x) {return static_cast<uint32_t>(__x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(float __x)   {return static_cast<int64_t>(__x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(float __x)  {return static_cast<uint64_t>(__x);}
+        _CCCL_TRIVIAL_API float    fast_exp2(float __x) {return ::exp2f(__x);}
+        _CCCL_TRIVIAL_API float    fast_log2(float __x) {return ::log2f(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rz(float __x)  {return static_cast<int32_t>(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rn(float __x)  {return static_cast<int32_t>(roundf(__x));}
+        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(float __x) {return static_cast<uint32_t>(__x);}
+        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(float __x)   {return static_cast<int64_t>(__x);}
+        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(float __x)  {return static_cast<uint64_t>(__x);}
 
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rn(int32_t __x) 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rn(int32_t __x) 
         {
             return static_cast<_FpType>(roundf(__x));
         }
@@ -649,7 +616,7 @@ enum struct fpmp2_accuracy
         // Using double for exact comparison (double has 53 bits, enough for int32_t's 32 bits)
         // Template versions for both float and double
         */
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType int2fp_rz(int32_t __x) 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rz(int32_t __x) 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -658,7 +625,7 @@ enum struct fpmp2_accuracy
             }
             return __f;
         }
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType uint2fp_rz(uint32_t __x) 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType uint2fp_rz(uint32_t __x) 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -667,7 +634,7 @@ enum struct fpmp2_accuracy
             }
             return __f;
         }
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ll2fp_rz(int64_t __x) 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ll2fp_rz(int64_t __x) 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -676,7 +643,7 @@ enum struct fpmp2_accuracy
             }
             return __f;
         }
-        template<typename _FpType = float> __FPMP_INTERNAL_DECL__ _FpType ull2fp_rz(uint64_t __x) 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ull2fp_rz(uint64_t __x) 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -689,32 +656,32 @@ enum struct fpmp2_accuracy
 
 #if FPMP_FP64MP2_ENABLE == 1
     #ifdef __CUDA_ARCH__
-        __FPMP_INTERNAL_DECL__ double   internal_fabs(double __x)    {return ::fabs(__x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(double __x)   {return ::isnan(__x);}
-        __FPMP_INTERNAL_DECL__ double   add_rn(double __x, double __y) {return __dadd_rn(__x, __y);}
-        __FPMP_INTERNAL_DECL__ double   add_rz(double __x, double __y) {return __dadd_rz(__x, __y);}
-        __FPMP_INTERNAL_DECL__ double   sub_rn(double __x, double __y) {return __dsub_rn(__x, __y);}
-        __FPMP_INTERNAL_DECL__ double   mul_rn(double __x, double __y) {return __dmul_rn(__x, __y);}
-        __FPMP_INTERNAL_DECL__ double   fma_rn(double __x, double __y, double __z) {return __fma_rn(__x, __y, __z);}
-        __FPMP_INTERNAL_DECL__ double   rcp_rn(double __x)     {return __drcp_rn(__x);}
-        __FPMP_INTERNAL_DECL__ double   rsqrt_rn(double __x)   {return rsqrt(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(double __x)  {return __double2int_rz(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(double __x)  {return __double2int_rn(__x);}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(double __x) {return __double2uint_rz(__x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(double __x)   {return __double2ll_rz(__x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(double __x)  {return __double2ull_rz(__x);}
+        _CCCL_TRIVIAL_API double   internal_fabs(double __x)    {return ::fabs(__x);}
+        _CCCL_TRIVIAL_API bool     internal_isnan(double __x)   {return ::isnan(__x);}
+        _CCCL_TRIVIAL_API double   add_rn(double __x, double __y) {return __dadd_rn(__x, __y);}
+        _CCCL_TRIVIAL_API double   add_rz(double __x, double __y) {return __dadd_rz(__x, __y);}
+        _CCCL_TRIVIAL_API double   sub_rn(double __x, double __y) {return __dsub_rn(__x, __y);}
+        _CCCL_TRIVIAL_API double   mul_rn(double __x, double __y) {return __dmul_rn(__x, __y);}
+        _CCCL_TRIVIAL_API double   fma_rn(double __x, double __y, double __z) {return __fma_rn(__x, __y, __z);}
+        _CCCL_TRIVIAL_API double   rcp_rn(double __x)     {return __drcp_rn(__x);}
+        _CCCL_TRIVIAL_API double   rsqrt_rn(double __x)   {return rsqrt(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rz(double __x)  {return __double2int_rz(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rn(double __x)  {return __double2int_rn(__x);}
+        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(double __x) {return __double2uint_rz(__x);}
+        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(double __x)   {return __double2ll_rz(__x);}
+        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(double __x)  {return __double2ull_rz(__x);}
         // int32_t and uint32_t always fit exactly in double (52-bit mantissa vs 32-bit values)
-        template<> __FPMP_API_DECL__ double int2fp_rn<double>(int32_t __x)   {return __int2double_rn(__x);}
-        template<> __FPMP_API_DECL__ double int2fp_rz<double>(int32_t __x)   {return static_cast<double>(__x);}
-        template<> __FPMP_API_DECL__ double uint2fp_rz<double>(uint32_t __x) {return static_cast<double>(__x);}
+        template<> _CCCL_API inline double int2fp_rn<double>(int32_t __x)   {return __int2double_rn(__x);}
+        template<> _CCCL_API inline double int2fp_rz<double>(int32_t __x)   {return static_cast<double>(__x);}
+        template<> _CCCL_API inline double uint2fp_rz<double>(uint32_t __x) {return static_cast<double>(__x);}
         // int64_t and uint64_t: use CUDA intrinsics for round-toward-zero
-        template<> __FPMP_API_DECL__ double ll2fp_rz<double>(int64_t __x)    {return __ll2double_rz(__x);}
-        template<> __FPMP_API_DECL__ double ull2fp_rz<double>(uint64_t __x)  {return __ull2double_rz(__x);}
+        template<> _CCCL_API inline double ll2fp_rz<double>(int64_t __x)    {return __ll2double_rz(__x);}
+        template<> _CCCL_API inline double ull2fp_rz<double>(uint64_t __x)  {return __ull2double_rz(__x);}
     #else // !__CUDA_ARCH__
-        __FPMP_INTERNAL_DECL__ double   internal_fabs(double __x)    {return ::fabs(__x);}
-        __FPMP_INTERNAL_DECL__ bool     internal_isnan(double __x)   {return std::isnan(__x);}
-        __FPMP_INTERNAL_DECL__ double   add_rn(double __x, double __y) {return __x + __y;}
-        __FPMP_INTERNAL_DECL__ double   add_rz(double __x, double __y)             
+        _CCCL_TRIVIAL_API double   internal_fabs(double __x)    {return ::fabs(__x);}
+        _CCCL_TRIVIAL_API bool     internal_isnan(double __x)   {return std::isnan(__x);}
+        _CCCL_TRIVIAL_API double   add_rn(double __x, double __y) {return __x + __y;}
+        _CCCL_TRIVIAL_API double   add_rz(double __x, double __y)             
         {
             double __sum = __x + __y;
             if (__sum == 0.0) return __sum; 
@@ -731,25 +698,25 @@ enum struct fpmp2_accuracy
             }
             return __sum;
         }
-        __FPMP_INTERNAL_DECL__ double   sub_rn(double __x, double __y) {return __x - __y;}
-        __FPMP_INTERNAL_DECL__ double   mul_rn(double __x, double __y) {return __x * __y;}
-        __FPMP_INTERNAL_DECL__ double   fma_rn(double __x, double __y, double __z) {return fma(__x, __y, __z);}
-        __FPMP_INTERNAL_DECL__ double   rcp_rn(double __x)     {return 1.0 / __x;}
-        __FPMP_INTERNAL_DECL__ double   rsqrt_rn(double __x)   {return 1.0 / sqrt(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rz(double __x)  {return static_cast<int32_t>(__x);}
-        __FPMP_INTERNAL_DECL__ int32_t  fp2int_rn(double __x)  {return static_cast<int32_t>(round(__x));}
-        __FPMP_INTERNAL_DECL__ uint32_t fp2uint_rz(double __x) {return static_cast<uint32_t>(__x);}
-        __FPMP_INTERNAL_DECL__ int64_t  fp2ll_rz(double __x)   {return static_cast<int64_t>(__x);}
-        __FPMP_INTERNAL_DECL__ uint64_t fp2ull_rz(double __x)  {return static_cast<uint64_t>(__x);}
+        _CCCL_TRIVIAL_API double   sub_rn(double __x, double __y) {return __x - __y;}
+        _CCCL_TRIVIAL_API double   mul_rn(double __x, double __y) {return __x * __y;}
+        _CCCL_TRIVIAL_API double   fma_rn(double __x, double __y, double __z) {return fma(__x, __y, __z);}
+        _CCCL_TRIVIAL_API double   rcp_rn(double __x)     {return 1.0 / __x;}
+        _CCCL_TRIVIAL_API double   rsqrt_rn(double __x)   {return 1.0 / sqrt(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rz(double __x)  {return static_cast<int32_t>(__x);}
+        _CCCL_TRIVIAL_API int32_t  fp2int_rn(double __x)  {return static_cast<int32_t>(round(__x));}
+        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(double __x) {return static_cast<uint32_t>(__x);}
+        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(double __x)   {return static_cast<int64_t>(__x);}
+        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(double __x)  {return static_cast<uint64_t>(__x);}
         /*
         // Round-toward-zero (truncation) versions for integer-to-double constructors
         // For double, we need to use long double for exact comparison where possible
         // Template specializations for double type
         */
-        template<> __FPMP_API_DECL__ double int2fp_rn<double>(int32_t __x)   { return round(__x); }
-        template<> __FPMP_API_DECL__ double int2fp_rz<double>(int32_t __x)   { return static_cast<double>(__x); }
-        template<> __FPMP_API_DECL__ double uint2fp_rz<double>(uint32_t __x) { return static_cast<double>(__x); }
-        template<> __FPMP_API_DECL__ double ll2fp_rz<double>(int64_t __x) 
+        template<> _CCCL_API inline double int2fp_rn<double>(int32_t __x)   { return round(__x); }
+        template<> _CCCL_API inline double int2fp_rz<double>(int32_t __x)   { return static_cast<double>(__x); }
+        template<> _CCCL_API inline double uint2fp_rz<double>(uint32_t __x) { return static_cast<double>(__x); }
+        template<> _CCCL_API inline double ll2fp_rz<double>(int64_t __x) 
         {
             // int64_t may not fit exactly in double
             double __d = static_cast<double>(__x);
@@ -757,7 +724,7 @@ enum struct fpmp2_accuracy
             if ((__x > 0 && __d > __exact) || (__x < 0 && __d < __exact)) {  __d = nextafter(__d, 0.0); }
             return __d;
         }
-        template<> __FPMP_API_DECL__ double ull2fp_rz<double>(uint64_t __x) 
+        template<> _CCCL_API inline double ull2fp_rz<double>(uint64_t __x) 
         {
             // uint64_t may not fit exactly in double
             double __d = static_cast<double>(__x);
@@ -774,7 +741,7 @@ enum struct fpmp2_accuracy
     // dedicated fp32mp2 rounding implementations.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ _FpType internal_trunc (const _FpType __x)
+    _CCCL_TRIVIAL_API _FpType internal_trunc (const _FpType __x)
     {
         if constexpr (std::is_same<_FpType, float>::value)
         {
@@ -795,7 +762,7 @@ enum struct fpmp2_accuracy
     }
 
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ _FpType internal_floor (const _FpType __x)
+    _CCCL_TRIVIAL_API _FpType internal_floor (const _FpType __x)
     {
         if constexpr (std::is_same<_FpType, float>::value)
         {
@@ -815,7 +782,7 @@ enum struct fpmp2_accuracy
     }
 
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ _FpType internal_ceil (const _FpType __x)
+    _CCCL_TRIVIAL_API _FpType internal_ceil (const _FpType __x)
     {
         if constexpr (std::is_same<_FpType, float>::value)
         {
@@ -839,7 +806,7 @@ enum struct fpmp2_accuracy
     */
     // Multiply 2 floats exactly, assuming no over/underflow.
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ _FpType two_mult_fma (const _FpType __x, 
+    _CCCL_TRIVIAL_API _FpType two_mult_fma (const _FpType __x, 
                                                 const _FpType __y,
                                                 _FpType* const __res_lo)
     {
@@ -853,7 +820,7 @@ enum struct fpmp2_accuracy
     // (Usually we just check if |x| >= |y|).
     // If this is not known use the function below.
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ _FpType fast_two_sum (const _FpType __x, 
+    _CCCL_TRIVIAL_API _FpType fast_two_sum (const _FpType __x, 
                                                 const _FpType __y, 
                                                 _FpType* const __res_lo)
     {
@@ -866,7 +833,7 @@ enum struct fpmp2_accuracy
     // Add 2 floats, returning the answer exactly in 'hi' and 'lo' parts.
     // This makes no assumptions on the magnitudes of |x| and |y|.
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ _FpType two_sum (const _FpType __x, 
+    _CCCL_TRIVIAL_API _FpType two_sum (const _FpType __x, 
                                            const _FpType __y,
                                            _FpType* const __res_lo)
     {
@@ -881,7 +848,7 @@ enum struct fpmp2_accuracy
 
     // double -> (hi, lo) conversions (plain versions)
     // only for the C++ class below to be optimized in compile-time
-    __FPMP_CONSTEXPR__ __FPMP_API_DECL__ void from_double (const double __x, 
+    __FPMP_CONSTEXPR__ _CCCL_API inline void from_double (const double __x, 
                                                            float*       __res_hi, 
                                                            float*       __res_lo) __FPMP_NOEXCEPT__
     {

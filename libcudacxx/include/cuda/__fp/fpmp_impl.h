@@ -149,7 +149,7 @@ namespace cuda::experimental
     // -----------------------------------------------------------------------
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_from_double (const double __x, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_from_double (const double __x, 
                                                          _FpType*      __res_hi, 
                                                          _FpType*      __res_lo) 
     {
@@ -245,7 +245,7 @@ namespace cuda::experimental
 
     // int -> (hi, lo) conversions
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_from_int (const int32_t __i, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_from_int (const int32_t __i, 
                                                       _FpType*       __res_hi, 
                                                       _FpType*       __res_lo)   
     {
@@ -258,7 +258,7 @@ namespace cuda::experimental
     // Note: Use signed arithmetic to compute residual, since fpmp::fp2uint_rz(*res_hi)
     // might be larger than i when rounding direction differs
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_from_uint (const uint32_t __i, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_from_uint (const uint32_t __i, 
                                                        _FpType*        __res_hi, 
                                                        _FpType*        __res_lo) 
     {
@@ -273,7 +273,7 @@ namespace cuda::experimental
     // With ll2fp_rz properly rounding toward zero, hi is always <= i for positive i
     // and >= i for negative i, so fpmp::fp2ll_rz(hi) is always representable as int64_t.
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_from_ll (const int64_t __i, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_from_ll (const int64_t __i, 
                                                      _FpType*       __res_hi, 
                                                      _FpType*       __res_lo) 
     {
@@ -286,7 +286,7 @@ namespace cuda::experimental
     // With ull2fp_rz properly rounding toward zero, hi <= i always,
     // so the residual i - hi is always non-negative.
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_from_ull (const uint64_t __i, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_from_ull (const uint64_t __i, 
                                                       _FpType*        __res_hi, 
                                                       _FpType*        __res_lo) 
     {
@@ -350,7 +350,7 @@ namespace cuda::experimental
     //   (2x F2D + 1x DADD = 3 FP64 operations)
     //
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  double __nv_fpmp2_to_double (const _FpType __x_hi_in,
+    _CCCL_TRIVIAL_API  double __nv_fpmp2_to_double (const _FpType __x_hi_in,
                                                          const _FpType __x_lo_in)
     { 
 #if __FPMP_USE_OPT_TO_DOUBLE__ == 1
@@ -414,7 +414,7 @@ namespace cuda::experimental
 
     // (hi, lo) -> float conversions (returns the sum as single FpType)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  _FpType __nv_fpmp2_to_float (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  _FpType __nv_fpmp2_to_float (const _FpType __x_hi, 
                                                         const _FpType __x_lo)  
     { 
         return __x_hi + __x_lo; 
@@ -422,7 +422,7 @@ namespace cuda::experimental
 
     // (hi, lo) -> int conversions
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  int32_t __nv_fpmp2_to_int (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  int32_t __nv_fpmp2_to_int (const _FpType __x_hi, 
                                                        const _FpType __x_lo)  
     { 
 
@@ -448,7 +448,7 @@ namespace cuda::experimental
 
     // (hi, lo) -> uint conversions
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  uint32_t __nv_fpmp2_to_uint (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  uint32_t __nv_fpmp2_to_uint (const _FpType __x_hi, 
                                                          const _FpType __x_lo)  
     { 
 
@@ -473,7 +473,7 @@ namespace cuda::experimental
 
     // (hi, lo) -> ll conversions
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  int64_t __nv_fpmp2_to_ll (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  int64_t __nv_fpmp2_to_ll (const _FpType __x_hi, 
                                                       const _FpType __x_lo)  
     { 
 
@@ -499,7 +499,7 @@ namespace cuda::experimental
 
     // (hi, lo) -> ull conversions
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  uint64_t __nv_fpmp2_to_ull (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  uint64_t __nv_fpmp2_to_ull (const _FpType __x_hi, 
                                                         const _FpType __x_lo) 
     { 
 
@@ -531,7 +531,7 @@ namespace cuda::experimental
     // to ensure that the hi and lo parts are non-overlapping
     // This is useful for fast mode to ensure that the result is accurate
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_renormalize (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_renormalize (const _FpType __x_hi, 
                                                         const _FpType __x_lo, 
                                                         _FpType*      __res_hi, 
                                                         _FpType*      __res_lo)
@@ -550,7 +550,7 @@ namespace cuda::experimental
     * This is a simple addition operation with no normalization.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_low_add (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_low_add (const _FpType __x_hi, 
                                                      const _FpType __x_lo, 
                                                      const _FpType __y_hi, 
                                                      const _FpType __y_lo, 
@@ -574,7 +574,7 @@ namespace cuda::experimental
     * This is classic split and error accumulation addition operation with normalization.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_add (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_add (const _FpType __x_hi, 
                                                 const _FpType __x_lo, 
                                                 const _FpType __y_hi, 
                                                 const _FpType __y_lo, 
@@ -608,7 +608,7 @@ namespace cuda::experimental
     * Total: 20 ops, Critical path: 14 ops (vs Thall's 17 ops sequential)
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __internal_nv_fpmp2_add_fpan (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_fpan (const _FpType __a_hi, 
                                                      const _FpType __a_lo, 
                                                      const _FpType __b_hi, 
                                                      const _FpType __b_lo, 
@@ -661,7 +661,7 @@ namespace cuda::experimental
     * from http://andrewthall.org/papers/df64_qf128.pdf.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __internal_nv_fpmp2_add_exp (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_exp (const _FpType __a_hi, 
                                                              const _FpType __a_lo, 
                                                              const _FpType __b_hi, 
                                                              const _FpType __b_lo, 
@@ -689,7 +689,7 @@ namespace cuda::experimental
 #define __FPMP_FPAN_METHOD__
 
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_high_add (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_high_add (const _FpType __a_hi, 
                                                          const _FpType __a_lo, 
                                                          const _FpType __b_hi, 
                                                          const _FpType __b_lo, 
@@ -713,7 +713,7 @@ namespace cuda::experimental
     * This is a simple subtraction operation with no normalization.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_low_sub (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_low_sub (const _FpType __x_hi, 
                                                      const _FpType __x_lo, 
                                                      const _FpType __y_hi, 
                                                      const _FpType __y_lo, 
@@ -727,7 +727,7 @@ namespace cuda::experimental
     * This is a Dekker subtraction operation with normalization.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_sub (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_sub (const _FpType __x_hi, 
                                                 const _FpType __x_lo, 
                                                 const _FpType __y_hi, 
                                                 const _FpType __y_lo, 
@@ -743,7 +743,7 @@ namespace cuda::experimental
     * from http://andrewthall.org/papers/df64_qf128.pdf.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_high_sub(const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_high_sub(const _FpType __x_hi, 
                                                          const _FpType __x_lo, 
                                                          const _FpType __y_hi, 
                                                          const _FpType __y_lo, 
@@ -774,7 +774,7 @@ namespace cuda::experimental
     * Result may have overlapping hi/lo components until renormalized.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_low_acc (const _FpType __c, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_low_acc (const _FpType __c, 
                                                      _FpType*      __acc_hi, 
                                                      _FpType*      __acc_lo)
     {
@@ -792,7 +792,7 @@ namespace cuda::experimental
     * Result is properly normalized (non-overlapping hi/lo).
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_acc (const _FpType __c, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_acc (const _FpType __c, 
                                                 _FpType*      __acc_hi, 
                                                 _FpType*      __acc_lo)
     {
@@ -811,7 +811,7 @@ namespace cuda::experimental
     * Provides maximum precision by properly ordering all error terms.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_high_acc (const _FpType __c, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_high_acc (const _FpType __c, 
                                                          _FpType*      __acc_hi, 
                                                          _FpType*      __acc_lo)
     {
@@ -841,7 +841,7 @@ namespace cuda::experimental
     * This is a simple multiplication operation with no normalization.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_low_mul (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_low_mul (const _FpType __x_hi, 
                                                       const _FpType __x_lo, 
                                                       const _FpType __y_hi, 
                                                       const _FpType __y_lo, 
@@ -864,7 +864,7 @@ namespace cuda::experimental
     * This is a Dekker multiplication operation with normalization.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_mul (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_mul (const _FpType __x_hi, 
                                                 const _FpType __x_lo, 
                                                 const _FpType __y_hi, 
                                                 const _FpType __y_lo, 
@@ -920,7 +920,7 @@ namespace cuda::experimental
     *   Conditional scaling adapted from QD library techniques.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_high_mul (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_high_mul (const _FpType __x_hi, 
                                                           const _FpType __x_lo, 
                                                           const _FpType __y_hi, 
                                                           const _FpType __y_lo, 
@@ -997,7 +997,7 @@ namespace cuda::experimental
     * --------------------------------------------------------------------
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_low_div (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_low_div (const _FpType __a_hi, 
                                                      const _FpType __a_lo, 
                                                      const _FpType __b_hi, 
                                                      const _FpType __b_lo, 
@@ -1040,7 +1040,7 @@ namespace cuda::experimental
     ICCS '08, Part I, pp. 446-455.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_div (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_div (const _FpType __a_hi, 
                                                 const _FpType __a_lo, 
                                                 const _FpType __b_hi, 
                                                 const _FpType __b_lo, 
@@ -1092,7 +1092,7 @@ namespace cuda::experimental
     *   Conditional scaling adapted from QD library techniques.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__ void __nv_fpmp2_high_div (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API void __nv_fpmp2_high_div (const _FpType __a_hi, 
                                                          const _FpType __a_lo, 
                                                          const _FpType __b_hi, 
                                                          const _FpType __b_lo, 
@@ -1201,7 +1201,7 @@ namespace cuda::experimental
     1997, pp. 561-589.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_rsqrt (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_rsqrt (const _FpType __a_hi, 
                                                    const _FpType __a_lo, 
                                                    _FpType*      __res_hi, 
                                                    _FpType*      __res_lo)
@@ -1239,7 +1239,7 @@ namespace cuda::experimental
     1997, pp. 561-589.
     */    
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_sqrt (const _FpType __a_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_sqrt (const _FpType __a_hi, 
                                                   const _FpType __a_lo, 
                                                   _FpType*      __res_hi, 
                                                   _FpType*      __res_lo)
@@ -1277,7 +1277,7 @@ namespace cuda::experimental
         where (s - r_hi) is exact by the Boldo-Muller theorem.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_low_fma (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_low_fma (const _FpType __x_hi, 
                                                       const _FpType __x_lo, 
                                                       const _FpType __y_hi, 
                                                       const _FpType __y_lo, 
@@ -1314,7 +1314,7 @@ namespace cuda::experimental
         where (s - r_hi) is exact by the Boldo-Muller theorem.
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_fma (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_fma (const _FpType __x_hi, 
                                                  const _FpType __x_lo, 
                                                  const _FpType __y_hi, 
                                                  const _FpType __y_lo, 
@@ -1353,7 +1353,7 @@ namespace cuda::experimental
         the main term).
     */
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_high_fma (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_high_fma (const _FpType __x_hi, 
                                                           const _FpType __x_lo, 
                                                           const _FpType __y_hi, 
                                                           const _FpType __y_lo, 
@@ -1398,7 +1398,7 @@ namespace cuda::experimental
     */
     // multiply-add with rounding (default: fast mul + default add)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_mad (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_mad (const _FpType __x_hi, 
                                                  const _FpType __x_lo, 
                                                  const _FpType __y_hi, 
                                                  const _FpType __y_lo, 
@@ -1414,7 +1414,7 @@ namespace cuda::experimental
 
     // multiply-add fast (fast mul + fast add)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_low_mad (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_low_mad (const _FpType __x_hi, 
                                                       const _FpType __x_lo, 
                                                       const _FpType __y_hi, 
                                                       const _FpType __y_lo, 
@@ -1430,7 +1430,7 @@ namespace cuda::experimental
 
     // multiply-add accurate (default mul + accurate add)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_high_mad (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_high_mad (const _FpType __x_hi, 
                                                           const _FpType __x_lo, 
                                                           const _FpType __y_hi, 
                                                           const _FpType __y_lo, 
@@ -1451,7 +1451,7 @@ namespace cuda::experimental
     */
     // negation
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  void __nv_fpmp2_neg (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  void __nv_fpmp2_neg (const _FpType __x_hi, 
                                                  const _FpType __x_lo, 
                                                  _FpType*      __res_hi, 
                                                  _FpType*      __res_lo)
@@ -1467,7 +1467,7 @@ namespace cuda::experimental
     */
     // == comparison
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  bool __nv_fpmp2_cmp_eq (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  bool __nv_fpmp2_cmp_eq (const _FpType __x_hi, 
                                                     const _FpType __x_lo, 
                                                     const _FpType __y_hi, 
                                                     const _FpType __y_lo) 
@@ -1477,7 +1477,7 @@ namespace cuda::experimental
 
     // != comparison
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  bool __nv_fpmp2_cmp_ne(const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  bool __nv_fpmp2_cmp_ne(const _FpType __x_hi, 
                                                    const _FpType __x_lo, 
                                                    const _FpType __y_hi, 
                                                    const _FpType __y_lo) 
@@ -1487,7 +1487,7 @@ namespace cuda::experimental
 
     // < comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  bool __nv_fpmp2_cmp_lt (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  bool __nv_fpmp2_cmp_lt (const _FpType __x_hi, 
                                                     const _FpType __x_lo, 
                                                     const _FpType __y_hi, 
                                                     const _FpType __y_lo) 
@@ -1497,7 +1497,7 @@ namespace cuda::experimental
 
     // > comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  bool __nv_fpmp2_cmp_gt (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  bool __nv_fpmp2_cmp_gt (const _FpType __x_hi, 
                                                     const _FpType __x_lo, 
                                                     const _FpType __y_hi, 
                                                     const _FpType __y_lo) 
@@ -1507,7 +1507,7 @@ namespace cuda::experimental
 
     // <= comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  bool __nv_fpmp2_cmp_le (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  bool __nv_fpmp2_cmp_le (const _FpType __x_hi, 
                                                     const _FpType __x_lo, 
                                                     const _FpType __y_hi, 
                                                     const _FpType __y_lo) 
@@ -1517,7 +1517,7 @@ namespace cuda::experimental
 
     // >= comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  bool __nv_fpmp2_cmp_ge (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  bool __nv_fpmp2_cmp_ge (const _FpType __x_hi, 
                                                     const _FpType __x_lo, 
                                                     const _FpType __y_hi, 
                                                     const _FpType __y_lo) 
@@ -1532,7 +1532,7 @@ namespace cuda::experimental
     */
     // bit_cast to IEEE-754 format bits
     template<typename _FpType = float>
-    __FPMP_INTERNAL_DECL__  uint64_t __nv_fpmp2_bit_cast (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  uint64_t __nv_fpmp2_bit_cast (const _FpType __x_hi, 
                                                           const _FpType __x_lo)
     { 
 
@@ -1553,7 +1553,7 @@ namespace cuda::experimental
     */
     // Primary template declarations (specialized for float and double below)
     template<typename _FpType>
-    __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicAdd (_FpType*      __address_hi, 
+    _CCCL_DEVICE_API inline void __nv_fpmp2_atomicAdd (_FpType*      __address_hi, 
                                                         _FpType*      __address_lo, 
                                                         const _FpType __addition_hi, 
                                                         const _FpType __addition_lo, 
@@ -1561,7 +1561,7 @@ namespace cuda::experimental
                                                         _FpType*      __old_lo);
 
     template<typename _FpType>
-    __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub (_FpType*      __address_hi, 
+    _CCCL_DEVICE_API inline void __nv_fpmp2_atomicSub (_FpType*      __address_hi, 
                                                         _FpType*      __address_lo, 
                                                         const _FpType __val_hi, 
                                                         const _FpType __val_lo, 
@@ -1577,7 +1577,7 @@ namespace cuda::experimental
     // Two floats = 64 bits fits in unsigned long long int
     // Returns the old value before the addition
     template<>
-    __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicAdd<float>       (float*       __address_hi, 
+    _CCCL_DEVICE_API inline void __nv_fpmp2_atomicAdd<float>       (float*       __address_hi, 
                                                                      float*       __address_lo, 
                                                                      const float  __addition_hi, 
                                                                      const float  __addition_lo, 
@@ -1628,7 +1628,7 @@ namespace cuda::experimental
 
     // atomicSub for float: Uses negation and atomicAdd
     template<>
-    __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub<float>       (float*       __address_hi, 
+    _CCCL_DEVICE_API inline void __nv_fpmp2_atomicSub<float>       (float*       __address_hi, 
                                                                      float*       __address_lo, 
                                                                      const float  __val_hi, 
                                                                      const float  __val_lo, 
@@ -1649,7 +1649,7 @@ namespace cuda::experimental
     // Two doubles = 128 bits requires ulonglong2 and sm_90+ (Hopper architecture)
     // Returns the old value before the addition
     template<>
-    __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicAdd<double>       (double*       __address_hi, 
+    _CCCL_DEVICE_API inline void __nv_fpmp2_atomicAdd<double>       (double*       __address_hi, 
                                                                       double*       __address_lo, 
                                                                       const double  __addition_hi, 
                                                                       const double  __addition_lo, 
@@ -1707,7 +1707,7 @@ namespace cuda::experimental
 
     // atomicSub for double: Uses negation and atomicAdd
     template<>
-    __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub<double>       (double*       __address_hi, 
+    _CCCL_DEVICE_API inline void __nv_fpmp2_atomicSub<double>       (double*       __address_hi, 
                                                                       double*       __address_lo, 
                                                                       const double  __val_hi, 
                                                                       const double  __val_lo, 
@@ -1725,7 +1725,7 @@ namespace cuda::experimental
   // available only for CUDA architectures >= 1000 or when FPMP_FP128_ENABLE is defined
   #if FPMP_FP128_ENABLE == 1
     template<typename _FpType = double>
-    constexpr __FPMP_INTERNAL_DECL__  void __nv_fpmp2_from_quad  (const __fpmp_fp128 __x, 
+    constexpr _CCCL_TRIVIAL_API  void __nv_fpmp2_from_quad  (const __fpmp_fp128 __x, 
                                                         _FpType*      __res_hi, 
                                                         _FpType*      __res_lo) 
     {
@@ -1734,7 +1734,7 @@ namespace cuda::experimental
     }
 
     template<typename _FpType = double>
-    __FPMP_INTERNAL_DECL__  __fpmp_fp128 __nv_fpmp2_to_quad  (const _FpType __x_hi, 
+    _CCCL_TRIVIAL_API  __fpmp_fp128 __nv_fpmp2_to_quad  (const _FpType __x_hi, 
                                                             const _FpType __x_lo) 
     {
         return static_cast<__fpmp_fp128>(__x_hi) + static_cast<__fpmp_fp128>(__x_lo);
@@ -1890,68 +1890,68 @@ __FPMP_BUILTIN_DEVICE_DECL__ void __nv_fp32mp2_atomicSub(float* __address_hi, fl
  */
 // Template declarations - type-generic prototypes
 
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_from_double(const double __x, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_from_int(const int32_t __i, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_from_uint(const uint32_t __i, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_from_ll(const int64_t __i, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_from_ull(const uint64_t __i, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ double   __nv_fpmp2_to_double(const _Tp __x_hi, const _Tp __x_lo);
-template<typename _Tp> __FPMP_API_DECL__ float    __nv_fpmp2_to_float(const _Tp __x_hi, const _Tp __x_lo);
-template<typename _Tp> __FPMP_API_DECL__ int32_t  __nv_fpmp2_to_int(const _Tp __x_hi, const _Tp __x_lo);
-template<typename _Tp> __FPMP_API_DECL__ uint32_t __nv_fpmp2_to_uint(const _Tp __x_hi, const _Tp __x_lo);
-template<typename _Tp> __FPMP_API_DECL__ int64_t  __nv_fpmp2_to_ll(const _Tp __x_hi, const _Tp __x_lo);
-template<typename _Tp> __FPMP_API_DECL__ uint64_t __nv_fpmp2_to_ull(const _Tp __x_hi, const _Tp __x_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_add(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_add(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_add(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_high_add(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_high_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_high_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mul(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_mul(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_mul(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_from_double(const double __x, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_from_int(const int32_t __i, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_from_uint(const uint32_t __i, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_from_ll(const int64_t __i, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_from_ull(const uint64_t __i, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline double   __nv_fpmp2_to_double(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline float    __nv_fpmp2_to_float(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline int32_t  __nv_fpmp2_to_int(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline uint32_t __nv_fpmp2_to_uint(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline int64_t  __nv_fpmp2_to_ll(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline uint64_t __nv_fpmp2_to_ull(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_add(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_add(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_add(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_high_add(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_high_sub(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_high_acc(const _Tp __c, _Tp* __acc_hi, _Tp* __acc_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mul(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_mul(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_mul(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, _Tp* __res_hi, _Tp* __res_lo);
 #if __FPMP_USE_ACCURATE_MUL__ == 1
-template<typename T> __FPMP_API_DECL__ void     __nv_fpmp2_high_mul(const T __x_hi, const T __x_lo, const T __y_hi, const T __y_lo, T* __res_hi, T* __res_lo);
+template<typename T> _CCCL_API inline void     __nv_fpmp2_high_mul(const T __x_hi, const T __x_lo, const T __y_hi, const T __y_lo, T* __res_hi, T* __res_lo);
 #endif // __FPMP_USE_ACCURATE_MUL__ == 1
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_renormalize(const _Tp __x_hi, const _Tp __x_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_renormalize(const _Tp __x_hi, const _Tp __x_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo);
 #if __FPMP_USE_ACCURATE_DIV__ == 1
-template<typename T> __FPMP_API_DECL__ void     __nv_fpmp2_high_div(const T __a_hi, const T __a_lo, const T __b_hi, const T __b_lo, T* __res_hi, T* __res_lo);
+template<typename T> _CCCL_API inline void     __nv_fpmp2_high_div(const T __a_hi, const T __a_lo, const T __b_hi, const T __b_lo, T* __res_hi, T* __res_lo);
 #endif // __FPMP_USE_ACCURATE_DIV__ == 1
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_sqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_rsqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_high_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_mid_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_low_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_high_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_fma_exp(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ void     __nv_fpmp2_neg(const _Tp __x_hi, const _Tp __x_lo, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_eq(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
-template<typename _Tp> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_ne(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
-template<typename _Tp> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_lt(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
-template<typename _Tp> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_gt(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
-template<typename _Tp> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_le(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
-template<typename _Tp> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_ge(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
-template<typename _Tp> __FPMP_API_DECL__ uint64_t __nv_fpmp2_bit_cast(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_sqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_rsqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_high_mad(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_mid_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_low_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_high_fma(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_fma_exp(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo, const _Tp __z_hi, const _Tp __z_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline void     __nv_fpmp2_neg(const _Tp __x_hi, const _Tp __x_lo, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline bool     __nv_fpmp2_cmp_eq(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
+template<typename _Tp> _CCCL_API inline bool     __nv_fpmp2_cmp_ne(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
+template<typename _Tp> _CCCL_API inline bool     __nv_fpmp2_cmp_lt(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
+template<typename _Tp> _CCCL_API inline bool     __nv_fpmp2_cmp_gt(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
+template<typename _Tp> _CCCL_API inline bool     __nv_fpmp2_cmp_le(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
+template<typename _Tp> _CCCL_API inline bool     __nv_fpmp2_cmp_ge(const _Tp __x_hi, const _Tp __x_lo, const _Tp __y_hi, const _Tp __y_lo);
+template<typename _Tp> _CCCL_API inline uint64_t __nv_fpmp2_bit_cast(const _Tp __x_hi, const _Tp __x_lo);
 #ifdef __CUDACC__
-template<typename _Tp> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicAdd(_Tp* __address_hi, _Tp* __address_lo, const _Tp __addition_hi, const _Tp __addition_lo, _Tp* __old_hi, _Tp* __old_lo);
-template<typename _Tp> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub(_Tp* __address_hi, _Tp* __address_lo, const _Tp __val_hi, const _Tp __val_lo, _Tp* __old_hi, _Tp* __old_lo);
+template<typename _Tp> _CCCL_DEVICE_API inline void __nv_fpmp2_atomicAdd(_Tp* __address_hi, _Tp* __address_lo, const _Tp __addition_hi, const _Tp __addition_lo, _Tp* __old_hi, _Tp* __old_lo);
+template<typename _Tp> _CCCL_DEVICE_API inline void __nv_fpmp2_atomicSub(_Tp* __address_hi, _Tp* __address_lo, const _Tp __val_hi, const _Tp __val_lo, _Tp* __old_hi, _Tp* __old_lo);
 #endif
 #if FPMP_FP128_ENABLE == 1
-template<typename _Tp> __FPMP_API_DECL__ void         __nv_fpmp2_from_quad(const __fpmp_fp128 __x, _Tp* __res_hi, _Tp* __res_lo);
-template<typename _Tp> __FPMP_API_DECL__ __fpmp_fp128 __nv_fpmp2_to_quad(const _Tp __x_hi, const _Tp __x_lo);
+template<typename _Tp> _CCCL_API inline void         __nv_fpmp2_from_quad(const __fpmp_fp128 __x, _Tp* __res_hi, _Tp* __res_lo);
+template<typename _Tp> _CCCL_API inline __fpmp_fp128 __nv_fpmp2_to_quad(const _Tp __x_hi, const _Tp __x_lo);
 #endif // FPMP_FP128_ENABLE == 1
 /*
  * ============================================================================
@@ -1962,63 +1962,63 @@ template<typename _Tp> __FPMP_API_DECL__ __fpmp_fp128 __nv_fpmp2_to_quad(const _
  * to the concrete __nv_fp32mp2_* implementations for float types.
  * ============================================================================
  */
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_double<float>(const double __x, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_double(__x, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_int<float>(const int32_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_int(__i, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_uint<float>(const uint32_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_uint(__i, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_ll<float>(const int64_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_ll(__i, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_ull<float>(const uint64_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_ull(__i, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ double   __nv_fpmp2_to_double<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_double(__x_hi, __x_lo); }
-template<> __FPMP_API_DECL__ float    __nv_fpmp2_to_float<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_float(__x_hi, __x_lo); }
-template<> __FPMP_API_DECL__ int32_t  __nv_fpmp2_to_int<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_int(__x_hi, __x_lo); }
-template<> __FPMP_API_DECL__ uint32_t __nv_fpmp2_to_uint<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_uint(__x_hi, __x_lo); }
-template<> __FPMP_API_DECL__ int64_t  __nv_fpmp2_to_ll<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_ll(__x_hi, __x_lo); }
-template<> __FPMP_API_DECL__ uint64_t __nv_fpmp2_to_ull<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_ull(__x_hi, __x_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_add<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_add<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_add<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_add<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_add(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_acc(__c, __acc_hi, __acc_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_mid_acc(__c, __acc_hi, __acc_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_low_acc(__c, __acc_hi, __acc_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_high_acc(__c, __acc_hi, __acc_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_from_double<float>(const double __x, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_double(__x, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_from_int<float>(const int32_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_int(__i, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_from_uint<float>(const uint32_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_uint(__i, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_from_ll<float>(const int64_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_ll(__i, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_from_ull<float>(const uint64_t __i, float* __res_hi, float* __res_lo) { __nv_fp32mp2_from_ull(__i, __res_hi, __res_lo); }
+template<> _CCCL_API inline double   __nv_fpmp2_to_double<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_double(__x_hi, __x_lo); }
+template<> _CCCL_API inline float    __nv_fpmp2_to_float<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_float(__x_hi, __x_lo); }
+template<> _CCCL_API inline int32_t  __nv_fpmp2_to_int<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_int(__x_hi, __x_lo); }
+template<> _CCCL_API inline uint32_t __nv_fpmp2_to_uint<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_uint(__x_hi, __x_lo); }
+template<> _CCCL_API inline int64_t  __nv_fpmp2_to_ll<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_ll(__x_hi, __x_lo); }
+template<> _CCCL_API inline uint64_t __nv_fpmp2_to_ull<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_to_ull(__x_hi, __x_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_add<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_add<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_add<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_add<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_add(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_sub<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_acc(__c, __acc_hi, __acc_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_mid_acc(__c, __acc_hi, __acc_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_low_acc(__c, __acc_hi, __acc_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_acc<float>(const float __c, float* __acc_hi, float* __acc_lo) { __nv_fp32mp2_high_acc(__c, __acc_hi, __acc_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
 #if __FPMP_USE_ACCURATE_MUL__ == 1
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_mul<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
 #endif // __FPMP_USE_ACCURATE_MUL__ == 1
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_renormalize<float>(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_renormalize(__x_hi, __x_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_renormalize<float>(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_renormalize(__x_hi, __x_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
 #if __FPMP_USE_ACCURATE_DIV__ == 1
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
 #endif // __FPMP_USE_ACCURATE_DIV__ == 1
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_sqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_rsqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ void     __nv_fpmp2_neg<float>(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_neg(__x_hi, __x_lo, __res_hi, __res_lo); }
-template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_eq<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_eq(__x_hi, __x_lo, __y_hi, __y_lo); }
-template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_ne<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_ne(__x_hi, __x_lo, __y_hi, __y_lo); }
-template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_lt<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_lt(__x_hi, __x_lo, __y_hi, __y_lo); }
-template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_gt<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_gt(__x_hi, __x_lo, __y_hi, __y_lo); }
-template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_le<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_le(__x_hi, __x_lo, __y_hi, __y_lo); }
-template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_ge<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_ge(__x_hi, __x_lo, __y_hi, __y_lo); }
-template<> __FPMP_API_DECL__ uint64_t __nv_fpmp2_bit_cast<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_bit_cast(__x_hi, __x_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_sqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_rsqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_mad<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_mid_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_mid_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_low_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_low_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_high_fma<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo, const float __z_hi, const float __z_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_high_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline void     __nv_fpmp2_neg<float>(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) { __nv_fp32mp2_neg(__x_hi, __x_lo, __res_hi, __res_lo); }
+template<> _CCCL_API inline bool     __nv_fpmp2_cmp_eq<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_eq(__x_hi, __x_lo, __y_hi, __y_lo); }
+template<> _CCCL_API inline bool     __nv_fpmp2_cmp_ne<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_ne(__x_hi, __x_lo, __y_hi, __y_lo); }
+template<> _CCCL_API inline bool     __nv_fpmp2_cmp_lt<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_lt(__x_hi, __x_lo, __y_hi, __y_lo); }
+template<> _CCCL_API inline bool     __nv_fpmp2_cmp_gt<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_gt(__x_hi, __x_lo, __y_hi, __y_lo); }
+template<> _CCCL_API inline bool     __nv_fpmp2_cmp_le<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_le(__x_hi, __x_lo, __y_hi, __y_lo); }
+template<> _CCCL_API inline bool     __nv_fpmp2_cmp_ge<float>(const float __x_hi, const float __x_lo, const float __y_hi, const float __y_lo) { return __nv_fp32mp2_cmp_ge(__x_hi, __x_lo, __y_hi, __y_lo); }
+template<> _CCCL_API inline uint64_t __nv_fpmp2_bit_cast<float>(const float __x_hi, const float __x_lo) { return __nv_fp32mp2_bit_cast(__x_hi, __x_lo); }
 #ifdef __CUDACC__
-template<> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicAdd<float>(float* __address_hi, float* __address_lo, const float __addition_hi, const float __addition_lo, float* __old_hi, float* __old_lo) { __nv_fp32mp2_atomicAdd(__address_hi, __address_lo, __addition_hi, __addition_lo, __old_hi, __old_lo); }
-template<> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub<float>(float* __address_hi, float* __address_lo, const float __val_hi, const float __val_lo, float* __old_hi, float* __old_lo) { __nv_fp32mp2_atomicSub(__address_hi, __address_lo, __val_hi, __val_lo, __old_hi, __old_lo); }
+template<> _CCCL_DEVICE_API inline void __nv_fpmp2_atomicAdd<float>(float* __address_hi, float* __address_lo, const float __addition_hi, const float __addition_lo, float* __old_hi, float* __old_lo) { __nv_fp32mp2_atomicAdd(__address_hi, __address_lo, __addition_hi, __addition_lo, __old_hi, __old_lo); }
+template<> _CCCL_DEVICE_API inline void __nv_fpmp2_atomicSub<float>(float* __address_hi, float* __address_lo, const float __val_hi, const float __val_lo, float* __old_hi, float* __old_lo) { __nv_fp32mp2_atomicSub(__address_hi, __address_lo, __val_hi, __val_lo, __old_hi, __old_lo); }
 #endif // __CUDACC__
 
 #if FPMP_FP64MP2_ENABLE == 1
@@ -2031,67 +2031,67 @@ template<> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub<float>(float* __ad
     * to the concrete __nv_fp64mp2_* implementations for double types.
     * ============================================================================
     */
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_double<double>(const double __x, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_double(__x, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_int<double>(const int32_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_int(__i, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_uint<double>(const uint32_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_uint(__i, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_ll<double>(const int64_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_ll(__i, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_from_ull<double>(const uint64_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_ull(__i, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ double   __nv_fpmp2_to_double<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_double(__x_hi, __x_lo); }
-    template<> __FPMP_API_DECL__ float    __nv_fpmp2_to_float<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_float(__x_hi, __x_lo); }
-    template<> __FPMP_API_DECL__ int32_t  __nv_fpmp2_to_int<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_int(__x_hi, __x_lo); }
-    template<> __FPMP_API_DECL__ uint32_t __nv_fpmp2_to_uint<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_uint(__x_hi, __x_lo); }
-    template<> __FPMP_API_DECL__ int64_t  __nv_fpmp2_to_ll<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_ll(__x_hi, __x_lo); }
-    template<> __FPMP_API_DECL__ uint64_t __nv_fpmp2_to_ull<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_ull(__x_hi, __x_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_add<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_add<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_add<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_add<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_add(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_acc(__c, __acc_hi, __acc_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_mid_acc(__c, __acc_hi, __acc_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_low_acc(__c, __acc_hi, __acc_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_high_acc(__c, __acc_hi, __acc_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_from_double<double>(const double __x, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_double(__x, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_from_int<double>(const int32_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_int(__i, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_from_uint<double>(const uint32_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_uint(__i, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_from_ll<double>(const int64_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_ll(__i, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_from_ull<double>(const uint64_t __i, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_ull(__i, __res_hi, __res_lo); }
+    template<> _CCCL_API inline double   __nv_fpmp2_to_double<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_double(__x_hi, __x_lo); }
+    template<> _CCCL_API inline float    __nv_fpmp2_to_float<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_float(__x_hi, __x_lo); }
+    template<> _CCCL_API inline int32_t  __nv_fpmp2_to_int<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_int(__x_hi, __x_lo); }
+    template<> _CCCL_API inline uint32_t __nv_fpmp2_to_uint<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_uint(__x_hi, __x_lo); }
+    template<> _CCCL_API inline int64_t  __nv_fpmp2_to_ll<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_ll(__x_hi, __x_lo); }
+    template<> _CCCL_API inline uint64_t __nv_fpmp2_to_ull<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_ull(__x_hi, __x_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_add<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_add<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_add<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_add(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_add<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_add(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_sub<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_sub(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_acc(__c, __acc_hi, __acc_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_mid_acc(__c, __acc_hi, __acc_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_low_acc(__c, __acc_hi, __acc_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_acc<double>(const double __c, double* __acc_hi, double* __acc_lo) { __nv_fp64mp2_high_acc(__c, __acc_hi, __acc_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
 #if __FPMP_USE_ACCURATE_MUL__ == 1
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_mul<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_mul(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo); }
 #endif // __FPMP_USE_ACCURATE_MUL__ == 1
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_renormalize<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_renormalize(__x_hi, __x_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_renormalize<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_renormalize(__x_hi, __x_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
 #if __FPMP_USE_ACCURATE_DIV__ == 1
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
 #endif // __FPMP_USE_ACCURATE_DIV__ == 1
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_sqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_rsqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_mid_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_low_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_high_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ void     __nv_fpmp2_neg<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_neg(__x_hi, __x_lo, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_eq<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_eq(__x_hi, __x_lo, __y_hi, __y_lo); }
-    template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_ne<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_ne(__x_hi, __x_lo, __y_hi, __y_lo); }
-    template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_lt<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_lt(__x_hi, __x_lo, __y_hi, __y_lo); }
-    template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_gt<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_gt(__x_hi, __x_lo, __y_hi, __y_lo); }
-    template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_le<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_le(__x_hi, __x_lo, __y_hi, __y_lo); }
-    template<> __FPMP_API_DECL__ bool     __nv_fpmp2_cmp_ge<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_ge(__x_hi, __x_lo, __y_hi, __y_lo); }
-    template<> __FPMP_API_DECL__ uint64_t __nv_fpmp2_bit_cast<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_bit_cast(__x_hi, __x_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_sqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_rsqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_mad<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_mad(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_mid_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_mid_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_low_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_low_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_high_fma<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo, const double __z_hi, const double __z_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_high_fma(__x_hi, __x_lo, __y_hi, __y_lo, __z_hi, __z_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline void     __nv_fpmp2_neg<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) { __nv_fp64mp2_neg(__x_hi, __x_lo, __res_hi, __res_lo); }
+    template<> _CCCL_API inline bool     __nv_fpmp2_cmp_eq<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_eq(__x_hi, __x_lo, __y_hi, __y_lo); }
+    template<> _CCCL_API inline bool     __nv_fpmp2_cmp_ne<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_ne(__x_hi, __x_lo, __y_hi, __y_lo); }
+    template<> _CCCL_API inline bool     __nv_fpmp2_cmp_lt<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_lt(__x_hi, __x_lo, __y_hi, __y_lo); }
+    template<> _CCCL_API inline bool     __nv_fpmp2_cmp_gt<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_gt(__x_hi, __x_lo, __y_hi, __y_lo); }
+    template<> _CCCL_API inline bool     __nv_fpmp2_cmp_le<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_le(__x_hi, __x_lo, __y_hi, __y_lo); }
+    template<> _CCCL_API inline bool     __nv_fpmp2_cmp_ge<double>(const double __x_hi, const double __x_lo, const double __y_hi, const double __y_lo) { return __nv_fp64mp2_cmp_ge(__x_hi, __x_lo, __y_hi, __y_lo); }
+    template<> _CCCL_API inline uint64_t __nv_fpmp2_bit_cast<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_bit_cast(__x_hi, __x_lo); }
     #ifdef __CUDACC__
-    template<> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicAdd<double>(double* __address_hi, double* __address_lo, const double __addition_hi, const double __addition_lo, double* __old_hi, double* __old_lo) { __nv_fp64mp2_atomicAdd(__address_hi, __address_lo, __addition_hi, __addition_lo, __old_hi, __old_lo); }
-    template<> __FPMP_API_DEVICE_DECL__ void __nv_fpmp2_atomicSub<double>(double* __address_hi, double* __address_lo, const double __val_hi, const double __val_lo, double* __old_hi, double* __old_lo) { __nv_fp64mp2_atomicSub(__address_hi, __address_lo, __val_hi, __val_lo, __old_hi, __old_lo); }
+    template<> _CCCL_DEVICE_API inline void __nv_fpmp2_atomicAdd<double>(double* __address_hi, double* __address_lo, const double __addition_hi, const double __addition_lo, double* __old_hi, double* __old_lo) { __nv_fp64mp2_atomicAdd(__address_hi, __address_lo, __addition_hi, __addition_lo, __old_hi, __old_lo); }
+    template<> _CCCL_DEVICE_API inline void __nv_fpmp2_atomicSub<double>(double* __address_hi, double* __address_lo, const double __val_hi, const double __val_lo, double* __old_hi, double* __old_lo) { __nv_fp64mp2_atomicSub(__address_hi, __address_lo, __val_hi, __val_lo, __old_hi, __old_lo); }
     #endif // __CUDACC__
     #if FPMP_FP128_ENABLE == 1
-    template<> __FPMP_API_DECL__ void         __nv_fpmp2_from_quad<double>(const __fpmp_fp128 __x, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_quad(__x, __res_hi, __res_lo); }
-    template<> __FPMP_API_DECL__ __fpmp_fp128 __nv_fpmp2_to_quad<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_quad(__x_hi, __x_lo); }
+    template<> _CCCL_API inline void         __nv_fpmp2_from_quad<double>(const __fpmp_fp128 __x, double* __res_hi, double* __res_lo) { __nv_fp64mp2_from_quad(__x, __res_hi, __res_lo); }
+    template<> _CCCL_API inline __fpmp_fp128 __nv_fpmp2_to_quad<double>(const double __x_hi, const double __x_lo) { return __nv_fp64mp2_to_quad(__x_hi, __x_lo); }
     #endif // FPMP_FP128_ENABLE == 1
 
 #endif // FPMP_FP64MP2_ENABLE == 1
@@ -2115,7 +2115,7 @@ template <typename _FpType, fpmp2_accuracy _TypeAcc> class fpmp2_t;
 // atomicAdd: Atomic addition for fpmp2_t
 // Returns the old value before the addition
 template <typename _FpType, fpmp2_accuracy _TypeAcc>
-__FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc> atomicAdd(fpmp2_t<_FpType, _TypeAcc>* address, 
+_CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicAdd(fpmp2_t<_FpType, _TypeAcc>* address, 
                                                               const fpmp2_t<_FpType, _TypeAcc>& val)
 {
     fpmp2_t<_FpType, _TypeAcc> result;
@@ -2143,7 +2143,7 @@ __FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc> atomicAdd(fpmp2_t<_FpType, _
 // atomicSub: Atomic subtraction for fpmp2_t
 // Returns the old value before the subtraction
 template <typename _FpType, fpmp2_accuracy _TypeAcc>
-__FPMP_API_DEVICE_DECL__ fpmp2_t<_FpType, _TypeAcc> atomicSub(fpmp2_t<_FpType, _TypeAcc>* address, 
+_CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicSub(fpmp2_t<_FpType, _TypeAcc>* address, 
                                                               const fpmp2_t<_FpType, _TypeAcc>& val)
 {
     fpmp2_t<_FpType, _TypeAcc> result;
