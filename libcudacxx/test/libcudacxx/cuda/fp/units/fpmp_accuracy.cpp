@@ -30,7 +30,6 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
     #define LAUNCH(fn, ...) fn(__VA_ARGS__)
 #endif
 
-using namespace fpmp;
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -167,7 +166,6 @@ struct CancelResults {
 };
 
 TARGET_DEVICE void compute_cancellation(CancelResults* r) {
-    using namespace fpmp;
     using ff = fp32mp2_low;
 
     // Two large values of opposite sign whose sum nearly cancels.

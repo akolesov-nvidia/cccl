@@ -48,7 +48,6 @@
 #include <cuda/fpmp_math>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 // Configuration
 #ifndef NUM_ITERATIONS

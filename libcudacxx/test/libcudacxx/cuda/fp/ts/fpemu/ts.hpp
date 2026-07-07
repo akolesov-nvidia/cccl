@@ -38,8 +38,7 @@
 
     #include <cuda/fpemu>
 
-    // ts historically used types __fp64emu_t<method> / fpemu::method. The
-    // CCCL FP SDK puts these directly in cuda::experimental:
+    // The CCCL FP SDK puts these directly in cuda::experimental:
     // fp64emu_t<fp64emu_accuracy>, fp64emu_unpacked_t<...>, the fpbits64*
     // layouts and the __fp64emu_* builtins. Pull the namespace in so the
     // existing (now unqualified) references resolve.

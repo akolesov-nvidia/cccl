@@ -388,8 +388,7 @@ namespace cuda::experimental
 /*
  * Polynomial evaluation helpers
  */
-namespace fpmp
-{
+
     /*********************************************************************
     * Mixed-precision (split-M) Horner polynomial evaluation
     * (internal building block -- namespace `fpmp`)
@@ -432,9 +431,9 @@ namespace fpmp
     *
     * Use this routine as the "B" side of an A/B switch against
     * `poly_horner_comp`; the call site is identical:
-    *     ffloat v = fpmp::poly_horner_mixed<M>(x, c);  // mixed standard
-    *     ffloat v = fpmp::poly_horner_comp    (x, c);  // compensated
-    * or dispatch via `fpmp::poly_eval<strategy, M>(x, c)` below.
+    *     ffloat v = __fpmp_poly_horner_mixed<M>(x, c);  // mixed standard
+    *     ffloat v = __fpmp_poly_horner_comp    (x, c);  // compensated
+    * or dispatch via `__fpmp_poly_eval<strategy, M>(x, c)` below.
     *
     * Template params:
     *   M      : number of high-degree coefficients to evaluate in
@@ -447,7 +446,7 @@ namespace fpmp
     *********************************************************************/
     template<int _Mp, int _Np, typename _FpType, fpmp2_accuracy _TypeAcc>
     _CCCL_API inline fpmp2_t<_FpType, _TypeAcc>
-    poly_horner_mixed(const fpmp2_t<_FpType, _TypeAcc>& __x,
+    __fpmp_poly_horner_mixed(const fpmp2_t<_FpType, _TypeAcc>& __x,
                       const fpmp2_t<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
     {
         static_assert(_Np >= 2, "poly_horner_mixed requires at least 2 coefficients (degree >= 1)");
@@ -564,7 +563,7 @@ namespace fpmp
     *********************************************************************/
     template<int _Mp = 0, int _Np, typename _FpType, fpmp2_accuracy _TypeAcc>
     _CCCL_API inline fpmp2_t<_FpType, _TypeAcc>
-    poly_horner_comp(const fpmp2_t<_FpType, _TypeAcc>& __x,
+    __fpmp_poly_horner_comp(const fpmp2_t<_FpType, _TypeAcc>& __x,
                      const fpmp2_t<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
     {
         static_assert(_Np >= 2, "poly_horner_comp requires at least 2 coefficients (degree >= 1)");
@@ -600,18 +599,18 @@ namespace fpmp
                 const _FpType __ckh = __c[__k].hi();
 
                 // two_mult_fma: P + pi == xh * acc  (exact)
-                _FpType __pval  = mul_rn(__xh, __acc);
-                _FpType __pi = fma_rn(__xh, __acc, -__pval);
+                _FpType __pval  = __fpmp_mul_rn(__xh, __acc);
+                _FpType __pi = __fpmp_fma_rn(__xh, __acc, -__pval);
 
                 // two_sum: S + sg == P + ckh  (exact, no magnitude assumption)
-                _FpType __S  = add_rn(__pval, __ckh);
-                _FpType __bb = sub_rn(__S, __pval);
-                _FpType __t  = sub_rn(__S, __bb);
-                _FpType __u  = sub_rn(__pval, __t);
-                _FpType __v  = sub_rn(__ckh, __bb);
-                _FpType __sg = add_rn(__u, __v);
+                _FpType __S  = __fpmp_add_rn(__pval, __ckh);
+                _FpType __bb = __fpmp_sub_rn(__S, __pval);
+                _FpType __t  = __fpmp_sub_rn(__S, __bb);
+                _FpType __u  = __fpmp_sub_rn(__pval, __t);
+                _FpType __v  = __fpmp_sub_rn(__ckh, __bb);
+                _FpType __sg = __fpmp_add_rn(__u, __v);
 
-                __err = fma_rn(__xh, __err, add_rn(__pi, __sg));
+                __err = __fpmp_fma_rn(__xh, __err, __fpmp_add_rn(__pi, __sg));
                 __acc = __S;
             }
         }
@@ -627,7 +626,7 @@ namespace fpmp
         #endif
             for (int __k = __lo_start; __k >= 0; --__k)
             {
-                __corr = fma_rn(__xh, __corr, __c[__k].lo());
+                __corr = __fpmp_fma_rn(__xh, __corr, __c[__k].lo());
             }
         }
 
@@ -638,14 +637,14 @@ namespace fpmp
     #endif
         for (int __k = _Np - 1; __k >= 1; --__k)
         {
-            __dp = fma_rn(__xh, __dp, mul_rn(static_cast<_FpType>(__k), __c[__k].hi()));
+            __dp = __fpmp_fma_rn(__xh, __dp, __fpmp_mul_rn(static_cast<_FpType>(__k), __c[__k].hi()));
         }
-        __corr = fma_rn(__xl, __dp, __corr);
+        __corr = __fpmp_fma_rn(__xl, __dp, __corr);
 
         // === Phase 3: combine into normalized ff ===
-        _FpType __lo  = add_rn(__err, __corr);
-        _FpType __rhi = add_rn(__acc, __lo);
-        _FpType __rlo = sub_rn(__lo, sub_rn(__rhi, __acc));
+        _FpType __lo  = __fpmp_add_rn(__err, __corr);
+        _FpType __rhi = __fpmp_add_rn(__acc, __lo);
+        _FpType __rlo = __fpmp_sub_rn(__lo, __fpmp_sub_rn(__rhi, __acc));
         return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
     } // poly_horner_comp
 
@@ -657,7 +656,7 @@ namespace fpmp
     * are expected to slot in as new enumerators here without
     * changing the dispatcher signature.
     *********************************************************************/
-    enum class poly_method
+    enum class __fpmp_poly_method
     {
         horner_mixed = 0,  // mixed-precision Horner (`poly_horner_mixed<M>`)
         horner_comp  = 1,  // compensated  Horner    (`poly_horner_comp`)
@@ -669,11 +668,11 @@ namespace fpmp
     *
     * Thin compile-time switch between the polynomial-evaluation kernels:
     *
-    *     fpmp::poly_eval<poly_method::horner_mixed, M>(x, c)
-    *         -> fpmp::poly_horner_mixed<M>(x, c)
+    *     __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, M>(x, c)
+    *         -> __fpmp_poly_horner_mixed<M>(x, c)
     *
-    *     fpmp::poly_eval<poly_method::horner_comp,  M>(x, c)
-    *         -> fpmp::poly_horner_comp <M>(x, c)
+    *     __fpmp_poly_eval<__fpmp_poly_method::horner_comp,  M>(x, c)
+    *         -> __fpmp_poly_horner_comp <M>(x, c)
     *
     * Both backends share the same M-split semantics: the M HIGHEST-degree
     * coefficients are evaluated in plain FpType arithmetic (with the
@@ -693,19 +692,19 @@ namespace fpmp
     *   FpType   : float or double (deduced).
     *   met      : fpmp arithmetic accuracy level (deduced).
     *********************************************************************/
-    template<poly_method _Strategy, int _Mp = 0,
+    template<__fpmp_poly_method _Strategy, int _Mp = 0,
              int _Np, typename _FpType, fpmp2_accuracy _TypeAcc>
     _CCCL_API inline fpmp2_t<_FpType, _TypeAcc>
-    poly_eval(const fpmp2_t<_FpType, _TypeAcc>& __x,
+    __fpmp_poly_eval(const fpmp2_t<_FpType, _TypeAcc>& __x,
               const fpmp2_t<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
     {
-        if constexpr (_Strategy == poly_method::horner_mixed) {
-            return poly_horner_mixed<_Mp>(__x, __c);
+        if constexpr (_Strategy == __fpmp_poly_method::horner_mixed) {
+            return __fpmp_poly_horner_mixed<_Mp>(__x, __c);
         } else /* poly_method::horner_comp */ {
-            return poly_horner_comp <_Mp>(__x, __c);
+            return __fpmp_poly_horner_comp <_Mp>(__x, __c);
         }
     } // poly_eval
-} // namespace fpmp
+
 
     /*
     * --------------------------------------------------------------------
@@ -727,7 +726,6 @@ namespace fpmp
                                                 _FpType*      __res_hi, 
                                                 _FpType*      __res_lo) noexcept
     {
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
      
         // Constants as C99 hex floating-point literals - split via constexpr constructor
@@ -791,7 +789,7 @@ namespace fpmp
         float __t  = __x_hi*__inv_ln2 + __shift_bias;
 
         // Shift the exponent by 23 bits to get the scale as fp32 value
-        int32_t __scale = internal_bit_cast<int32_t>(__t);
+        int32_t __scale = __fpmp_internal_bit_cast<int32_t>(__t);
         __scale <<= 23;
 
         // Split the scale into high and low parts
@@ -800,8 +798,8 @@ namespace fpmp
         __scale    -= __scale_lo;
 
         // Cast the scales to fp32 values
-        float __fscale    = internal_bit_cast<float>(__scale);
-        float __fscale_lo = internal_bit_cast<float>(__scale_lo);
+        float __fscale    = __fpmp_internal_bit_cast<float>(__scale);
+        float __fscale_lo = __fpmp_internal_bit_cast<float>(__scale_lo);
 
         // Compute the reduced argument r = x - n*ln(2)
         float __tt = __t - __shift_bias;
@@ -821,7 +819,7 @@ namespace fpmp
         // the c8->c7 boundary. The numerical difference is below 1 ULP
         // at the polynomial value, well inside the Taylor truncation
         // noise floor.
-        ffloat __p = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 6>(__r, __exp_c);
+        ffloat __p = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 6>(__r, __exp_c);
 
         // Fold in the low-degree float coefficients c1, c2 outside the
         // dispatcher (they live at the wrong end of the polynomial for
@@ -858,7 +856,6 @@ namespace fpmp
                                                 _FpType*      __res_hi,
                                                 _FpType*      __res_lo) noexcept
     {
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         constexpr ffloat __ln2(0x1.62e42fefa39efp-1);  // ln(2)
@@ -894,26 +891,26 @@ namespace fpmp
         int    __e_adj = 0;
 
         /* Normalize denormals: scale by 2^24 to make the exponent field nonzero */
-        uint32_t __xbits = internal_bit_cast<uint32_t>(__a_hi);
+        uint32_t __xbits = __fpmp_internal_bit_cast<uint32_t>(__a_hi);
         if ((__xbits & 0x7F800000u) == 0u) 
         {
             __a_hi  = __a_hi * 0x1.0p24f;
             __a_lo  = __a_lo * 0x1.0p24f;
             __e_adj = -24;
-            __xbits = internal_bit_cast<uint32_t>(__a_hi);
+            __xbits = __fpmp_internal_bit_cast<uint32_t>(__a_hi);
         }
 
         int __e = static_cast<int>((__xbits >> 23) & 0xFFu) - 127 + __e_adj;
 
         /* m_hi in [1, 2) by replacing exponent field with bias 127 */
-        float __m_hi = internal_bit_cast<float>((__xbits & 0x007FFFFFu) | 0x3F800000u);
+        float __m_hi = __fpmp_internal_bit_cast<float>((__xbits & 0x007FFFFFu) | 0x3F800000u);
 
         /* Scale a_lo by 2^(-e_orig) where e_orig = e - e_adj,
          * using split factors to stay in normal float range */
         int __e_orig = __e - __e_adj;
         int __e2     = __e_orig / 2;
-        float __s1   = internal_bit_cast<float>(static_cast<uint32_t>(127 - __e2) << 23);
-        float __s2   = internal_bit_cast<float>(static_cast<uint32_t>(127 - (__e_orig - __e2)) << 23);
+        float __s1   = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 - __e2) << 23);
+        float __s2   = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 - (__e_orig - __e2)) << 23);
         float __m_lo = __a_lo * __s1 * __s2;
 
         ffloat __m = renormalize(ffloat(__m_hi, __m_lo));
@@ -943,7 +940,7 @@ namespace fpmp
          * bit-for-bit, so this refactor is numerically identical to
          * the previous implementation.
          */
-        ffloat __q = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 5>(__v, __atanh_c);
+        ffloat __q = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 5>(__v, __atanh_c);
 
         /* log(m) = u + u*v*q(v) */
         __q = __q * __v;
@@ -1006,7 +1003,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_log1p is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation: any NaN component -> NaN result. */
@@ -1067,7 +1063,7 @@ namespace fpmp
 
             ffloat __x      (__x_hi, __x_lo);
             ffloat __x2     = __x * __x;
-            ffloat __T      = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 4>(__x, __log1p_poly_c);
+            ffloat __T      = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 4>(__x, __log1p_poly_c);
             ffloat __result = renormalize(__x + __x2 * __T);
             *__res_hi = __result.hi();
             *__res_lo = __result.lo();
@@ -1140,7 +1136,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_log2 is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* 1/ln(2) ~= 1.4426950408889634073599... */
@@ -1185,7 +1180,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_log10 is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* 1/ln(10) ~= 0.4342944819032518276511289... */
@@ -1272,7 +1266,7 @@ namespace fpmp
         };
 
         /* G(r) = a1 + a2*r + a3*r^2 + ... + a13*r^12 ~= (2^r - 1)/r */
-        ffloat __p = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 6>(__r, __exp2_c);
+        ffloat __p = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 6>(__r, __exp2_c);
 
         /* Close with the implicit a0 = 1 constant:
          *   2^r = 1 + r * G(r) */
@@ -1335,7 +1329,7 @@ namespace fpmp
         };
 
         /* G(r) = b1 + b2*r + b3*r^2 + ... + b13*r^12 ~= (10^r - 1)/r */
-        ffloat __p = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 7>(__r, __exp10_c);
+        ffloat __p = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 7>(__r, __exp10_c);
 
         /* Close with the implicit b0 = 1:  10^r = 1 + r * G(r) */
         __p = __p * __r + ffloat(1.0f, 0.0f);
@@ -1368,8 +1362,8 @@ namespace fpmp
         if (__ek2 < 1)   __ek2 = 1;
         if (__ek1 > 254) __ek1 = 254;
         if (__ek2 > 254) __ek2 = 254;
-        const float __scale_a = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
-        const float __scale_b = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
+        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
+        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
         return __p * __scale_a * __scale_b;
     }
 
@@ -1419,7 +1413,6 @@ namespace fpmp
     {
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
-            using namespace fpmp;
             using ffloat = fp32mp2_low;
 
             /* Saturate |n| to +-300.  Any |n| larger than this is provably
@@ -1438,9 +1431,9 @@ namespace fpmp
             if (__ek1 > 254) __ek1 = 254;
             if (__ek2 > 254) __ek2 = 254;
             if (__ek3 > 254) __ek3 = 254;
-            const float __s1 = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
-            const float __s2 = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
-            const float __s3 = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek3) << 23);
+            const float __s1 = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
+            const float __s2 = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
+            const float __s3 = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek3) << 23);
 
             const ffloat __result = ffloat(__x_hi, __x_lo) * __s1 * __s2 * __s3;
 
@@ -1519,8 +1512,8 @@ namespace fpmp
     {
         const int   __s1 = __s >> 1;            /* floor(s/2) */
         const int   __s2 = __s - __s1;
-        const float __f1 = fpmp::internal_bit_cast<float>(static_cast<uint32_t>(127 + __s1) << 23);
-        const float __f2 = fpmp::internal_bit_cast<float>(static_cast<uint32_t>(127 + __s2) << 23);
+        const float __f1 = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 + __s1) << 23);
+        const float __f2 = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 + __s2) << 23);
         return __v * __f1 * __f2;
     }
 
@@ -1539,14 +1532,14 @@ namespace fpmp
     _CCCL_TRIVIAL_API void __fp32mp2_modf_decompose(float __hi, float __lo,
                                                             unsigned long long* __M, int* __E) noexcept
     {
-        const uint32_t __hb = fpmp::internal_bit_cast<uint32_t>(__hi);
+        const uint32_t __hb = __fpmp_internal_bit_cast<uint32_t>(__hi);
         int __Eh;
         if ((__hb & 0x7F800000u) == 0u)
         {
             /* denormal hi (hi > 0): value = mant * 2^-149 */
             const uint32_t __mant = __hb & 0x007FFFFFu;
             const float    __fm   = static_cast<float>(__mant);
-            const uint32_t __fmb  = fpmp::internal_bit_cast<uint32_t>(__fm);
+            const uint32_t __fmb  = __fpmp_internal_bit_cast<uint32_t>(__fm);
             __Eh = static_cast<int>((__fmb >> 23) & 0xFFu) - 127 - 149;
         }
         else
@@ -1559,7 +1552,7 @@ namespace fpmp
         const float __slo = __fp32mp2_scale2_scalar(__lo, __s);   /* |slo| <= 2^28           */
 
         long long __m = static_cast<long long>(static_cast<unsigned long long>(__shi))
-                    + static_cast<long long>(fpmp::fp2int_rn(__slo));
+                    + static_cast<long long>(__fpmp_fp2int_rn(__slo));
         int __e = __Eh - 52;
 
         /* lo > 0 may push m just past 2^53; bring it back. */
@@ -1616,7 +1609,7 @@ namespace fpmp
         if (__neg) { __rhi = -__rhi; __rlo = -__rlo; }
 
         float __lo;
-        const float __hi = fpmp::two_sum(__rhi, __rlo, &__lo);   /* exact, no magnitude assumption */
+        const float __hi = __fpmp_two_sum(__rhi, __rlo, &__lo);   /* exact, no magnitude assumption */
         *__res_hi = __hi;
         *__res_lo = __lo;
     }
@@ -1670,7 +1663,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_fmod is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
 
         /* (hi + lo) != (hi + lo) also catches a degenerate (+inf, -inf) limb
          * pair, which the fp128 reference widens to inf + (-inf) = NaN. */
@@ -1720,7 +1712,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_remainder is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* (hi + lo) != (hi + lo) also catches a degenerate (+inf, -inf) limb
@@ -1838,7 +1829,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_exp2 is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation: short-circuit so the lo limb propagates too. */
@@ -1864,8 +1854,8 @@ namespace fpmp
         }
 
         /* Step 1: integer/fractional split directly in base-2 units. */
-        const int    __n   = fp2int_rn(__x_hi);
-        const ffloat __n_f = int2fp_rn<float>(__n);
+        const int    __n   = __fpmp_fp2int_rn(__x_hi);
+        const ffloat __n_f = __fpmp_int2fp_rn<float>(__n);
 
         /* Step 2: r = x - n.  ffloat subtraction by an integer is exact
          * (n_f is representable in float for |n| <= 2^23, which our
@@ -1932,7 +1922,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_exp10 is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
         using afloat = fp32mp2_high;
 
@@ -1972,8 +1961,8 @@ namespace fpmp
          * Uses an ordinary ff multiplication -- we only need the integer
          * part, so the lo limb of the product is discarded. */
         const ffloat __t_approx = ffloat(__x_hi, __x_lo) * __log2_10;
-        const int    __n        = fp2int_rn(__t_approx.hi());
-        const float  __n_f      = int2fp_rn<float>(__n);
+        const int    __n        = __fpmp_fp2int_rn(__t_approx.hi());
+        const float  __n_f      = __fpmp_int2fp_rn<float>(__n);
 
         /* Step 2: Cody-Waite reduction  r' = x - n * log10(2)
          *   r' = (x_hi + x_lo) - n_f * (C1 + C2 + C3)
@@ -1985,11 +1974,11 @@ namespace fpmp
 
         /* n_f * C1 = ph + pl  (exact pair) */
         float __pl;
-        const float __ph = two_mult_fma(__n_f, __C1, &__pl);
+        const float __ph = __fpmp_two_mult_fma(__n_f, __C1, &__pl);
 
         /* x_hi - ph = s + e  (exact pair) */
         float __e;
-        const float __s = two_sum(__x_hi, -__ph, &__e);
+        const float __s = __fpmp_two_sum(__x_hi, -__ph, &__e);
 
         afloat __r_acc(__s, __e);
         __r_acc = __r_acc + afloat(-__pl);
@@ -1997,13 +1986,13 @@ namespace fpmp
 
         /* n_f * C2 = nC2_hi + nC2_lo  (exact pair) */
         float __nC2_lo;
-        const float __nC2_hi = two_mult_fma(__n_f, __C2, &__nC2_lo);
+        const float __nC2_hi = __fpmp_two_mult_fma(__n_f, __C2, &__nC2_lo);
         __r_acc = __r_acc - afloat(__nC2_hi, __nC2_lo);
 
         /* n_f * C3 is tiny (~10^-14 at the largest n we hit);
          * single-precision product is below the polynomial noise
          * floor but cheap to include for completeness. */
-        __r_acc = __r_acc + afloat(mul_rn(__n_f, -__C3));
+        __r_acc = __r_acc + afloat(__fpmp_mul_rn(__n_f, -__C3));
 
         /* Step 3: 10^r' via the dedicated base-10 Taylor kernel.
          * Hand off the accurate accumulator as fast ffloat -- the
@@ -2062,7 +2051,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_expm1 is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation: any NaN component -> NaN result. */
@@ -2118,7 +2106,7 @@ namespace fpmp
 
             ffloat __x      (__x_hi, __x_lo);
             ffloat __x2     = __x * __x;
-            ffloat __pval      = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 4>(__x, __expm1_poly_c);
+            ffloat __pval      = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 4>(__x, __expm1_poly_c);
             ffloat __result = renormalize(__x + __x2 * __pval);
             *__res_hi = __result.hi();
             *__res_lo = __result.lo();
@@ -2211,7 +2199,7 @@ namespace fpmp
         bool __b_is_int     = false;
         bool __b_is_odd_int = false;
         {
-            const float __b_trunc  = fpmp::internal_trunc<float>(__b_hi);
+            const float __b_trunc  = __fpmp_internal_trunc<float>(__b_hi);
             if (__b_lo == 0.0f && __b_trunc == __b_hi)
             {
                 __b_is_int = true;
@@ -2331,7 +2319,6 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         // 1/3 in single precision (round-to-nearest); the exact 1/3 is not
@@ -2339,7 +2326,7 @@ namespace fpmp
         // accuracy of the SFU lg2/ex2 pair so this is sufficient.
         constexpr float __third_f = 0x1.555556p-2f;
 
-        const uint32_t __xbits   = internal_bit_cast<uint32_t>(__x_hi);
+        const uint32_t __xbits   = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
         const uint32_t __absbits = __xbits & 0x7FFFFFFFu;
         const uint32_t __signbit = __xbits & 0x80000000u;
 
@@ -2355,7 +2342,7 @@ namespace fpmp
         }
 
         /* Operate on |x|; sign of x_lo follows the sign of x_hi. */
-        float __ax_hi = internal_bit_cast<float>(__absbits);
+        float __ax_hi = __fpmp_internal_bit_cast<float>(__absbits);
         float __ax_lo = (__signbit != 0u) ? -__x_lo : __x_lo;
 
         /* Denormal pre-scaling: multiply by 2^24 (chosen so the offset is
@@ -2368,12 +2355,12 @@ namespace fpmp
             __ax_hi  *= __scale_up;
             __ax_lo  *= __scale_up;
             __denorm_div3    = 8;
-            __scaled_absbits = internal_bit_cast<uint32_t>(__ax_hi);
+            __scaled_absbits = __fpmp_internal_bit_cast<uint32_t>(__ax_hi);
         }
 
         /* Reduce: ax = r * 2^(3 * nexpo), with nexpo chosen so r ~= 1. */
         const int __expo  = static_cast<int>(__scaled_absbits >> 23);
-        const int __nexpo = fpmp::fp2int_rn(__third_f * static_cast<float>(__expo - 126));
+        const int __nexpo = __fpmp_fp2int_rn(__third_f * static_cast<float>(__expo - 126));
 
         /* r_hi = ax_hi * 2^(-3*nexpo): exact, by exponent-field subtraction.
          * (The mantissa is untouched; only the biased exponent shifts.)
@@ -2382,7 +2369,7 @@ namespace fpmp
         constexpr int     __EXP_SHIFT = 1 << 23;
         const     int     __delta_exp = 3 * __nexpo;
         const     int     __new_bits  = static_cast<int>(__scaled_absbits) - __delta_exp * __EXP_SHIFT;
-        const     float   __r_hi      = internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
+        const     float   __r_hi      = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
 
         /* r_lo: scale by the same power of two via float multiply.  Split
          * 2^(-3*nexpo) into two normal-range factors: for x near max float
@@ -2392,12 +2379,12 @@ namespace fpmp
          * [62, 190]); the product stays exact for all valid inputs. */
         const int __half_pow  = -__delta_exp / 2;
         const int __rest_pow  = -__delta_exp - __half_pow;
-        const float __scale_a = internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __EXP_SHIFT));
-        const float __scale_b = internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __EXP_SHIFT));
+        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __EXP_SHIFT));
+        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __EXP_SHIFT));
         const float __r_lo    = (__ax_lo * __scale_a) * __scale_b;
 
         /* Initial cbrt approximation via the SFU lg2/ex2 pair (~23 bits). */
-        const float __s = fpmp::fast_exp2(__third_f * fpmp::fast_log2(__r_hi));
+        const float __s = __fpmp_fast_exp2(__third_f * __fpmp_fast_log2(__r_hi));
 
         /* Halley refinement in fp32mp2:  t_new = t + t * (r - t^3) / (2 t^3 + r).
          *
@@ -2419,7 +2406,7 @@ namespace fpmp
         /* Single-precision reciprocal of denom.hi() is enough: the
          * correction u_corr ~ 2^-23 contributes t * u_corr ~ 2^-46 to
          * t_new -- exactly fp32mp2 precision. */
-        const float  __inv_denom = fpmp::rcp_rn(__denom.hi());
+        const float  __inv_denom = __fpmp_rcp_rn(__denom.hi());
         const ffloat __u_corr    = __numer * __inv_denom;
         const ffloat __t_new     = __t + __t * __u_corr;
 
@@ -2428,7 +2415,7 @@ namespace fpmp
          * scale factor a normal float for all valid float inputs
          * (biased exponent is always in [77, 170]). */
         const int   __back_shift = __nexpo - __denorm_div3;
-        const float __scale_back = internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __EXP_SHIFT));
+        const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __EXP_SHIFT));
         float __t_hi_back = __t_new.hi() * __scale_back;
         float __t_lo_back = __t_new.lo() * __scale_back;
 
@@ -2489,7 +2476,6 @@ namespace fpmp
                                                   _FpType*      __res_hi,
                                                   _FpType*      __res_lo) noexcept
     {
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         // 1/3 and 2/9 in single precision (round-to-nearest); ulp at this
@@ -2497,7 +2483,7 @@ namespace fpmp
         constexpr float __third_f      = 0x1.555556p-2f;   // ~= 1/3
         constexpr float __two_ninths_f = 0x1.c71c72p-3f;   // ~= 2/9
 
-        const uint32_t __xbits   = internal_bit_cast<uint32_t>(__x_hi);
+        const uint32_t __xbits   = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
         const uint32_t __absbits = __xbits & 0x7FFFFFFFu;
         const uint32_t __signbit = __xbits & 0x80000000u;
 
@@ -2509,9 +2495,9 @@ namespace fpmp
         if (__absbits == 0u || __absbits >= 0x7F800000u)
         {
             if (__absbits == 0u) {
-                *__res_hi = internal_bit_cast<float>(__signbit | 0x7F800000u);
+                *__res_hi = __fpmp_internal_bit_cast<float>(__signbit | 0x7F800000u);
             } else if (__absbits == 0x7F800000u) {
-                *__res_hi = internal_bit_cast<float>(__signbit);
+                *__res_hi = __fpmp_internal_bit_cast<float>(__signbit);
             } else {
                 *__res_hi = __x_hi;     // NaN
             }
@@ -2520,7 +2506,7 @@ namespace fpmp
         }
 
         /* Operate on |x|; sign of x_lo follows the sign of x_hi. */
-        float __ax_hi = internal_bit_cast<float>(__absbits);
+        float __ax_hi = __fpmp_internal_bit_cast<float>(__absbits);
         float __ax_lo = (__signbit != 0u) ? -__x_lo : __x_lo;
 
         /* Denormal pre-scaling: multiply by 2^24. */
@@ -2532,12 +2518,12 @@ namespace fpmp
             __ax_hi  *= __scale_up;
             __ax_lo  *= __scale_up;
             __denorm_div3    = 8;
-            __scaled_absbits = internal_bit_cast<uint32_t>(__ax_hi);
+            __scaled_absbits = __fpmp_internal_bit_cast<uint32_t>(__ax_hi);
         }
 
         /* Reduce: ax = r * 2^(3 * nexpo), with nexpo chosen so r ~= 1. */
         const int __expo  = static_cast<int>(__scaled_absbits >> 23);
-        const int __nexpo = fpmp::fp2int_rn(__third_f * static_cast<float>(__expo - 126));
+        const int __nexpo = __fpmp_fp2int_rn(__third_f * static_cast<float>(__expo - 126));
 
         /* r_hi = ax_hi * 2^(-3*nexpo): exact, by exponent-field subtraction.
          * Use multiplication by 2^23 instead of left-shift to avoid UB
@@ -2545,19 +2531,19 @@ namespace fpmp
         constexpr int     __EXP_SHIFT = 1 << 23;
         const     int     __delta_exp = 3 * __nexpo;
         const     int     __new_bits  = static_cast<int>(__scaled_absbits) - __delta_exp * __EXP_SHIFT;
-        const     float   __r_hi      = internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
+        const     float   __r_hi      = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
 
         /* r_lo: scale by 2^(-3*nexpo) via float multiply.  Split into two
          * normal-range factors to keep each biased exponent in roughly
          * [62, 190] for all valid float inputs. */
         const int __half_pow  = -__delta_exp / 2;
         const int __rest_pow  = -__delta_exp - __half_pow;
-        const float __scale_a = internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __EXP_SHIFT));
-        const float __scale_b = internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __EXP_SHIFT));
+        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __EXP_SHIFT));
+        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __EXP_SHIFT));
         const float __r_lo    = (__ax_lo * __scale_a) * __scale_b;
 
         /* Initial 1/cbrt approximation via the SFU lg2/ex2 pair (~23 bits). */
-        const float __s = fpmp::fast_exp2(-__third_f * fpmp::fast_log2(__r_hi));
+        const float __s = __fpmp_fast_exp2(-__third_f * __fpmp_fast_log2(__r_hi));
 
         /* Halley refinement in fp32mp2:  t_new = t * (1 + u/3 + (2/9) u^2)
          * with u = 1 - r * t^3.
@@ -2586,7 +2572,7 @@ namespace fpmp
          * float multiply.  back_shift stays in [-43, +49] for all valid
          * float inputs, so the biased exponent is always in [84, 176]. */
         const int   __back_shift = -__nexpo + __denorm_div3;
-        const float __scale_back = internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __EXP_SHIFT));
+        const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __EXP_SHIFT));
         float __t_hi_back = __t_new.hi() * __scale_back;
         float __t_lo_back = __t_new.lo() * __scale_back;
 
@@ -2636,7 +2622,6 @@ namespace fpmp
     _CCCL_TRIVIAL_API void __internal_fpmp2_ph_frac(
         _FpType __a_hi, unsigned* __q_out, uint32_t* __frac_hi, uint32_t* __frac_lo) noexcept
     {
-        using namespace fpmp;
 
         constexpr unsigned int __i2opi[] = 
         {
@@ -2644,7 +2629,7 @@ namespace fpmp
             0xfc2757d1U, 0x4e441529U, 0xa2f9836eU,
         };
 
-        uint32_t __ia = internal_bit_cast<uint32_t>(__a_hi);
+        uint32_t __ia = __fpmp_internal_bit_cast<uint32_t>(__a_hi);
         uint32_t __result[7];
         uint32_t __hi, __lo;
         int __iq;
@@ -2717,7 +2702,6 @@ namespace fpmp
         uint32_t __hi, uint32_t __lo, uint32_t __s,
         _FpType* __r_hi, _FpType* __r_lo) noexcept
     {
-        using namespace fpmp;
 
         /* Normalize: shift so MSB of hi is 1.
          * Handle hi == 0 separately to avoid shift-by-32 UB.
@@ -2777,7 +2761,7 @@ namespace fpmp
 
         if (__rem == 0U) 
         {
-            *__r_hi = internal_bit_cast<_FpType>(__f1_bits);
+            *__r_hi = __fpmp_internal_bit_cast<_FpType>(__f1_bits);
             *__r_lo = _FpType(0);
             return;
         }
@@ -2795,15 +2779,15 @@ namespace fpmp
         int __biased_exp2 = (int)__biased_exp - 24 - (int)__rlz;
         if (__biased_exp2 < 1) 
         {
-            *__r_hi = internal_bit_cast<_FpType>(__f1_bits);
+            *__r_hi = __fpmp_internal_bit_cast<_FpType>(__f1_bits);
             *__r_lo = _FpType(0);
         } 
         else 
         {
             uint32_t __f2_bits = __s | ((uint32_t)__biased_exp2 << 23)
                                  | ((__rem_norm >> 8) & 0x7FFFFFU);
-            *__r_hi = internal_bit_cast<_FpType>(__f1_bits);
-            *__r_lo = internal_bit_cast<_FpType>(__f2_bits);
+            *__r_hi = __fpmp_internal_bit_cast<_FpType>(__f1_bits);
+            *__r_lo = __fpmp_internal_bit_cast<_FpType>(__f2_bits);
         }
     }
 
@@ -2823,11 +2807,10 @@ namespace fpmp
         _FpType __x_hi, _FpType __x_lo,
         int* __quadrant, _FpType* __r_hi, _FpType* __r_lo) noexcept
     {
-        using namespace fpmp;
         using afloat = fp32mp2_high;
 
         _FpType __abs_hi = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-        uint32_t __abs_bits = internal_bit_cast<uint32_t>(__abs_hi);
+        uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
 
         /* No reduction for |x| < pi/4 */
         if (__abs_bits < 0x3F490FDBU) 
@@ -2865,16 +2848,16 @@ namespace fpmp
             constexpr _FpType __C2 = _FpType(7.5497894158615964e-008);
             constexpr _FpType __C3 = _FpType(5.3903029534742384e-015);
 
-            int __n = fp2int_rn(__x_hi * _FpType(0x1.45f306p-1f));
-            _FpType __n_f = int2fp_rn<_FpType>(__n);
+            int __n = __fpmp_fp2int_rn(__x_hi * _FpType(0x1.45f306p-1f));
+            _FpType __n_f = __fpmp_int2fp_rn<_FpType>(__n);
 
             /* Exact product n*C1 = ph + pl */
             _FpType __pl;
-            _FpType __ph = two_mult_fma(__n_f, __C1, &__pl);
+            _FpType __ph = __fpmp_two_mult_fma(__n_f, __C1, &__pl);
 
             /* Exact subtraction x_hi - ph = s + e */
             _FpType __e;
-            _FpType __s = two_sum(__x_hi, -__ph, &__e);
+            _FpType __s = __fpmp_two_sum(__x_hi, -__ph, &__e);
 
             /* Build result as fp32mp2_high from exact (s, e),
              * then accumulate corrections with full precision.
@@ -2885,11 +2868,11 @@ namespace fpmp
 
             /* Exact product n*C2 = nC2_hi + nC2_lo via two_mult_fma */
             _FpType __nC2_lo;
-            _FpType __nC2_hi = two_mult_fma(__n_f, __C2, &__nC2_lo);
+            _FpType __nC2_hi = __fpmp_two_mult_fma(__n_f, __C2, &__nC2_lo);
             __result = __result - afloat(__nC2_hi, __nC2_lo);
 
             /* n*C3 is tiny (~10^-11), single-precision product suffices */
-            __result = __result + afloat(mul_rn(__n_f, -__C3));
+            __result = __result + afloat(__fpmp_mul_rn(__n_f, -__C3));
 
             *__quadrant = __n;
             *__r_hi = __result.hi();
@@ -2908,7 +2891,7 @@ namespace fpmp
             unsigned __q_hi;
             __internal_fpmp2_ph_frac(__x_hi, &__q_hi, &__fhi, &__flo);
 
-            uint32_t __x_hi_sign = internal_bit_cast<uint32_t>(__x_hi) & 0x80000000U;
+            uint32_t __x_hi_sign = __fpmp_internal_bit_cast<uint32_t>(__x_hi) & 0x80000000U;
             int __q = (int)__q_hi;
 
             /* Add x_lo contribution in fixed-point.
@@ -2919,7 +2902,7 @@ namespace fpmp
             if (__x_lo != _FpType(0)) 
             {
                 _FpType __abs_lo = (__x_lo < _FpType(0)) ? -__x_lo : __x_lo;
-                uint32_t __abs_lo_bits = internal_bit_cast<uint32_t>(__abs_lo);
+                uint32_t __abs_lo_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_lo);
                 bool __same_sign = (__x_lo > _FpType(0)) == (__x_hi > _FpType(0));
 
                 uint32_t __fhi2 = 0, __flo2 = 0;
@@ -3007,9 +2990,9 @@ namespace fpmp
         float  __x2f = __x2.hi();
 
         float __qf = __s7;
-        __qf = fpmp::fma_rn(__qf, __x2f, __s6);
-        __qf = fpmp::fma_rn(__qf, __x2f, __s5);
-        __qf = fpmp::fma_rn(__qf, __x2f, __s4);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __s6);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __s5);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __s4);
 
         ffloat __q = __qf * __x2 + __s3;
         __q = __q * __x2 + __s2;
@@ -3045,10 +3028,10 @@ namespace fpmp
         float  __x2f = __x2.hi();
 
         float __qf = __c8;
-        __qf = fpmp::fma_rn(__qf, __x2f, __c7);
-        __qf = fpmp::fma_rn(__qf, __x2f, __c6);
-        __qf = fpmp::fma_rn(__qf, __x2f, __c5);
-        __qf = fpmp::fma_rn(__qf, __x2f, __c4);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __c7);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __c6);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __c5);
+        __qf = __fpmp_fma_rn(__qf, __x2f, __c4);
 
         ffloat __q = __qf * __x2 + __c3;
         __q = __q * __x2 + __c2;
@@ -3075,7 +3058,7 @@ namespace fpmp
     {
 #if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
         _FpType __abs_hi = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-        uint32_t __abs_bits = fpmp::internal_bit_cast<uint32_t>(__abs_hi);
+        uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
         if (__abs_bits >= 0x49800000U) 
         {
             using mp2_t = fpmp2_t<_FpType>;
@@ -3188,7 +3171,7 @@ namespace fpmp
     {
 #if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
         _FpType __abs_hi = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-        uint32_t __abs_bits = fpmp::internal_bit_cast<uint32_t>(__abs_hi);
+        uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
         if (__abs_bits >= 0x49800000U)   /* |x_hi| >= 2^20 */
         {
             using mp2_t = fpmp2_t<_FpType>;
@@ -3300,7 +3283,7 @@ namespace fpmp
         };
 
         ffloat __a2 = __a * __a;
-        ffloat __q  = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__a2, __atan_c);
+        ffloat __q  = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__a2, __atan_c);
         *__result   = renormalize(__a + __a * (__a2 * __q));
     }
 
@@ -3333,7 +3316,7 @@ namespace fpmp
             ffloat( 6.259798167646803e-02), /* c12 */
         };
 
-        ffloat __q = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__y_fast, __asin_c);
+        ffloat __q = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__y_fast, __asin_c);
         fpmp2_t<_FpType> __res(__q.hi(), __q.lo());
         *__result = __res;
     }
@@ -3370,7 +3353,7 @@ namespace fpmp
             ffloat( 2.7519189493111718e-06), /* c12 */
         };
 
-        ffloat __q = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__y_fast, __acos_c);
+        ffloat __q = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__y_fast, __acos_c);
         fpmp2_t<_FpType> __res(__q.hi(), __q.lo());
         *__result = __res;
     }
@@ -3424,8 +3407,8 @@ namespace fpmp
 
         /* Signed-zero / signed-infinity safe sign probes via the sign bit
          * (a plain `x_hi < 0` test would return false for -0.0). */
-        const uint32_t __x_bits   = fpmp::internal_bit_cast<uint32_t>(__x_hi);
-        const uint32_t __y_bits   = fpmp::internal_bit_cast<uint32_t>(__y_hi);
+        const uint32_t __x_bits   = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
+        const uint32_t __y_bits   = __fpmp_internal_bit_cast<uint32_t>(__y_hi);
         const bool     __x_is_neg = (__x_bits & 0x80000000U) != 0U;
         const bool     __y_is_neg = (__y_bits & 0x80000000U) != 0U;
 
@@ -3448,8 +3431,8 @@ namespace fpmp
 
         /* |a| == +inf  <->  bit-pattern 0x7f800000 (with sign bit already
          * stripped by the abs above). */
-        const bool __x_is_inf = (fpmp::internal_bit_cast<uint32_t>(__ax.hi()) == 0x7f800000U);
-        const bool __y_is_inf = (fpmp::internal_bit_cast<uint32_t>(__ay.hi()) == 0x7f800000U);
+        const bool __x_is_inf = (__fpmp_internal_bit_cast<uint32_t>(__ax.hi()) == 0x7f800000U);
+        const bool __y_is_inf = (__fpmp_internal_bit_cast<uint32_t>(__ay.hi()) == 0x7f800000U);
 
         /* Special cases.  IEEE-754 + C99 sectionF.10.1.4 atan2 semantics:
          *   atan2(+-0, +0)    = +-0           (preserves sign of y)
@@ -3478,7 +3461,7 @@ namespace fpmp
          * y_hi != 0, IEEE `y_is_neg` is the right answer because the
          * collapsed sign matches `hi`'s sign for any normal value. */
         const _FpType   __y_sum     = __y_hi + __y_lo;
-        const uint32_t __y_sum_bits = fpmp::internal_bit_cast<uint32_t>(__y_sum);
+        const uint32_t __y_sum_bits = __fpmp_internal_bit_cast<uint32_t>(__y_sum);
         const bool     __y_eff_neg = (__y_sum_bits & 0x80000000U) != 0U;
 
         ffloat __r;
@@ -3488,7 +3471,7 @@ namespace fpmp
              * that here:  x_collapsed >= +0 -> r = +0;  x_collapsed = -0 -> r = pi
              * (the framework's `atan2(+-0, -0)` returns +-pi). */
             const _FpType   __x_sum      = __x_hi + __x_lo;
-            const uint32_t __x_sum_bits = fpmp::internal_bit_cast<uint32_t>(__x_sum);
+            const uint32_t __x_sum_bits = __fpmp_internal_bit_cast<uint32_t>(__x_sum);
             const bool     __x_eff_neg  = (__x_sum_bits & 0x80000000U) != 0U;
             __r = __x_eff_neg ? __PI : ffloat(_FpType(0));
         } else if (__x_is_inf && __y_is_inf) {
@@ -3681,7 +3664,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_tanh is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* libdevice-optimal crossover between polynomial and exp paths. */
@@ -3757,7 +3739,7 @@ namespace fpmp
         };
 
         ffloat __a2 = __x * __x;     /* x^2 (sign of x cancels) */
-        ffloat __q  = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 2>(__a2, __tanh_c);
+        ffloat __q  = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 2>(__a2, __tanh_c);
 
         /* tanh(x) = x + x * x^2 * Q(x^2). Sign-preserving in x; no
          * separate sign fixup needed for the polynomial branch. */
@@ -3819,7 +3801,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_sinh is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         constexpr float __BRANCH_POINT = 0.6554117f;
@@ -3888,7 +3869,7 @@ namespace fpmp
         };
 
         ffloat __a2 = __x * __x;     /* x^2 (sign of x cancels) */
-        ffloat __q  = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 3>(__a2, __sinh_c);
+        ffloat __q  = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 3>(__a2, __sinh_c);
 
         /* sinh(x) = x + x * x^2 * P(x^2).  Sign-preserving in x; no
          * separate sign fixup needed for the polynomial branch. */
@@ -3913,7 +3894,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_cosh is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation. */
@@ -3997,7 +3977,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_asinh is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation. */
@@ -4096,7 +4075,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_acosh is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation. */
@@ -4203,7 +4181,6 @@ namespace fpmp
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_atanh is fp32mp2 only; fp64mp2 has its own specialization");
 
-        using namespace fpmp;
         using ffloat = fp32mp2_low;
 
         /* NaN propagation. */
@@ -4291,7 +4268,7 @@ namespace fpmp
             };
 
             ffloat __y      = __x * __x;     /* x^2 (sign of x cancels) */
-            ffloat __q      = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 4>(__y, __atanh_poly_c);
+            ffloat __q      = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 4>(__y, __atanh_poly_c);
             ffloat __result = renormalize(__x + __x * (__y * __q));
             *__res_hi = __result.hi();
             *__res_lo = __result.lo();
@@ -4389,7 +4366,7 @@ namespace fpmp
 
         ffloat __x     = renormalize(ffloat(__x_hi, __x_lo));
         bool __is_neg  = __x.hi() < 0.f;
-        uint32_t __xhi = fpmp::internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
+        uint32_t __xhi = __fpmp_internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
         ffloat __absA  = __is_neg ? -__x : __x;
 
         /* |x| >= saturation_bound (~5.92) or Inf -> erf = +-1 */
@@ -4457,9 +4434,9 @@ namespace fpmp
 
         ffloat __poly;
         if (__absA.hi() < __X_STAR)
-            __poly = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__absA, __dc_left);
+            __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__absA, __dc_left);
         else
-            __poly = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__absA, __dc_right);
+            __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__absA, __dc_right);
 #else // _CCCL_FPMP_USE_FAST_ERF == 0
         /* Default: uniform degree-23 Remez polynomial over [0, 5.92],
          * evaluated with full compensated Horner (P(0) = d1).
@@ -4496,7 +4473,7 @@ namespace fpmp
             d9,  d10, d11, d12, d13, d14, d15, d16,
             d17, d18, d19, d20, d21, d22, d23, d24
         };
-        ffloat __poly = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__absA, dc);
+        ffloat __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__absA, dc);
 #endif // _CCCL_FPMP_USE_FAST_ERF == 0
 
         /* arg = |x| * P(|x|) + |x| (replaces polyHi/polyLo splitting) */
@@ -4505,8 +4482,8 @@ namespace fpmp
         /* Compute -expm1(-arg): argument reduction */
         ffloat __neg_arg     = -__arg;
         float  __neg_arg_l2e = (__neg_arg * __L2E).hi();
-        int    __n           = fpmp::fp2int_rn(__neg_arg_l2e);
-        ffloat __fn          = fpmp::int2fp_rn<float>(__n);
+        int    __n           = __fpmp_fp2int_rn(__neg_arg_l2e);
+        ffloat __fn          = __fpmp_int2fp_rn<float>(__n);
         ffloat __r           = __neg_arg - __fn * __LN2_HI;
 
         /* Evaluate u(r) = m2 + m3*r + ... + m11*r^9 via the mixed-precision
@@ -4515,7 +4492,7 @@ namespace fpmp
          * because the high terms contribute below the noise floor and
          * don't need error tracking.
          */
-        ffloat __u = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 4>(__r, __m_c);
+        ffloat __u = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 4>(__r, __m_c);
 
         /* expm1(r) = u*r^2 + r (no separate alo needed, r carries full precision) */
         __u = __u * __r;
@@ -4526,7 +4503,7 @@ namespace fpmp
         int __en           = 127 + __n;
         if (__en < 1)   __en = 1;
         if (__en > 254) __en = 254;
-        float  __scale     = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__en) << 23);
+        float  __scale     = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__en) << 23);
         ffloat __scalem1   = ffloat(1.f, 0.f) - ffloat(__scale, 0.f);
 
         /* result = -expm1(-arg) = -u*scale + scalem1 */
@@ -4635,7 +4612,7 @@ namespace fpmp
 
         ffloat __x     = renormalize(ffloat(__x_hi, __x_lo));
         bool __is_neg  = __x.hi() < 0.f;
-        uint32_t __xhi = fpmp::internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
+        uint32_t __xhi = __fpmp_internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
         ffloat __a = (__is_neg) ? -__x : __x;
 
         // handle x > 27.5 && <= Inf
@@ -4657,7 +4634,7 @@ namespace fpmp
         __t2        = (__t2 * __t1 + __t3);
 
         // Chebyshev polynomial: 7 high-order terms in float, remaining 16 in ff
-        __t1 = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 7>(__t2, __cheb);
+        __t1 = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 7>(__t2, __cheb);
 
         /* (1+2*a)*exp(a^2)*erfc(a) / (1+2*a) -> exp(a^2)*erfc(a) = erfcx */
         __t2 = (ffloat(2.0) * __a + ffloat(1.0));
@@ -4672,12 +4649,12 @@ namespace fpmp
 
         /* i = round(xx * L2E); t = exp_mantissa(xx); t3 = accurate_scale(t, i) */
         float __prod_hi = (__xx * __L2E).hi();
-        int __i         = fpmp::fp2int_rn(__prod_hi);
-        ffloat __t_rint = fpmp::int2fp_rn<float>(__i);
+        int __i         = __fpmp_fp2int_rn(__prod_hi);
+        ffloat __t_rint = __fpmp_int2fp_rn<float>(__i);
         ffloat __z = renormalize(__xx - __t_rint * __LN2_HI - __t_rint * __LN2_LO);
 
         // exp polynomial: 5 high-order terms in float, remaining 7 in ff
-        ffloat __t = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 5>(__z, __exp_c);
+        ffloat __t = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 5>(__z, __exp_c);
 
         /* accurate_scale(t, i): t * 2^i in fp32mp2 (split exponent for large |i|)*/
         int __k   = __i / 2;
@@ -4686,8 +4663,8 @@ namespace fpmp
         if (__ek  < 1) __ek  = 1;
         if (__ek2 < 1) __ek2 = 1;
 
-        float  __scale_lo   = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek)  << 23);
-        float  __scale_hi   = fpmp::internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
+        float  __scale_lo   = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek)  << 23);
+        float  __scale_hi   = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
         ffloat __exp_scaled = ffloat(__t.hi() * __scale_lo * __scale_hi, __t.lo() * __scale_lo * __scale_hi);
 
         /* Correction: exp(-x^2) = exp_scaled * (1 + (-x^2 - xx)) same as double fma(t3, -x*x - xx, t3) */
@@ -4822,7 +4799,7 @@ namespace fpmp
                 ffloat(0x1.887a5d0c86047p-52),
                 ffloat(0x1.07f3442d6af1ep-52)
             };
-            ffloat __v = fpmp::poly_eval<fpmp::poly_method::horner_comp, 4>(__x, __c);
+            ffloat __v = __fpmp_poly_eval<__fpmp_poly_method::horner_comp, 4>(__x, __c);
             *__res_hi = __v.hi(); *__res_lo = __v.lo();
             return;
         } // if (a_hi < 0x1p2f)
@@ -4888,7 +4865,7 @@ namespace fpmp
             ffloat(-0x1.ba4d5cfd521a5p50),
             ffloat(-0x1.6d64bf85e3416p50)
         };
-        ffloat __v = fpmp::poly_eval<fpmp::poly_method::horner_comp>(__x, __c);
+        ffloat __v = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__x, __c);
         __r = __r * ffloat(0x1.c5bf8ap-1);
         ffloat __result = __v * __r;
         _CCCL_FPMP_RENORMALIZE(__result);
@@ -5032,8 +5009,8 @@ namespace fpmp
         ffloat __p = renormalize(ffloat(__x_hi, __x_lo));
 
         /* Standard mathematical convention: normcdfinv(0) = -inf, normcdfinv(1) = +inf */
-        if (__p.hi() <= 0.0f) { *__res_hi = fpmp::internal_bit_cast<float>(0xFF800000U); *__res_lo = 0.0f; return; }
-        if (__p.hi() >= 1.0f) { *__res_hi = fpmp::internal_bit_cast<float>(0x7F800000U); *__res_lo = 0.0f; return; }
+        if (__p.hi() <= 0.0f) { *__res_hi = __fpmp_internal_bit_cast<float>(0xFF800000U); *__res_lo = 0.0f; return; }
+        if (__p.hi() >= 1.0f) { *__res_hi = __fpmp_internal_bit_cast<float>(0x7F800000U); *__res_lo = 0.0f; return; }
 
         /* a = 2p - 1, accurate subtraction for p ~= 0.5 */
         ffloat __two_p = __p + __p;
@@ -5057,7 +5034,7 @@ namespace fpmp
          * (9 high-order float coeffs c0..c8, 14 low-order ff coeffs c9..c22).
          */
         ffloat __tc   = __w - ffloat(3.125f);
-        ffloat __poly = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 9>(__tc, __rc_c);
+        ffloat __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 9>(__tc, __rc_c);
 
         /* Tail regions (w >= 6.125): branched since <0.1% of inputs.
          * sqrt(w) is also deferred into this branch.
@@ -5072,7 +5049,7 @@ namespace fpmp
              * (9 high-order float coeffs t0..t8, 10 low-order ff coeffs t9..t18).
              */
             ffloat __tt = __sw - ffloat(3.25f);
-            __poly      = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 9>(__tt, __rt_c);
+            __poly      = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 9>(__tt, __rt_c);
 
             /* Tail 2 (w >= 16, |z| > 5.5 sigma):
              * Horner in tt2 = sqrt(w) - 7.25 via the dispatcher
@@ -5086,7 +5063,7 @@ namespace fpmp
              */
             if (__w.hi() >= 16.0f) {
                 ffloat __tt2 = __sw - ffloat(7.25f);
-                __poly       = fpmp::poly_eval<fpmp::poly_method::horner_mixed, 13>(__tt2, __rt2_c);
+                __poly       = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 13>(__tt2, __rt2_c);
             }
         }
 
@@ -5207,8 +5184,8 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        const bool __x_is_nan = fpmp::internal_isnan(__x_hi);
-        const bool __y_is_nan = fpmp::internal_isnan(__y_hi);
+        const bool __x_is_nan = __fpmp_internal_isnan(__x_hi);
+        const bool __y_is_nan = __fpmp_internal_isnan(__y_hi);
         if (__x_is_nan && !__y_is_nan) { *__res_hi = __y_hi; *__res_lo = __y_lo; return; }
         if (__y_is_nan && !__x_is_nan) { *__res_hi = __x_hi; *__res_lo = __x_lo; return; }
         const bool __x_greater = (__x_hi > __y_hi) || (__x_hi == __y_hi && __x_lo > __y_lo);
@@ -5227,8 +5204,8 @@ namespace fpmp
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        const bool __x_is_nan = fpmp::internal_isnan(__x_hi);
-        const bool __y_is_nan = fpmp::internal_isnan(__y_hi);
+        const bool __x_is_nan = __fpmp_internal_isnan(__x_hi);
+        const bool __y_is_nan = __fpmp_internal_isnan(__y_hi);
         if (__x_is_nan && !__y_is_nan) { *__res_hi = __y_hi; *__res_lo = __y_lo; return; }
         if (__y_is_nan && !__x_is_nan) { *__res_hi = __x_hi; *__res_lo = __x_lo; return; }
         const bool __x_less = (__x_hi < __y_hi) || (__x_hi == __y_hi && __x_lo < __y_lo);
@@ -5302,19 +5279,19 @@ namespace fpmp
             return;
         }
 
-        const _FpType __abs_hi = fpmp::internal_fabs(__x_hi);
+        const _FpType __abs_hi = __fpmp_internal_fabs(__x_hi);
         const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
         if (__abs_hi >= __int_scale) 
         {
             // x_hi is already an integer at this scale; floor(x_hi + x_lo) = x_hi + floor(x_lo).
-            const _FpType __lo_floor = fpmp::internal_floor<_FpType>(__x_lo);
+            const _FpType __lo_floor = __fpmp_internal_floor<_FpType>(__x_lo);
             _FpType __t_hi = __x_hi, __t_lo = _FpType(0);
             __fpmp2_acc<_FpType>(__lo_floor, &__t_hi, &__t_lo);
             *__res_hi = __t_hi; *__res_lo = __t_lo;
             return;
         }
 
-        const _FpType __n = fpmp::internal_floor<_FpType>(__x_hi);
+        const _FpType __n = __fpmp_internal_floor<_FpType>(__x_hi);
         if (__x_hi != __n || __x_lo >= _FpType(0)) 
         {
             *__res_hi = __n; *__res_lo = _FpType(0);
@@ -5340,19 +5317,19 @@ namespace fpmp
             return;
         }
 
-        const _FpType __abs_hi = fpmp::internal_fabs(__x_hi);
+        const _FpType __abs_hi = __fpmp_internal_fabs(__x_hi);
         const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
         if (__abs_hi >= __int_scale) 
         {
             // x_hi is already an integer at this scale; ceil(x_hi + x_lo) = x_hi + ceil(x_lo).
-            const _FpType __lo_ceil = fpmp::internal_ceil<_FpType>(__x_lo);
+            const _FpType __lo_ceil = __fpmp_internal_ceil<_FpType>(__x_lo);
             _FpType __t_hi = __x_hi, __t_lo = _FpType(0);
             __fpmp2_acc<_FpType>(__lo_ceil, &__t_hi, &__t_lo);
             *__res_hi = __t_hi; *__res_lo = __t_lo;
             return;
         }
 
-        const _FpType __n = fpmp::internal_ceil<_FpType>(__x_hi);
+        const _FpType __n = __fpmp_internal_ceil<_FpType>(__x_hi);
         if (__x_hi != __n || __x_lo <= _FpType(0)) 
         {
             *__res_hi = __n; *__res_lo = _FpType(0);
@@ -5401,7 +5378,7 @@ namespace fpmp
             return;
         }
 
-        const _FpType __abs_hi = fpmp::internal_fabs(__x_hi);
+        const _FpType __abs_hi = __fpmp_internal_fabs(__x_hi);
         const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
         if (__abs_hi >= __int_scale) 
         {
@@ -5409,8 +5386,8 @@ namespace fpmp
             //   x_hi > 0 : floor(x_hi + x_lo) = x_hi + floor(x_lo)
             //   x_hi < 0 : ceil (x_hi + x_lo) = x_hi + ceil (x_lo)
             const _FpType __lo_trunc = (__x_hi < _FpType(0))
-                                  ? fpmp::internal_ceil<_FpType>(__x_lo)
-                                  : fpmp::internal_floor<_FpType>(__x_lo);
+                                  ? __fpmp_internal_ceil<_FpType>(__x_lo)
+                                  : __fpmp_internal_floor<_FpType>(__x_lo);
             _FpType __t_hi = __x_hi, __t_lo = _FpType(0);
             __fpmp2_acc<_FpType>(__lo_trunc, &__t_hi, &__t_lo);
             *__res_hi = __t_hi; *__res_lo = __t_lo;
@@ -5420,7 +5397,7 @@ namespace fpmp
         // Fast small-magnitude path:
         // Start from trunc(x_hi), then apply at most a +/-1 correction only when
         // x_hi is already integral and x_lo nudges the exact value across that integer.
-        const _FpType __n = fpmp::internal_trunc<_FpType>(__x_hi);
+        const _FpType __n = __fpmp_internal_trunc<_FpType>(__x_hi);
         if (__x_hi != __n) 
         {
             *__res_hi = __n; *__res_lo = _FpType(0);

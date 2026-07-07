@@ -56,7 +56,6 @@
 #include <cuda/fpmp_math>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 // EFP32_MP type alias
 using fptype_t = fp32mp2;

@@ -21,7 +21,6 @@
 #include <cuda/fpmp_math>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 #include "d2ff_common.hpp"
 

@@ -156,7 +156,7 @@ namespace cuda::experimental
 #if _CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
-            uint64_t __dbits = fpmp::internal_bit_cast<uint64_t>(__x);
+            uint64_t __dbits = __fpmp_internal_bit_cast<uint64_t>(__x);
             uint32_t __sign  = (uint32_t)(__dbits >> 63);
             uint32_t __d_exp = (uint32_t)((__dbits >> 52) & 0x7FFU);
             uint64_t __mant  = __dbits & 0x000FFFFFFFFFFFFFULL;
@@ -182,7 +182,7 @@ namespace cuda::experimental
                 // hi_round into the shifted exponent field.
                 uint32_t __hi_round = (((uint32_t)(__mant >> 28)) + 1U) >> 1;
                 uint32_t __hi_bits  = (__sign << 31) | (((uint32_t)__f_exp << 23) + __hi_round);
-                *__res_hi = fpmp::internal_bit_cast<float>(__hi_bits);
+                *__res_hi = __fpmp_internal_bit_cast<float>(__hi_bits);
 
                 // Encode the residual as a signed 32-bit integer with the
                 // round bit placed at the sign position. Bottom 32 bits of
@@ -200,14 +200,14 @@ namespace cuda::experimental
                 //              offset (-52) to recover residual at unit scale.
                 //   * scale  : 2^(f_exp - 127) with the sign of x. Both
                 //              multiplications are exact (powers of two).
-                float __scale = fpmp::internal_bit_cast<float>((__sign << 31) | ((uint32_t)__f_exp << 23));
+                float __scale = __fpmp_internal_bit_cast<float>((__sign << 31) | ((uint32_t)__f_exp << 23));
                 *__res_lo = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
 
                 // Fast2Sum to enforce canonical form fl(hi+lo) == hi.
                 // Required because round-to-nearest on r can leave |lo|
                 // exactly at ulp(hi)/2; if hi has an odd low mantissa bit,
                 // fl(hi+lo) would otherwise round away from hi.
-                *__res_hi = fpmp::fast_two_sum(*__res_hi, *__res_lo, __res_lo);
+                *__res_hi = __fpmp_fast_two_sum(*__res_hi, *__res_lo, __res_lo);
             }
         }
         else if constexpr (::cuda::std::is_same_v<_FpType, double>)
@@ -250,12 +250,12 @@ namespace cuda::experimental
                                                       _FpType*       __res_lo) noexcept   
     {
 
-        *__res_hi = fpmp::int2fp_rz<_FpType>(__i);
-        *__res_lo = fpmp::int2fp_rz<_FpType>(__i - fpmp::fp2int_rz(*__res_hi));
+        *__res_hi = __fpmp_int2fp_rz<_FpType>(__i);
+        *__res_lo = __fpmp_int2fp_rz<_FpType>(__i - __fpmp_fp2int_rz(*__res_hi));
     }
 
     // uint -> (hi, lo) conversions
-    // Note: Use signed arithmetic to compute residual, since fpmp::fp2uint_rz(*res_hi)
+    // Note: Use signed arithmetic to compute residual, since __fpmp_fp2uint_rz(*res_hi)
     // might be larger than i when rounding direction differs
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_from_uint (const uint32_t __i, 
@@ -263,23 +263,23 @@ namespace cuda::experimental
                                                        _FpType*        __res_lo) noexcept 
     {
 
-        *__res_hi = fpmp::uint2fp_rz<_FpType>(__i);
+        *__res_hi = __fpmp_uint2fp_rz<_FpType>(__i);
         // Compute residual using signed arithmetic to handle case where hi rounds up
-        int32_t __residual = static_cast<int32_t>(__i) - static_cast<int32_t>(fpmp::fp2uint_rz(*__res_hi));
-        *__res_lo = fpmp::int2fp_rz<_FpType>(__residual);
+        int32_t __residual = static_cast<int32_t>(__i) - static_cast<int32_t>(__fpmp_fp2uint_rz(*__res_hi));
+        *__res_lo = __fpmp_int2fp_rz<_FpType>(__residual);
     }   
 
     // ll -> (hi, lo) conversions
-    // With ll2fp_rz properly rounding toward zero, hi is always <= i for positive i
-    // and >= i for negative i, so fpmp::fp2ll_rz(hi) is always representable as int64_t.
+    // With __fpmp_ll2fp_rz properly rounding toward zero, hi is always <= i for positive i
+    // and >= i for negative i, so __fpmp_fp2ll_rz(hi) is always representable as int64_t.
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_from_ll (const int64_t __i, 
                                                      _FpType*       __res_hi, 
                                                      _FpType*       __res_lo) noexcept 
     {
 
-        *__res_hi = fpmp::ll2fp_rz<_FpType>(__i);
-        *__res_lo = fpmp::ll2fp_rz<_FpType>(__i - fpmp::fp2ll_rz(*__res_hi));
+        *__res_hi = __fpmp_ll2fp_rz<_FpType>(__i);
+        *__res_lo = __fpmp_ll2fp_rz<_FpType>(__i - __fpmp_fp2ll_rz(*__res_hi));
     }
 
     // ull -> (hi, lo) conversions
@@ -291,10 +291,10 @@ namespace cuda::experimental
                                                       _FpType*        __res_lo) noexcept 
     {
 
-        *__res_hi = fpmp::ull2fp_rz<_FpType>(__i);
+        *__res_hi = __fpmp_ull2fp_rz<_FpType>(__i);
         // Residual is always non-negative and fits in int64_t (< 2^53 for double)
-        uint64_t __residual = __i - fpmp::fp2ull_rz(*__res_hi);
-        *__res_lo = fpmp::ull2fp_rz<_FpType>(__residual);
+        uint64_t __residual = __i - __fpmp_fp2ull_rz(*__res_hi);
+        *__res_lo = __fpmp_ull2fp_rz<_FpType>(__residual);
     }
 
     // (hi, lo) -> double conversions
@@ -361,9 +361,9 @@ namespace cuda::experimental
             // path to be safe on non-canonical pairs (e.g. produced by
             // add_fast / long FAST accumulator chains).
             float __x_lo;
-            float __x_hi = fpmp::two_sum(__x_hi_in, __x_lo_in, &__x_lo);
+            float __x_hi = __fpmp_two_sum(__x_hi_in, __x_lo_in, &__x_lo);
 
-            uint32_t __hi_bits = fpmp::internal_bit_cast<uint32_t>(__x_hi);
+            uint32_t __hi_bits = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
             uint32_t __sign_a  = __hi_bits >> 31;
             uint32_t __fexp_a  = (__hi_bits >> 23) & 0xFFU;
             uint32_t __fmant_a = __hi_bits & 0x7FFFFFU;
@@ -377,13 +377,13 @@ namespace cuda::experimental
             // float for fexp_a in [52, 254] (biased scale_exp = 306 - fexp_a
             // in [52, 254]). Sign of hi baked in so the signed r below is
             // already lo's contribution relative to hi.
-            float __scale = fpmp::internal_bit_cast<float>(
+            float __scale = __fpmp_internal_bit_cast<float>(
                 (__sign_a << 31) | ((306U - __fexp_a) << 23));
 
             // r exactly represents lo at hi's mantissa scale (signed). For
             // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is
             // exact (power-of-two scaling) and |r| <= 2^28.
-            int32_t __r = fpmp::fp2int_rn(__x_lo * __scale);
+            int32_t __r = __fpmp_fp2int_rn(__x_lo * __scale);
 
             // M = (hi's 53-bit mantissa with implicit 1, at bit 52)
             //     + (signed lo contribution at the same scale).
@@ -398,7 +398,7 @@ namespace cuda::experimental
             uint64_t __need_shift = ((__Mu >> 52) & 1ULL) ^ 1ULL;
             __Mu <<= __need_shift;
 
-            return fpmp::internal_bit_cast<double>(
+            return __fpmp_internal_bit_cast<double>(
                 ((uint64_t)__sign_a << 63)
               | ((uint64_t)(__fexp_a + 896U - (uint32_t)__need_shift) << 52)
               | (__Mu & 0x000FFFFFFFFFFFFFULL));
@@ -426,7 +426,7 @@ namespace cuda::experimental
                                                        const _FpType __x_lo) noexcept  
     { 
 
-        _FpType __abs_hi    = fpmp::internal_fabs(__x_hi);
+        _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
         // Check threshold BEFORE computing sum - for large values, addition loses precision
         // 2^24 for float, 2^53 for double
         _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
@@ -434,14 +434,14 @@ namespace cuda::experimental
         if (__abs_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
-            _FpType __res = fpmp::add_rz(__x_hi, __x_lo);
-            return fpmp::fp2int_rz(__res); 
+            _FpType __res = __fpmp_add_rz(__x_hi, __x_lo);
+            return __fpmp_fp2int_rz(__res); 
         }
         else 
         {
             // Large value: use integer addition to preserve exactness
-            int32_t __hi_int = fpmp::fp2int_rz(__x_hi);
-            int32_t __lo_int = fpmp::fp2int_rz(__x_lo);
+            int32_t __hi_int = __fpmp_fp2int_rz(__x_hi);
+            int32_t __lo_int = __fpmp_fp2int_rz(__x_lo);
             return __hi_int + __lo_int;
         }
     } // __fpmp2_to_int
@@ -459,14 +459,14 @@ namespace cuda::experimental
         if (__x_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
-            _FpType __res = fpmp::add_rz(__x_hi, __x_lo);
-            return fpmp::fp2uint_rz(__res);
+            _FpType __res = __fpmp_add_rz(__x_hi, __x_lo);
+            return __fpmp_fp2uint_rz(__res);
         }
         else 
         {
             // Large value: use integer addition to preserve exactness
-            uint32_t __hi_uint = fpmp::fp2uint_rz(__x_hi);
-            int32_t __lo_int   = fpmp::fp2int_rz(__x_lo);
+            uint32_t __hi_uint = __fpmp_fp2uint_rz(__x_hi);
+            int32_t __lo_int   = __fpmp_fp2int_rz(__x_lo);
             return __hi_uint + __lo_int;
         }
     } // __fpmp2_to_uint
@@ -477,7 +477,7 @@ namespace cuda::experimental
                                                       const _FpType __x_lo) noexcept  
     { 
 
-        _FpType __abs_hi    = fpmp::internal_fabs(__x_hi);
+        _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
         // Check threshold BEFORE computing sum
         // 2^24 for float, 2^53 for double
         _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
@@ -485,14 +485,14 @@ namespace cuda::experimental
         if (__abs_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
-            _FpType __res = fpmp::add_rz(__x_hi, __x_lo);
-            return fpmp::fp2ll_rz(__res);
+            _FpType __res = __fpmp_add_rz(__x_hi, __x_lo);
+            return __fpmp_fp2ll_rz(__res);
         }
         else 
         {
             // Large value: use integer addition to preserve exactness
-            int64_t __hi_ll = fpmp::fp2ll_rz(__x_hi);
-            int64_t __lo_ll = fpmp::fp2ll_rz(__x_lo);
+            int64_t __hi_ll = __fpmp_fp2ll_rz(__x_hi);
+            int64_t __lo_ll = __fpmp_fp2ll_rz(__x_lo);
             return __hi_ll + __lo_ll;
         }
     } // __fpmp2_to_ll
@@ -510,14 +510,14 @@ namespace cuda::experimental
         if (__x_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
-            _FpType __res = fpmp::add_rz(__x_hi, __x_lo);
-            return fpmp::fp2ull_rz(__res);
+            _FpType __res = __fpmp_add_rz(__x_hi, __x_lo);
+            return __fpmp_fp2ull_rz(__res);
         }
         else 
         {
             // Large value: use integer addition to preserve exactness
-            uint64_t __hi_ull = fpmp::fp2ull_rz(__x_hi);
-            int64_t __lo_ll   = fpmp::fp2ll_rz(__x_lo);
+            uint64_t __hi_ull = __fpmp_fp2ull_rz(__x_hi);
+            int64_t __lo_ll   = __fpmp_fp2ll_rz(__x_lo);
             return __hi_ull + __lo_ll;
         }
     } // __fpmp2_to_ull
@@ -537,7 +537,7 @@ namespace cuda::experimental
                                                         _FpType*      __res_lo) noexcept
     {
 
-        *__res_hi = fpmp::fast_two_sum(__x_hi, __x_lo, __res_lo);
+        *__res_hi = __fpmp_fast_two_sum(__x_hi, __x_lo, __res_lo);
     }
 
     /*
@@ -561,9 +561,9 @@ namespace cuda::experimental
         _FpType __r_hi, __r_lo;
 
         // Add high parts using general 2-Sum (no magnitude assumption)
-        __r_hi = fpmp::two_sum(__x_hi, __y_hi, &__r_lo);
+        __r_hi = __fpmp_two_sum(__x_hi, __y_hi, &__r_lo);
         // Add low parts
-        __r_lo = fpmp::add_rn(fpmp::add_rn(__x_lo, __y_lo), __r_lo);
+        __r_lo = __fpmp_add_rn(__fpmp_add_rn(__x_lo, __y_lo), __r_lo);
 
         *__res_hi = __r_hi;
         *__res_lo = __r_lo;
@@ -587,11 +587,11 @@ namespace cuda::experimental
         _FpType __r_hi, __r_lo;
 
         // Add high parts using general 2-Sum (no magnitude assumption)
-        __r_hi        = fpmp::two_sum(__x_hi, __y_hi, &__r_lo);
+        __r_hi        = __fpmp_two_sum(__x_hi, __y_hi, &__r_lo);
         // Add low parts
-        __r_lo_refine = fpmp::add_rn(fpmp::add_rn(__x_lo, __y_lo), __r_lo);
+        __r_lo_refine = __fpmp_add_rn(__fpmp_add_rn(__x_lo, __y_lo), __r_lo);
         // Normalize:
-        *__res_hi     = fpmp::fast_two_sum(__r_hi, __r_lo_refine, __res_lo);
+        *__res_hi     = __fpmp_fast_two_sum(__r_hi, __r_lo_refine, __res_lo);
     } // __fpmp2_add
     
     /*
@@ -619,39 +619,39 @@ namespace cuda::experimental
         
         // Level 1: Two independent 2Sums - can execute in parallel
         // Inline two_sum for a_hi + b_hi to help compiler see independence
-        _FpType __s_h   = fpmp::add_rn(__a_hi, __b_hi);
-        _FpType __s_a   = fpmp::sub_rn(__s_h, __b_hi);
-        _FpType __s_b   = fpmp::sub_rn(__s_h, __s_a);
+        _FpType __s_h   = __fpmp_add_rn(__a_hi, __b_hi);
+        _FpType __s_a   = __fpmp_sub_rn(__s_h, __b_hi);
+        _FpType __s_b   = __fpmp_sub_rn(__s_h, __s_a);
         
         // Inline two_sum for a_lo + b_lo (parallel with above)
-        _FpType __t_h   = fpmp::add_rn(__a_lo, __b_lo);
-        _FpType __t_a   = fpmp::sub_rn(__t_h, __b_lo);
-        _FpType __t_b   = fpmp::sub_rn(__t_h, __t_a);
+        _FpType __t_h   = __fpmp_add_rn(__a_lo, __b_lo);
+        _FpType __t_a   = __fpmp_sub_rn(__t_h, __b_lo);
+        _FpType __t_b   = __fpmp_sub_rn(__t_h, __t_a);
         
         // Complete the error calculations (can interleave)
-        _FpType __s_da  = fpmp::sub_rn(__a_hi, __s_a);
-        _FpType __s_db  = fpmp::sub_rn(__b_hi, __s_b);
-        _FpType __s_l   = fpmp::add_rn(__s_da, __s_db);
+        _FpType __s_da  = __fpmp_sub_rn(__a_hi, __s_a);
+        _FpType __s_db  = __fpmp_sub_rn(__b_hi, __s_b);
+        _FpType __s_l   = __fpmp_add_rn(__s_da, __s_db);
         
-        _FpType __t_da  = fpmp::sub_rn(__a_lo, __t_a);
-        _FpType __t_db  = fpmp::sub_rn(__b_lo, __t_b);
-        _FpType __t_l   = fpmp::add_rn(__t_da, __t_db);
+        _FpType __t_da  = __fpmp_sub_rn(__a_lo, __t_a);
+        _FpType __t_db  = __fpmp_sub_rn(__b_lo, __t_b);
+        _FpType __t_l   = __fpmp_add_rn(__t_da, __t_db);
         
         // Level 2: Merge middle terms
-        _FpType __c     = fpmp::add_rn(__s_l, __t_h);
+        _FpType __c     = __fpmp_add_rn(__s_l, __t_h);
         
         // Level 3: First normalization (Fast2Sum since |s_h| >= |c| typically)
-        _FpType __v_h   = fpmp::add_rn(__s_h, __c);
-        _FpType __v_tmp = fpmp::sub_rn(__v_h, __s_h);
-        _FpType __v_l   = fpmp::sub_rn(__c, __v_tmp);
+        _FpType __v_h   = __fpmp_add_rn(__s_h, __c);
+        _FpType __v_tmp = __fpmp_sub_rn(__v_h, __s_h);
+        _FpType __v_l   = __fpmp_sub_rn(__c, __v_tmp);
         
         // Level 4: Absorb remaining error
-        _FpType __w     = fpmp::add_rn(__t_l, __v_l);
+        _FpType __w     = __fpmp_add_rn(__t_l, __v_l);
         
         // Level 5: Final normalization
-        *__res_hi      = fpmp::add_rn(__v_h, __w);
-        _FpType __r_tmp = fpmp::sub_rn(*__res_hi, __v_h);
-        *__res_lo      = fpmp::sub_rn(__w, __r_tmp);
+        *__res_hi      = __fpmp_add_rn(__v_h, __w);
+        _FpType __r_tmp = __fpmp_sub_rn(*__res_hi, __v_h);
+        *__res_lo      = __fpmp_sub_rn(__w, __r_tmp);
     } // __fpmp2_add_fpan
     
     /*
@@ -670,19 +670,19 @@ namespace cuda::experimental
     {
 
         _FpType __t1, __t2, __t3, __t4, __t5, __e;
-        __t1 = fpmp::add_rn (__a_hi, __b_hi);
-        __t2 = fpmp::sub_rn (__t1, __a_hi);
-        __t3 = fpmp::add_rn (fpmp::add_rn (__a_hi, fpmp::sub_rn(__t2,__t1)), fpmp::sub_rn (__b_hi, __t2));
-        __t4 = fpmp::add_rn (__a_lo, __b_lo);
-        __t2 = fpmp::sub_rn (__t4, __a_lo);
-        __t5 = fpmp::add_rn (fpmp::add_rn (__a_lo, fpmp::sub_rn(__t2,__t4)), fpmp::sub_rn (__b_lo, __t2));
-        __t3 = fpmp::add_rn (__t3, __t4);
-        __t4 = fpmp::add_rn (__t1, __t3);
-        __t3 = fpmp::add_rn (fpmp::sub_rn(__t1,__t4), __t3);
-        __t3 = fpmp::add_rn (__t3, __t5);
-        __e  = fpmp::add_rn (__t4, __t3);
+        __t1 = __fpmp_add_rn (__a_hi, __b_hi);
+        __t2 = __fpmp_sub_rn (__t1, __a_hi);
+        __t3 = __fpmp_add_rn (__fpmp_add_rn (__a_hi, __fpmp_sub_rn(__t2,__t1)), __fpmp_sub_rn (__b_hi, __t2));
+        __t4 = __fpmp_add_rn (__a_lo, __b_lo);
+        __t2 = __fpmp_sub_rn (__t4, __a_lo);
+        __t5 = __fpmp_add_rn (__fpmp_add_rn (__a_lo, __fpmp_sub_rn(__t2,__t4)), __fpmp_sub_rn (__b_lo, __t2));
+        __t3 = __fpmp_add_rn (__t3, __t4);
+        __t4 = __fpmp_add_rn (__t1, __t3);
+        __t3 = __fpmp_add_rn (__fpmp_sub_rn(__t1,__t4), __t3);
+        __t3 = __fpmp_add_rn (__t3, __t5);
+        __e  = __fpmp_add_rn (__t4, __t3);
 
-        *__res_lo = fpmp::add_rn (fpmp::sub_rn(__t4, __e), __t3);
+        *__res_lo = __fpmp_add_rn (__fpmp_sub_rn(__t4, __e), __t3);
         *__res_hi = __e;
     } // __fpmp2_high_add
 
@@ -781,10 +781,10 @@ namespace cuda::experimental
 
         _FpType __err;
         // Add c to high part with error capture
-        _FpType __new_hi = fpmp::two_sum(*__acc_hi, __c, &__err);
+        _FpType __new_hi = __fpmp_two_sum(*__acc_hi, __c, &__err);
         // Accumulate error into low part (no normalization)
         *__acc_hi = __new_hi;
-        *__acc_lo = fpmp::add_rn(*__acc_lo, __err);
+        *__acc_lo = __fpmp_add_rn(*__acc_lo, __err);
     }
     
     /*
@@ -799,11 +799,11 @@ namespace cuda::experimental
 
         _FpType __err;
         // Add c to high part with error capture
-        _FpType __new_hi = fpmp::two_sum(*__acc_hi, __c, &__err);
+        _FpType __new_hi = __fpmp_two_sum(*__acc_hi, __c, &__err);
         // Combine error with existing low part
-        _FpType __new_lo = fpmp::add_rn(*__acc_lo, __err);
+        _FpType __new_lo = __fpmp_add_rn(*__acc_lo, __err);
         // Normalize result
-        *__acc_hi = fpmp::fast_two_sum(__new_hi, __new_lo, __acc_lo);
+        *__acc_hi = __fpmp_fast_two_sum(__new_hi, __new_lo, __acc_lo);
     }
     
     /*
@@ -818,17 +818,17 @@ namespace cuda::experimental
 
         _FpType __err;
         // Add c to high part with error capture
-        _FpType __s_hi = fpmp::two_sum(*__acc_hi, __c, &__err);
+        _FpType __s_hi = __fpmp_two_sum(*__acc_hi, __c, &__err);
         // Add error to low part
-        _FpType __t    = fpmp::add_rn(*__acc_lo, __err);
+        _FpType __t    = __fpmp_add_rn(*__acc_lo, __err);
         // First normalization
-        _FpType __v_hi = fpmp::add_rn(__s_hi, __t);
-        _FpType __v_tmp = fpmp::sub_rn(__v_hi, __s_hi);
-        _FpType __v_lo = fpmp::sub_rn(__t, __v_tmp);
+        _FpType __v_hi = __fpmp_add_rn(__s_hi, __t);
+        _FpType __v_tmp = __fpmp_sub_rn(__v_hi, __s_hi);
+        _FpType __v_lo = __fpmp_sub_rn(__t, __v_tmp);
         // Final normalization
-        *__acc_hi = fpmp::add_rn(__v_hi, __v_lo);
-        _FpType __r_tmp = fpmp::sub_rn(*__acc_hi, __v_hi);
-        *__acc_lo = fpmp::sub_rn(__v_lo, __r_tmp);
+        *__acc_hi = __fpmp_add_rn(__v_hi, __v_lo);
+        _FpType __r_tmp = __fpmp_sub_rn(*__acc_hi, __v_hi);
+        *__acc_lo = __fpmp_sub_rn(__v_lo, __r_tmp);
     }
 
     /*
@@ -849,11 +849,11 @@ namespace cuda::experimental
                                                       _FpType*      __res_lo) noexcept  
     { 
 
-        _FpType __t_hi = fpmp::mul_rn (__x_hi, __y_hi);
-        _FpType __t_lo = fpmp::fma_rn (__x_hi, __y_hi, -__t_hi);
-        __t_lo        = fpmp::fma_rn (__x_lo, __y_lo, __t_lo);
-        __t_lo        = fpmp::fma_rn (__x_hi, __y_lo, __t_lo); 
-        __t_lo        = fpmp::fma_rn (__x_lo, __y_hi, __t_lo);
+        _FpType __t_hi = __fpmp_mul_rn (__x_hi, __y_hi);
+        _FpType __t_lo = __fpmp_fma_rn (__x_hi, __y_hi, -__t_hi);
+        __t_lo        = __fpmp_fma_rn (__x_lo, __y_lo, __t_lo);
+        __t_lo        = __fpmp_fma_rn (__x_hi, __y_lo, __t_lo); 
+        __t_lo        = __fpmp_fma_rn (__x_lo, __y_hi, __t_lo);
 
         *__res_hi = __t_hi;
         *__res_lo = __t_lo;
@@ -873,12 +873,12 @@ namespace cuda::experimental
     {
 
         _FpType __p1, __p2, __c_hi, __c_lo, __res_hi_tmp, __res_lo_tmp;
-        __c_hi = fpmp::two_mult_fma(__x_hi, __y_hi, &__c_lo);
-        __p1   = fpmp::mul_rn(__x_hi, __y_lo);
-        __p2   = fpmp::mul_rn(__x_lo, __y_hi);
-        __c_lo = fpmp::add_rn(__c_lo, fpmp::add_rn(__p1, __p2));
+        __c_hi = __fpmp_two_mult_fma(__x_hi, __y_hi, &__c_lo);
+        __p1   = __fpmp_mul_rn(__x_hi, __y_lo);
+        __p2   = __fpmp_mul_rn(__x_lo, __y_hi);
+        __c_lo = __fpmp_add_rn(__c_lo, __fpmp_add_rn(__p1, __p2));
         // Normalize:
-        __res_hi_tmp = fpmp::fast_two_sum(__c_hi, __c_lo, &__res_lo_tmp);
+        __res_hi_tmp = __fpmp_fast_two_sum(__c_hi, __c_lo, &__res_lo_tmp);
 
         *__res_hi = __res_hi_tmp;
         *__res_lo = __res_lo_tmp;
@@ -948,8 +948,8 @@ namespace cuda::experimental
         constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
         
         // Extract exponents and compute conditional scale (branch-free)
-        UintType __x_bits = fpmp::internal_bit_cast<UintType>(__x_hi);
-        UintType __y_bits = fpmp::internal_bit_cast<UintType>(__y_hi);
+        UintType __x_bits = __fpmp_internal_bit_cast<UintType>(__x_hi);
+        UintType __y_bits = __fpmp_internal_bit_cast<UintType>(__y_hi);
         int __x_exp = static_cast<int>((__x_bits & __exp_mask) >> __mant_bits);
         int __y_exp = static_cast<int>((__y_bits & __exp_mask) >> __mant_bits);
         int __result_exp = __x_exp + __y_exp;
@@ -958,36 +958,36 @@ namespace cuda::experimental
         int __needs_scale = (__result_exp - __exp_threshold) >> 31;
         
         // Select scale factor using bit manipulation (branch-free)
-        UintType __scale_up_bits   = fpmp::internal_bit_cast<UintType>(__scale_up);
-        UintType __one_bits        = fpmp::internal_bit_cast<UintType>(_FpType(1.0));
+        UintType __scale_up_bits   = __fpmp_internal_bit_cast<UintType>(__scale_up);
+        UintType __one_bits        = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
         UintType __scale_bits      = (__scale_up_bits & UintType(__needs_scale)) | (__one_bits & UintType(~__needs_scale));
-        _FpType __scale             = fpmp::internal_bit_cast<_FpType>(__scale_bits);
+        _FpType __scale             = __fpmp_internal_bit_cast<_FpType>(__scale_bits);
         
-        UintType __scale_down_bits = fpmp::internal_bit_cast<UintType>(__scale_down);
+        UintType __scale_down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
         UintType __inv_scale_bits  = (__scale_down_bits & UintType(__needs_scale)) | (__one_bits & UintType(~__needs_scale));
-        _FpType __inv_scale         = fpmp::internal_bit_cast<_FpType>(__inv_scale_bits);
+        _FpType __inv_scale         = __fpmp_internal_bit_cast<_FpType>(__inv_scale_bits);
         
         // Scale first operand
-        _FpType __a_hi = fpmp::mul_rn(__x_hi, __scale);
-        _FpType __a_lo = fpmp::mul_rn(__x_lo, __scale);
+        _FpType __a_hi = __fpmp_mul_rn(__x_hi, __scale);
+        _FpType __a_lo = __fpmp_mul_rn(__x_lo, __scale);
         
         // Standard Dekker multiplication
         _FpType __c_lo;
-        _FpType __c_hi = fpmp::two_mult_fma(__a_hi, __y_hi, &__c_lo);
-        _FpType __p1   = fpmp::mul_rn(__a_hi, __y_lo);
-        _FpType __p2   = fpmp::mul_rn(__a_lo, __y_hi);
-        __c_lo        = fpmp::add_rn(__c_lo, fpmp::add_rn(__p1, __p2));
+        _FpType __c_hi = __fpmp_two_mult_fma(__a_hi, __y_hi, &__c_lo);
+        _FpType __p1   = __fpmp_mul_rn(__a_hi, __y_lo);
+        _FpType __p2   = __fpmp_mul_rn(__a_lo, __y_hi);
+        __c_lo        = __fpmp_add_rn(__c_lo, __fpmp_add_rn(__p1, __p2));
         
         // Normalize
         _FpType __r_lo;
-        _FpType __r_hi = fpmp::fast_two_sum(__c_hi, __c_lo, &__r_lo);
+        _FpType __r_hi = __fpmp_fast_two_sum(__c_hi, __c_lo, &__r_lo);
         
         // Scale back
-        __r_hi = fpmp::mul_rn(__r_hi, __inv_scale);
-        __r_lo = fpmp::mul_rn(__r_lo, __inv_scale);
+        __r_hi = __fpmp_mul_rn(__r_hi, __inv_scale);
+        __r_lo = __fpmp_mul_rn(__r_lo, __inv_scale);
         
         // Final normalization to ensure (hi, lo) invariant after scaling
-        *__res_hi = fpmp::fast_two_sum(__r_hi, __r_lo, __res_lo);
+        *__res_hi = __fpmp_fast_two_sum(__r_hi, __r_lo, __res_lo);
     } // __fpmp2_high_mul
 #endif // _CCCL_FPMP_USE_ACCURATE_MUL == 1
 
@@ -1006,26 +1006,26 @@ namespace cuda::experimental
     {
 
         // Get an estimate from *this->hi:
-        _FpType __recip_hi = fpmp::rcp_rn(__b_hi);
+        _FpType __recip_hi = __fpmp_rcp_rn(__b_hi);
 
         // Do a Newton-Rhapson iteration:
         // This line can break for some uninvestigated reason,
         // Use the one below:
         //recip_hi = recip_hi*(2.0 - (x.get_hi())*recip_hi);
         _FpType __two = static_cast<_FpType>(2.0);
-        __recip_hi = fpmp::fma_rn(-__b_hi*__recip_hi, __recip_hi, __two*__recip_hi);
+        __recip_hi = __fpmp_fma_rn(-__b_hi*__recip_hi, __recip_hi, __two*__recip_hi);
 
         _FpType __recip2_hi = __recip_hi*__recip_hi;
-        _FpType __recip2_lo = fpmp::fma_rn(__recip_hi, __recip_hi, -__recip2_hi);
+        _FpType __recip2_lo = __fpmp_fma_rn(__recip_hi, __recip_hi, -__recip2_hi);
 
         // recip^2 * this->(hi/lo), Dekker multiplication:
         _FpType __mul_hi = __recip2_hi*(__b_hi);
-        _FpType __mul_lo = fpmp::fma_rn(__recip2_hi, (__b_hi), -__mul_hi);
+        _FpType __mul_lo = __fpmp_fma_rn(__recip2_hi, (__b_hi), -__mul_hi);
         __mul_lo       += (__recip2_hi*(__b_lo) + __recip2_lo*(__b_hi));
 
         // Our answer is now 2*recip_hi + mul_hi + mul_lo
         _FpType __final_recip_hi = __two*__recip_hi - __mul_hi;
-        _FpType __final_recip_lo = __two*__recip_hi - fpmp::add_rn(__final_recip_hi, __mul_hi);
+        _FpType __final_recip_lo = __two*__recip_hi - __fpmp_add_rn(__final_recip_hi, __mul_hi);
         __final_recip_lo       -= __mul_lo;
 
         // Multiply the reciprocal by the numerator
@@ -1050,19 +1050,19 @@ namespace cuda::experimental
 
         _FpType __t_hi, __t_lo;
         _FpType __e, __r;
-        __r          = fpmp::rcp_rn(__b_hi);
-        __t_hi       = fpmp::mul_rn (__a_hi, __r);
-        __e          = fpmp::fma_rn (__b_hi, -__t_hi, __a_hi);
-        __t_hi       = fpmp::fma_rn (__r, __e, __t_hi);
-        __t_lo       = fpmp::fma_rn (__b_hi, -__t_hi, __a_hi);
-        __t_lo       = fpmp::add_rn (__a_lo, __t_lo);
-        __t_lo       = fpmp::fma_rn (__b_lo, -__t_hi, __t_lo);
-        __e          = fpmp::mul_rn (__r, __t_lo);
-        __t_lo       = fpmp::fma_rn (__b_hi, -__e, __t_lo);
-        __t_lo       = fpmp::fma_rn (__r, __t_lo, __e);
-        __e          = fpmp::add_rn (__t_hi, __t_lo);
+        __r          = __fpmp_rcp_rn(__b_hi);
+        __t_hi       = __fpmp_mul_rn (__a_hi, __r);
+        __e          = __fpmp_fma_rn (__b_hi, -__t_hi, __a_hi);
+        __t_hi       = __fpmp_fma_rn (__r, __e, __t_hi);
+        __t_lo       = __fpmp_fma_rn (__b_hi, -__t_hi, __a_hi);
+        __t_lo       = __fpmp_add_rn (__a_lo, __t_lo);
+        __t_lo       = __fpmp_fma_rn (__b_lo, -__t_hi, __t_lo);
+        __e          = __fpmp_mul_rn (__r, __t_lo);
+        __t_lo       = __fpmp_fma_rn (__b_hi, -__e, __t_lo);
+        __t_lo       = __fpmp_fma_rn (__r, __t_lo, __e);
+        __e          = __fpmp_add_rn (__t_hi, __t_lo);
 
-        *__res_lo    = fpmp::add_rn (__t_hi - __e, __t_lo);
+        *__res_lo    = __fpmp_add_rn (__t_hi - __e, __t_lo);
         *__res_hi    = __e;
     } // __fpmp2_div
 
@@ -1118,8 +1118,8 @@ namespace cuda::experimental
         constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
         
         // Extract exponents
-        UintType __a_bits = fpmp::internal_bit_cast<UintType>(__a_hi);
-        UintType __b_bits = fpmp::internal_bit_cast<UintType>(__b_hi);
+        UintType __a_bits = __fpmp_internal_bit_cast<UintType>(__a_hi);
+        UintType __b_bits = __fpmp_internal_bit_cast<UintType>(__b_hi);
         int __a_exp = static_cast<int>((__a_bits & __exp_mask) >> __mant_bits);
         int __b_exp = static_cast<int>((__b_bits & __exp_mask) >> __mant_bits);
         
@@ -1132,61 +1132,61 @@ namespace cuda::experimental
         int __needs_scale_b = (__b_exp - __exp_threshold_low) >> 31;
         
         // Select scale factors for 'a' (branch-free)
-        UintType __scale_up_bits = fpmp::internal_bit_cast<UintType>(__scale_up);
-        UintType __one_bits      = fpmp::internal_bit_cast<UintType>(_FpType(1.0));
+        UintType __scale_up_bits = __fpmp_internal_bit_cast<UintType>(__scale_up);
+        UintType __one_bits      = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
         UintType __scale_a_bits  = (__scale_up_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
-        _FpType __scale_a         = fpmp::internal_bit_cast<_FpType>(__scale_a_bits);
+        _FpType __scale_a         = __fpmp_internal_bit_cast<_FpType>(__scale_a_bits);
         
         // Select scale factors for 'b' (branch-free)
         UintType __scale_b_bits  = (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
-        _FpType __scale_b         = fpmp::internal_bit_cast<_FpType>(__scale_b_bits);
+        _FpType __scale_b         = __fpmp_internal_bit_cast<_FpType>(__scale_b_bits);
         
         // Scale operands
-        _FpType __sa_hi = fpmp::mul_rn(__a_hi, __scale_a);
-        _FpType __sa_lo = fpmp::mul_rn(__a_lo, __scale_a);
-        _FpType __sb_hi = fpmp::mul_rn(__b_hi, __scale_b);
-        _FpType __sb_lo = fpmp::mul_rn(__b_lo, __scale_b);
+        _FpType __sa_hi = __fpmp_mul_rn(__a_hi, __scale_a);
+        _FpType __sa_lo = __fpmp_mul_rn(__a_lo, __scale_a);
+        _FpType __sb_hi = __fpmp_mul_rn(__b_hi, __scale_b);
+        _FpType __sb_lo = __fpmp_mul_rn(__b_lo, __scale_b);
         
         // Perform division on scaled operands using Nagai et al. algorithm
         _FpType __t_hi, __t_lo;
         _FpType __e, __r;
-        __r          = fpmp::rcp_rn(__sb_hi);
-        __t_hi       = fpmp::mul_rn (__sa_hi, __r);
-        __e          = fpmp::fma_rn (__sb_hi, -__t_hi, __sa_hi);
-        __t_hi       = fpmp::fma_rn (__r, __e, __t_hi);
-        __t_lo       = fpmp::fma_rn (__sb_hi, -__t_hi, __sa_hi);
-        __t_lo       = fpmp::add_rn (__sa_lo, __t_lo);
-        __t_lo       = fpmp::fma_rn (__sb_lo, -__t_hi, __t_lo);
-        __e          = fpmp::mul_rn (__r, __t_lo);
-        __t_lo       = fpmp::fma_rn (__sb_hi, -__e, __t_lo);
-        __t_lo       = fpmp::fma_rn (__r, __t_lo, __e);
-        __e          = fpmp::add_rn (__t_hi, __t_lo);
+        __r          = __fpmp_rcp_rn(__sb_hi);
+        __t_hi       = __fpmp_mul_rn (__sa_hi, __r);
+        __e          = __fpmp_fma_rn (__sb_hi, -__t_hi, __sa_hi);
+        __t_hi       = __fpmp_fma_rn (__r, __e, __t_hi);
+        __t_lo       = __fpmp_fma_rn (__sb_hi, -__t_hi, __sa_hi);
+        __t_lo       = __fpmp_add_rn (__sa_lo, __t_lo);
+        __t_lo       = __fpmp_fma_rn (__sb_lo, -__t_hi, __t_lo);
+        __e          = __fpmp_mul_rn (__r, __t_lo);
+        __t_lo       = __fpmp_fma_rn (__sb_hi, -__e, __t_lo);
+        __t_lo       = __fpmp_fma_rn (__r, __t_lo, __e);
+        __e          = __fpmp_add_rn (__t_hi, __t_lo);
         
         _FpType __r_hi = __e;
-        _FpType __r_lo = fpmp::add_rn (__t_hi - __e, __t_lo);
+        _FpType __r_lo = __fpmp_add_rn (__t_hi - __e, __t_lo);
         
         // Compute result scale factor: inv_scale = scale_b / scale_a
         // If a was scaled up, result should be scaled down
         // If b was scaled up, result should be scaled up (since we divided by larger b)
-        UintType __scale_down_bits = fpmp::internal_bit_cast<UintType>(__scale_down);
+        UintType __scale_down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
         
         // For 'a' scaling: if we scaled a up, scale result down
         UintType __inv_scale_a_bits = (__scale_down_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
-        _FpType __inv_scale_a        = fpmp::internal_bit_cast<_FpType>(__inv_scale_a_bits);
+        _FpType __inv_scale_a        = __fpmp_internal_bit_cast<_FpType>(__inv_scale_a_bits);
         
         // For 'b' scaling: if we scaled b up, scale result up (compensate)
         UintType __comp_scale_b_bits = (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
-        _FpType __comp_scale_b        = fpmp::internal_bit_cast<_FpType>(__comp_scale_b_bits);
+        _FpType __comp_scale_b        = __fpmp_internal_bit_cast<_FpType>(__comp_scale_b_bits);
         
         // Combined scale factor
-        _FpType __final_scale = fpmp::mul_rn(__inv_scale_a, __comp_scale_b);
+        _FpType __final_scale = __fpmp_mul_rn(__inv_scale_a, __comp_scale_b);
         
         // Scale result back
-        __r_hi = fpmp::mul_rn(__r_hi, __final_scale);
-        __r_lo = fpmp::mul_rn(__r_lo, __final_scale);
+        __r_hi = __fpmp_mul_rn(__r_hi, __final_scale);
+        __r_lo = __fpmp_mul_rn(__r_lo, __final_scale);
         
         // Final normalization to ensure (hi, lo) invariant after scaling
-        *__res_hi = fpmp::fast_two_sum(__r_hi, __r_lo, __res_lo);
+        *__res_hi = __fpmp_fast_two_sum(__r_hi, __r_lo, __res_lo);
     } // __fpmp2_high_div
 #endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
 
@@ -1211,22 +1211,22 @@ namespace cuda::experimental
         _FpType __r, __s, __e;
         _FpType __one = static_cast<_FpType>(1.0);
         _FpType __half = static_cast<_FpType>(0.5);
-        __r    = fpmp::rsqrt_rn(__a_hi);
-        __e    = fpmp::mul_rn (__a_hi, __r);
-        __s    = fpmp::fma_rn (__e, -__r, __one);
-        __e    = fpmp::fma_rn (__a_hi, __r, -__e);
-        __s    = fpmp::fma_rn (__e, -__r, __s);
-        __e    = fpmp::mul_rn (__a_lo, __r);
-        __s    = fpmp::fma_rn (__e, -__r, __s);
-        __e    = fpmp::mul_rn (__half, __r);
-        __z_hi = fpmp::mul_rn (__e, __s);
-        __z_lo = fpmp::fma_rn (__e, __s, -__z_hi);
-        __s    = fpmp::add_rn (__r, __z_hi);
-        __r    = fpmp::add_rn (__r, -__s);
-        __r    = fpmp::add_rn (__r, __z_hi);
-        __r    = fpmp::add_rn (__r, __z_lo);
-        __e    = fpmp::add_rn (__s, __r);
-        __z_lo = fpmp::add_rn (__s - __e, __r);
+        __r    = __fpmp_rsqrt_rn(__a_hi);
+        __e    = __fpmp_mul_rn (__a_hi, __r);
+        __s    = __fpmp_fma_rn (__e, -__r, __one);
+        __e    = __fpmp_fma_rn (__a_hi, __r, -__e);
+        __s    = __fpmp_fma_rn (__e, -__r, __s);
+        __e    = __fpmp_mul_rn (__a_lo, __r);
+        __s    = __fpmp_fma_rn (__e, -__r, __s);
+        __e    = __fpmp_mul_rn (__half, __r);
+        __z_hi = __fpmp_mul_rn (__e, __s);
+        __z_lo = __fpmp_fma_rn (__e, __s, -__z_hi);
+        __s    = __fpmp_add_rn (__r, __z_hi);
+        __r    = __fpmp_add_rn (__r, -__s);
+        __r    = __fpmp_add_rn (__r, __z_hi);
+        __r    = __fpmp_add_rn (__r, __z_lo);
+        __e    = __fpmp_add_rn (__s, __r);
+        __z_lo = __fpmp_add_rn (__s - __e, __r);
         __z_hi = __e;
 
         *__res_hi = __z_hi;
@@ -1249,22 +1249,22 @@ namespace cuda::experimental
         _FpType __e, __y, __s, __r;
         _FpType __zero = static_cast<_FpType>(0.0);
         _FpType __half = static_cast<_FpType>(0.5);
-        __r = fpmp::rsqrt_rn(__a_hi);
+        __r = __fpmp_rsqrt_rn(__a_hi);
         if (__a_hi == __zero) __r = __zero;
-        __y           = fpmp::mul_rn (__a_hi, __r);
-        __s           = fpmp::fma_rn (__y, -__y, __a_hi);
-        __r           = fpmp::mul_rn (__half, __r);
-        __e           = fpmp::add_rn (__s, __a_lo);
-        __tmp_lo      = fpmp::add_rn (__s - __e, __a_lo);
-        __t_hi        = fpmp::mul_rn (__r, __e);
-        __t_lo        = fpmp::fma_rn (__r, __e, -__t_hi);
-        __t_lo        = fpmp::fma_rn (__r, __tmp_lo, __t_lo);
-        __r           = fpmp::add_rn (__y, __t_hi);
-        __s           = fpmp::add_rn (__y - __r, __t_hi);
-        __s           = fpmp::add_rn (__s, __t_lo);
-        __e           = fpmp::add_rn (__r, __s);
+        __y           = __fpmp_mul_rn (__a_hi, __r);
+        __s           = __fpmp_fma_rn (__y, -__y, __a_hi);
+        __r           = __fpmp_mul_rn (__half, __r);
+        __e           = __fpmp_add_rn (__s, __a_lo);
+        __tmp_lo      = __fpmp_add_rn (__s - __e, __a_lo);
+        __t_hi        = __fpmp_mul_rn (__r, __e);
+        __t_lo        = __fpmp_fma_rn (__r, __e, -__t_hi);
+        __t_lo        = __fpmp_fma_rn (__r, __tmp_lo, __t_lo);
+        __r           = __fpmp_add_rn (__y, __t_hi);
+        __s           = __fpmp_add_rn (__y - __r, __t_hi);
+        __s           = __fpmp_add_rn (__s, __t_lo);
+        __e           = __fpmp_add_rn (__r, __s);
 
-        *__res_lo    = fpmp::add_rn (__r - __e, __s);
+        *__res_lo    = __fpmp_add_rn (__r - __e, __s);
         *__res_hi    = __e;
     } // __fpmp2_sqrt
 
@@ -1288,18 +1288,18 @@ namespace cuda::experimental
     { 
 
         
-        _FpType __r_hi = fpmp::fma_rn(__x_hi, __y_hi, __z_hi);
+        _FpType __r_hi = __fpmp_fma_rn(__x_hi, __y_hi, __z_hi);
         
         _FpType __q;
-        _FpType __p = fpmp::two_mult_fma(__x_hi, __y_hi, &__q);
+        _FpType __p = __fpmp_two_mult_fma(__x_hi, __y_hi, &__q);
         _FpType __t;
-        _FpType __s = fpmp::two_sum(__p, __z_hi, &__t);
-        _FpType __r_lo = fpmp::add_rn(fpmp::sub_rn(__s, __r_hi), fpmp::add_rn(__t, __q));
+        _FpType __s = __fpmp_two_sum(__p, __z_hi, &__t);
+        _FpType __r_lo = __fpmp_add_rn(__fpmp_sub_rn(__s, __r_hi), __fpmp_add_rn(__t, __q));
         
-        __r_lo = fpmp::fma_rn(__x_hi, __y_lo, __r_lo);
-        __r_lo = fpmp::fma_rn(__x_lo, __y_hi, __r_lo);
-        __r_lo = fpmp::fma_rn(__x_lo, __y_lo, __r_lo);
-        __r_lo = fpmp::add_rn(__r_lo, __z_lo);
+        __r_lo = __fpmp_fma_rn(__x_hi, __y_lo, __r_lo);
+        __r_lo = __fpmp_fma_rn(__x_lo, __y_hi, __r_lo);
+        __r_lo = __fpmp_fma_rn(__x_lo, __y_lo, __r_lo);
+        __r_lo = __fpmp_add_rn(__r_lo, __z_lo);
 
         *__res_hi = __r_hi;
         *__res_lo = __r_lo;
@@ -1326,23 +1326,23 @@ namespace cuda::experimental
 
         
         // Hardware FMA: x_hi*y_hi + z_hi with single rounding (optimal)
-        _FpType __r_hi = fpmp::fma_rn(__x_hi, __y_hi, __z_hi);
+        _FpType __r_hi = __fpmp_fma_rn(__x_hi, __y_hi, __z_hi);
         
         // Exact error recovery for the main FMA
         _FpType __q;
-        _FpType __p = fpmp::two_mult_fma(__x_hi, __y_hi, &__q);
+        _FpType __p = __fpmp_two_mult_fma(__x_hi, __y_hi, &__q);
         _FpType __t;
-        _FpType __s = fpmp::two_sum(__p, __z_hi, &__t);
-        _FpType __r_lo = fpmp::add_rn(fpmp::sub_rn(__s, __r_hi), fpmp::add_rn(__t, __q));
+        _FpType __s = __fpmp_two_sum(__p, __z_hi, &__t);
+        _FpType __r_lo = __fpmp_add_rn(__fpmp_sub_rn(__s, __r_hi), __fpmp_add_rn(__t, __q));
         
         // Cross terms and remaining contributions
-        __r_lo = fpmp::fma_rn(__x_hi, __y_lo, __r_lo);
-        __r_lo = fpmp::fma_rn(__x_lo, __y_hi, __r_lo);
-        __r_lo = fpmp::fma_rn(__x_lo, __y_lo, __r_lo);
-        __r_lo = fpmp::add_rn(__r_lo, __z_lo);
+        __r_lo = __fpmp_fma_rn(__x_hi, __y_lo, __r_lo);
+        __r_lo = __fpmp_fma_rn(__x_lo, __y_hi, __r_lo);
+        __r_lo = __fpmp_fma_rn(__x_lo, __y_lo, __r_lo);
+        __r_lo = __fpmp_add_rn(__r_lo, __z_lo);
         
         // Normalize
-        *__res_hi = fpmp::fast_two_sum(__r_hi, __r_lo, __res_lo);
+        *__res_hi = __fpmp_fast_two_sum(__r_hi, __r_lo, __res_lo);
     } // __fpmp2_fma
 
     /* Compute accurate fused multiply-add: x*y+z
@@ -1362,33 +1362,33 @@ namespace cuda::experimental
                                                           _FpType*      __res_hi, 
                                                           _FpType*      __res_lo) noexcept
     { 
-        _FpType __r_hi = fpmp::fma_rn(__x_hi, __y_hi, __z_hi);
+        _FpType __r_hi = __fpmp_fma_rn(__x_hi, __y_hi, __z_hi);
         
         _FpType __q;
-        _FpType __p = fpmp::two_mult_fma(__x_hi, __y_hi, &__q);
+        _FpType __p = __fpmp_two_mult_fma(__x_hi, __y_hi, &__q);
         _FpType __t;
-        _FpType __s = fpmp::two_sum(__p, __z_hi, &__t);
-        _FpType __r_lo = fpmp::add_rn(fpmp::sub_rn(__s, __r_hi), fpmp::add_rn(__t, __q));
+        _FpType __s = __fpmp_two_sum(__p, __z_hi, &__t);
+        _FpType __r_lo = __fpmp_add_rn(__fpmp_sub_rn(__s, __r_hi), __fpmp_add_rn(__t, __q));
         
         _FpType __c1_lo;
-        _FpType __c1_hi = fpmp::two_mult_fma(__x_hi, __y_lo, &__c1_lo);
+        _FpType __c1_hi = __fpmp_two_mult_fma(__x_hi, __y_lo, &__c1_lo);
         
         _FpType __c2_lo;
-        _FpType __c2_hi = fpmp::two_mult_fma(__x_lo, __y_hi, &__c2_lo);
+        _FpType __c2_hi = __fpmp_two_mult_fma(__x_lo, __y_hi, &__c2_lo);
         
         _FpType __cross_err;
-        _FpType __cross = fpmp::two_sum(__c1_hi, __c2_hi, &__cross_err);
+        _FpType __cross = __fpmp_two_sum(__c1_hi, __c2_hi, &__cross_err);
         
         _FpType __acc_err;
-        __r_lo = fpmp::two_sum(__r_lo, __cross, &__acc_err);
+        __r_lo = __fpmp_two_sum(__r_lo, __cross, &__acc_err);
         
-        _FpType __residual = fpmp::add_rn(__acc_err, fpmp::add_rn(__cross_err, fpmp::add_rn(__c1_lo, __c2_lo)));
-        __residual = fpmp::fma_rn(__x_lo, __y_lo, __residual);
-        __residual = fpmp::add_rn(__residual, __z_lo);
+        _FpType __residual = __fpmp_add_rn(__acc_err, __fpmp_add_rn(__cross_err, __fpmp_add_rn(__c1_lo, __c2_lo)));
+        __residual = __fpmp_fma_rn(__x_lo, __y_lo, __residual);
+        __residual = __fpmp_add_rn(__residual, __z_lo);
         
-        __r_lo = fpmp::add_rn(__r_lo, __residual);
+        __r_lo = __fpmp_add_rn(__r_lo, __residual);
         
-        *__res_hi = fpmp::fast_two_sum(__r_hi, __r_lo, __res_lo);
+        *__res_hi = __fpmp_fast_two_sum(__r_hi, __r_lo, __res_lo);
     } // __fpmp2_high_fma
 
     /*
@@ -1537,7 +1537,7 @@ namespace cuda::experimental
     { 
 
         double __d = __fpmp2_to_double(__x_hi, __x_lo);
-        return fpmp::internal_bit_cast<uint64_t>(__d);
+        return __fpmp_internal_bit_cast<uint64_t>(__d);
     }
 
     /*
@@ -1603,16 +1603,16 @@ namespace cuda::experimental
             // Extract old values from the 64-bit integer
             uint32_t __old_hi_bits = static_cast<uint32_t>(__assumed & 0xFFFFFFFFULL);
             uint32_t __old_lo_bits = static_cast<uint32_t>((__assumed >> 32) & 0xFFFFFFFFULL);
-            float __old_hi_val = fpmp::internal_bit_cast<float>(__old_hi_bits);
-            float __old_lo_val = fpmp::internal_bit_cast<float>(__old_lo_bits);
+            float __old_hi_val = __fpmp_internal_bit_cast<float>(__old_hi_bits);
+            float __old_lo_val = __fpmp_internal_bit_cast<float>(__old_lo_bits);
             
             // Perform addition based on method
             float __new_hi, __new_lo;
             __fpmp2_high_add(__old_hi_val, __old_lo_val, __addition_hi, __addition_lo, &__new_hi, &__new_lo);
             
             // Pack new values into a 64-bit integer
-            uint32_t __new_hi_bits = fpmp::internal_bit_cast<uint32_t>(__new_hi);
-            uint32_t __new_lo_bits = fpmp::internal_bit_cast<uint32_t>(__new_lo);
+            uint32_t __new_hi_bits = __fpmp_internal_bit_cast<uint32_t>(__new_hi);
+            uint32_t __new_lo_bits = __fpmp_internal_bit_cast<uint32_t>(__new_lo);
             unsigned long long int __new_ull = static_cast<unsigned long long int>(__new_hi_bits) | 
                                             (static_cast<unsigned long long int>(__new_lo_bits) << 32);
             
@@ -1622,8 +1622,8 @@ namespace cuda::experimental
         // Return old value - extract from the final 'old' value
         uint32_t __old_hi_bits = static_cast<uint32_t>(__old & 0xFFFFFFFFULL);
         uint32_t __old_lo_bits = static_cast<uint32_t>((__old >> 32) & 0xFFFFFFFFULL);
-        *__old_hi = fpmp::internal_bit_cast<float>(__old_hi_bits);
-        *__old_lo = fpmp::internal_bit_cast<float>(__old_lo_bits);
+        *__old_hi = __fpmp_internal_bit_cast<float>(__old_hi_bits);
+        *__old_lo = __fpmp_internal_bit_cast<float>(__old_lo_bits);
     }
 
     // atomicSub for float: Uses negation and atomicAdd
@@ -1673,8 +1673,8 @@ namespace cuda::experimental
             __assumed = __old;
             
             // Extract old values from the 128-bit structure
-            double __old_hi_val = fpmp::internal_bit_cast<double>(__assumed.x);
-            double __old_lo_val = fpmp::internal_bit_cast<double>(__assumed.y);
+            double __old_hi_val = __fpmp_internal_bit_cast<double>(__assumed.x);
+            double __old_lo_val = __fpmp_internal_bit_cast<double>(__assumed.y);
             
             // Perform addition based on method
             double __new_hi, __new_lo;
@@ -1682,16 +1682,16 @@ namespace cuda::experimental
 
             // Pack new values into a 128-bit structure
             ulonglong2 __new_ull2;
-            __new_ull2.x = fpmp::internal_bit_cast<unsigned long long int>(__new_hi);
-            __new_ull2.y = fpmp::internal_bit_cast<unsigned long long int>(__new_lo);
+            __new_ull2.x = __fpmp_internal_bit_cast<unsigned long long int>(__new_hi);
+            __new_ull2.y = __fpmp_internal_bit_cast<unsigned long long int>(__new_lo);
             
             // 128-bit atomicCAS available on sm_90+
             __old = atomicCAS(__address_as_ull2, __assumed, __new_ull2);
         } while (__assumed.x != __old.x || __assumed.y != __old.y);
         
         // Return old value - extract from the final 'old' value
-        *__old_hi = fpmp::internal_bit_cast<double>(__old.x);
-        *__old_lo = fpmp::internal_bit_cast<double>(__old.y);
+        *__old_hi = __fpmp_internal_bit_cast<double>(__old.x);
+        *__old_lo = __fpmp_internal_bit_cast<double>(__old.y);
       #else
         // 128-bit atomicCAS requires sm_90+ (Hopper architecture)
         // On older architectures, this is a no-op stub

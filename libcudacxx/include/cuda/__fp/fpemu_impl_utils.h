@@ -120,8 +120,7 @@ namespace cuda::experimental
     #define _CCCL_FPEMU_SQRT_METHOD  unset
 #endif
 
-namespace fpemu
-{
+
     #define _CCCL_FP32_TOTAL_BITS  32
     #define _CCCL_FP32_BIAS        127
     #define _CCCL_FP32_MANT_BITS   23
@@ -180,12 +179,12 @@ namespace fpemu
     //constexpr uint64_t bitwidth = (MANTISSA_WIDTH + EXTRA_BITS);
     /* Exponent bias is 2^(11-1) -1 */    
     /* fp64 mantissa is 52 */
-    constexpr uint64_t MANTISSA_WIDTH = 52;
-    constexpr uint64_t EXPONENT_MASK  = _CCCL_FPEMU_EXP_64;
-    constexpr uint64_t MANTISSA_MASK  = _CCCL_FPEMU_MANT_64;
-    constexpr uint32_t EXTRA_BITS     = 9;
-    constexpr uint32_t BIAS           = 1023;
-    constexpr uint32_t INF_ZERO       = 0x00007ff0 - BIAS - 2048 - 1 + 0xC;; // - 128
+    constexpr uint64_t __fpemu_MANTISSA_WIDTH = 52;
+    constexpr uint64_t __fpemu_EXPONENT_MASK  = _CCCL_FPEMU_EXP_64;
+    constexpr uint64_t __fpemu_MANTISSA_MASK  = _CCCL_FPEMU_MANT_64;
+    constexpr uint32_t __fpemu_EXTRA_BITS     = 9;
+    constexpr uint32_t __fpemu_BIAS           = 1023;
+    constexpr uint32_t __fpemu_INF_ZERO       = 0x00007ff0 - __fpemu_BIAS - 2048 - 1 + 0xC;; // - 128
 
     /*
     // by default route fpemu's internal bit-casts through
@@ -193,7 +192,7 @@ namespace fpemu
     // define it before including the fpemu headers for a fast re-map back to the
     // in-house polyfill, e.g.:
     //   #define _CCCL_FPEMU_BIT_CAST(To, v) \
-    //       ::cuda::experimental::fpemu::__fpemu_builtin_bit_cast<To>(v)
+    //       ::cuda::experimental::__fpemu_builtin_bit_cast<To>(v)
     */
     #ifndef _CCCL_FPEMU_BIT_CAST
     #  define _CCCL_FPEMU_BIT_CAST(To, v) ::cuda::std::bit_cast<To>(v)
@@ -227,7 +226,7 @@ namespace fpemu
     // Internal bit cast utility used throughout the library. Delegates to the
     // _CCCL_FPEMU_BIT_CAST switch macro (cuda::std::bit_cast by default).
     template<typename _Tp, typename _Rp>
-    _CCCL_API _Tp bit_cast(const _Rp __value) noexcept
+    _CCCL_API _Tp __fpemu_bit_cast(const _Rp __value) noexcept
     {
         return _CCCL_FPEMU_BIT_CAST(_Tp, __value);
     }
@@ -443,8 +442,8 @@ namespace fpemu
     {
         uint32_t __res;
 #if defined  __CUDA_ARCH__
-        __uint32x2_t __a64 = fpemu::bit_cast<__uint32x2_t>(__a);
-        __uint32x2_t __b64 = fpemu::bit_cast<__uint32x2_t>(__b);
+        __uint32x2_t __a64 = __fpemu_bit_cast<__uint32x2_t>(__a);
+        __uint32x2_t __b64 = __fpemu_bit_cast<__uint32x2_t>(__b);
         uint32_t __res32;
         asm ("{\n\t"
             ".reg .u32 r0, ahi, bhi;\n\t"
@@ -489,8 +488,8 @@ namespace fpemu
     {
         __uint32x2_t __res;
 #if defined  __CUDA_ARCH__
-        uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
-        uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+        uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
+        uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
         uint64_t __res64;
         asm ("{\n\t"
             ".reg .u32 r0, r1, r2, r3, alo, ahi, blo, bhi;\n\t"
@@ -507,7 +506,7 @@ namespace fpemu
             "}"
             : "=l"(__res64)
             : "l"(__a64), "l"(__b64));
-        __res = fpemu::bit_cast<__uint32x2_t>(__res64);
+        __res = __fpemu_bit_cast<__uint32x2_t>(__res64);
 #else
         // Split inputs into 32-bit parts
         uint32_t __alo = __a.x[0], __ahi = __a.x[1];
@@ -585,10 +584,10 @@ namespace fpemu
         __res.lo.x[1] = __mid_lo;
 
 #if defined  __CUDA_ARCH__
-        uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
-        uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+        uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
+        uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
         uint64_t __res64 = __umul64hi(__a64, __b64);
-        __res.hi = fpemu::bit_cast<__uint32x2_t>(__res64);
+        __res.hi = __fpemu_bit_cast<__uint32x2_t>(__res64);
 #else
         uint64_t __hi_hi = uint64_t(__ahi) * __bhi;  // (a.hi * b.hi)
         uint32_t __lo_hi_hi = uint32_t(__lo_hi >> 32);
@@ -617,9 +616,9 @@ namespace fpemu
      */
      _CCCL_TRIVIAL_API __uint32x2_t __shl_64 (__uint32x2_t __man, int __shift) noexcept
      {
-         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
+         uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
          __man64 <<= __shift;
-         return fpemu::bit_cast<__uint32x2_t>(__man64);
+         return __fpemu_bit_cast<__uint32x2_t>(__man64);
      } //__shl_64
  
      /**
@@ -634,12 +633,12 @@ namespace fpemu
       */
      _CCCL_TRIVIAL_API __uint32x2_t __shr_64 (__uint32x2_t __man, int __shift) noexcept
      {
-         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
+         uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>64) ? 64 : __shift : 0;
  #endif
          __man64 = __man64 >> __shift;
-         return fpemu::bit_cast<__uint32x2_t>(__man64);
+         return __fpemu_bit_cast<__uint32x2_t>(__man64);
      } //__shr_64
 
      /**
@@ -659,13 +658,13 @@ namespace fpemu
      *
      * Uses CUDA intrinsics on device; host falls back to native multiply (RN).
      */
-    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API float __fmul_dir (float __x, float __y) noexcept
     {
 #if defined(__CUDA_ARCH__)
-        if constexpr (_Rm == fpemu::rounding::rn) return __fmul_rn(__x, __y);
-        else if constexpr (_Rm == fpemu::rounding::rz) return __fmul_rz(__x, __y);
-        else if constexpr (_Rm == fpemu::rounding::ru) return __fmul_ru(__x, __y);
+        if constexpr (_Rm == __fpemu_rounding::rn) return __fmul_rn(__x, __y);
+        else if constexpr (_Rm == __fpemu_rounding::rz) return __fmul_rz(__x, __y);
+        else if constexpr (_Rm == __fpemu_rounding::ru) return __fmul_ru(__x, __y);
         else return __fmul_rd(__x, __y);
 #else
         (void)_Rm;
@@ -678,13 +677,13 @@ namespace fpemu
      *
      * Uses CUDA intrinsics on device; host falls back to native add (RN).
      */
-    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API float __fadd_dir (float __x, float __y) noexcept
     {
 #if defined(__CUDA_ARCH__)
-        if constexpr (_Rm == fpemu::rounding::rn) return __fadd_rn(__x, __y);
-        else if constexpr (_Rm == fpemu::rounding::rz) return __fadd_rz(__x, __y);
-        else if constexpr (_Rm == fpemu::rounding::ru) return __fadd_ru(__x, __y);
+        if constexpr (_Rm == __fpemu_rounding::rn) return __fadd_rn(__x, __y);
+        else if constexpr (_Rm == __fpemu_rounding::rz) return __fadd_rz(__x, __y);
+        else if constexpr (_Rm == __fpemu_rounding::ru) return __fadd_ru(__x, __y);
         else return __fadd_rd(__x, __y);
 #else
         (void)_Rm;
@@ -692,10 +691,10 @@ namespace fpemu
 #endif
     } //__fadd_dir
 
-     template<fpemu::rounding _Rm = fpemu::rounding::rn>
+     template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
      _CCCL_TRIVIAL_API __uint32x2_t __shr_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false) noexcept
      {
-         uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
+         uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>64) ? 64 : __shift : 0;
  #endif
@@ -705,21 +704,21 @@ namespace fpemu
          const bool __inexact = (__man64 & __discard_mask) != 0;
          __man64 >>= __shift;
 
-         if constexpr (_Rm == fpemu::rounding::ru)
+         if constexpr (_Rm == __fpemu_rounding::ru)
          {
              if (!__sign && __inexact) __man64++;
          }
-         else if constexpr (_Rm == fpemu::rounding::rd)
+         else if constexpr (_Rm == __fpemu_rounding::rd)
          {
              if (__sign && __inexact) __man64++;
          }
-         return fpemu::bit_cast<__uint32x2_t>(__man64);
+         return __fpemu_bit_cast<__uint32x2_t>(__man64);
      } //__shr_64_rnd
 
     /**
      * @brief Logical right shift of 128-bit mantissa with directed rounding
      */
-    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API __uint128_t __shr_128_rnd (__uint128_t __man, int __shift, bool __sign = false) noexcept
     {
 #ifndef __CUDA_ARCH__
@@ -732,15 +731,15 @@ namespace fpemu
         const bool __inexact = (__man & __discard_mask) != 0;
         __man >>= __shift;
 
-        if constexpr (_Rm == fpemu::rounding::rn || _Rm == fpemu::rounding::rz)
+        if constexpr (_Rm == __fpemu_rounding::rn || _Rm == __fpemu_rounding::rz)
         {
             if (__inexact) __man |= 1;
         }
-        else if constexpr (_Rm == fpemu::rounding::ru)
+        else if constexpr (_Rm == __fpemu_rounding::ru)
         {
             if (!__sign && __inexact) __man |= 1;
         }
-        else if constexpr (_Rm == fpemu::rounding::rd)
+        else if constexpr (_Rm == __fpemu_rounding::rd)
         {
             if (__sign && __inexact) __man |= 1;
         }
@@ -753,7 +752,7 @@ namespace fpemu
      */
     _CCCL_TRIVIAL_API __uint128_t __shr_128_jam (__uint128_t __man, int __shift) noexcept
     {
-        return __shr_128_rnd<fpemu::rounding::rn>(__man, __shift);
+        return __shr_128_rnd<__fpemu_rounding::rn>(__man, __shift);
     } //__shr_128_jam
  
           /**
@@ -773,9 +772,9 @@ namespace fpemu
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
  #endif
-         int64_t __man64 = fpemu::bit_cast<int64_t>(__man);
+         int64_t __man64 = __fpemu_bit_cast<int64_t>(__man);
         __man64 = __man64 >> __shift;
-         __uint32x2_t __res = fpemu::bit_cast<__uint32x2_t>(__man64);
+         __uint32x2_t __res = __fpemu_bit_cast<__uint32x2_t>(__man64);
          return __res;
      } //__sar_64_rnd
 
@@ -796,32 +795,32 @@ namespace fpemu
       * @return The shifted and rounded value as two 32-bit integers
       */
       template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
-               fpemu::rounding _Rm = fpemu::rounding::rn>
+               __fpemu_rounding _Rm = __fpemu_rounding::rn>
      _CCCL_TRIVIAL_API __uint32x2_t __sar_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false) noexcept
      {
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
  #endif
-         int64_t __man64 = fpemu::bit_cast<int64_t>(__man);
+         int64_t __man64 = __fpemu_bit_cast<int64_t>(__man);
          int64_t __man64_res = __man64 >> __shift;
-         __uint32x2_t __res = fpemu::bit_cast<__uint32x2_t>(__man64_res);
+         __uint32x2_t __res = __fpemu_bit_cast<__uint32x2_t>(__man64_res);
          if constexpr (_Acc == fp64emu_accuracy::high)
          {
             uint64_t __mask = (1LLU << __shift) - 1;
             bool __sticky = (__man64 & __mask) != 0;
-            if constexpr (_Rm == fpemu::rounding::rn)
+            if constexpr (_Rm == __fpemu_rounding::rn)
             {
                 __res.x[0] |= __sticky;
             }
-            else if constexpr (_Rm == fpemu::rounding::rz)
+            else if constexpr (_Rm == __fpemu_rounding::rz)
             {
                 // truncate toward zero
             }
-            else if constexpr (_Rm == fpemu::rounding::ru)
+            else if constexpr (_Rm == __fpemu_rounding::ru)
             {
                 if (!__sign && __sticky) __res.x[0] |= 1;
             }
-            else if constexpr (_Rm == fpemu::rounding::rd)
+            else if constexpr (_Rm == __fpemu_rounding::rd)
             {
                 if (__sign && __sticky) __res.x[0] |= 1;
             }
@@ -903,7 +902,7 @@ namespace fpemu
         //Set implicit-bit for normal numbers
         if (!__is_zero_exp) __man32x2.x[1] |= ( 1 << 20 );
 
-        __man32x2 = __shl_64(__man32x2, EXTRA_BITS);
+        __man32x2 = __shl_64(__man32x2, __fpemu_EXTRA_BITS);
         return __man32x2;
     } //__unpack_mant
 
@@ -919,21 +918,21 @@ namespace fpemu
      * @param exp   Output unbiased exponent field
      * @param man   Output mantissa as two 32-bit integers
      */
-    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API
     void __fp64_ovfl_sat (bool __sign, int32_t& __exp, __uint32x2_t& __man) noexcept
     {
-        if constexpr (_Rm == fpemu::rounding::rz)
+        if constexpr (_Rm == __fpemu_rounding::rz)
         {
             __exp = _CCCL_FP64_BIAS * 2;
             __man = {0xffffffff, _CCCL_FP64_HI_MANT_MASK};
         }
-        else if constexpr (_Rm == fpemu::rounding::rn)
+        else if constexpr (_Rm == __fpemu_rounding::rn)
         {
             __exp = _CCCL_FP64_BIAS * 2 + 1;
             __man = {0, 0};
         }
-        else if constexpr (_Rm == fpemu::rounding::ru)
+        else if constexpr (_Rm == __fpemu_rounding::ru)
         {
             if (__sign)
             {
@@ -976,7 +975,7 @@ namespace fpemu
      * @return The packed 64-bit double precision number
      */
     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
-             fpemu::rounding _Rm = fpemu::rounding::rn>
+             __fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API uint64_t __pack (bool __sign, uint32_t __exp, __uint32x2_t __man) noexcept
     {
 
@@ -986,8 +985,8 @@ namespace fpemu
         if constexpr (_Acc == fp64emu_accuracy::high)
         {
             __is_nan =
-                __exp >= (0x000047ff - BIAS - 52 - 1) ||     //NAN * x && NAN + x
-                __exp == (0x000017ff - BIAS - 52 - 1) ||     //INF * 0
+                __exp >= (0x000047ff - __fpemu_BIAS - 52 - 1) ||     //NAN * x && NAN + x
+                __exp == (0x000017ff - __fpemu_BIAS - 52 - 1) ||     //INF * 0
                 (__exp == 0x000017ff - 64 && __zero_mantissa); //INF + (-INF)
 
         }
@@ -1004,7 +1003,7 @@ namespace fpemu
         bool __is_inf = false;
         if constexpr (_Acc == fp64emu_accuracy::high)
         {
-            __is_inf = (__exp >= (0x000017ff - BIAS - 52 - 1)) && !__is_nan;
+            __is_inf = (__exp >= (0x000017ff - __fpemu_BIAS - 52 - 1)) && !__is_nan;
         }
         // Check for exact zero result
         if ( __zero_mantissa && __exp < 0x000007ff) __exp = 0;
@@ -1049,7 +1048,7 @@ namespace fpemu
         // Pack everything to FP64
         __uint32x2_t __res = {__man.x[0], __man.x[1] | (__sign << 31)};
 
-        return fpemu::bit_cast<uint64_t>(__res);
+        return __fpemu_bit_cast<uint64_t>(__res);
     } //__pack
 
 
@@ -1068,9 +1067,9 @@ namespace fpemu
      */
     _CCCL_TRIVIAL_API __uint32x2_t __two_comp (__uint32x2_t __c) noexcept
     {
-        uint64_t __c64   = fpemu::bit_cast<uint64_t>(__c);
+        uint64_t __c64   = __fpemu_bit_cast<uint64_t>(__c);
         uint64_t __res64 = 0 - __c64; //IMAD.WIDE.U32 Rd, RZ, RZ, -Rc
-        return fpemu::bit_cast<__uint32x2_t>(__res64);
+        return __fpemu_bit_cast<__uint32x2_t>(__res64);
     } //__imad_wide_sub
 
 
@@ -1086,7 +1085,7 @@ namespace fpemu
      */
     _CCCL_TRIVIAL_API int32_t __flo_s64 (__uint32x2_t __x) noexcept
     {
-        int64_t __x64 = fpemu::bit_cast<int64_t>(__x);
+        int64_t __x64 = __fpemu_bit_cast<int64_t>(__x);
         return __internal_clzll(__x64<<1);
     } //__flo_s64
 
@@ -1101,7 +1100,7 @@ namespace fpemu
      */
     _CCCL_TRIVIAL_API int32_t __flo_u64 (__uint32x2_t __x) noexcept
     {
-        uint64_t __x64 = fpemu::bit_cast<uint64_t>(__x);
+        uint64_t __x64 = __fpemu_bit_cast<uint64_t>(__x);
         //Skip sign bit
         return __internal_clzll(__x64 & _CCCL_FPEMU_ABS_64);
     } //__flo_u64
@@ -1118,10 +1117,10 @@ namespace fpemu
      */
     _CCCL_TRIVIAL_API __uint32x2_t __iadd_u64 (__uint32x2_t __a, __uint32x2_t __b) noexcept
     {
-        uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
-        uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+        uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
+        uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
         uint64_t __res64 = __a64 + __b64;
-        return fpemu::bit_cast<__uint32x2_t>(__res64);
+        return __fpemu_bit_cast<__uint32x2_t>(__res64);
     } //__iadd_u64
 
     /**
@@ -1136,10 +1135,10 @@ namespace fpemu
      */
      _CCCL_TRIVIAL_API __uint32x2_t __isub_u64 (__uint32x2_t __a, __uint32x2_t __b) noexcept
      {
-         uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a);
-         uint64_t __b64 = fpemu::bit_cast<uint64_t>(__b);
+         uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
+         uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
          uint64_t __res64 = __a64 - __b64;
-         return fpemu::bit_cast<__uint32x2_t>(__res64);
+         return __fpemu_bit_cast<__uint32x2_t>(__res64);
      } //__isub_u64
 
     /**
@@ -1154,20 +1153,20 @@ namespace fpemu
      * @param sign Result sign (used for directed rounding modes ru/rd)
      * @return The rounded value as two 32-bit integers
      */
-    template<fpemu::rounding _Rm = fpemu::rounding::rn>
+    template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API __uint32x2_t __round (__uint32x2_t __man, const int __shift, bool __sign = false) noexcept
     {
-        uint64_t __man64 = fpemu::bit_cast<uint64_t>(__man);
-        const int __rshift = EXTRA_BITS + __shift;
+        uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
+        const int __rshift = __fpemu_EXTRA_BITS + __shift;
         const uint64_t __round_bit = 1ULL << (__rshift - 1);
         const uint64_t __sticky_mask = (__round_bit << 1) - 1;
         const uint64_t __tie_mask    = (__round_bit << 2) - 1;
 
-        if constexpr (_Rm == fpemu::rounding::rz)
+        if constexpr (_Rm == __fpemu_rounding::rz)
         {
             __man64 >>= __rshift;
         }
-        else if constexpr (_Rm == fpemu::rounding::rn)
+        else if constexpr (_Rm == __fpemu_rounding::rn)
         {
             const int __not_sticky = (int)((__man64 & __tie_mask) == __round_bit);
             __man64 = (((__man64 + __round_bit) >> __rshift) - __not_sticky);
@@ -1176,7 +1175,7 @@ namespace fpemu
         {
             const bool __inexact = (__man64 & __sticky_mask) != 0;
             __man64 >>= __rshift;
-            if constexpr (_Rm == fpemu::rounding::ru)
+            if constexpr (_Rm == __fpemu_rounding::ru)
             {
                 if (!__sign && __inexact) __man64++;
             }
@@ -1185,22 +1184,21 @@ namespace fpemu
                 if (__sign && __inexact) __man64++;
             }
         }
-        return fpemu::bit_cast<__uint32x2_t>(__man64);
+        return __fpemu_bit_cast<__uint32x2_t>(__man64);
     } //__round
 
     // NOTE: the representation pack/unpack routines
-    //   impl::__internal_fp64emu_unpack / impl::__internal_fp64emu_pack
+    //   __internal_fp64emu_unpack / __internal_fp64emu_pack
     // live in fpemu_impl_unpack.h so that the common prologue/epilogue shared
     // by every unpacked operation and method lives in a single header.
-} // namespace fpemu
+
 
 
 // ============================================================================
 // Unpacked operations (pack / unpack)
 // ============================================================================
 
-namespace impl
-{
+
 
 #ifndef _CCCL_FP64EMU_UNPACKED_OUTPUT_INF
     #define _CCCL_FP64EMU_UNPACKED_OUTPUT_INF 0
@@ -1242,16 +1240,16 @@ _CCCL_TRIVIAL_API uint64_t __internal_fp64emu_shr_jam64 (uint64_t __a,
 /// @brief Round and pack a result whose 'sig' carries its leading significand
 ///        bit at bit 62 and whose 'exp' is the biased exponent minus one.
 ///        Shared by divide and square root (square root passes sign = false).
-template<fpemu::rounding _Rm>
+template<__fpemu_rounding _Rm>
 _CCCL_TRIVIAL_API fpbits64_t __internal_fp64emu_round_pack (bool     __sign, 
                                                                      int32_t  __exp, 
                                                                      uint64_t __sig) noexcept
 {
-    constexpr bool __round_near_even = (_Rm == fpemu::rounding::rn);
+    constexpr bool __round_near_even = (_Rm == __fpemu_rounding::rn);
     uint32_t __round_increment = 0x200;
-    if      constexpr (_Rm == fpemu::rounding::rz) __round_increment = 0;
-    else if constexpr (_Rm == fpemu::rounding::ru) __round_increment = __sign ? 0     : 0x3FF;
-    else if constexpr (_Rm == fpemu::rounding::rd) __round_increment = __sign ? 0x3FF : 0;
+    if      constexpr (_Rm == __fpemu_rounding::rz) __round_increment = 0;
+    else if constexpr (_Rm == __fpemu_rounding::ru) __round_increment = __sign ? 0     : 0x3FF;
+    else if constexpr (_Rm == __fpemu_rounding::rd) __round_increment = __sign ? 0x3FF : 0;
 
     uint32_t __round_bits = (uint32_t)(__sig & 0x3FF);
 
@@ -1279,10 +1277,10 @@ _CCCL_TRIVIAL_API fpbits64_t __internal_fp64emu_round_pack (bool     __sign,
 } // __internal_fp64emu_round_pack
 
 // NOTE: the fpbits64_unpacked_t pack/unpack routines
-//   impl::__internal_fp64emu_unpack / impl::__internal_fp64emu_pack
+//   __internal_fp64emu_unpack / __internal_fp64emu_pack
 // were moved to fpemu_impl_unpack.h (shared prologue/epilogue for every op).
 
-} // namespace impl
+
 
 } // namespace cuda::experimental
 

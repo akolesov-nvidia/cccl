@@ -53,7 +53,6 @@
 #include <cuda/fpemu>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 #include "bs_fp128_math.hpp"
 
@@ -133,8 +132,8 @@ static __bs_fp128 to_f128_val(const T& x) {
     return (__bs_fp128)(double)x;
 }
 
-template<typename FpType, fpmp::method met>
-static __bs_fp128 to_f128_val(const __fpmp2_t<FpType, met>& x) {
+template<typename FpType, fpmp2_accuracy met>
+static __bs_fp128 to_f128_val(const fpmp2_t<FpType, met>& x) {
     return (__bs_fp128)x.hi() + (__bs_fp128)x.lo();
 }
 

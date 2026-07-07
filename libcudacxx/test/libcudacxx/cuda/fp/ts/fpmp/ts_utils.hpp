@@ -105,8 +105,8 @@ static inline double get_clock_rate()
     return clock_rate;
 }
 
-// Multi-precision types come from <cuda/fpmp> (cuda::experimental::fpmp,
-// aliased as `fpmp` in ts.hpp), which is always included before this header:
+// Multi-precision types come from <cuda/fpmp> (cuda::experimental, brought into
+// scope in ts.hpp), which is always included before this header:
 // fpmp2_t<FpType, fpmp2_accuracy>.
 
 namespace ts

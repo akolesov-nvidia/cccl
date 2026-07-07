@@ -45,7 +45,6 @@
 #include <cuda/fpmp_math>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 // Type alias for the multi-precision floating-point type
 using fptype_t = fp32mp2;

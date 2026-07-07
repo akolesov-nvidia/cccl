@@ -124,7 +124,6 @@
 #include <cuda/fpemu>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 // Note: _CCCL_FPMP_FP128_ENABLE is defined by fpmp library or compiler flags
 

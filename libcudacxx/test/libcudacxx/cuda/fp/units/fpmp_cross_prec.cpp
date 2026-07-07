@@ -66,7 +66,6 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
     #define LAUNCH(fn, ...) fn(__VA_ARGS__)
 #endif
 
-using namespace fpmp;
 
 /* =====================================================================
  * Compile-time contract

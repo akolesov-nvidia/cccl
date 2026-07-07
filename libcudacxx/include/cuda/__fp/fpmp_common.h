@@ -60,17 +60,16 @@
         * fpmp2_accuracy::mid : Dekker-based arithmetic (default level)
         * fpmp2_accuracy::high : Thall-based accurate arithmetic
     
-    - Internal Utility Functions:
-        * internal_bit_cast<To, From> : Type-safe bit casting (C++20 std::bit_cast polyfill)
-        * internal_fabs, internal_isnan : Single-precision/double-precision scalar helpers (host + device)
-          (intentionally prefixed to avoid colliding with ::fabs / ::isnan from <cmath> when
-           a TU uses `using namespace fpmp;`)
-        * add_rn, add_rz, sub_rn, mul_rn, fma_rn : Rounding mode specific operations
-        * rcp_rn, rsqrt_rn : Reciprocal and reciprocal square root operations
-        * fast_exp2, fast_log2 : Fast SFU-based base-2 exp/log (CUDA: ex2/lg2.approx; host: exp2f/log2f)
-        * fp2int_rz, int2fp_rz, etc. : Floating point to integer conversions
-        * two_mult_fma, fast_two_sum, two_sum : Error-free transformation algorithms
-        * from_double : Double to (hi, lo) conversion utility
+    - Internal Utility Functions (all __fpmp_-prefixed, in cuda::experimental):
+        * __fpmp_internal_bit_cast<To, From> : Type-safe bit casting (C++20 std::bit_cast polyfill)
+        * __fpmp_internal_fabs, __fpmp_internal_isnan : Single/double-precision scalar helpers (host + device)
+          (the __fpmp_ prefix keeps them from colliding with ::fabs / ::isnan from <cmath>)
+        * __fpmp_add_rn, __fpmp_add_rz, __fpmp_sub_rn, __fpmp_mul_rn, __fpmp_fma_rn : Rounding mode specific ops
+        * __fpmp_rcp_rn, __fpmp_rsqrt_rn : Reciprocal and reciprocal square root operations
+        * __fpmp_fast_exp2, __fpmp_fast_log2 : Fast SFU base-2 exp/log (CUDA: ex2/lg2.approx; host: exp2f/log2f)
+        * __fpmp_fp2int_rz, __fpmp_int2fp_rz, etc. : Floating point to integer conversions
+        * __fpmp_two_mult_fma, __fpmp_fast_two_sum, __fpmp_two_sum : Error-free transformation algorithms
+        * __fpmp_from_double : Double to (hi, lo) conversion utility
     
     Compatibility:
     -------------------------------------------------------------------------
@@ -407,7 +406,7 @@ namespace cuda::experimental
 // before including the fpmp headers for a fast re-map back to the in-house
 // polyfill, e.g.:
 //   #define _CCCL_FPMP_BIT_CAST(To, v) \
-//       ::cuda::experimental::fpmp::__fpmp_builtin_bit_cast<To>(v)
+//       ::cuda::experimental::__fpmp_builtin_bit_cast<To>(v)
 */
 #ifndef _CCCL_FPMP_BIT_CAST
     #define _CCCL_FPMP_BIT_CAST(To, v) ::cuda::std::bit_cast<To>(v)
@@ -469,7 +468,7 @@ namespace cuda::experimental
  *********************************************************************/
 /*
 // Accuracy level for fpmp arithmetic (public; defined directly in
-// cuda::experimental, no internal fpmp:: namespace). Named fpmp2_accuracy, so
+// cuda::experimental). Named fpmp2_accuracy, so
 // callers write e.g. fpmp2_t<float, fpmp2_accuracy::high>.
 // mid is the Dekker-based split and error accumulation technique
 // high is the Thall-based split and error accumulation technique
@@ -485,8 +484,7 @@ enum struct fpmp2_accuracy
     def   =  2,
 };
 
- namespace fpmp
- {
+ 
     /*
     // In-house bit cast polyfill, kept available as the _CCCL_FPMP_BIT_CAST
     // fallback target. Provides C++20 bit_cast functionality when it's absent.
@@ -515,7 +513,7 @@ enum struct fpmp2_accuracy
     // _CCCL_FPMP_BIT_CAST switch macro (cuda::std::bit_cast by default).
     */
     template<typename _To, typename _From>
-    _CCCL_TRIVIAL_API _To internal_bit_cast(_From __v) noexcept
+    _CCCL_TRIVIAL_API _To __fpmp_internal_bit_cast(_From __v) noexcept
     {
         return _CCCL_FPMP_BIT_CAST(_To, __v);
     } // internal_bit_cast
@@ -527,50 +525,50 @@ enum struct fpmp2_accuracy
     // the fallback is the appropriate arithmetic operation
     */
     #ifdef __CUDA_ARCH__    
-        _CCCL_TRIVIAL_API float    internal_fabs(float __x) noexcept   {return fabsf(__x);}
-        _CCCL_TRIVIAL_API bool     internal_isnan(float __x) noexcept  {return ::isnan(__x);}
-        _CCCL_TRIVIAL_API float    add_rn(float __x, float __y) noexcept {return __fadd_rn(__x, __y);}
-        _CCCL_TRIVIAL_API float    add_rz(float __x, float __y) noexcept {return __fadd_rz(__x, __y);}
-        _CCCL_TRIVIAL_API float    sub_rn(float __x, float __y) noexcept {return __fsub_rn(__x, __y);}
-        _CCCL_TRIVIAL_API float    mul_rn(float __x, float __y) noexcept {return __fmul_rn(__x, __y);}
-        _CCCL_TRIVIAL_API float    fma_rn(float __x, float __y, float __z) noexcept {return __fmaf_ieee_rn(__x, __y, __z);}
+        _CCCL_TRIVIAL_API float    __fpmp_internal_fabs(float __x) noexcept   {return fabsf(__x);}
+        _CCCL_TRIVIAL_API bool     __fpmp_internal_isnan(float __x) noexcept  {return ::isnan(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_add_rn(float __x, float __y) noexcept {return __fadd_rn(__x, __y);}
+        _CCCL_TRIVIAL_API float    __fpmp_add_rz(float __x, float __y) noexcept {return __fadd_rz(__x, __y);}
+        _CCCL_TRIVIAL_API float    __fpmp_sub_rn(float __x, float __y) noexcept {return __fsub_rn(__x, __y);}
+        _CCCL_TRIVIAL_API float    __fpmp_mul_rn(float __x, float __y) noexcept {return __fmul_rn(__x, __y);}
+        _CCCL_TRIVIAL_API float    __fpmp_fma_rn(float __x, float __y, float __z) noexcept {return __fmaf_ieee_rn(__x, __y, __z);}
         #if _CCCL_FPMP_USE_INLINE_ASM_RCP == 1
-        _CCCL_TRIVIAL_API float    rcp_rn(float __x) noexcept  { float __r; asm ("rcp.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    __fpmp_rcp_rn(float __x) noexcept  { float __r; asm ("rcp.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        _CCCL_TRIVIAL_API float    rcp_rn(float __x) noexcept  {return __frcp_rn(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_rcp_rn(float __x) noexcept  {return __frcp_rn(__x);}
         #endif
         #if _CCCL_FPMP_USE_INLINE_ASM_RSQRT == 1
-        _CCCL_TRIVIAL_API float    rsqrt_rn(float __x) noexcept { float __r; asm ("rsqrt.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    __fpmp_rsqrt_rn(float __x) noexcept { float __r; asm ("rsqrt.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        _CCCL_TRIVIAL_API float    rsqrt_rn(float __x) noexcept {return __frsqrt_rn(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_rsqrt_rn(float __x) noexcept {return __frsqrt_rn(__x);}
         #endif
         // Fast single-precision base-2 exp / log mapped to the FP32 SFU
         // approximation units (ex2.approx / lg2.approx). These are not
         // correctly rounded; they are used as initial estimates for
         // higher-precision Newton/Halley refinement.
         #if _CCCL_FPMP_USE_INLINE_ASM_EX2_LG2 == 1
-        _CCCL_TRIVIAL_API float    fast_exp2(float __x) noexcept { float __r; asm ("ex2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
-        _CCCL_TRIVIAL_API float    fast_log2(float __x) noexcept { float __r; asm ("lg2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    __fpmp_fast_exp2(float __x) noexcept { float __r; asm ("ex2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
+        _CCCL_TRIVIAL_API float    __fpmp_fast_log2(float __x) noexcept { float __r; asm ("lg2.approx.ftz.f32 %0,%1;" : "=f"(__r) : "f"(__x)); return __r; }
         #else
-        _CCCL_TRIVIAL_API float    fast_exp2(float __x) noexcept {return __exp2f(__x);}
-        _CCCL_TRIVIAL_API float    fast_log2(float __x) noexcept {return __log2f(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_fast_exp2(float __x) noexcept {return __exp2f(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_fast_log2(float __x) noexcept {return __log2f(__x);}
         #endif
-        _CCCL_TRIVIAL_API int32_t  fp2int_rz(float __x) noexcept  {return __float2int_rz(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rn(float __x) noexcept  {return __float2int_rn(__x);}
-        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(float __x) noexcept {return __float2uint_rz(__x);}
-        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(float __x) noexcept   {return __float2ll_rz(__x);}
-        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(float __x) noexcept  {return __float2ull_rz(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rz(float __x) noexcept  {return __float2int_rz(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rn(float __x) noexcept  {return __float2int_rn(__x);}
+        _CCCL_TRIVIAL_API uint32_t __fpmp_fp2uint_rz(float __x) noexcept {return __float2uint_rz(__x);}
+        _CCCL_TRIVIAL_API int64_t  __fpmp_fp2ll_rz(float __x) noexcept   {return __float2ll_rz(__x);}
+        _CCCL_TRIVIAL_API uint64_t __fpmp_fp2ull_rz(float __x) noexcept  {return __float2ull_rz(__x);}
 
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rn(int32_t __x) noexcept   {return static_cast<_FpType>(__int2float_rn(__x));}
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rz(int32_t __x) noexcept   {return static_cast<_FpType>(__int2float_rz(__x));}
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType uint2fp_rz(uint32_t __x) noexcept {return static_cast<_FpType>(__uint2float_rz(__x));}
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ll2fp_rz(int64_t __x) noexcept    {return static_cast<_FpType>(__ll2float_rz(__x));}
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ull2fp_rz(uint64_t __x) noexcept  {return static_cast<_FpType>(__ull2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_int2fp_rn(int32_t __x) noexcept   {return static_cast<_FpType>(__int2float_rn(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_int2fp_rz(int32_t __x) noexcept   {return static_cast<_FpType>(__int2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_uint2fp_rz(uint32_t __x) noexcept {return static_cast<_FpType>(__uint2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_ll2fp_rz(int64_t __x) noexcept    {return static_cast<_FpType>(__ll2float_rz(__x));}
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_ull2fp_rz(uint64_t __x) noexcept  {return static_cast<_FpType>(__ull2float_rz(__x));}
     #else // !__CUDA_ARCH__
-        _CCCL_TRIVIAL_API float    internal_fabs(float __x) noexcept   {return fabsf(__x);}
-        _CCCL_TRIVIAL_API bool     internal_isnan(float __x) noexcept  {return std::isnan(__x);}
-        _CCCL_TRIVIAL_API float    add_rn(float __x, float __y) noexcept {return __x + __y;}
-        _CCCL_TRIVIAL_API float    add_rz(float __x, float __y) noexcept             
+        _CCCL_TRIVIAL_API float    __fpmp_internal_fabs(float __x) noexcept   {return fabsf(__x);}
+        _CCCL_TRIVIAL_API bool     __fpmp_internal_isnan(float __x) noexcept  {return std::isnan(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_add_rn(float __x, float __y) noexcept {return __x + __y;}
+        _CCCL_TRIVIAL_API float    __fpmp_add_rz(float __x, float __y) noexcept             
         {
             float __sum = __x + __y;
             if (__sum == 0.0f) return __sum; 
@@ -580,30 +578,30 @@ enum struct fpmp2_accuracy
                 (__sum < 0.0f && __error > 0.0f)) 
             {
                 // Rounded away from zero - need to adjust mantissa toward zero
-                uint32_t __bits = internal_bit_cast<uint32_t>(__sum);
+                uint32_t __bits = __fpmp_internal_bit_cast<uint32_t>(__sum);
                 // Decrement mantissa (moves toward zero for both positive and negative)
                 __bits--;
-                __sum = internal_bit_cast<float>(__bits);
+                __sum = __fpmp_internal_bit_cast<float>(__bits);
             }
             return __sum;
         }
-        _CCCL_TRIVIAL_API float    sub_rn(float __x, float __y) noexcept {return __x - __y;}
-        _CCCL_TRIVIAL_API float    mul_rn(float __x, float __y) noexcept {return __x * __y;}
-        _CCCL_TRIVIAL_API float    fma_rn(float __x, float __y, float __z) noexcept {return fmaf(__x, __y, __z);}
-        _CCCL_TRIVIAL_API float    rcp_rn(float __x) noexcept   {return 1.0f / __x;}
-        _CCCL_TRIVIAL_API float    rsqrt_rn(float __x) noexcept {return 1.0f / sqrtf(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_sub_rn(float __x, float __y) noexcept {return __x - __y;}
+        _CCCL_TRIVIAL_API float    __fpmp_mul_rn(float __x, float __y) noexcept {return __x * __y;}
+        _CCCL_TRIVIAL_API float    __fpmp_fma_rn(float __x, float __y, float __z) noexcept {return fmaf(__x, __y, __z);}
+        _CCCL_TRIVIAL_API float    __fpmp_rcp_rn(float __x) noexcept   {return 1.0f / __x;}
+        _CCCL_TRIVIAL_API float    __fpmp_rsqrt_rn(float __x) noexcept {return 1.0f / sqrtf(__x);}
         // Host fallback for the fast SFU-style exp2 / log2; uses the libm
         // single-precision routines.  Same use case as the device path:
         // a low-cost initial estimate for Newton/Halley refinement.
-        _CCCL_TRIVIAL_API float    fast_exp2(float __x) noexcept {return ::exp2f(__x);}
-        _CCCL_TRIVIAL_API float    fast_log2(float __x) noexcept {return ::log2f(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rz(float __x) noexcept  {return static_cast<int32_t>(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rn(float __x) noexcept  {return static_cast<int32_t>(roundf(__x));}
-        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(float __x) noexcept {return static_cast<uint32_t>(__x);}
-        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(float __x) noexcept   {return static_cast<int64_t>(__x);}
-        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(float __x) noexcept  {return static_cast<uint64_t>(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_fast_exp2(float __x) noexcept {return ::exp2f(__x);}
+        _CCCL_TRIVIAL_API float    __fpmp_fast_log2(float __x) noexcept {return ::log2f(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rz(float __x) noexcept  {return static_cast<int32_t>(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rn(float __x) noexcept  {return static_cast<int32_t>(roundf(__x));}
+        _CCCL_TRIVIAL_API uint32_t __fpmp_fp2uint_rz(float __x) noexcept {return static_cast<uint32_t>(__x);}
+        _CCCL_TRIVIAL_API int64_t  __fpmp_fp2ll_rz(float __x) noexcept   {return static_cast<int64_t>(__x);}
+        _CCCL_TRIVIAL_API uint64_t __fpmp_fp2ull_rz(float __x) noexcept  {return static_cast<uint64_t>(__x);}
 
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rn(int32_t __x) noexcept 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_int2fp_rn(int32_t __x) noexcept 
         {
             return static_cast<_FpType>(roundf(__x));
         }
@@ -615,7 +613,7 @@ enum struct fpmp2_accuracy
         // Using double for exact comparison (double has 53 bits, enough for int32_t's 32 bits)
         // Template versions for both float and double
         */
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType int2fp_rz(int32_t __x) noexcept 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_int2fp_rz(int32_t __x) noexcept 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -624,7 +622,7 @@ enum struct fpmp2_accuracy
             }
             return __f;
         }
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType uint2fp_rz(uint32_t __x) noexcept 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_uint2fp_rz(uint32_t __x) noexcept 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -633,7 +631,7 @@ enum struct fpmp2_accuracy
             }
             return __f;
         }
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ll2fp_rz(int64_t __x) noexcept 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_ll2fp_rz(int64_t __x) noexcept 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -642,7 +640,7 @@ enum struct fpmp2_accuracy
             }
             return __f;
         }
-        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType ull2fp_rz(uint64_t __x) noexcept 
+        template<typename _FpType = float> _CCCL_TRIVIAL_API _FpType __fpmp_ull2fp_rz(uint64_t __x) noexcept 
         {
             _FpType __f = static_cast<_FpType>(__x);
             double __exact = static_cast<double>(__x);
@@ -654,32 +652,32 @@ enum struct fpmp2_accuracy
     #endif // __CUDA_ARCH__
 
     #ifdef __CUDA_ARCH__
-        _CCCL_TRIVIAL_API double   internal_fabs(double __x) noexcept    {return ::fabs(__x);}
-        _CCCL_TRIVIAL_API bool     internal_isnan(double __x) noexcept   {return ::isnan(__x);}
-        _CCCL_TRIVIAL_API double   add_rn(double __x, double __y) noexcept {return __dadd_rn(__x, __y);}
-        _CCCL_TRIVIAL_API double   add_rz(double __x, double __y) noexcept {return __dadd_rz(__x, __y);}
-        _CCCL_TRIVIAL_API double   sub_rn(double __x, double __y) noexcept {return __dsub_rn(__x, __y);}
-        _CCCL_TRIVIAL_API double   mul_rn(double __x, double __y) noexcept {return __dmul_rn(__x, __y);}
-        _CCCL_TRIVIAL_API double   fma_rn(double __x, double __y, double __z) noexcept {return __fma_rn(__x, __y, __z);}
-        _CCCL_TRIVIAL_API double   rcp_rn(double __x) noexcept     {return __drcp_rn(__x);}
-        _CCCL_TRIVIAL_API double   rsqrt_rn(double __x) noexcept   {return rsqrt(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rz(double __x) noexcept  {return __double2int_rz(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rn(double __x) noexcept  {return __double2int_rn(__x);}
-        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(double __x) noexcept {return __double2uint_rz(__x);}
-        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(double __x) noexcept   {return __double2ll_rz(__x);}
-        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(double __x) noexcept  {return __double2ull_rz(__x);}
+        _CCCL_TRIVIAL_API double   __fpmp_internal_fabs(double __x) noexcept    {return ::fabs(__x);}
+        _CCCL_TRIVIAL_API bool     __fpmp_internal_isnan(double __x) noexcept   {return ::isnan(__x);}
+        _CCCL_TRIVIAL_API double   __fpmp_add_rn(double __x, double __y) noexcept {return __dadd_rn(__x, __y);}
+        _CCCL_TRIVIAL_API double   __fpmp_add_rz(double __x, double __y) noexcept {return __dadd_rz(__x, __y);}
+        _CCCL_TRIVIAL_API double   __fpmp_sub_rn(double __x, double __y) noexcept {return __dsub_rn(__x, __y);}
+        _CCCL_TRIVIAL_API double   __fpmp_mul_rn(double __x, double __y) noexcept {return __dmul_rn(__x, __y);}
+        _CCCL_TRIVIAL_API double   __fpmp_fma_rn(double __x, double __y, double __z) noexcept {return __fma_rn(__x, __y, __z);}
+        _CCCL_TRIVIAL_API double   __fpmp_rcp_rn(double __x) noexcept     {return __drcp_rn(__x);}
+        _CCCL_TRIVIAL_API double   __fpmp_rsqrt_rn(double __x) noexcept   {return rsqrt(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rz(double __x) noexcept  {return __double2int_rz(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rn(double __x) noexcept  {return __double2int_rn(__x);}
+        _CCCL_TRIVIAL_API uint32_t __fpmp_fp2uint_rz(double __x) noexcept {return __double2uint_rz(__x);}
+        _CCCL_TRIVIAL_API int64_t  __fpmp_fp2ll_rz(double __x) noexcept   {return __double2ll_rz(__x);}
+        _CCCL_TRIVIAL_API uint64_t __fpmp_fp2ull_rz(double __x) noexcept  {return __double2ull_rz(__x);}
         // int32_t and uint32_t always fit exactly in double (52-bit mantissa vs 32-bit values)
-        template<> _CCCL_API inline double int2fp_rn<double>(int32_t __x) noexcept   {return __int2double_rn(__x);}
-        template<> _CCCL_API inline double int2fp_rz<double>(int32_t __x) noexcept   {return static_cast<double>(__x);}
-        template<> _CCCL_API inline double uint2fp_rz<double>(uint32_t __x) noexcept {return static_cast<double>(__x);}
+        template<> _CCCL_API inline double __fpmp_int2fp_rn<double>(int32_t __x) noexcept   {return __int2double_rn(__x);}
+        template<> _CCCL_API inline double __fpmp_int2fp_rz<double>(int32_t __x) noexcept   {return static_cast<double>(__x);}
+        template<> _CCCL_API inline double __fpmp_uint2fp_rz<double>(uint32_t __x) noexcept {return static_cast<double>(__x);}
         // int64_t and uint64_t: use CUDA intrinsics for round-toward-zero
-        template<> _CCCL_API inline double ll2fp_rz<double>(int64_t __x) noexcept    {return __ll2double_rz(__x);}
-        template<> _CCCL_API inline double ull2fp_rz<double>(uint64_t __x) noexcept  {return __ull2double_rz(__x);}
+        template<> _CCCL_API inline double __fpmp_ll2fp_rz<double>(int64_t __x) noexcept    {return __ll2double_rz(__x);}
+        template<> _CCCL_API inline double __fpmp_ull2fp_rz<double>(uint64_t __x) noexcept  {return __ull2double_rz(__x);}
     #else // !__CUDA_ARCH__
-        _CCCL_TRIVIAL_API double   internal_fabs(double __x) noexcept    {return ::fabs(__x);}
-        _CCCL_TRIVIAL_API bool     internal_isnan(double __x) noexcept   {return std::isnan(__x);}
-        _CCCL_TRIVIAL_API double   add_rn(double __x, double __y) noexcept {return __x + __y;}
-        _CCCL_TRIVIAL_API double   add_rz(double __x, double __y) noexcept             
+        _CCCL_TRIVIAL_API double   __fpmp_internal_fabs(double __x) noexcept    {return ::fabs(__x);}
+        _CCCL_TRIVIAL_API bool     __fpmp_internal_isnan(double __x) noexcept   {return std::isnan(__x);}
+        _CCCL_TRIVIAL_API double   __fpmp_add_rn(double __x, double __y) noexcept {return __x + __y;}
+        _CCCL_TRIVIAL_API double   __fpmp_add_rz(double __x, double __y) noexcept             
         {
             double __sum = __x + __y;
             if (__sum == 0.0) return __sum; 
@@ -689,32 +687,32 @@ enum struct fpmp2_accuracy
                 (__sum < 0.0 && __error > 0.0)) 
             {
                 // Rounded away from zero - need to adjust mantissa toward zero
-                uint64_t __bits = internal_bit_cast<uint64_t>(__sum);
+                uint64_t __bits = __fpmp_internal_bit_cast<uint64_t>(__sum);
                 // Decrement mantissa (moves toward zero for both positive and negative)
                 __bits--;
-                __sum = internal_bit_cast<double>(__bits);
+                __sum = __fpmp_internal_bit_cast<double>(__bits);
             }
             return __sum;
         }
-        _CCCL_TRIVIAL_API double   sub_rn(double __x, double __y) noexcept {return __x - __y;}
-        _CCCL_TRIVIAL_API double   mul_rn(double __x, double __y) noexcept {return __x * __y;}
-        _CCCL_TRIVIAL_API double   fma_rn(double __x, double __y, double __z) noexcept {return fma(__x, __y, __z);}
-        _CCCL_TRIVIAL_API double   rcp_rn(double __x) noexcept     {return 1.0 / __x;}
-        _CCCL_TRIVIAL_API double   rsqrt_rn(double __x) noexcept   {return 1.0 / sqrt(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rz(double __x) noexcept  {return static_cast<int32_t>(__x);}
-        _CCCL_TRIVIAL_API int32_t  fp2int_rn(double __x) noexcept  {return static_cast<int32_t>(round(__x));}
-        _CCCL_TRIVIAL_API uint32_t fp2uint_rz(double __x) noexcept {return static_cast<uint32_t>(__x);}
-        _CCCL_TRIVIAL_API int64_t  fp2ll_rz(double __x) noexcept   {return static_cast<int64_t>(__x);}
-        _CCCL_TRIVIAL_API uint64_t fp2ull_rz(double __x) noexcept  {return static_cast<uint64_t>(__x);}
+        _CCCL_TRIVIAL_API double   __fpmp_sub_rn(double __x, double __y) noexcept {return __x - __y;}
+        _CCCL_TRIVIAL_API double   __fpmp_mul_rn(double __x, double __y) noexcept {return __x * __y;}
+        _CCCL_TRIVIAL_API double   __fpmp_fma_rn(double __x, double __y, double __z) noexcept {return fma(__x, __y, __z);}
+        _CCCL_TRIVIAL_API double   __fpmp_rcp_rn(double __x) noexcept     {return 1.0 / __x;}
+        _CCCL_TRIVIAL_API double   __fpmp_rsqrt_rn(double __x) noexcept   {return 1.0 / sqrt(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rz(double __x) noexcept  {return static_cast<int32_t>(__x);}
+        _CCCL_TRIVIAL_API int32_t  __fpmp_fp2int_rn(double __x) noexcept  {return static_cast<int32_t>(round(__x));}
+        _CCCL_TRIVIAL_API uint32_t __fpmp_fp2uint_rz(double __x) noexcept {return static_cast<uint32_t>(__x);}
+        _CCCL_TRIVIAL_API int64_t  __fpmp_fp2ll_rz(double __x) noexcept   {return static_cast<int64_t>(__x);}
+        _CCCL_TRIVIAL_API uint64_t __fpmp_fp2ull_rz(double __x) noexcept  {return static_cast<uint64_t>(__x);}
         /*
         // Round-toward-zero (truncation) versions for integer-to-double constructors
         // For double, we need to use long double for exact comparison where possible
         // Template specializations for double type
         */
-        template<> _CCCL_API inline double int2fp_rn<double>(int32_t __x) noexcept   { return round(__x); }
-        template<> _CCCL_API inline double int2fp_rz<double>(int32_t __x) noexcept   { return static_cast<double>(__x); }
-        template<> _CCCL_API inline double uint2fp_rz<double>(uint32_t __x) noexcept { return static_cast<double>(__x); }
-        template<> _CCCL_API inline double ll2fp_rz<double>(int64_t __x) noexcept 
+        template<> _CCCL_API inline double __fpmp_int2fp_rn<double>(int32_t __x) noexcept   { return round(__x); }
+        template<> _CCCL_API inline double __fpmp_int2fp_rz<double>(int32_t __x) noexcept   { return static_cast<double>(__x); }
+        template<> _CCCL_API inline double __fpmp_uint2fp_rz<double>(uint32_t __x) noexcept { return static_cast<double>(__x); }
+        template<> _CCCL_API inline double __fpmp_ll2fp_rz<double>(int64_t __x) noexcept 
         {
             // int64_t may not fit exactly in double
             double __d = static_cast<double>(__x);
@@ -722,7 +720,7 @@ enum struct fpmp2_accuracy
             if ((__x > 0 && __d > __exact) || (__x < 0 && __d < __exact)) {  __d = nextafter(__d, 0.0); }
             return __d;
         }
-        template<> _CCCL_API inline double ull2fp_rz<double>(uint64_t __x) noexcept 
+        template<> _CCCL_API inline double __fpmp_ull2fp_rz<double>(uint64_t __x) noexcept 
         {
             // uint64_t may not fit exactly in double
             double __d = static_cast<double>(__x);
@@ -734,22 +732,22 @@ enum struct fpmp2_accuracy
 
     /*
     // Scalar rounding helpers (host + device)
-    // Intentionally named under fpmp:: namespace and used by fpmp_math.h
+    // Intentionally __fpmp_-prefixed and used by fpmp_math.h
     // dedicated fp32mp2 rounding implementations.
     */
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType internal_trunc (const _FpType __x) noexcept
+    _CCCL_TRIVIAL_API _FpType __fpmp_internal_trunc (const _FpType __x) noexcept
     {
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
-            const _FpType __abs_x = fpmp::internal_fabs(__x);
+            const _FpType __abs_x = __fpmp_internal_fabs(__x);
             if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
         #if defined(__CUDA_ARCH__)
             const int32_t __xi = __float2int_rz(__x);
             return __int2float_rz(__xi);
         #else
-            const int32_t __xi = fpmp::fp2int_rz(__x);
-            return fpmp::int2fp_rz<_FpType>(__xi);
+            const int32_t __xi = __fpmp_fp2int_rz(__x);
+            return __fpmp_int2fp_rz<_FpType>(__xi);
         #endif
         }
         else
@@ -759,11 +757,11 @@ enum struct fpmp2_accuracy
     }
 
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType internal_floor (const _FpType __x) noexcept
+    _CCCL_TRIVIAL_API _FpType __fpmp_internal_floor (const _FpType __x) noexcept
     {
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
-            const _FpType __abs_x = fpmp::internal_fabs(__x);
+            const _FpType __abs_x = __fpmp_internal_fabs(__x);
             if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
         #if defined(__CUDA_ARCH__)
             const int32_t __xi = __float2int_rd(__x);
@@ -779,11 +777,11 @@ enum struct fpmp2_accuracy
     }
 
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType internal_ceil (const _FpType __x) noexcept
+    _CCCL_TRIVIAL_API _FpType __fpmp_internal_ceil (const _FpType __x) noexcept
     {
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
-            const _FpType __abs_x = fpmp::internal_fabs(__x);
+            const _FpType __abs_x = __fpmp_internal_fabs(__x);
             if (__abs_x >= _FpType(0x1.0p23f)) { return __x; }
         #if defined(__CUDA_ARCH__)
             const int32_t __xi = __float2int_ru(__x);
@@ -803,12 +801,12 @@ enum struct fpmp2_accuracy
     */
     // Multiply 2 floats exactly, assuming no over/underflow.
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType two_mult_fma (const _FpType __x, 
+    _CCCL_TRIVIAL_API _FpType __fpmp_two_mult_fma (const _FpType __x, 
                                                 const _FpType __y,
                                                 _FpType* const __res_lo) noexcept
     {
-        _FpType __res_hi = mul_rn(__x, __y);
-        *__res_lo       = fma_rn(__x, __y, -__res_hi);
+        _FpType __res_hi = __fpmp_mul_rn(__x, __y);
+        *__res_lo       = __fpmp_fma_rn(__x, __y, -__res_hi);
         return __res_hi;
     }
 
@@ -817,35 +815,35 @@ enum struct fpmp2_accuracy
     // (Usually we just check if |x| >= |y|).
     // If this is not known use the function below.
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType fast_two_sum (const _FpType __x, 
+    _CCCL_TRIVIAL_API _FpType __fpmp_fast_two_sum (const _FpType __x, 
                                                 const _FpType __y, 
                                                 _FpType* const __res_lo) noexcept
     {
-        _FpType __res_hi = add_rn(__x, __y);
-        _FpType __diff   = sub_rn(__res_hi, __x);
-        *__res_lo       = sub_rn(__y, __diff);
+        _FpType __res_hi = __fpmp_add_rn(__x, __y);
+        _FpType __diff   = __fpmp_sub_rn(__res_hi, __x);
+        *__res_lo       = __fpmp_sub_rn(__y, __diff);
         return __res_hi;
     }
 
     // Add 2 floats, returning the answer exactly in 'hi' and 'lo' parts.
     // This makes no assumptions on the magnitudes of |x| and |y|.
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType two_sum (const _FpType __x, 
+    _CCCL_TRIVIAL_API _FpType __fpmp_two_sum (const _FpType __x, 
                                            const _FpType __y,
                                            _FpType* const __res_lo) noexcept
     {
-        _FpType __res_hi  = add_rn(__x, __y);
-        _FpType __a_prime = sub_rn(__res_hi, __y);
-        _FpType __b_prime = sub_rn(__res_hi, __a_prime);
-        _FpType __delta_a = sub_rn(__x, __a_prime);
-        _FpType __delta_b = sub_rn(__y, __b_prime);
-        *__res_lo        = add_rn(__delta_a, __delta_b);
+        _FpType __res_hi  = __fpmp_add_rn(__x, __y);
+        _FpType __a_prime = __fpmp_sub_rn(__res_hi, __y);
+        _FpType __b_prime = __fpmp_sub_rn(__res_hi, __a_prime);
+        _FpType __delta_a = __fpmp_sub_rn(__x, __a_prime);
+        _FpType __delta_b = __fpmp_sub_rn(__y, __b_prime);
+        *__res_lo        = __fpmp_add_rn(__delta_a, __delta_b);
         return __res_hi;
     }
 
     // double -> (hi, lo) conversions (plain versions)
     // only for the C++ class below to be optimized in compile-time
-    _CCCL_API _CCCL_FPMP_CONSTEXPR void from_double (const double __x, 
+    _CCCL_API _CCCL_FPMP_CONSTEXPR void __fpmp_from_double (const double __x, 
                                                            float*       __res_hi, 
                                                            float*       __res_lo) _CCCL_FPMP_NOEXCEPT
     {
@@ -853,7 +851,7 @@ enum struct fpmp2_accuracy
         *__res_lo = (float)(__x - (double)(float)__x);
     }
 
- } // namespace fpmp
+ 
 
 } // namespace cuda::experimental
 

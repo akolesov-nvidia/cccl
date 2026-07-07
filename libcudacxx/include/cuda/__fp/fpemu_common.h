@@ -206,8 +206,7 @@ enum struct fp64emu_accuracy
     def   =  3,
 };
 
-namespace fpemu
-{
+
     /**
     * @brief Rounding modes for floating point operations
     *
@@ -217,7 +216,7 @@ namespace fpemu
     * - ru: Round toward positive infinity 
     * - rd: Round toward negative infinity
     */
-    enum struct rounding
+    enum struct __fpemu_rounding
     {
         unset = -1,
         rn    =  0,
@@ -227,7 +226,7 @@ namespace fpemu
         def   = _CCCL_FPEMU_DEFAULT_ROUNDING
     };
 
-} // namespace fpemu
+
 
 } // namespace cuda::experimental
 

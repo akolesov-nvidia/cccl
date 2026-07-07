@@ -186,12 +186,12 @@ template<typename T> struct _int2mp_
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const { 
         if constexpr (std::is_same_v<T, double>) {
             // Reference: compute exactly as fp32mp2 does (hi + lo as floats) for 48-bit match
-            float hi = fpmp::int2fp_rz<float>(a);
-            float lo = fpmp::int2fp_rz<float>(a - fpmp::fp2int_rz(hi));
+            float hi = __fpmp_int2fp_rz<float>(a);
+            float lo = __fpmp_int2fp_rz<float>(a - __fpmp_fp2int_rz(hi));
             return static_cast<double>(hi) + static_cast<double>(lo);
         } else if constexpr (std::is_same_v<T, float>) {
             // Scalar float: round toward zero (int32_t values > 2^24 don't fit exactly)
-            return fpmp::int2fp_rz<float>(a);
+            return __fpmp_int2fp_rz<float>(a);
         } else {
             // Multi-precision types: use constructor
             return (T)(a);
@@ -230,13 +230,13 @@ template<typename T> struct _uint2mp_
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const { 
         if constexpr (std::is_same_v<T, double>) {
             // Reference: compute exactly as fp32mp2 does (hi + lo as floats) for 48-bit match
-            float hi = fpmp::uint2fp_rz<float>(a);
-            uint32_t residual = a - fpmp::fp2uint_rz(hi);
-            float lo = fpmp::uint2fp_rz<float>(residual);
+            float hi = __fpmp_uint2fp_rz<float>(a);
+            uint32_t residual = a - __fpmp_fp2uint_rz(hi);
+            float lo = __fpmp_uint2fp_rz<float>(residual);
             return static_cast<double>(hi) + static_cast<double>(lo);
         } else if constexpr (std::is_same_v<T, float>) {
             // Scalar float: round toward zero (uint32_t values > 2^24 don't fit exactly)
-            return fpmp::uint2fp_rz<float>(a);
+            return __fpmp_uint2fp_rz<float>(a);
         } else {
             // Multi-precision types: use constructor
             return (T)(a);
@@ -276,12 +276,12 @@ template<typename T> struct _ll2mp_
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const { 
         if constexpr (std::is_same_v<T, double>) {
             // Reference: compute exactly as fp32mp2 does (hi + lo as floats) for 48-bit match
-            float hi = fpmp::ll2fp_rz<float>(a);
-            float lo = fpmp::ll2fp_rz<float>(a - fpmp::fp2ll_rz(hi));
+            float hi = __fpmp_ll2fp_rz<float>(a);
+            float lo = __fpmp_ll2fp_rz<float>(a - __fpmp_fp2ll_rz(hi));
             return static_cast<double>(hi) + static_cast<double>(lo);
         } else if constexpr (std::is_same_v<T, float>) {
             // Scalar float: round toward zero
-            return fpmp::ll2fp_rz<float>(a);
+            return __fpmp_ll2fp_rz<float>(a);
         } else {
             // Multi-precision types: use constructor
             return (T)(a);
@@ -321,13 +321,13 @@ template<typename T> struct _ull2mp_
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const { 
         if constexpr (std::is_same_v<T, double>) {
             // Reference: compute exactly as fp32mp2 does (hi + lo as floats) for 48-bit match
-            float hi = fpmp::ull2fp_rz<float>(a);
-            uint64_t residual = a - fpmp::fp2ull_rz(hi);
-            float lo = fpmp::ull2fp_rz<float>(residual);
+            float hi = __fpmp_ull2fp_rz<float>(a);
+            uint64_t residual = a - __fpmp_fp2ull_rz(hi);
+            float lo = __fpmp_ull2fp_rz<float>(residual);
             return static_cast<double>(hi) + static_cast<double>(lo);
         } else if constexpr (std::is_same_v<T, float>) {
             // Scalar float: round toward zero
-            return fpmp::ull2fp_rz<float>(a);
+            return __fpmp_ull2fp_rz<float>(a);
         } else {
             // Multi-precision types: use constructor
             return (T)(a);
@@ -539,14 +539,14 @@ template<typename T> struct _mp2int_ref_
         using C = decltype(std::declval<T>().hi());
         C x_hi = a.hi();
         C x_lo = a.lo();
-        C abs_hi    = fpmp::internal_fabs(x_hi);
+        C abs_hi    = __fpmp_internal_fabs(x_hi);
         C threshold = std::is_same<C, float>::value ? 0x1.0p24f : 0x1.0p53;
         if (abs_hi < threshold) {
-            C res = fpmp::add_rz(x_hi, x_lo);
-            return fpmp::fp2int_rz(res);
+            C res = __fpmp_add_rz(x_hi, x_lo);
+            return __fpmp_fp2int_rz(res);
         } else {
-            int32_t hi_int = fpmp::fp2int_rz(x_hi);
-            int32_t lo_int = fpmp::fp2int_rz(x_lo);
+            int32_t hi_int = __fpmp_fp2int_rz(x_hi);
+            int32_t lo_int = __fpmp_fp2int_rz(x_lo);
             return hi_int + lo_int;
         }
     }
@@ -566,11 +566,11 @@ template<typename T> struct _mp2uint_ref_
         C x_lo = a.lo();
         C threshold = std::is_same<C, float>::value ? 0x1.0p24f : 0x1.0p53;
         if (x_hi < threshold) {
-            C res = fpmp::add_rz(x_hi, x_lo);
-            return fpmp::fp2uint_rz(res);
+            C res = __fpmp_add_rz(x_hi, x_lo);
+            return __fpmp_fp2uint_rz(res);
         } else {
-            uint32_t hi_uint = fpmp::fp2uint_rz(x_hi);
-            int32_t  lo_int  = fpmp::fp2int_rz(x_lo);
+            uint32_t hi_uint = __fpmp_fp2uint_rz(x_hi);
+            int32_t  lo_int  = __fpmp_fp2int_rz(x_lo);
             return hi_uint + lo_int;
         }
     }
@@ -588,14 +588,14 @@ template<typename T> struct _mp2ll_ref_
         using C = decltype(std::declval<T>().hi());
         C x_hi = a.hi();
         C x_lo = a.lo();
-        C abs_hi    = fpmp::internal_fabs(x_hi);
+        C abs_hi    = __fpmp_internal_fabs(x_hi);
         C threshold = std::is_same<C, float>::value ? 0x1.0p24f : 0x1.0p53;
         if (abs_hi < threshold) {
-            C res = fpmp::add_rz(x_hi, x_lo);
-            return fpmp::fp2ll_rz(res);
+            C res = __fpmp_add_rz(x_hi, x_lo);
+            return __fpmp_fp2ll_rz(res);
         } else {
-            int64_t hi_ll = fpmp::fp2ll_rz(x_hi);
-            int64_t lo_ll = fpmp::fp2ll_rz(x_lo);
+            int64_t hi_ll = __fpmp_fp2ll_rz(x_hi);
+            int64_t lo_ll = __fpmp_fp2ll_rz(x_lo);
             return hi_ll + lo_ll;
         }
     }
@@ -615,11 +615,11 @@ template<typename T> struct _mp2ull_ref_
         C x_lo = a.lo();
         C threshold = std::is_same<C, float>::value ? 0x1.0p24f : 0x1.0p53;
         if (x_hi < threshold) {
-            C res = fpmp::add_rz(x_hi, x_lo);
-            return fpmp::fp2ull_rz(res);
+            C res = __fpmp_add_rz(x_hi, x_lo);
+            return __fpmp_fp2ull_rz(res);
         } else {
-            uint64_t hi_ull = fpmp::fp2ull_rz(x_hi);
-            int64_t  lo_ll  = fpmp::fp2ll_rz(x_lo);
+            uint64_t hi_ull = __fpmp_fp2ull_rz(x_hi);
+            int64_t  lo_ll  = __fpmp_fp2ll_rz(x_lo);
             return hi_ull + lo_ll;
         }
     }
@@ -640,8 +640,8 @@ template<typename T> struct _int2mp_ref_
     using result_type = T;
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const {
         using C = decltype(std::declval<T>().hi());
-        C hi = fpmp::int2fp_rz<C>(a);
-        C lo = fpmp::int2fp_rz<C>(a - fpmp::fp2int_rz(hi));
+        C hi = __fpmp_int2fp_rz<C>(a);
+        C lo = __fpmp_int2fp_rz<C>(a - __fpmp_fp2int_rz(hi));
         return T(hi, lo);
     }
     __HOST_DEVICE_DECL__ static constexpr double work_beg() { return -2e9; }
@@ -656,10 +656,10 @@ template<typename T> struct _uint2mp_ref_
     using result_type = T;
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const {
         using C = decltype(std::declval<T>().hi());
-        C hi = fpmp::uint2fp_rz<C>(a);
+        C hi = __fpmp_uint2fp_rz<C>(a);
         // Signed residual: hi may round above a, so use int32_t to avoid uint underflow.
-        int32_t residual = static_cast<int32_t>(a) - static_cast<int32_t>(fpmp::fp2uint_rz(hi));
-        C lo = fpmp::int2fp_rz<C>(residual);
+        int32_t residual = static_cast<int32_t>(a) - static_cast<int32_t>(__fpmp_fp2uint_rz(hi));
+        C lo = __fpmp_int2fp_rz<C>(residual);
         return T(hi, lo);
     }
     __HOST_DEVICE_DECL__ static constexpr double work_beg() { return 0.0; }
@@ -674,8 +674,8 @@ template<typename T> struct _ll2mp_ref_
     using result_type = T;
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const {
         using C = decltype(std::declval<T>().hi());
-        C hi = fpmp::ll2fp_rz<C>(a);
-        C lo = fpmp::ll2fp_rz<C>(a - fpmp::fp2ll_rz(hi));
+        C hi = __fpmp_ll2fp_rz<C>(a);
+        C lo = __fpmp_ll2fp_rz<C>(a - __fpmp_fp2ll_rz(hi));
         return T(hi, lo);
     }
     __HOST_DEVICE_DECL__ static constexpr double work_beg() { return -9e18; }
@@ -690,10 +690,10 @@ template<typename T> struct _ull2mp_ref_
     using result_type = T;
     __HOST_DEVICE_DECL__ result_type operator()(input_type a) const {
         using C = decltype(std::declval<T>().hi());
-        C hi = fpmp::ull2fp_rz<C>(a);
+        C hi = __fpmp_ull2fp_rz<C>(a);
         // Residual is non-negative since ull2fp_rz rounds toward zero (hi <= a).
-        uint64_t residual = a - fpmp::fp2ull_rz(hi);
-        C lo = fpmp::ull2fp_rz<C>(residual);
+        uint64_t residual = a - __fpmp_fp2ull_rz(hi);
+        C lo = __fpmp_ull2fp_rz<C>(residual);
         return T(hi, lo);
     }
     __HOST_DEVICE_DECL__ static constexpr double work_beg() { return 0.0; }

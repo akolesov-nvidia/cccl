@@ -11,20 +11,20 @@
 
 #if defined(USE_FPMP)
   #define CCCL_FPMP_EXPLICIT_CASTS 1
-  #include "fpmp.h"
-  #include "fpmp_math.h"
-  using fp64emu_t = __fpmp2_t<float, fpmp::method::__METHOD__>;
+  #include <cuda/fpmp>
+  #include <cuda/fpmp_math>
+  using fp64emu_t = ::cuda::experimental::fpmp2_t<float, ::cuda::experimental::fpmp2_accuracy::__METHOD__>;
   #define EMULATED_PRECISION
-  #define PRECISION_LABEL "fpmp (method: " ABC(__METHOD__) ")"
+  #define PRECISION_LABEL "fpmp (accuracy: " ABC(__METHOD__) ")"
 #elif defined(USE_FLOAT)
   #define PRECISION_LABEL "float"
 #elif defined(NO_EMULATION)
   #define PRECISION_LABEL "double"
 #else
-  #include "fpemu.h"
-  using fp64emu_t = __fp64emu_t<fpemu::method::__METHOD__>;
+  #include <cuda/fpemu>
+  using fp64emu_t = ::cuda::experimental::fp64emu_t<::cuda::experimental::fp64emu_accuracy::__METHOD__>;
   #define EMULATED_PRECISION
-  #define PRECISION_LABEL "fpemu (method: " ABC(__METHOD__) ")"
+  #define PRECISION_LABEL "fpemu (accuracy: " ABC(__METHOD__) ")"
 #endif
 
 #endif // FPEMU_TYPE_H

@@ -43,7 +43,6 @@ int main() {
 #include <cuda/fpmp_math>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 /* ------------------------------------------------------------------ */
 /* ffloat: accuracy-switchable fp32mp2 alias                           */

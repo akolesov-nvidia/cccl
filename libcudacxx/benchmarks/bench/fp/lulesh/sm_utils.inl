@@ -253,38 +253,38 @@ static __device__ __forceinline__ double shfl_down( double r, int offset )
 //
 // Each operates on the (hi, lo) pair component-wise via the existing scalar
 // shfl* overloads above, which already dispatch on __CUDA_ARCH__.  The fpmp
-// library also exposes ::__shfl_*_sync overloads for __fpmp2_t directly;
+// library also exposes ::__shfl_*_sync overloads for fpmp2_t directly;
 // these utils:: wrappers exist so the lulesh kernels can keep their uniform
 // `utils::shfl(...)` / `utils::shfl_xor(...)` call sites for any Real_t.
-// Guarded on __FPMP_MATH_HPP__ so this header stays usable in non-FPMP builds.
+// Guarded on _CUDA___FP_FPMP_MATH_H so this header stays usable in non-FPMP builds.
 // --------------------------------------------------------------------------------------------------------------------
-#if defined(__FPMP_MATH_HPP__)
+#if defined(_CUDA___FP_FPMP_MATH_H)
 
-template< typename FpType, fpmp::method met >
-static __device__ __forceinline__ __fpmp2_t<FpType, met>
-shfl( __fpmp2_t<FpType, met> r, int lane, int warp_size )
+template< typename FpType, ::cuda::experimental::fpmp2_accuracy met >
+static __device__ __forceinline__ ::cuda::experimental::fpmp2_t<FpType, met>
+shfl( ::cuda::experimental::fpmp2_t<FpType, met> r, int lane, int warp_size )
 {
-  return __fpmp2_t<FpType, met>( shfl(r.hi(), lane, warp_size),
+  return ::cuda::experimental::fpmp2_t<FpType, met>( shfl(r.hi(), lane, warp_size),
                                     shfl(r.lo(), lane, warp_size) );
 }
 
-template< typename FpType, fpmp::method met >
-static __device__ __forceinline__ __fpmp2_t<FpType, met>
-shfl_xor( __fpmp2_t<FpType, met> r, int mask, int warp_size )
+template< typename FpType, ::cuda::experimental::fpmp2_accuracy met >
+static __device__ __forceinline__ ::cuda::experimental::fpmp2_t<FpType, met>
+shfl_xor( ::cuda::experimental::fpmp2_t<FpType, met> r, int mask, int warp_size )
 {
-  return __fpmp2_t<FpType, met>( shfl_xor(r.hi(), mask, warp_size),
+  return ::cuda::experimental::fpmp2_t<FpType, met>( shfl_xor(r.hi(), mask, warp_size),
                                     shfl_xor(r.lo(), mask, warp_size) );
 }
 
-template< typename FpType, fpmp::method met >
-static __device__ __forceinline__ __fpmp2_t<FpType, met>
-shfl_down( __fpmp2_t<FpType, met> r, int offset )
+template< typename FpType, ::cuda::experimental::fpmp2_accuracy met >
+static __device__ __forceinline__ ::cuda::experimental::fpmp2_t<FpType, met>
+shfl_down( ::cuda::experimental::fpmp2_t<FpType, met> r, int offset )
 {
-  return __fpmp2_t<FpType, met>( shfl_down(r.hi(), offset),
+  return ::cuda::experimental::fpmp2_t<FpType, met>( shfl_down(r.hi(), offset),
                                     shfl_down(r.lo(), offset) );
 }
 
-#endif // __FPMP_MATH_HPP__
+#endif // _CUDA___FP_FPMP_MATH_H
 
 // ====================================================================================================================
 // Warp-level reductions.

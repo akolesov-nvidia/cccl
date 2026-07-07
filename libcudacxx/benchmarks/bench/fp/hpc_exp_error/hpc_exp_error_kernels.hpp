@@ -64,7 +64,6 @@
 #include <cuda/fpmp_math>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 using ffloat = fp32mp2;
 

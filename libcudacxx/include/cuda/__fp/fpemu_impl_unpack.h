@@ -29,8 +29,8 @@
  * binary64 representation (fpbits64_t) and the public unpacked ABI
  * (fpbits64_unpacked_t) used by the arithmetic cores:
  *
- *   - impl::__internal_fp64emu_unpack  (packed   -> unpacked)
- *   - impl::__internal_fp64emu_pack    (unpacked -> packed)
+ *   - __internal_fp64emu_unpack  (packed   -> unpacked)
+ *   - __internal_fp64emu_pack    (unpacked -> packed)
  *
  * They are the single, shared prologue/epilogue for every unpacked operation
  * (add / sub / mul / mad / dot / cmul / div / sqrt / cvt / cmp / fma) and every
@@ -57,8 +57,7 @@
 namespace cuda::experimental
 {
 
-namespace impl
-{
+
 
 /**
  * @brief Unpack a packed binary64 value into the public unpacked ABI.
@@ -76,15 +75,15 @@ _CCCL_TRIVIAL_API
 fpbits64_unpacked_t __internal_fp64emu_unpack(fpbits64_t __x) noexcept
 {
     fpbits64_unpacked_t __a_unpacked;
-    fpemu::__uint32x2_t __a32 = fpemu::bit_cast<fpemu::__uint32x2_t>(__x);
+    __uint32x2_t __a32 = __fpemu_bit_cast<__uint32x2_t>(__x);
     __a_unpacked.sign = __a32.x[1] & ( 1U << 31 );
     __a32.x[1] &= 0x7fffffff;
     int32_t __exponent = static_cast<int32_t>(__a32.x[1] >> 20);
 
     // Normalize denormals: leading-zero count of the magnitude (clamped so a
     // normal stays at shift == EXTRA_BITS, and a true zero maps to the zero band).
-    uint64_t __abs_a = fpemu::bit_cast<uint64_t>(__a32);
-    int __nzeros = fpemu::__internal_clzll(__abs_a);
+    uint64_t __abs_a = __fpemu_bit_cast<uint64_t>(__a32);
+    int __nzeros = __internal_clzll(__abs_a);
     if (__nzeros <  11 ) __nzeros = 11;
     if (__nzeros == 64 ) __nzeros = 2049;
     __a32.x[1] = __a32.x[1] & 0x000fffff;
@@ -104,7 +103,7 @@ fpbits64_unpacked_t __internal_fp64emu_unpack(fpbits64_t __x) noexcept
     }
 
     int __shift = EXTRA_BITS + __nzeros - 11;
-    uint64_t __a64 = fpemu::bit_cast<uint64_t>(__a32);
+    uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a32);
 
     __a_unpacked.exponent = static_cast<uint32_t>(__exponent);
     __a_unpacked.mantissa = __a64 << __shift;
@@ -130,7 +129,7 @@ fpbits64_unpacked_t __internal_fp64emu_unpack(fpbits64_t __x) noexcept
  * @param  x  The unpacked value to pack
  * @return The packed 64-bit value
  */
-template<fpemu::rounding _Rm = fpemu::rounding::def>
+template<__fpemu_rounding _Rm = __fpemu_rounding::def>
 _CCCL_TRIVIAL_API
 fpbits64_t __internal_fp64emu_pack(fpbits64_unpacked_t __x) noexcept
 {
@@ -148,24 +147,24 @@ fpbits64_t __internal_fp64emu_pack(fpbits64_unpacked_t __x) noexcept
         const uint64_t __mask    = (__shift >= 64) ? ~0ULL : ((1ULL << __shift) - 1);
         const bool     __inexact = (__x.mantissa & __mask) != 0;
         __x.mantissa >>= __shift;
-        if constexpr (_Rm == fpemu::rounding::rn)
+        if constexpr (_Rm == __fpemu_rounding::rn)
         {
             if (__inexact) __x.mantissa |= 1;
         }
-        else if constexpr (_Rm == fpemu::rounding::ru)
+        else if constexpr (_Rm == __fpemu_rounding::ru)
         {
             if (!__sign && __inexact) __x.mantissa |= 1;
         }
-        else if constexpr (_Rm == fpemu::rounding::rd)
+        else if constexpr (_Rm == __fpemu_rounding::rd)
         {
             if (__sign && __inexact) __x.mantissa |= 1;
         }
     }
 
-    fpemu::__uint32x2_t __mantissa32 = fpemu::bit_cast<fpemu::__uint32x2_t>(__x.mantissa);
-    __mantissa32 = fpemu::__round<_Rm>(__mantissa32, 0, __sign);
+    __uint32x2_t __mantissa32 = __fpemu_bit_cast<__uint32x2_t>(__x.mantissa);
+    __mantissa32 = __round<_Rm>(__mantissa32, 0, __sign);
 
-    const bool __is_nan = (__exponent >= (int)(0x0007ff00 - fpemu::BIAS - 2048 - 1 - 128 + 0xC));
+    const bool __is_nan = (__exponent >= (int)(0x0007ff00 - __fpemu_BIAS - 2048 - 1 - 128 + 0xC));
 
     if (__mantissa32.x[0] == 0 && __mantissa32.x[1] == 0 && __exponent < 0x000007ff)
     {
@@ -192,16 +191,16 @@ fpbits64_t __internal_fp64emu_pack(fpbits64_unpacked_t __x) noexcept
         else
         {
             int32_t __sat_exp = 0;
-            fpemu::__fp64_ovfl_sat<_Rm>(__sign, __sat_exp, __mantissa32);
+            __fp64_ovfl_sat<_Rm>(__sign, __sat_exp, __mantissa32);
             __mantissa32.x[1] |= (uint32_t)__sat_exp << _CCCL_FP64_HI_MANT_SHIFT;
         }
     }
 
     __mantissa32.x[1] += __x.sign;
-    return fpemu::bit_cast<fpbits64_t>(__mantissa32);
+    return __fpemu_bit_cast<fpbits64_t>(__mantissa32);
 }
 
-} // namespace impl
+
 
 
 } // namespace cuda::experimental

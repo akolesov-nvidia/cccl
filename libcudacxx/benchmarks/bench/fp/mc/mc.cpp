@@ -80,7 +80,6 @@
 #include <cuda/fpemu>
 
 using namespace cuda::experimental;
-using namespace cuda::experimental::fpmp;
 
 #ifndef MC_RNG_ICDF
   #define MC_RNG_ICDF 0

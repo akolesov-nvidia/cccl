@@ -612,11 +612,10 @@
     #include <cuda/fpmp>
     #include <cuda/fpmp_math>
 
-    // The ts harness historically referred to the library namespace as `fpmp`
-    // and the type as __fpmp2_t<FpType, fpmp::method::X>. The CCCL FP SDK
-    // lives in cuda::experimental::fpmp with class fpmp2_t<FpType,
-    // fpmp2_accuracy::X>; alias the namespace so the existing references resolve.
-    namespace fpmp = cuda::experimental::fpmp;
+    // The CCCL FP SDK lives in cuda::experimental (class fpmp2_t<FpType,
+    // fpmp2_accuracy::X> and the internal __fpmp_* helpers); bring it into scope
+    // so the harness can use the unqualified names.
+    using namespace cuda::experimental;
 
     using fpmp_type = FPMP_TYPE;
     using fprf_type = REF_TYPE;

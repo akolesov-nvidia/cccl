@@ -42,7 +42,6 @@
     #include <cuda/fpmp_math>
     #include <cuda/fpemu>
     using namespace cuda::experimental;
-    using namespace cuda::experimental::fpmp;
 #endif
 
 // ---------------------------------------------------------------------------=
