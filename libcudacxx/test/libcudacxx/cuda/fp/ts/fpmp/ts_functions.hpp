@@ -78,7 +78,7 @@ template<typename T> struct _acc_
         } else {
             // mp2 type: use optimized ACC operator
             result_type acc = a;
-            acc += b.hi();  // Uses __nv_fpmp2_acc via operator+=
+            acc += b.hi();  // Uses __fpmp2_acc via operator+=
             return acc;
         }
     }
@@ -348,9 +348,9 @@ template<typename T> struct _ull2mp_
 // conversion under test is non-trivial in every build:
 //
 //   fp32mp2 build  -> input = fp32mp2, output = double
-//                     (mirrors __nv_fpmp2_to_double<float>)
+//                     (mirrors __fpmp2_to_double<float>)
 //   fp64mp2 build  -> input = fp64mp2, output = __ts_fp128
-//                     (mirrors __nv_fpmp2_to_quad<double>)
+//                     (mirrors __fpmp2_to_quad<double>)
 //
 // Without REF_TYPE on the output side, the fp64mp2 case would degenerate to
 // `fp64mp2 -> double`, which collapses to a single `hi + lo` `DADD` (lossless
@@ -364,8 +364,8 @@ template<typename T> struct _mp2fp_
             // High-precision accuracy reference: replicate the mp2 library's
             // bit-pattern by splitting through the BASE_TYPE component and
             // recombining at REF_TYPE precision.
-            //   fp32mp2 build: float  hi/lo, double sum  (~ __nv_fpmp2_to_double)
-            //   fp64mp2 build: double hi/lo, fp128  sum  (~ __nv_fpmp2_to_quad)
+            //   fp32mp2 build: float  hi/lo, double sum  (~ __fpmp2_to_double)
+            //   fp64mp2 build: double hi/lo, fp128  sum  (~ __fpmp2_to_quad)
             using C = BASE_TYPE;
             C hi = static_cast<C>(a);
             C lo = static_cast<C>(a - static_cast<input_type>(hi));
@@ -375,8 +375,8 @@ template<typename T> struct _mp2fp_
             return static_cast<result_type>(a);
         } else {
             // Multi-precision source: invoke the mp2 -> REF_TYPE conversion,
-            // which dispatches to __nv_fpmp2_to_double (fp32mp2) via
-            // operator double(), or __nv_fpmp2_to_quad (fp64mp2) via
+            // which dispatches to __fpmp2_to_double (fp32mp2) via
+            // operator double(), or __fpmp2_to_quad (fp64mp2) via
             // operator __fpmp_fp128() based on T's component type.
             //
             // For fp64mp2 (REF_TYPE is __ts_fp128) bridge through __fpmp_fp128
@@ -410,9 +410,9 @@ template<typename T> struct _mp2fp_
 // every build:
 //
 //   fp32mp2 build  -> input = double,      output = fp32mp2
-//                     (mirrors __nv_fpmp2_from_double<float>)
+//                     (mirrors __fpmp2_from_double<float>)
 //   fp64mp2 build  -> input = __ts_fp128,  output = fp64mp2
-//                     (mirrors __nv_fpmp2_from_quad<double>)
+//                     (mirrors __fpmp2_from_quad<double>)
 //
 // Without this, the fp64mp2 case would degenerate to a `double -> fp64mp2`
 // cast, which collapses to `hi = a; lo = 0` and benchmarks effectively
@@ -426,8 +426,8 @@ template<typename T> struct _fp2mp_
             // High-precision accuracy reference: replicate the mp2 library's
             // bit-pattern by splitting through the BASE_TYPE component and
             // recombining at REF_TYPE precision.
-            //   fp32mp2 build: float hi/lo, double sum  (~ __nv_fpmp2_from_double)
-            //   fp64mp2 build: double hi/lo, fp128 sum  (~ __nv_fpmp2_from_quad)
+            //   fp32mp2 build: float hi/lo, double sum  (~ __fpmp2_from_double)
+            //   fp64mp2 build: double hi/lo, fp128 sum  (~ __fpmp2_from_quad)
             using C = BASE_TYPE;
             C hi = static_cast<C>(a);
             C lo = static_cast<C>(a - static_cast<input_type>(hi));
@@ -437,8 +437,8 @@ template<typename T> struct _fp2mp_
             return static_cast<T>(a);
         } else {
             // Multi-precision target: invoke the mp2 constructor, which
-            // dispatches to __nv_fpmp2_from_double (fp32mp2) or
-            // __nv_fpmp2_from_quad (fp64mp2) based on T's component type.
+            // dispatches to __fpmp2_from_double (fp32mp2) or
+            // __fpmp2_from_quad (fp64mp2) based on T's component type.
             //
             // For fp64mp2 (input is __ts_fp128) bridge through __fpmp_fp128
             // explicitly: on ARM64 device pass, __ts_fp128 (long double) and
@@ -467,7 +467,7 @@ template<typename T> struct _fp2mp_
 // Cast-based performance references for conversion functions.
 //
 // These are **bit-equivalent** to the non-optimized default-mode path of
-// the corresponding __nv_fpmp2_* implementations. Two consequences:
+// the corresponding __fpmp2_* implementations. Two consequences:
 //
 //   1. Accuracy parity. The reference produces the same bits as the baseline
 //      across the whole input domain (including the large-value branches
@@ -485,7 +485,7 @@ template<typename T> struct _fp2mp_
 // algorithmic improvement and produces misleading speedup numbers.
 // ============================================================================
 // Cast reference for _mp2fp_, bit-equivalent to the non-opt path of
-// __nv_fpmp2_to_double (fp32mp2 build) or __nv_fpmp2_to_quad (fp64mp2 build):
+// __fpmp2_to_double (fp32mp2 build) or __fpmp2_to_quad (fp64mp2 build):
 // widen each BASE_TYPE component to REF_TYPE and add. Keeping result_type ==
 // REF_TYPE here mirrors `_mp2fp_<T>` (the symmetric counterpart of
 // `_fp2mp_<T>`) so the perf benchmark exercises the *same* output precision
@@ -505,7 +505,7 @@ template<typename T> struct _mp2fp_ref_
 };
 
 // Cast reference for _fp2mp_, bit-equivalent to the non-opt path of
-// __nv_fpmp2_from_double (fp32mp2 build) or __nv_fpmp2_from_quad (fp64mp2
+// __fpmp2_from_double (fp32mp2 build) or __fpmp2_from_quad (fp64mp2
 // build): split the REF_TYPE input into two BASE_TYPE components via cast
 // and subtract.
 template<typename T> struct _fp2mp_ref_
@@ -526,7 +526,7 @@ template<typename T> struct _fp2mp_ref_
 
 // ----------------------------------------------------------------------------
 // (hi, lo) -> int / uint / ll / ull conversions.
-// Bit-equivalent to the non-optimized __nv_fpmp2_to_{int,uint,ll,ull}: a
+// Bit-equivalent to the non-optimized __fpmp2_to_{int,uint,ll,ull}: a
 // threshold check on hi (2^24 for float / 2^53 for double) selects between
 // (a) fast small-value path: add_rz(hi, lo) followed by fp2*_rz, and
 // (b) precise large-value path: integer addition of fp2*_rz(hi) and lo.
@@ -631,7 +631,7 @@ template<typename T> struct _mp2ull_ref_
 
 // ----------------------------------------------------------------------------
 // int / uint / ll / ull -> (hi, lo) conversions.
-// Cast-based path: matches the body of __nv_fpmp2_from_{int,uint,ll,ull}
+// Cast-based path: matches the body of __fpmp2_from_{int,uint,ll,ull}
 // (round-toward-zero conversions in the component precision, no fp64 widening).
 // ----------------------------------------------------------------------------
 template<typename T> struct _int2mp_ref_
@@ -1140,7 +1140,7 @@ template<typename T>
 __HOST_DEVICE_DECL__ inline int ldexp_int(const T& v)
 {
     /* Collapse the input to a single double *using the full value*.
-     * For mp2 types this invokes __nv_fpmp2_to_double(hi, lo) so the
+     * For mp2 types this invokes __fpmp2_to_double(hi, lo) so the
      * lo limb participates in the rounding to int; for scalar types it
      * is a plain conversion.  Without this, the impl path (which sees
      * the mp2 value directly) and the reference path (which sees the

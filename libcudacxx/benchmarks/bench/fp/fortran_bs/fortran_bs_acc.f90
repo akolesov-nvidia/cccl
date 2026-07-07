@@ -291,7 +291,7 @@ program fortran_bs_acc
   ! `fpmp_api` does expose a host-callable defined assignment
   ! `fp32mp2 = real(real64)` and a `fp32mp2()` constructor, but we
   ! still avoid them: every call dispatches into the FPMP runtime
-  ! (`__nv_fp32mp2_from_double`) which is overkill for what is really
+  ! (`__fp32mp2_from_double`) which is overkill for what is really
   ! just a textbook double-float field split.  Doing the split inline
   ! with pure arithmetic skips the runtime call entirely:
   !
@@ -299,7 +299,7 @@ program fortran_bs_acc
   !      lo = (float) (x - hi)    ! residual; |lo| <= 0.5 ulp(hi)
   !
   ! which is the textbook double-float decomposition and matches exactly
-  ! what `__nv_fp32mp2_from_double` would compute, but with zero FPMP
+  ! what `__fp32mp2_from_double` would compute, but with zero FPMP
   ! calls.  See `dbl_to_ff` below.
   do i = 1, N
     call dbl_to_ff(S(i),    S_ff(i))

@@ -115,20 +115,20 @@ Naming convention (packed ``fpbits64_t``)
 
 ::
 
-   __nv_fp64emu_<op>_<rm>            — default  (== high: correctly rounded, full IEEE-754 specials support)
-   __nv_fp64emu_high_<op>_<rm>       — high     (correctly rounded, full IEEE-754 specials support)
-   __nv_fp64emu_mid_<op>_<rm>        — mid      (1-2 LSB error, limited IEEE-754 specials support)
-   __nv_fp64emu_low_<op>_<rm>        — low      (up to half mantissa bits, limited IEEE-754 specials support)
+   __fp64emu_<op>_<rm>            — default  (== high: correctly rounded, full IEEE-754 specials support)
+   __fp64emu_high_<op>_<rm>       — high     (correctly rounded, full IEEE-754 specials support)
+   __fp64emu_mid_<op>_<rm>        — mid      (1-2 LSB error, limited IEEE-754 specials support)
+   __fp64emu_low_<op>_<rm>        — low      (up to half mantissa bits, limited IEEE-754 specials support)
 
 Naming convention (unpacked ``fpbits64_unpacked_t``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
-   __nv_fp64emu_unpacked_<op>_<rm>            — default  (== high: correctly rounded, full IEEE-754 specials support)
-   __nv_fp64emu_unpacked_high_<op>_<rm>       — high     (correctly rounded, full IEEE-754 specials support)
-   __nv_fp64emu_unpacked_mid_<op>_<rm>        — mid      (1-2 LSB error, limited IEEE-754 specials support)
-   __nv_fp64emu_unpacked_low_<op>_<rm>        — low      (up to half mantissa bits, limited IEEE-754 specials support)
+   __fp64emu_unpacked_<op>_<rm>            — default  (== high: correctly rounded, full IEEE-754 specials support)
+   __fp64emu_unpacked_high_<op>_<rm>       — high     (correctly rounded, full IEEE-754 specials support)
+   __fp64emu_unpacked_mid_<op>_<rm>        — mid      (1-2 LSB error, limited IEEE-754 specials support)
+   __fp64emu_unpacked_low_<op>_<rm>        — low      (up to half mantissa bits, limited IEEE-754 specials support)
 
 where ``<op>`` is the operation and ``<rm>`` is the rounding mode (``rn``, ``rz``,
 ``ru``, ``rd``).
@@ -140,19 +140,19 @@ Example
 
    #include <cuda/fpemu>
 
-   fpbits64_t x = __nv_fp64emu_from_double(1.2345);
-   fpbits64_t y = __nv_fp64emu_from_double(2.3456);
+   fpbits64_t x = __fp64emu_from_double(1.2345);
+   fpbits64_t y = __fp64emu_from_double(2.3456);
 
    // High-accuracy multiply (correctly rounded)
-   fpbits64_t r1 = __nv_fp64emu_high_dmul_rn(x, y);
+   fpbits64_t r1 = __fp64emu_high_dmul_rn(x, y);
 
    // Low-accuracy add
-   fpbits64_t r2 = __nv_fp64emu_low_dadd_rn(x, y);
+   fpbits64_t r2 = __fp64emu_low_dadd_rn(x, y);
 
    // Default FMA (== high)
-   fpbits64_t r3 = __nv_fp64emu_fma_rn(x, y, r2);
+   fpbits64_t r3 = __fp64emu_fma_rn(x, y, r2);
 
-   double result = __nv_fp64emu_to_double(r3);
+   double result = __fp64emu_to_double(r3);
 
 Operations
 ----------
@@ -233,14 +233,14 @@ Using core built-ins from library directly
 
    #include <cuda/fpemu>
 
-   fpbits64_t x = __nv_fp64emu_from_double(value);
-   fpbits64_t y = __nv_fp64emu_from_double(value);
+   fpbits64_t x = __fp64emu_from_double(value);
+   fpbits64_t y = __fp64emu_from_double(value);
 
    // IEEE-754 compliant multiply
-   fpbits64_t r = __nv_fp64emu_dmul_rn(x, y);
+   fpbits64_t r = __fp64emu_dmul_rn(x, y);
 
    // Fast variant of the same operation
-   fpbits64_t r_fast = __nv_fp64emu_low_dmul_rn(x, y);
+   fpbits64_t r_fast = __fp64emu_low_dmul_rn(x, y);
 
 Compilation modes
 ~~~~~~~~~~~~~~~~~

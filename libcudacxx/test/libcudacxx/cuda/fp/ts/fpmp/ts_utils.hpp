@@ -274,8 +274,8 @@ using mp_component_t = typename mp_component_type<T>::type;
 // ============================================================================
 // Convert reference result to fpmp_type for comparison/display
 // Works for both:
-//   - fp32mp2 (FpmpType=__nv_fpmp2_t<float,...>, RefType=double)
-//   - fp64mp2 (FpmpType=__nv_fpmp2_t<double,...>, RefType=__ts_fp128)
+//   - fp32mp2 (FpmpType=__fpmp2_t<float,...>, RefType=double)
+//   - fp64mp2 (FpmpType=__fpmp2_t<double,...>, RefType=__ts_fp128)
 // ============================================================================
 template<typename FpmpType, typename RefType>
 __HOST_DEVICE_DECL__ inline FpmpType ts_ref_to_fpmp(RefType ref)

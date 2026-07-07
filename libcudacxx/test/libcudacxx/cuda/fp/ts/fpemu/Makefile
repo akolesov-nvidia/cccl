@@ -158,9 +158,9 @@ UNPACKED_METHODS   = mid low
 
 # API selects which emulated API the harness exercises. It may be a LIST so one
 # invocation evaluates both side by side (distinct target names and log rows):
-#   packed   -> __nv_fp64emu_t           (packed API: legacy kernels, or the
+#   packed   -> __fp64emu_t           (packed API: legacy kernels, or the
 #                                          unpack->core->pack path when PACKED_VIA_UNPACKED=y)
-#   unpacked -> __nv_fp64emu_unpacked_t  (unpacked API directly: operands are stored
+#   unpacked -> __fp64emu_unpacked_t  (unpacked API directly: operands are stored
 #                                          already unpacked, so the TIMED kernel runs the
 #                                          pure unpacked cores -- unpack/pack happen only in
 #                                          dataset fill and accuracy compare, OUTSIDE the

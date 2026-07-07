@@ -7,8 +7,8 @@
     This test validates the correctness and measures the performance of two
     standalone integer-only double-precision addition emulation functions:
 
-      __nv_internal_fp64_add_int32(double x, int32_t i) — double + int32
-      __nv_internal_fp64_add_fp64 (double x, double  y) — double + double
+      __internal_fp64_add_int32(double x, int32_t i) — double + int32
+      __internal_fp64_add_fp64 (double x, double  y) — double + double
 
     Results are compared against native double-precision addition as the reference.
 
@@ -21,8 +21,8 @@
 
     CUDA Performance Comparison:
     -------------------------------------------------------------------------
-    - EMU_INT32: __nv_internal_fp64_add_int32  (integer-only, double + int32)
-    - EMU_FP64:  __nv_internal_fp64_add_fp64   (integer-only, double + double)
+    - EMU_INT32: __internal_fp64_add_int32  (integer-only, double + int32)
+    - EMU_FP64:  __internal_fp64_add_fp64   (integer-only, double + double)
     - NATIVE:    double + (double)int32         (native FP64 DADD)
 
     Configuration:
@@ -202,7 +202,7 @@ struct OpTotals {
 };
 
 // ====================================================================================================
-// Host accuracy tests: __nv_internal_fp64_add_int32
+// Host accuracy tests: __internal_fp64_add_int32
 // ====================================================================================================
 
 static TestStats test_basic_int32() {
@@ -236,7 +236,7 @@ static TestStats test_basic_int32() {
     int n = sizeof(cases) / sizeof(cases[0]);
     for (int t = 0; t < n; t++) {
         double expected = cases[t].x + (double)cases[t].i;
-        double got = __nv_internal_fp64_add_int32(cases[t].x, cases[t].i);
+        double got = __internal_fp64_add_int32(cases[t].x, cases[t].i);
         update_stats(stats, got, expected);
     }
 
@@ -279,7 +279,7 @@ static TestStats test_boundary_int32() {
     int n = sizeof(cases) / sizeof(cases[0]);
     for (int t = 0; t < n; t++) {
         double expected = cases[t].x + (double)cases[t].i;
-        double got = __nv_internal_fp64_add_int32(cases[t].x, cases[t].i);
+        double got = __internal_fp64_add_int32(cases[t].x, cases[t].i);
         update_stats(stats, got, expected);
     }
 
@@ -298,7 +298,7 @@ static TestStats test_random_int32() {
         double x = dist_x(gen);
         int32_t i = dist_i(gen);
         double expected = x + (double)i;
-        double got = __nv_internal_fp64_add_int32(x, i);
+        double got = __internal_fp64_add_int32(x, i);
         update_stats(stats, got, expected);
     }
 
@@ -317,7 +317,7 @@ static TestStats test_random_small_int32() {
         double x = dist_x(gen);
         int32_t i = dist_i(gen);
         double expected = x + (double)i;
-        double got = __nv_internal_fp64_add_int32(x, i);
+        double got = __internal_fp64_add_int32(x, i);
         update_stats(stats, got, expected);
     }
 
@@ -337,7 +337,7 @@ static TestStats test_accumulate_int32() {
     for (int t = 0; t < n; t++) {
         int32_t i = dist_i(gen);
         acc_ref = acc_ref + (double)i;
-        acc_emu = __nv_internal_fp64_add_int32(acc_emu, i);
+        acc_emu = __internal_fp64_add_int32(acc_emu, i);
         update_stats(stats, acc_emu, acc_ref);
     }
 
@@ -357,7 +357,7 @@ static TestStats test_accumulate_frac_int32() {
     for (int t = 0; t < n; t++) {
         int32_t i = dist_i(gen);
         acc_ref = acc_ref + (double)i;
-        acc_emu = __nv_internal_fp64_add_int32(acc_emu, i);
+        acc_emu = __internal_fp64_add_int32(acc_emu, i);
         update_stats(stats, acc_emu, acc_ref);
     }
 
@@ -365,7 +365,7 @@ static TestStats test_accumulate_frac_int32() {
 }
 
 // ====================================================================================================
-// Host accuracy tests: __nv_internal_fp64_add_fp64
+// Host accuracy tests: __internal_fp64_add_fp64
 // ====================================================================================================
 
 static TestStats test_basic_fp64() {
@@ -402,7 +402,7 @@ static TestStats test_basic_fp64() {
     int n = sizeof(cases) / sizeof(cases[0]);
     for (int t = 0; t < n; t++) {
         double expected = cases[t].x + cases[t].y;
-        double got = __nv_internal_fp64_add_fp64(cases[t].x, cases[t].y);
+        double got = __internal_fp64_add_fp64(cases[t].x, cases[t].y);
         update_stats(stats, got, expected);
     }
 
@@ -439,7 +439,7 @@ static TestStats test_boundary_fp64() {
     int n = sizeof(cases) / sizeof(cases[0]);
     for (int t = 0; t < n; t++) {
         double expected = cases[t].x + cases[t].y;
-        double got = __nv_internal_fp64_add_fp64(cases[t].x, cases[t].y);
+        double got = __internal_fp64_add_fp64(cases[t].x, cases[t].y);
         update_stats(stats, got, expected);
     }
 
@@ -457,7 +457,7 @@ static TestStats test_random_fp64() {
         double x = dist(gen);
         double y = dist(gen);
         double expected = x + y;
-        double got = __nv_internal_fp64_add_fp64(x, y);
+        double got = __internal_fp64_add_fp64(x, y);
         update_stats(stats, got, expected);
     }
 
@@ -475,7 +475,7 @@ static TestStats test_random_small_fp64() {
         double x = dist(gen);
         double y = dist(gen);
         double expected = x + y;
-        double got = __nv_internal_fp64_add_fp64(x, y);
+        double got = __internal_fp64_add_fp64(x, y);
         update_stats(stats, got, expected);
     }
 
@@ -508,7 +508,7 @@ KERNEL void accuracy_kernel_emu_int32(const double* x, const int32_t* ival,
                                       double* result, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < n) {
-        result[idx] = __nv_internal_fp64_add_int32(x[idx], ival[idx]);
+        result[idx] = __internal_fp64_add_int32(x[idx], ival[idx]);
     }
 }
 
@@ -516,7 +516,7 @@ KERNEL void accuracy_kernel_emu_fp64(const double* x, const double* y,
                                      double* result, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < n) {
-        result[idx] = __nv_internal_fp64_add_fp64(x[idx], y[idx]);
+        result[idx] = __internal_fp64_add_fp64(x[idx], y[idx]);
     }
 }
 
@@ -548,7 +548,7 @@ KERNEL void perf_kernel_emu_int32(double start_val, unsigned char* result, uint3
     const int u = UNROLL;
     #pragma unroll u
     for (int i = 0; i < REPS; i++) {
-        acc = __nv_internal_fp64_add_int32(acc, iv);
+        acc = __internal_fp64_add_int32(acc, iv);
         update_bits_int(i, iv);
     }
 
@@ -592,7 +592,7 @@ KERNEL void perf_kernel_emu_fp64(double start_val, unsigned char* result, uint32
     const int u = UNROLL;
     #pragma unroll u
     for (int i = 0; i < REPS; i++) {
-        acc = __nv_internal_fp64_add_fp64(acc, addend);
+        acc = __internal_fp64_add_fp64(acc, addend);
         update_bits_double((double)i, addend);
     }
 
@@ -899,8 +899,8 @@ int main()
     printf("================================================================================\n\n");
 
     printf("Functions under test:\n");
-    printf("  __nv_internal_fp64_add_int32(double x, int32_t i)  — double + int32\n");
-    printf("  __nv_internal_fp64_add_fp64 (double x, double  y)  — double + double\n\n");
+    printf("  __internal_fp64_add_int32(double x, int32_t i)  — double + int32\n");
+    printf("  __internal_fp64_add_fp64 (double x, double  y)  — double + double\n\n");
 
     printf("Configuration:\n");
     printf("  Random test length:       %d\n", RANDOM_LEN);

@@ -9,7 +9,7 @@
  *
  *
  * Four target types x four rounding modes (rn, rz, ru, rd) are covered for:
- *   1. C builtins        : __nv_fp64emu_to_{int,uint,ll,ull}_{rn,rz,ru,rd}
+ *   1. C builtins        : __fp64emu_to_{int,uint,ll,ull}_{rn,rz,ru,rd}
  *   2. C++ packed ops     : __double2{int,uint,ll,ull}_{rn,rz,ru,rd}(fp64emu)
  *   3. C++ packed casts   : (int32_t|uint32_t|int64_t|uint64_t)fp64emu      (rz)
  *   4. C++ unpacked casts : (int32_t|uint32_t|int64_t|uint64_t)unpacked       (rz)
@@ -166,24 +166,24 @@ TARGET void kern_ref(const double* x, uint64_t* out, int n)
 TARGET void kern_builtin(const double* x, uint64_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
-        fpbits64_t e = __nv_fp64emu_from_double(x[i]);
+        fpbits64_t e = __fp64emu_from_double(x[i]);
         uint64_t* o  = out + i * NCONV;
-        o[T_I32*4 + M_RN] = enc_i32(__nv_fp64emu_to_int_rn(e));
-        o[T_I32*4 + M_RZ] = enc_i32(__nv_fp64emu_to_int_rz(e));
-        o[T_I32*4 + M_RU] = enc_i32(__nv_fp64emu_to_int_ru(e));
-        o[T_I32*4 + M_RD] = enc_i32(__nv_fp64emu_to_int_rd(e));
-        o[T_U32*4 + M_RN] = enc_u32(__nv_fp64emu_to_uint_rn(e));
-        o[T_U32*4 + M_RZ] = enc_u32(__nv_fp64emu_to_uint_rz(e));
-        o[T_U32*4 + M_RU] = enc_u32(__nv_fp64emu_to_uint_ru(e));
-        o[T_U32*4 + M_RD] = enc_u32(__nv_fp64emu_to_uint_rd(e));
-        o[T_I64*4 + M_RN] = enc_i64(__nv_fp64emu_to_ll_rn(e));
-        o[T_I64*4 + M_RZ] = enc_i64(__nv_fp64emu_to_ll_rz(e));
-        o[T_I64*4 + M_RU] = enc_i64(__nv_fp64emu_to_ll_ru(e));
-        o[T_I64*4 + M_RD] = enc_i64(__nv_fp64emu_to_ll_rd(e));
-        o[T_U64*4 + M_RN] = enc_u64(__nv_fp64emu_to_ull_rn(e));
-        o[T_U64*4 + M_RZ] = enc_u64(__nv_fp64emu_to_ull_rz(e));
-        o[T_U64*4 + M_RU] = enc_u64(__nv_fp64emu_to_ull_ru(e));
-        o[T_U64*4 + M_RD] = enc_u64(__nv_fp64emu_to_ull_rd(e));
+        o[T_I32*4 + M_RN] = enc_i32(__fp64emu_to_int_rn(e));
+        o[T_I32*4 + M_RZ] = enc_i32(__fp64emu_to_int_rz(e));
+        o[T_I32*4 + M_RU] = enc_i32(__fp64emu_to_int_ru(e));
+        o[T_I32*4 + M_RD] = enc_i32(__fp64emu_to_int_rd(e));
+        o[T_U32*4 + M_RN] = enc_u32(__fp64emu_to_uint_rn(e));
+        o[T_U32*4 + M_RZ] = enc_u32(__fp64emu_to_uint_rz(e));
+        o[T_U32*4 + M_RU] = enc_u32(__fp64emu_to_uint_ru(e));
+        o[T_U32*4 + M_RD] = enc_u32(__fp64emu_to_uint_rd(e));
+        o[T_I64*4 + M_RN] = enc_i64(__fp64emu_to_ll_rn(e));
+        o[T_I64*4 + M_RZ] = enc_i64(__fp64emu_to_ll_rz(e));
+        o[T_I64*4 + M_RU] = enc_i64(__fp64emu_to_ll_ru(e));
+        o[T_I64*4 + M_RD] = enc_i64(__fp64emu_to_ll_rd(e));
+        o[T_U64*4 + M_RN] = enc_u64(__fp64emu_to_ull_rn(e));
+        o[T_U64*4 + M_RZ] = enc_u64(__fp64emu_to_ull_rz(e));
+        o[T_U64*4 + M_RU] = enc_u64(__fp64emu_to_ull_ru(e));
+        o[T_U64*4 + M_RD] = enc_u64(__fp64emu_to_ull_rd(e));
     }
 }
 
@@ -352,7 +352,7 @@ int main()
 
     int errors = 0;
 
-    printf("\n  --- C builtins (__nv_fp64emu_to_*_*) ---\n");
+    printf("\n  --- C builtins (__fp64emu_to_*_*) ---\n");
     errors += run_surface("special values", kern_builtin, ALL16, NCONV, g_special, g_special_n);
     errors += run_surface("random values",  kern_builtin, ALL16, NCONV, rnd, NR);
 

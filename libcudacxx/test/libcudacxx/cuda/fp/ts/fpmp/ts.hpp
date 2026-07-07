@@ -121,7 +121,7 @@
     // at ~53 bits -- a genuine 128-bit reference requires either GCC >= 13.1 or a
     // host-computed reference path). GCC >= 13.1 makes _Float128 a distinct type
     // that both parses and links, so __FLOAT128_C_SPELLING_ENABLED__ gates it.
-    // Constructor calls __nv_fpmp2_t<double>(__ts_fp128) still bridge through
+    // Constructor calls __fpmp2_t<double>(__ts_fp128) still bridge through
     // static_cast<__fpmp_fp128>(...) at the call sites.
     #if (TS_HAS_LIBQUADMATH == 1)
         typedef __float128 __ts_fp128;
@@ -613,7 +613,7 @@
     #include <cuda/fpmp_math>
 
     // The ts harness historically referred to the library namespace as `fpmp`
-    // and the type as __nv_fpmp2_t<FpType, fpmp::method::X>. The CCCL FP SDK
+    // and the type as __fpmp2_t<FpType, fpmp::method::X>. The CCCL FP SDK
     // lives in cuda::experimental::fpmp with class fpmp2_t<FpType,
     // fpmp2_accuracy::X>; alias the namespace so the existing references resolve.
     namespace fpmp = cuda::experimental::fpmp;

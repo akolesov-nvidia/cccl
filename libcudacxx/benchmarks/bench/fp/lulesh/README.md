@@ -12,8 +12,8 @@ More information about LULESH: https://codesign.llnl.gov/lulesh.php
 |------------|------|-----------|----------------|
 | `double` | `double` | ~15 digits | full IEEE-754 fp64 |
 | `float` | `float` | ~7 digits | full IEEE-754 fp32 |
-| `fpemu` | `__nv_fp64emu_t` | ~15 digits (emulated double) | full IEEE-754 fp64 |
-| `fpmp` | `__nv_fpmp2_t<float>` | ~14 digits (float-float) | same as fp32 |
+| `fpemu` | `__fp64emu_t` | ~15 digits (emulated double) | full IEEE-754 fp64 |
+| `fpmp` | `__fpmp2_t<float>` | ~14 digits (float-float) | same as fp32 |
 
 ## Prerequisites
 

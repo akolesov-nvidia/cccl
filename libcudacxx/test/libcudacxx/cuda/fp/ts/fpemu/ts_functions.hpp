@@ -19,10 +19,10 @@ struct fma_function
     {
         // The unrounded `fma()` API has no rounding-mode parameter and
         // unconditionally dispatches to the `_rn` builtin (both for native
-        // double and for __nv_fp64emu_t<m> via ADL). To honor the rm
+        // double and for __fp64emu_t<m> via ADL). To honor the rm
         // template arg under ROUNDING={rz,ru,rd}, we switch to the
         // explicitly-rounded entry points, which exist for both Tin=double
-        // (CUDA double intrinsics) and Tin=__nv_fp64emu_t<m>
+        // (CUDA double intrinsics) and Tin=__fp64emu_t<m>
         // (fpemu_impl_fma.h __fma_r{n,z,u,d} templates).
         // For rn we keep the unrounded `fma()` to preserve the original
         // test target (the C-style API), which already routes to _rn.
@@ -481,16 +481,16 @@ struct polyu8_function
         }
         else
         {
-            fpbits64_unpacked_t x_unpacked = __nv_fp64emu_unpacked_from_double(x);
-            fpbits64_unpacked_t poly = __nv_fp64emu_unpacked_mid_mad(x_unpacked,__nv_fp64emu_unpacked_from_double(C7),
-                                                                                       __nv_fp64emu_unpacked_from_double(C6));
-            poly = __nv_fp64emu_unpacked_mid_mad(poly,x_unpacked,__nv_fp64emu_unpacked_from_double(C5));
-            poly = __nv_fp64emu_unpacked_mid_mad(poly,x_unpacked,__nv_fp64emu_unpacked_from_double(C4));
-            poly = __nv_fp64emu_unpacked_mid_mad(poly,x_unpacked,__nv_fp64emu_unpacked_from_double(C3));
-            poly = __nv_fp64emu_unpacked_mid_mad(poly,x_unpacked,__nv_fp64emu_unpacked_from_double(C2));
-            poly = __nv_fp64emu_unpacked_mid_mad(poly,x_unpacked,__nv_fp64emu_unpacked_from_double(C1));
-            poly = __nv_fp64emu_unpacked_mid_mad(poly,x_unpacked,__nv_fp64emu_unpacked_from_double(C0));
-            double res = __nv_fp64emu_unpacked_to_double(poly);
+            fpbits64_unpacked_t x_unpacked = __fp64emu_unpacked_from_double(x);
+            fpbits64_unpacked_t poly = __fp64emu_unpacked_mid_mad(x_unpacked,__fp64emu_unpacked_from_double(C7),
+                                                                                       __fp64emu_unpacked_from_double(C6));
+            poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C5));
+            poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C4));
+            poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C3));
+            poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C2));
+            poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C1));
+            poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C0));
+            double res = __fp64emu_unpacked_to_double(poly);
             return res;
         }
     }

@@ -5,11 +5,11 @@
  * @brief Standalone emulation of double-precision operations using integer operations
  *
  * Provides standalone integer-only emulation functions based on
- * __nv_internal_fp64emu_dadd_def with HA accuracy (9 extra precision bits):
+ * __internal_fp64emu_dadd_def with HA accuracy (9 extra precision bits):
  *
- *   __nv_internal_int32_to_fp64 (int32_t i)           — int32 to double conversion
- *   __nv_internal_fp64_add_fp64 (double x, double  y) — double + double
- *   __nv_internal_fp64_add_int32(double x, int32_t i) — double + int32
+ *   __internal_int32_to_fp64 (int32_t i)           — int32 to double conversion
+ *   __internal_fp64_add_fp64 (double x, double  y) — double + double
+ *   __internal_fp64_add_int32(double x, int32_t i) — double + int32
  *
  * Normal range only: NaN, Inf, and denormals are not specially handled.
  */
@@ -136,7 +136,7 @@ namespace __fp64_add_int32_impl
 } // namespace __fp64_add_int32_impl
 
 // ====================================================================================================
-// __nv_internal_int32_to_fp64: convert int32 to double using only integer operations
+// __internal_int32_to_fp64: convert int32 to double using only integer operations
 // ====================================================================================================
 
 /**
@@ -149,7 +149,7 @@ namespace __fp64_add_int32_impl
  * @return   (double)i
  */
 __FP64_ADD_INT32_DECL__
-double __nv_internal_int32_to_fp64(int32_t i)
+double __internal_int32_to_fp64(int32_t i)
 {
     using namespace __fp64_add_int32_impl;
 
@@ -170,7 +170,7 @@ double __nv_internal_int32_to_fp64(int32_t i)
 }
 
 // ====================================================================================================
-// __nv_internal_fp64_add_fp64: double + double using only integer operations
+// __internal_fp64_add_fp64: double + double using only integer operations
 // ====================================================================================================
 
 /**
@@ -178,14 +178,14 @@ double __nv_internal_int32_to_fp64(int32_t i)
  *
  * Standalone emulation function that performs (x + y) where both operands are
  * doubles. The implementation uses the same integer-only mantissa alignment and
- * addition algorithm as __nv_internal_fp64emu_dadd_def (HA accuracy, normal range).
+ * addition algorithm as __internal_fp64emu_dadd_def (HA accuracy, normal range).
  *
  * @param x  First double precision operand
  * @param y  Second double precision operand
  * @return   Result of (x + y) as double
  */
 __FP64_ADD_INT32_DECL__
-double __nv_internal_fp64_add_fp64(double x, double y)
+double __internal_fp64_add_fp64(double x, double y)
 {
     using namespace __fp64_add_int32_impl;
     using uint32x2_t = __fp64_add_int32_impl::uint32x2_t;
@@ -257,7 +257,7 @@ double __nv_internal_fp64_add_fp64(double x, double y)
 }
 
 // ====================================================================================================
-// __nv_internal_fp64_add_int32: fused version (no intermediate IEEE 754 pack/unpack)
+// __internal_fp64_add_int32: fused version (no intermediate IEEE 754 pack/unpack)
 // ====================================================================================================
 
 /**
@@ -265,7 +265,7 @@ double __nv_internal_fp64_add_fp64(double x, double y)
  *
  * Fused implementation that constructs the working mantissa directly from the
  * integer, avoiding the pack-to-IEEE-754 / unpack-from-IEEE-754 round-trip
- * that the composed version (__nv_internal_int32_to_fp64 + __nv_internal_fp64_add_fp64)
+ * that the composed version (__internal_int32_to_fp64 + __internal_fp64_add_fp64)
  * would incur.
  *
  * @param x  Double precision accumulator
@@ -273,7 +273,7 @@ double __nv_internal_fp64_add_fp64(double x, double y)
  * @return   Result of (x + i) as double
  */
 __FP64_ADD_INT32_DECL__
-double __nv_internal_fp64_add_int32(double x, int32_t i)
+double __internal_fp64_add_int32(double x, int32_t i)
 {
     using namespace __fp64_add_int32_impl;
     using uint32x2_t = __fp64_add_int32_impl::uint32x2_t;

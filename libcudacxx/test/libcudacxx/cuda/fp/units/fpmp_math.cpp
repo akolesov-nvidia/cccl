@@ -332,7 +332,7 @@ __global__ void kernel_frexp(double x_in, Result* r, ResultInt* r_exp) {
     MP2 x = MP2(x_in);
     int nptr;
     FpType frac_hi, frac_lo;
-    __nv_fpmp2_frexp(x.hi(), x.lo(), &frac_hi, &frac_lo, &nptr);
+    __fpmp2_frexp(x.hi(), x.lo(), &frac_hi, &frac_lo, &nptr);
     r->fpmp_val = static_cast<double>(MP2(frac_hi, frac_lo));
     r_exp->fpmp_val = nptr;
     int ref_exp;
@@ -345,7 +345,7 @@ __global__ void kernel_modf(double x_in, Result* r_frac, Result* r_int) {
     using FpType = decltype(MP2().hi());
     MP2 x = MP2(x_in);
     FpType frac_hi, frac_lo, ipart_hi, ipart_lo;
-    __nv_fpmp2_modf(x.hi(), x.lo(), &frac_hi, &frac_lo, &ipart_hi, &ipart_lo);
+    __fpmp2_modf(x.hi(), x.lo(), &frac_hi, &frac_lo, &ipart_hi, &ipart_lo);
     r_frac->fpmp_val = static_cast<double>(MP2(frac_hi, frac_lo));
     r_int->fpmp_val  = static_cast<double>(MP2(ipart_hi, ipart_lo));
     double iref;
@@ -359,7 +359,7 @@ __global__ void kernel_remquo(double x_in, double y_in, Result* r, ResultInt* r_
     MP2 x = MP2(x_in), y = MP2(y_in);
     int quo;
     FpType res_hi, res_lo;
-    __nv_fpmp2_remquo(x.hi(), x.lo(), y.hi(), y.lo(), &res_hi, &res_lo, &quo);
+    __fpmp2_remquo(x.hi(), x.lo(), y.hi(), y.lo(), &res_hi, &res_lo, &quo);
     r->fpmp_val = static_cast<double>(MP2(res_hi, res_lo));
     r_quo->fpmp_val = quo;
     int ref_quo;

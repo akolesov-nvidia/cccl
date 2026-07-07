@@ -214,7 +214,7 @@ The two execution paths differ on **how** they do the conversion:
 * CUDA Fortran (`fortran_bs_device.cuf`) launches a one-shot untimed
   device kernel (`convert_inputs_kernel`) that calls `fp32mp2(S(i))`
   inside `attributes(global)` code.  This goes through the standard
-  FPMP runtime (`__nv_fp32mp2_from_double`) and is fully inlined via
+  FPMP runtime (`__fp32mp2_from_double`) and is fully inlined via
   `-gpu=lto,cc<arch>` device LTO across `fpmp_api.cuf` and `fpmp_lib.o`.
 * OpenACC (`fortran_bs_acc.f90`) does the split with **pure host
   arithmetic** — see the `dbl_to_ff` helper:
@@ -229,7 +229,7 @@ The two execution paths differ on **how** they do the conversion:
   Both the `fp32mp2()` constructor and the `type(fp32mp2) =
   real(real64)` defined assignment ARE host-callable through
   `fpmp_api`, but they each dispatch into the FPMP runtime
-  (`__nv_fp32mp2_from_double`), which is overkill for what is really
+  (`__fp32mp2_from_double`), which is overkill for what is really
   just a textbook double-float field split.  Doing the decomposition
   with two fp32 casts on the host runs once at startup and is
   identical numerically to what the FPMP runtime would compute —

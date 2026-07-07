@@ -103,15 +103,15 @@
     Naming Convention:
     -------------------------------------------------------------------------
     - Built-in functions (C-style API):
-        * __nv_fpmp2_add, __nv_fpmp2_sub, __nv_fpmp2_mul, __nv_fpmp2_div : Basic arithmetic operations
-        * __nv_fpmp2_acc, __nv_fpmp2_low_acc, __nv_fpmp2_high_acc : Optimized single-component accumulate
-        * __nv_fpmp2_low_add, __nv_fpmp2_high_add : Method-specific variants
-        * __nv_fpmp2_fma, __nv_fpmp2_mad : Fused multiply-add and multiply-add operations
-        * __nv_fpmp2_sqrt, __nv_fpmp2_rsqrt : Square root and reciprocal square root
-        * __nv_fpmp2_exp : Exponential function
-        * __nv_fpmp2_from_double, __nv_fpmp2_to_double : Type conversions
-        * __nv_fpmp2_cmp_eq, __nv_fpmp2_cmp_lt, etc. : Comparison operations
-        * __nv_fpmp2_atomicAdd, __nv_fpmp2_atomicSub : Atomic operations (CUDA only, slower than hardware atomics)
+        * __fpmp2_add, __fpmp2_sub, __fpmp2_mul, __fpmp2_div : Basic arithmetic operations
+        * __fpmp2_acc, __fpmp2_low_acc, __fpmp2_high_acc : Optimized single-component accumulate
+        * __fpmp2_low_add, __fpmp2_high_add : Method-specific variants
+        * __fpmp2_fma, __fpmp2_mad : Fused multiply-add and multiply-add operations
+        * __fpmp2_sqrt, __fpmp2_rsqrt : Square root and reciprocal square root
+        * __fpmp2_exp : Exponential function
+        * __fpmp2_from_double, __fpmp2_to_double : Type conversions
+        * __fpmp2_cmp_eq, __fpmp2_cmp_lt, etc. : Comparison operations
+        * __fpmp2_atomicAdd, __fpmp2_atomicSub : Atomic operations (CUDA only, slower than hardware atomics)
         * __shfl_sync, __shfl_xor_sync, __shfl_down_sync, __shfl_up_sync :
           Warp shuffle overloads for fpmp2 pairs (CUDA only, header-only via fpmp_math.h).
     
@@ -391,7 +391,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     // 53 bits do not fit in float's 24), so it is performed via:
     //   1. Split src.hi() into a (float, float) pair: (a_hi, a_lo).
     //   2. Split src.lo() into a (float, float) pair: (b_hi, b_lo).
-    //   3. Sum the two fp32mp2 pairs with __nv_fpmp2_add<float> to obtain a
+    //   3. Sum the two fp32mp2 pairs with __fpmp2_add<float> to obtain a
     //      renormalized fp32mp2 result.
     // This typically preserves ~48 bits of effective precision (the fp32mp2
     // limit), losing only ~5 bits relative to the fp64mp2 input.
@@ -407,9 +407,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API inline _CCCL_FPMP_EXPLICIT fpmp2_t(const fpmp2_t<double, _TypeAcc2>& __src) noexcept
     {
         float __a_hi, __a_lo, __b_hi, __b_lo;
-        __nv_fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
-        __nv_fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
-        __nv_fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
+        __fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+        __fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+        __fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
     }
 
     _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
@@ -417,9 +417,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API inline fpmp2_t& operator=(const fpmp2_t<double, _TypeAcc2>& __src) noexcept
     {
         float __a_hi, __a_lo, __b_hi, __b_lo;
-        __nv_fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
-        __nv_fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
-        __nv_fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
+        __fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+        __fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+        __fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
         return *this;
     }
 
@@ -437,7 +437,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
 
     /*
     // Constructor from double (only for FpType == float)
-    // C++20: compile-time uses simple float casts, runtime delegates to __nv_fpmp2_from_double
+    // C++20: compile-time uses simple float casts, runtime delegates to __fpmp2_from_double
     // C++17: always uses simple float casts (member initializer list, constexpr-safe)
     // When FpType is double, use the regular FpType constructor instead
     */
@@ -450,7 +450,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
             mp2_hi = (_FpType)__d;
             mp2_lo = (_FpType)(__d - (double)(_FpType)__d);
         } else {
-            __nv_fpmp2_from_double(__d, &mp2_hi, &mp2_lo);
+            __fpmp2_from_double(__d, &mp2_hi, &mp2_lo);
         }
     }
 #else
@@ -464,7 +464,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
         // available only for CUDA architectures >= 1000 or when _CCCL_FPMP_FP128_ENABLE is defined
         #if _CCCL_FPMP_FP128_ENABLE == 1
             // Constructor from __fpmp_fp128 (only for FpType == double)
-            // C++20: compile-time uses simple double casts, runtime delegates to __nv_fpmp2_from_quad
+            // C++20: compile-time uses simple double casts, runtime delegates to __fpmp2_from_quad
             // C++17: always uses simple double casts (member initializer list, same as original)
             _CCCL_TEMPLATE(typename _Up = _FpType)
             _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
@@ -475,7 +475,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
                     mp2_hi = (_FpType)__d;
                     mp2_lo = (_FpType)(__d - (__fpmp_fp128)(_FpType)__d);
                 } else {
-                    __nv_fpmp2_from_quad(__d, &mp2_hi, &mp2_lo);
+                    __fpmp2_from_quad(__d, &mp2_hi, &mp2_lo);
                 }
             }
         #else
@@ -485,7 +485,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
         #endif
             // Explicit conversion to __fpmp_fp128
             _CCCL_API inline explicit operator __fpmp_fp128() const noexcept { 
-                return __nv_fpmp2_to_quad(mp2_hi, mp2_lo);
+                return __fpmp2_to_quad(mp2_hi, mp2_lo);
             }
         #endif // _CCCL_FPMP_FP128_ENABLE == 1
 
@@ -499,13 +499,13 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     {
         if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
         {
-            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { __nv_fpmp2_from_int(static_cast<int32_t>(__i), &mp2_hi, &mp2_lo); }
-            else                                          { __nv_fpmp2_from_ll (static_cast<int64_t>(__i), &mp2_hi, &mp2_lo); }
+            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { __fpmp2_from_int(static_cast<int32_t>(__i), &mp2_hi, &mp2_lo); }
+            else                                          { __fpmp2_from_ll (static_cast<int64_t>(__i), &mp2_hi, &mp2_lo); }
         }
         else
         {
-            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { __nv_fpmp2_from_uint(static_cast<uint32_t>(__i), &mp2_hi, &mp2_lo); }
-            else                                           { __nv_fpmp2_from_ull (static_cast<uint64_t>(__i), &mp2_hi, &mp2_lo); }
+            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { __fpmp2_from_uint(static_cast<uint32_t>(__i), &mp2_hi, &mp2_lo); }
+            else                                           { __fpmp2_from_ull (static_cast<uint64_t>(__i), &mp2_hi, &mp2_lo); }
         }
     }
 
@@ -517,13 +517,13 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     // conversions use a direct (hi,lo) copy, and mixed fpmp/scalar operators promote
     // the scalar up to fpmp. It only takes effect when an fpmp value is fed into a
     // double-typed sink.
-    _CCCL_API inline operator double() const noexcept          { return __nv_fpmp2_to_double(mp2_hi, mp2_lo);}
-    _CCCL_API inline operator double() const volatile noexcept { return __nv_fpmp2_to_double(mp2_hi, mp2_lo);}
+    _CCCL_API inline operator double() const noexcept          { return __fpmp2_to_double(mp2_hi, mp2_lo);}
+    _CCCL_API inline operator double() const volatile noexcept { return __fpmp2_to_double(mp2_hi, mp2_lo);}
 
     // Explicit conversions to other types
     // Conversion to float
-    _CCCL_API inline explicit operator float() const noexcept          { return __nv_fpmp2_to_float(mp2_hi, mp2_lo);}
-    _CCCL_API inline explicit operator float() const volatile noexcept { return __nv_fpmp2_to_float(mp2_hi, mp2_lo);}
+    _CCCL_API inline explicit operator float() const noexcept          { return __fpmp2_to_float(mp2_hi, mp2_lo);}
+    _CCCL_API inline explicit operator float() const volatile noexcept { return __fpmp2_to_float(mp2_hi, mp2_lo);}
     
     // Conversion to any standard integer type (int / long / long long + unsigned).
     // Dispatches by width and signedness to the fixed-width builtins; excludes
@@ -534,13 +534,13 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     {
         if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
         {
-            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_int(mp2_hi, mp2_lo)); }
-            else                                          { return static_cast<_Tp>(__nv_fpmp2_to_ll (mp2_hi, mp2_lo)); }
+            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__fpmp2_to_int(mp2_hi, mp2_lo)); }
+            else                                          { return static_cast<_Tp>(__fpmp2_to_ll (mp2_hi, mp2_lo)); }
         }
         else
         {
-            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_uint(mp2_hi, mp2_lo)); }
-            else                                           { return static_cast<_Tp>(__nv_fpmp2_to_ull (mp2_hi, mp2_lo)); }
+            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__fpmp2_to_uint(mp2_hi, mp2_lo)); }
+            else                                           { return static_cast<_Tp>(__fpmp2_to_ull (mp2_hi, mp2_lo)); }
         }
     }
     _CCCL_TEMPLATE(class _Tp)
@@ -549,13 +549,13 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     {
         if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
         {
-            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_int(mp2_hi, mp2_lo)); }
-            else                                          { return static_cast<_Tp>(__nv_fpmp2_to_ll (mp2_hi, mp2_lo)); }
+            if constexpr (sizeof(_Tp) <= sizeof(int32_t)) { return static_cast<_Tp>(__fpmp2_to_int(mp2_hi, mp2_lo)); }
+            else                                          { return static_cast<_Tp>(__fpmp2_to_ll (mp2_hi, mp2_lo)); }
         }
         else
         {
-            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__nv_fpmp2_to_uint(mp2_hi, mp2_lo)); }
-            else                                           { return static_cast<_Tp>(__nv_fpmp2_to_ull (mp2_hi, mp2_lo)); }
+            if constexpr (sizeof(_Tp) <= sizeof(uint32_t)) { return static_cast<_Tp>(__fpmp2_to_uint(mp2_hi, mp2_lo)); }
+            else                                           { return static_cast<_Tp>(__fpmp2_to_ull (mp2_hi, mp2_lo)); }
         }
     }
     
@@ -563,7 +563,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t renormalize(const fpmp2_t& __x) noexcept 
     { 
         fpmp2_t __res; 
-        __nv_fpmp2_renormalize(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
+        __fpmp2_renormalize(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
         return __res; 
     }
     
@@ -574,9 +574,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t operator+(const fpmp2_t& __x, const fpmp2_t& __y) noexcept 
     { 
         fpmp2_t __res; 
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_add  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_add (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else                                               { __nv_fpmp2_add      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_add  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_add (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __fpmp2_add      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         return __res; 
     }
 
@@ -584,9 +584,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t operator-(const fpmp2_t& __x, const fpmp2_t& __y) noexcept 
     { 
         fpmp2_t __res;
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_sub  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_sub (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else                                               { __nv_fpmp2_sub      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_sub  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_sub (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __fpmp2_sub      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         return __res; 
     }
 
@@ -594,11 +594,11 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t operator*(const fpmp2_t& __x, const fpmp2_t& __y) noexcept 
     { 
         fpmp2_t __res; 
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_mul  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
         #if _CCCL_FPMP_USE_ACCURATE_MUL == 1
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_mul (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         #endif
-        else                                               { __nv_fpmp2_mul      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        else                                               { __fpmp2_mul      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         return __res; 
     }
 
@@ -606,11 +606,11 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t operator/(const fpmp2_t& __x, const fpmp2_t& __y) noexcept 
     { 
         fpmp2_t __res;
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_div  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
         #if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_div (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         #endif
-        else                                               { __nv_fpmp2_div      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __fpmp2_div      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
         return __res; 
     }
 
@@ -618,7 +618,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t sqrt(const fpmp2_t& __x) noexcept 
     { 
         fpmp2_t __res; 
-        __nv_fpmp2_sqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); 
+        __fpmp2_sqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); 
         return __res; 
     }
 
@@ -626,7 +626,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t rsqrt(const fpmp2_t& __x) noexcept 
     { 
         fpmp2_t __res; 
-        __nv_fpmp2_rsqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
+        __fpmp2_rsqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
         return __res; 
     }
     
@@ -634,9 +634,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t fma(const fpmp2_t& __x, const fpmp2_t& __y, const fpmp2_t& __z) noexcept 
     { 
         fpmp2_t __res; 
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_fma (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_fma(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else                                               { __nv_fpmp2_fma     (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_fma (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_fma(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __fpmp2_fma     (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
         return __res; 
     }
 
@@ -644,27 +644,27 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API friend inline fpmp2_t mad(const fpmp2_t& __x, const fpmp2_t& __y, const fpmp2_t& __z) noexcept 
     { 
         fpmp2_t __res; 
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mad  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mad (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        else                                               { __nv_fpmp2_mad      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_mad  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_mad (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
+        else                                               { __fpmp2_mad      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, __z.mp2_hi, __z.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         return __res; 
     }
 
     /*
     // Optimized compound assignment for single-component operands (accumulate)
-    // Uses specialized __nv_fpmp2_acc functions which are more efficient than
+    // Uses specialized __fpmp2_acc functions which are more efficient than
     // full mp2+mp2 addition (saves ~6 operations by avoiding low-part 2Sum).
     */
     _CCCL_API inline fpmp2_t& operator+=(const _FpType __c) noexcept { 
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_acc  (__c, &mp2_hi, &mp2_lo); }
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_acc (__c, &mp2_hi, &mp2_lo); }
-        else                                               { __nv_fpmp2_acc      (__c, &mp2_hi, &mp2_lo); }
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_acc  (__c, &mp2_hi, &mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_acc (__c, &mp2_hi, &mp2_lo); }
+        else                                               { __fpmp2_acc      (__c, &mp2_hi, &mp2_lo); }
         return *this; 
     }
     _CCCL_API inline fpmp2_t& operator-=(const _FpType __c) noexcept { 
-        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_acc  (-__c, &mp2_hi, &mp2_lo); }
-        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_acc (-__c, &mp2_hi, &mp2_lo); }
-        else                                               { __nv_fpmp2_acc      (-__c, &mp2_hi, &mp2_lo); }
+        if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __fpmp2_low_acc  (-__c, &mp2_hi, &mp2_lo); }
+        else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __fpmp2_high_acc (-__c, &mp2_hi, &mp2_lo); }
+        else                                               { __fpmp2_acc      (-__c, &mp2_hi, &mp2_lo); }
         return *this; 
     }
 
@@ -672,7 +672,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_API inline fpmp2_t  operator-() const noexcept 
     { 
         fpmp2_t __res;
-        __nv_fpmp2_neg(mp2_hi, mp2_lo, &__res.mp2_hi, &__res.mp2_lo); 
+        __fpmp2_neg(mp2_hi, mp2_lo, &__res.mp2_hi, &__res.mp2_lo); 
         return __res; 
     }
 
@@ -681,22 +681,22 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     */ 
     // equality (==)
     _CCCL_API friend inline bool operator==(const fpmp2_t& __x, const fpmp2_t& __y) noexcept { 
-        return __nv_fpmp2_cmp_eq(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
+        return __fpmp2_cmp_eq(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // inequality (!=)
     _CCCL_API friend inline bool operator!=(const fpmp2_t& __x, const fpmp2_t& __y) noexcept { 
-        return __nv_fpmp2_cmp_ne(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
+        return __fpmp2_cmp_ne(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // less than (<)
     _CCCL_API friend inline bool operator<(const fpmp2_t& __x, const fpmp2_t& __y) noexcept { 
-        return __nv_fpmp2_cmp_lt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
+        return __fpmp2_cmp_lt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // greater than (>)
     _CCCL_API friend inline bool operator>(const fpmp2_t& __x, const fpmp2_t& __y) noexcept { 
-        return __nv_fpmp2_cmp_gt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
+        return __fpmp2_cmp_gt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // less than or equal to (<=)
     _CCCL_API friend inline bool operator<=(const fpmp2_t& __x, const fpmp2_t& __y) noexcept { 
-        return __nv_fpmp2_cmp_le(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
+        return __fpmp2_cmp_le(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
     // greater than or equal to (>=)
     _CCCL_API friend inline bool operator>=(const fpmp2_t& __x, const fpmp2_t& __y) noexcept { 
-        return __nv_fpmp2_cmp_ge(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
+        return __fpmp2_cmp_ge(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo); }
 
     /*
     // C++20-style bit_cast for unpacked floating-point types
@@ -705,7 +705,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     template<typename _To> 
     _CCCL_API friend inline _To bit_cast(const fpmp2_t& __from) noexcept 
     { 
-        return static_cast<_To>(__nv_fpmp2_bit_cast(__from.mp2_hi, __from.mp2_lo)); 
+        return static_cast<_To>(__fpmp2_bit_cast(__from.mp2_hi, __from.mp2_lo)); 
     }
 
     // Prefix increment/decrement
@@ -841,9 +841,9 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> add (const fpmp2_t<_FpType, _TypeAcc
                                                  const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept 
 {
     _FpType __rhi, __rlo;
-    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_add  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
-    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_add (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
-    else                                             { __nv_fpmp2_add      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __fpmp2_low_add  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __fpmp2_high_add (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else                                             { __fpmp2_add      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
     return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
@@ -860,9 +860,9 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> sub (const fpmp2_t<_FpType, _TypeAcc
                                                  const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept 
 {
     _FpType __rhi, __rlo;
-    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_sub  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
-    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_sub (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
-    else                                             { __nv_fpmp2_sub      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __fpmp2_low_sub  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __fpmp2_high_sub (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else                                             { __fpmp2_sub      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
     return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
@@ -879,11 +879,11 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> mul (const fpmp2_t<_FpType, _TypeAcc
                                                  const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept 
 {
     _FpType __rhi, __rlo;
-    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __fpmp2_low_mul  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #if _CCCL_FPMP_USE_ACCURATE_MUL == 1
-    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __fpmp2_high_mul (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #endif
-    else                                             { __nv_fpmp2_mul      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else                                             { __fpmp2_mul      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
     return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
@@ -900,11 +900,11 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> div (const fpmp2_t<_FpType, _TypeAcc
                                                  const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept 
 {
     _FpType __rhi, __rlo;
-    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __fpmp2_low_div  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __fpmp2_high_div (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #endif
-    else                                             { __nv_fpmp2_div      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
+    else                                             { __fpmp2_div      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
     return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
@@ -922,9 +922,9 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> fma (const fpmp2_t<_FpType, _TypeAcc
                                                  const fpmp2_t<_FpType, _TypeAcc>& __z) noexcept 
 {
     _FpType __rhi, __rlo;
-    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_fma  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
-    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_fma (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
-    else                                             { __nv_fpmp2_fma      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __fpmp2_low_fma  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __fpmp2_high_fma (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else                                             { __fpmp2_fma      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
     return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 
@@ -943,9 +943,9 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> mad (const fpmp2_t<_FpType, _TypeAcc
                                                  const fpmp2_t<_FpType, _TypeAcc>& __z) noexcept 
 {
     _FpType __rhi, __rlo;
-    if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mad  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
-    else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mad (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
-    else                                             { __nv_fpmp2_mad      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    if constexpr (_Acc == fpmp2_accuracy::low)          { __fpmp2_low_mad  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else if constexpr (_Acc == fpmp2_accuracy::high)    { __fpmp2_high_mad (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
+    else                                             { __fpmp2_mad      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), __z.hi(), __z.lo(), &__rhi, &__rlo); }
     return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
 }
 

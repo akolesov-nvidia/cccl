@@ -29,8 +29,8 @@
  * binary64 representation (fpbits64_t) and the public unpacked ABI
  * (fpbits64_unpacked_t) used by the arithmetic cores:
  *
- *   - impl::__nv_internal_fp64emu_unpack  (packed   -> unpacked)
- *   - impl::__nv_internal_fp64emu_pack    (unpacked -> packed)
+ *   - impl::__internal_fp64emu_unpack  (packed   -> unpacked)
+ *   - impl::__internal_fp64emu_pack    (unpacked -> packed)
  *
  * They are the single, shared prologue/epilogue for every unpacked operation
  * (add / sub / mul / mad / dot / cmul / div / sqrt / cvt / cmp / fma) and every
@@ -73,7 +73,7 @@ namespace impl
  * @return The unpacked representation
  */
 _CCCL_TRIVIAL_API
-fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t __x) noexcept
+fpbits64_unpacked_t __internal_fp64emu_unpack(fpbits64_t __x) noexcept
 {
     fpbits64_unpacked_t __a_unpacked;
     fpemu::__uint32x2_t __a32 = fpemu::bit_cast<fpemu::__uint32x2_t>(__x);
@@ -132,7 +132,7 @@ fpbits64_unpacked_t __nv_internal_fp64emu_unpack(fpbits64_t __x) noexcept
  */
 template<fpemu::rounding _Rm = fpemu::rounding::def>
 _CCCL_TRIVIAL_API
-fpbits64_t __nv_internal_fp64emu_pack(fpbits64_unpacked_t __x) noexcept
+fpbits64_t __internal_fp64emu_pack(fpbits64_unpacked_t __x) noexcept
 {
     const bool    __sign     = __x.sign != 0;
     const bool    __is_inf   = (static_cast<int32_t>(__x.exponent) >= 0x2000);

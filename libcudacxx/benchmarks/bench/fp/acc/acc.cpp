@@ -5,7 +5,7 @@
     Date:    2025
 
     This benchmark compares the performance of the optimized single-component accumulate operation
-    (__nv_fpmp2_acc, operator+=) against using full mp2+mp2 addition when adding a single-precision
+    (__fpmp2_acc, operator+=) against using full mp2+mp2 addition when adding a single-precision
     value to a multi-precision number.
 
     The ACC operation is optimized for the common case of accumulating a single float/double into
@@ -14,14 +14,14 @@
 
     Comparison:
     -------------------------------------------------------------------------
-    - ACC: Uses __nv_fpmp2_acc(c, &acc_hi, &acc_lo) - optimized for single component
-    - ADD: Uses __nv_fpmp2_add(acc_hi, acc_lo, c, 0.0, &res_hi, &res_lo) - treats single value as mp2
+    - ACC: Uses __fpmp2_acc(c, &acc_hi, &acc_lo) - optimized for single component
+    - ADD: Uses __fpmp2_add(acc_hi, acc_lo, c, 0.0, &res_hi, &res_lo) - treats single value as mp2
 
     Test Variants:
     -------------------------------------------------------------------------
-    - ACC_FAST:     __nv_fpmp2_acc_fast (no normalization)
-    - ACC_DEF:      __nv_fpmp2_acc (Dekker-style with normalization)
-    - ACC_ACCURATE: __nv_fpmp2_acc_accurate (FPAN-style, maximum precision)
+    - ACC_FAST:     __fpmp2_acc_fast (no normalization)
+    - ACC_DEF:      __fpmp2_acc (Dekker-style with normalization)
+    - ACC_ACCURATE: __fpmp2_acc_accurate (FPAN-style, maximum precision)
     - ADD_FAST:     Using add_fast with (c, 0.0) as second operand
     - ADD_DEF:      Using add with (c, 0.0) as second operand
     - ADD_ACCURATE: Using add_accurate with (c, 0.0) as second operand
@@ -129,7 +129,7 @@ HOST_DEVICE void update_bits_float(float a, float& r) {
 
 #if USE_CUDA
 
-// ACC Fast: Uses __nv_fpmp2_acc_fast via operator+= on fast type
+// ACC Fast: Uses __fpmp2_acc_fast via operator+= on fast type
 KERNEL void acc_fast_perf(double start_val, unsigned char* result, uint32_t never = 0) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     fp32mp2_low acc = fp32mp2_low(start_val + (double)tid * 0.001);
@@ -138,7 +138,7 @@ KERNEL void acc_fast_perf(double start_val, unsigned char* result, uint32_t neve
     const int u = UNROLL;
     #pragma unroll u
     for (int i = 0; i < REPS; i++) {
-        acc += c;  // Uses __nv_fpmp2_acc_fast
+        acc += c;  // Uses __fpmp2_acc_fast
         update_bits_float(static_cast<float>(acc), c);
     }
     
@@ -150,7 +150,7 @@ KERNEL void acc_fast_perf(double start_val, unsigned char* result, uint32_t neve
     }
 }
 
-// ACC Default: Uses __nv_fpmp2_acc via operator+= on default type
+// ACC Default: Uses __fpmp2_acc via operator+= on default type
 KERNEL void acc_def_perf(double start_val, unsigned char* result, uint32_t never = 0) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     fp32mp2 acc = fp32mp2(start_val + (double)tid * 0.001);
@@ -159,7 +159,7 @@ KERNEL void acc_def_perf(double start_val, unsigned char* result, uint32_t never
     const int u = UNROLL;
     #pragma unroll u
     for (int i = 0; i < REPS; i++) {
-        acc += c;  // Uses __nv_fpmp2_acc
+        acc += c;  // Uses __fpmp2_acc
         update_bits_float(static_cast<float>(acc), c);
     }
     
@@ -171,7 +171,7 @@ KERNEL void acc_def_perf(double start_val, unsigned char* result, uint32_t never
     }
 }
 
-// ACC Accurate: Uses __nv_fpmp2_acc_accurate via operator+= on accurate type
+// ACC Accurate: Uses __fpmp2_acc_accurate via operator+= on accurate type
 KERNEL void acc_accurate_perf(double start_val, unsigned char* result, uint32_t never = 0) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     fp32mp2_high acc = fp32mp2_high(start_val + (double)tid * 0.001);
@@ -180,7 +180,7 @@ KERNEL void acc_accurate_perf(double start_val, unsigned char* result, uint32_t 
     const int u = UNROLL;
     #pragma unroll u
     for (int i = 0; i < REPS; i++) {
-        acc += c;  // Uses __nv_fpmp2_acc_accurate
+        acc += c;  // Uses __fpmp2_acc_accurate
         update_bits_float(static_cast<float>(acc), c);
     }
     

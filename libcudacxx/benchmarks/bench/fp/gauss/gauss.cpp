@@ -284,7 +284,7 @@ static int test_icdf_tails()
     int lo_checks = 0;
     for (int i = 0; i < N; ++i) {
         float hi, lo;
-        __nv_fpmp2_icdf(cases[i].input, &hi, &lo);
+        __fpmp2_icdf(cases[i].input, &hi, &lo);
         double z = (double)hi + (double)lo;
 
         bool finite_ok = isfinite(hi) && isfinite(lo);

@@ -81,48 +81,48 @@ constexpr double epsilon = 1e-4;
  // Version wrriten using fp64emu kernels
 static inline __EXP_TARGET__ fpbits64_t exp_efp_kernel(fpbits64_t x)
  {
-    fpbits64_t ln2_hi  = __nv_fp64emu_from_double(0x1.62e42fefa39efp-1);
-    fpbits64_t ln2_lo  = __nv_fp64emu_from_double(0x1.abc9e3b39803fp-34);
-    fpbits64_t inv_ln2 = __nv_fp64emu_from_double(0x1.71547652b82fep+0);
-    fpbits64_t ovf     = __nv_fp64emu_from_double(709.782712893384);
-    fpbits64_t udf     = __nv_fp64emu_from_double(-745.1332191019411);
-    fpbits64_t scale   = __nv_fp64emu_from_double(0x1.0p-52);
+    fpbits64_t ln2_hi  = __fp64emu_from_double(0x1.62e42fefa39efp-1);
+    fpbits64_t ln2_lo  = __fp64emu_from_double(0x1.abc9e3b39803fp-34);
+    fpbits64_t inv_ln2 = __fp64emu_from_double(0x1.71547652b82fep+0);
+    fpbits64_t ovf     = __fp64emu_from_double(709.782712893384);
+    fpbits64_t udf     = __fp64emu_from_double(-745.1332191019411);
+    fpbits64_t scale   = __fp64emu_from_double(0x1.0p-52);
     fpbits64_t pinf;  pinf  = 0x7ff0000000000000;
     fpbits64_t pzero; pzero = 0x0000000000000000;
 
-    if (__nv_fp64emu_cmp_ne(x, x))   return x;     // NaN
-    if (__nv_fp64emu_cmp_gt(x, ovf)) return pinf;  // Overflow
-    if (__nv_fp64emu_cmp_lt(x, udf)) return pzero; // Underflow
+    if (__fp64emu_cmp_ne(x, x))   return x;     // NaN
+    if (__fp64emu_cmp_gt(x, ovf)) return pinf;  // Overflow
+    if (__fp64emu_cmp_lt(x, udf)) return pzero; // Underflow
 
     uint64_t xsign = x & 0x8000000000000000;
 
-    fpbits64_t r = __nv_fp64emu_from_double(0.5);
+    fpbits64_t r = __fp64emu_from_double(0.5);
     r |= xsign;
 
-    r = __nv_fp64emu_dadd_rn( __nv_fp64emu_dmul_rn(x, inv_ln2), r);
-    int64_t k = __nv_fp64emu_to_int_rz(r);
-    fpbits64_t kf = __nv_fp64emu_from_int(k);
+    r = __fp64emu_dadd_rn( __fp64emu_dmul_rn(x, inv_ln2), r);
+    int64_t k = __fp64emu_to_int_rz(r);
+    fpbits64_t kf = __fp64emu_from_int(k);
 
-    r = __nv_fp64emu_dsub_rn(x, __nv_fp64emu_dmul_rn(kf, ln2_hi));
-    r = __nv_fp64emu_dsub_rn(r, __nv_fp64emu_dmul_rn(kf, ln2_lo));
+    r = __fp64emu_dsub_rn(x, __fp64emu_dmul_rn(kf, ln2_hi));
+    r = __fp64emu_dsub_rn(r, __fp64emu_dmul_rn(kf, ln2_lo));
 
-    fpbits64_t poly = __nv_fp64emu_from_double(0x1.ae64567f544e4p-13);
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1.71de3a556c734p-11));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1.a01a01a01a01ap-9));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1.6c16c16c16c17p-7));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1.999999999999ap-5));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1.5555555555555p-3));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1p-1));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1p+0));
-    poly = __nv_fp64emu_fma_rn(poly, r, __nv_fp64emu_from_double(0x1p+0));
+    fpbits64_t poly = __fp64emu_from_double(0x1.ae64567f544e4p-13);
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1.71de3a556c734p-11));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1.a01a01a01a01ap-9));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1.6c16c16c16c17p-7));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1.999999999999ap-5));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1.5555555555555p-3));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1p-1));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1p+0));
+    poly = __fp64emu_fma_rn(poly, r, __fp64emu_from_double(0x1p+0));
     
     int exponent = k + 1023;
     if (exponent <= 0) {
         if (exponent < -52) return pzero;
         uint64_t uexp = (uint64_t)(exponent + 52) << 52;
         fpbits64_t dexp = bit_cast<fpbits64_t>(uexp);
-        dexp = __nv_fp64emu_dmul_rn(poly, dexp);
-        dexp = __nv_fp64emu_dmul_rn(dexp, scale);
+        dexp = __fp64emu_dmul_rn(poly, dexp);
+        dexp = __fp64emu_dmul_rn(dexp, scale);
         return dexp;
     }
 
@@ -130,7 +130,7 @@ static inline __EXP_TARGET__ fpbits64_t exp_efp_kernel(fpbits64_t x)
 
     uint64_t uexp = (uint64_t)exponent << 52;
     fpbits64_t dexp = bit_cast<fpbits64_t>(uexp);
-    return __nv_fp64emu_dmul_rn(poly, dexp);
+    return __fp64emu_dmul_rn(poly, dexp);
  }
  #endif
 
@@ -194,8 +194,8 @@ __RUN_TARGET__ void run_test (double* inputs,
         results_native[i]  = exp_impl<double> (inputs[i]);
         // Use fp64emu kernels if enabled
         #if defined __KERNELS__
-            results_fp64emu[i]   = __nv_fp64emu_to_double(
-                 exp_efp_kernel(__nv_fp64emu_from_double(inputs[i])));
+            results_fp64emu[i]   = __fp64emu_to_double(
+                 exp_efp_kernel(__fp64emu_from_double(inputs[i])));
         #else
             results_fp64emu[i]   = exp_impl<fp64emu> (inputs[i]);
         #endif

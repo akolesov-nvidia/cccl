@@ -6,7 +6,7 @@
  *
  *
  * Surfaces covered:
- *   1. C builtins      : __nv_fp64emu_dsqrt_{rn,rz,ru,rd}
+ *   1. C builtins      : __fp64emu_dsqrt_{rn,rz,ru,rd}
  *   2. C++ packed       : sqrt((fp64emu)a)                    (rn)
  *   3. C++ unpacked     : sqrt((fp64emu_unpacked)a)           (rn)
  *
@@ -131,12 +131,12 @@ TARGET void kern_ref(const double* x, uint64_t* out, int n)
 TARGET void kern_builtin(const double* x, uint64_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
-        fpbits64_t a = __nv_fp64emu_from_double(x[i]);
+        fpbits64_t a = __fp64emu_from_double(x[i]);
         uint64_t*  o = out + i * NCONV;
-        o[M_RN] = (uint64_t)__nv_fp64emu_dsqrt_rn(a);
-        o[M_RZ] = (uint64_t)__nv_fp64emu_dsqrt_rz(a);
-        o[M_RU] = (uint64_t)__nv_fp64emu_dsqrt_ru(a);
-        o[M_RD] = (uint64_t)__nv_fp64emu_dsqrt_rd(a);
+        o[M_RN] = (uint64_t)__fp64emu_dsqrt_rn(a);
+        o[M_RZ] = (uint64_t)__fp64emu_dsqrt_rz(a);
+        o[M_RU] = (uint64_t)__fp64emu_dsqrt_ru(a);
+        o[M_RD] = (uint64_t)__fp64emu_dsqrt_rd(a);
     }
 }
 
@@ -274,7 +274,7 @@ int main()
 
     int errors = 0;
 
-    printf("\n  --- C builtins (__nv_fp64emu_dsqrt_*) ---\n");
+    printf("\n  --- C builtins (__fp64emu_dsqrt_*) ---\n");
     errors += run_surface("special values", kern_builtin, ALL4, NCONV, sx, NS);
     errors += run_surface("random values",  kern_builtin, ALL4, NCONV, rx, NR);
 

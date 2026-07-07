@@ -245,7 +245,7 @@ __HOST_DEVICE_DECL__ inline RefType ts_convert_test_to_ref(TestType test_val)
     {
         // Manual conversion from multi-precision type to double
         // Avoids using the library's operator double() so that mp2fp tests
-        // can detect bugs in __nv_fpmp2_to_double independently
+        // can detect bugs in __fpmp2_to_double independently
         return static_cast<double>(test_val.hi()) + static_cast<double>(test_val.lo());
     }
     else

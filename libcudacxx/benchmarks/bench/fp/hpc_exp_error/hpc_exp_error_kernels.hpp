@@ -73,7 +73,7 @@ namespace fix::hpc {
 // Bring std::exp into the namespace so unqualified `exp(x)` calls inside
 // the kernels below resolve correctly for every working type:
 //   * float / double : finds std::exp via this using-declaration.
-//   * __nv_fpmp2_t<> : finds the freestanding exp() declared at global
+//   * __fpmp2_t<> : finds the freestanding exp() declared at global
 //                      scope in fpmp_math.h via argument-dependent
 //                      lookup (the type's associated namespace).
 // __float128 is intentionally NOT used through these kernels — the

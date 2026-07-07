@@ -14,8 +14,8 @@
 
       * Downconvert fp64mp2 -> fp32mp2 : _CCCL_FPMP_EXPLICIT (matches the
         existing double -> fp32mp2 narrowing). Splits each double component
-        into a (float, float) pair via __nv_fpmp2_from_double<float>, then
-        renormalizes with __nv_fpmp2_add<float>.
+        into a (float, float) pair via __fpmp2_from_double<float>, then
+        renormalizes with __fpmp2_add<float>.
 
     This unit test verifies the contract:
 

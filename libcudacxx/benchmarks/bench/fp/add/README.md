@@ -1,10 +1,10 @@
 # FP64 Add Emulation — Accuracy & Performance Test
 
-This test validates the correctness and performance of standalone integer-only FP64 addition emulation functions (`__nv_internal_fp64_add_int32`, `__nv_internal_fp64_add_fp64`, `__nv_internal_int32_to_fp64`). Results are compared against native double-precision addition.
+This test validates the correctness and performance of standalone integer-only FP64 addition emulation functions (`__internal_fp64_add_int32`, `__internal_fp64_add_fp64`, `__internal_int32_to_fp64`). Results are compared against native double-precision addition.
 
 ## Overview
 
-The function under test adds an `int32_t` value to a `double` accumulator using **only integer operations** (no floating-point arithmetic). The algorithm is based on `__nv_internal_fp64emu_dadd_def` with HA accuracy (9 extra precision bits).
+The function under test adds an `int32_t` value to a `double` accumulator using **only integer operations** (no floating-point arithmetic). The algorithm is based on `__internal_fp64emu_dadd_def` with HA accuracy (9 extra precision bits).
 
 ### Test Categories
 

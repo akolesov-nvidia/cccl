@@ -8,7 +8,7 @@
  *   - Quiet and signaling NaN (unordered: ==,<,<=,>,>= are false; != is true)
  *
  * Three surfaces are exercised and cross-checked against native `double`:
- *   1. C builtins        : __nv_fp64emu_cmp_{eq,ne,lt,le,gt,ge}
+ *   1. C builtins        : __fp64emu_cmp_{eq,ne,lt,le,gt,ge}
  *   2. C++ packed ops    : fp64emu {==,!=,<,<=,>,>=}
  *   3. C++ unpacked ops  : fp64emu_unpacked {==,!=,<,<=,>,>=}  (when available)
  */
@@ -85,15 +85,15 @@ static uint32_t native_codes(double x, double y)
 TARGET void kern_builtin(const double* x, const double* y, uint32_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
-        fpbits64_t ex = __nv_fp64emu_from_double(x[i]);
-        fpbits64_t ey = __nv_fp64emu_from_double(y[i]);
+        fpbits64_t ex = __fp64emu_from_double(x[i]);
+        fpbits64_t ey = __fp64emu_from_double(y[i]);
         uint32_t c = 0;
-        c |= (uint32_t)__nv_fp64emu_cmp_eq(ex, ey) << OP_EQ;
-        c |= (uint32_t)__nv_fp64emu_cmp_ne(ex, ey) << OP_NE;
-        c |= (uint32_t)__nv_fp64emu_cmp_lt(ex, ey) << OP_LT;
-        c |= (uint32_t)__nv_fp64emu_cmp_le(ex, ey) << OP_LE;
-        c |= (uint32_t)__nv_fp64emu_cmp_gt(ex, ey) << OP_GT;
-        c |= (uint32_t)__nv_fp64emu_cmp_ge(ex, ey) << OP_GE;
+        c |= (uint32_t)__fp64emu_cmp_eq(ex, ey) << OP_EQ;
+        c |= (uint32_t)__fp64emu_cmp_ne(ex, ey) << OP_NE;
+        c |= (uint32_t)__fp64emu_cmp_lt(ex, ey) << OP_LT;
+        c |= (uint32_t)__fp64emu_cmp_le(ex, ey) << OP_LE;
+        c |= (uint32_t)__fp64emu_cmp_gt(ex, ey) << OP_GT;
+        c |= (uint32_t)__fp64emu_cmp_ge(ex, ey) << OP_GE;
         out[i] = c;
     }
 }
@@ -289,7 +289,7 @@ int main()
 
     int errors = 0;
 
-    printf("\n  --- C builtins (__nv_fp64emu_cmp_*) ---\n");
+    printf("\n  --- C builtins (__fp64emu_cmp_*) ---\n");
     errors += run_special_pairs(run_surface, "special pairs", launch_builtin);
     errors += run_random_pairs (run_surface, "random pairs",  launch_builtin, 0xC0FFEE);
 

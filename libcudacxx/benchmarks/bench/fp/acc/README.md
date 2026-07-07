@@ -1,6 +1,6 @@
 # ACC vs ADD Performance Benchmark
 
-This benchmark compares the performance of the optimized single-component accumulate operation (`__nv_fpmp2_acc`, `operator+=`) against using full mp2+mp2 addition when adding a single-precision value to a multi-precision number.
+This benchmark compares the performance of the optimized single-component accumulate operation (`__fpmp2_acc`, `operator+=`) against using full mp2+mp2 addition when adding a single-precision value to a multi-precision number.
 
 ## Overview
 
@@ -29,9 +29,9 @@ w = t_lo + v_lo                         // Absorb error
 
 | Variant | ACC Implementation | ADD Implementation |
 |---------|-------------------|-------------------|
-| FAST | `__nv_fpmp2_acc_fast` (no normalization) | `__nv_fpmp2_add_fast` with (c, 0.0) |
-| DEFAULT | `__nv_fpmp2_acc` (Dekker-style) | `__nv_fpmp2_add` with (c, 0.0) |
-| ACCURATE | `__nv_fpmp2_acc_accurate` (FPAN-style) | `__nv_fpmp2_add_accurate` with (c, 0.0) |
+| FAST | `__fpmp2_acc_fast` (no normalization) | `__fpmp2_add_fast` with (c, 0.0) |
+| DEFAULT | `__fpmp2_acc` (Dekker-style) | `__fpmp2_add` with (c, 0.0) |
+| ACCURATE | `__fpmp2_acc_accurate` (FPAN-style) | `__fpmp2_add_accurate` with (c, 0.0) |
 
 ## Usage
 

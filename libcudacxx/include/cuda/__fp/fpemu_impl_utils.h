@@ -1189,7 +1189,7 @@ namespace fpemu
     } //__round
 
     // NOTE: the representation pack/unpack routines
-    //   impl::__nv_internal_fp64emu_unpack / impl::__nv_internal_fp64emu_pack
+    //   impl::__internal_fp64emu_unpack / impl::__internal_fp64emu_pack
     // live in fpemu_impl_unpack.h so that the common prologue/epilogue shared
     // by every unpacked operation and method lives in a single header.
 } // namespace fpemu
@@ -1216,7 +1216,7 @@ namespace impl
 // ============================================================================
 
 /// @brief High 64 bits of a 64x64 -> 128 unsigned multiply (host/device).
-_CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t __a, 
+_CCCL_TRIVIAL_API uint64_t __internal_fp64emu_mulhi64 (uint64_t __a, 
                                                                 uint64_t __b) noexcept
 {
 #if defined(__CUDA_ARCH__)
@@ -1230,20 +1230,20 @@ _CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_mulhi64 (uint64_t __a,
     uint64_t mid = (ll >> 32) + (uint32_t)lh + (uint32_t)hl;
     return hh + (lh >> 32) + (hl >> 32) + (mid >> 32);
 #endif
-} // __nv_internal_fp64emu_mulhi64
+} // __internal_fp64emu_mulhi64
 
 /// @brief Right shift keeping a sticky bit.
-_CCCL_TRIVIAL_API uint64_t __nv_internal_fp64emu_shr_jam64 (uint64_t __a, 
+_CCCL_TRIVIAL_API uint64_t __internal_fp64emu_shr_jam64 (uint64_t __a, 
                                                                   uint32_t __dist) noexcept
 {
     return (__dist < 63) ? (__a >> __dist) | ((uint64_t)((__a << (-__dist & 63)) != 0)) : (uint64_t)(__a != 0);
-} // __nv_internal_fp64emu_shr_jam64
+} // __internal_fp64emu_shr_jam64
 
 /// @brief Round and pack a result whose 'sig' carries its leading significand
 ///        bit at bit 62 and whose 'exp' is the biased exponent minus one.
 ///        Shared by divide and square root (square root passes sign = false).
 template<fpemu::rounding _Rm>
-_CCCL_TRIVIAL_API fpbits64_t __nv_internal_fp64emu_round_pack (bool     __sign, 
+_CCCL_TRIVIAL_API fpbits64_t __internal_fp64emu_round_pack (bool     __sign, 
                                                                      int32_t  __exp, 
                                                                      uint64_t __sig) noexcept
 {
@@ -1259,7 +1259,7 @@ _CCCL_TRIVIAL_API fpbits64_t __nv_internal_fp64emu_round_pack (bool     __sign,
     {
         if (__exp < 0)
         {
-            __sig        = __nv_internal_fp64emu_shr_jam64(__sig, (uint32_t)(-__exp));
+            __sig        = __internal_fp64emu_shr_jam64(__sig, (uint32_t)(-__exp));
             __exp        = 0;
             __round_bits = (uint32_t)(__sig & 0x3FF);
         }
@@ -1276,10 +1276,10 @@ _CCCL_TRIVIAL_API fpbits64_t __nv_internal_fp64emu_round_pack (bool     __sign,
 
     uint64_t __ui64_z = ((uint64_t)__sign << 63) + ((uint64_t)(uint32_t)__exp << 52) + __sig;
     return (fpbits64_t)__ui64_z;
-} // __nv_internal_fp64emu_round_pack
+} // __internal_fp64emu_round_pack
 
 // NOTE: the fpbits64_unpacked_t pack/unpack routines
-//   impl::__nv_internal_fp64emu_unpack / impl::__nv_internal_fp64emu_pack
+//   impl::__internal_fp64emu_unpack / impl::__internal_fp64emu_pack
 // were moved to fpemu_impl_unpack.h (shared prologue/epilogue for every op).
 
 } // namespace impl

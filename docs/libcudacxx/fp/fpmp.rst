@@ -777,7 +777,7 @@ Range reduction extracts ``x = m·2ᵉ`` with ``m ∈ [1, √2)``. Approximates 
 pow(a, b)
 ^^^^^^^^^
 
-Canonical identity ``pow(a, b) = exp(b · log(|a|))``, with sign fixup for ``a < 0`` and integer ``b``. All three primitives (log, multiply, exp) are dedicated fp32mp2 — no fp64 operations in the main path. Structurally identical to libdevice's ``__nv_pow`` (same special-case order, same IEEE 754-2008 corner cases), but drops libdevice's hi/lo bookkeeping around the exp call: libdevice has to fma-track ``(t_hi, t_lo)`` because its scalar ``__nv_exp`` only takes a single ``double``; our ``__nv_fpmp2_exp`` consumes the full fp32mp2 pair natively, so the correction is implicit and the main path is just three calls.
+Canonical identity ``pow(a, b) = exp(b · log(|a|))``, with sign fixup for ``a < 0`` and integer ``b``. All three primitives (log, multiply, exp) are dedicated fp32mp2 — no fp64 operations in the main path. Structurally identical to libdevice's ``__nv_pow`` (same special-case order, same IEEE 754-2008 corner cases), but drops libdevice's hi/lo bookkeeping around the exp call: libdevice has to fma-track ``(t_hi, t_lo)`` because its scalar ``__nv_exp`` only takes a single ``double``; our ``__fpmp2_exp`` consumes the full fp32mp2 pair natively, so the correction is implicit and the main path is just three calls.
 
 Special cases (priority order):
 
@@ -977,7 +977,7 @@ Arithmetic Operators
    fp32mp2& operator/=(const fp32mp2& other);
 
    // Optimized compound assignment (single-component operand)
-   // Uses __nv_fpmp2_acc which is more efficient than full mp2+mp2 addition
+   // Uses __fpmp2_acc which is more efficient than full mp2+mp2 addition
    // (saves ~6 operations by avoiding low-part 2Sum)
    fp32mp2& operator+=(float c);   // Accumulate single float
    fp32mp2& operator-=(float c);   // Subtract single float

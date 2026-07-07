@@ -54,9 +54,9 @@ TARGET_DEVICE void run_example(double *inp, double *out, double* eout)
     double dz = inp[2];
 
     // Convert double to fpbits64
-    fpbits64_t ex = __nv_fp64emu_from_double(dx);
-    fpbits64_t ey = __nv_fp64emu_from_double(dy);
-    fpbits64_t ez = __nv_fp64emu_from_double(dz);
+    fpbits64_t ex = __fp64emu_from_double(dx);
+    fpbits64_t ey = __fp64emu_from_double(dy);
+    fpbits64_t ez = __fp64emu_from_double(dz);
 
     // Perform native double-precision arithmetic
     out[0] = dx * dy;
@@ -66,11 +66,11 @@ TARGET_DEVICE void run_example(double *inp, double *out, double* eout)
     out[4] = dx * dy + dz;
 
     // Perform fp64emu arithmetic using builtins: high for add/sub, def for others
-    eout[0] = __nv_fp64emu_to_double(__nv_fp64emu_mid_dmul_rn(ex, ey));
-    eout[1] = __nv_fp64emu_to_double(__nv_fp64emu_high_dadd_rn(ex, ey));
-    eout[2] = __nv_fp64emu_to_double(__nv_fp64emu_mid_ddiv_rn(ex, ey));
-    eout[3] = __nv_fp64emu_to_double(__nv_fp64emu_high_dsub_rn(ex, ey));
-    eout[4] = __nv_fp64emu_to_double(__nv_fp64emu_mid_fma_rn(ex, ey, ez));
+    eout[0] = __fp64emu_to_double(__fp64emu_mid_dmul_rn(ex, ey));
+    eout[1] = __fp64emu_to_double(__fp64emu_high_dadd_rn(ex, ey));
+    eout[2] = __fp64emu_to_double(__fp64emu_mid_ddiv_rn(ex, ey));
+    eout[3] = __fp64emu_to_double(__fp64emu_high_dsub_rn(ex, ey));
+    eout[4] = __fp64emu_to_double(__fp64emu_mid_fma_rn(ex, ey, ez));
     return;
 }
 

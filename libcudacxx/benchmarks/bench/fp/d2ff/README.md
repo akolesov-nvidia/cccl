@@ -217,7 +217,7 @@ The optimized conversion wins on two fronts:
   With C++17, the `fpmp2_t(double)` constructor always uses the
   cast-based path regardless of the flag.
 - The fp32mp2 → double direction (`operator double()`) works with any C++
-  standard since it calls `__nv_fpmp2_to_double` directly.
+  standard since it calls `__fpmp2_to_double` directly.
 - On CPU (host), both paths produce similar throughput since x86 CPUs have
   full FP64 support.  The optimization targets GPUs with limited FP64
   throughput (1:64 FP64:FP32 ratio on consumer/workstation GPUs).

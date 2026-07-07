@@ -56,29 +56,29 @@ namespace impl
 
     /// @brief True if the bit pattern encodes a NaN (max exponent, nonzero mantissa).
     _CCCL_TRIVIAL_API
-    bool __nv_internal_fp64emu_is_nan_bits (fpbits64_t __ui) noexcept
+    bool __internal_fp64emu_is_nan_bits (fpbits64_t __ui) noexcept
     {
         return ((~__ui & _CCCL_FPEMU_EXP_64) == 0)
             && ((__ui & _CCCL_FPEMU_MANT_64) != 0);
-    } // __nv_internal_fp64emu_is_nan_bits
+    } // __internal_fp64emu_is_nan_bits
 
     /// @brief IEEE-754 equality. Unordered (NaN) compares false; +0 equals -0.
     _CCCL_TRIVIAL_API 
-    bool __nv_internal_fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept
+    bool __internal_fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept
     {
-        if (__nv_internal_fp64emu_is_nan_bits(__x) || __nv_internal_fp64emu_is_nan_bits(__y))
+        if (__internal_fp64emu_is_nan_bits(__x) || __internal_fp64emu_is_nan_bits(__y))
         {
             return false;
         }
         // Equal bit patterns, or both are zero (+0 / -0 ignore the sign bit).
         return (__x == __y) || (((__x | __y) & __FP64EMU_CMP_ABS_MASK) == 0);
-    } // __nv_internal_fp64emu_cmp_eq
+    } // __internal_fp64emu_cmp_eq
 
     /// @brief IEEE-754 less-than. Unordered (NaN) compares false.
     _CCCL_TRIVIAL_API 
-    bool __nv_internal_fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept
+    bool __internal_fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept
     {
-        if (__nv_internal_fp64emu_is_nan_bits(__x) || __nv_internal_fp64emu_is_nan_bits(__y))
+        if (__internal_fp64emu_is_nan_bits(__x) || __internal_fp64emu_is_nan_bits(__y))
         {
             return false;
         }
@@ -89,13 +89,13 @@ namespace impl
         return (__sign_x != __sign_y)
             ? (__sign_x && (((__x | __y) & __FP64EMU_CMP_ABS_MASK) != 0))
             : ((__x != __y) && (__sign_x ^ (__x < __y)));
-    } // __nv_internal_fp64emu_cmp_lt
+    } // __internal_fp64emu_cmp_lt
 
     /// @brief IEEE-754 less-or-equal. Unordered (NaN) compares false.
     _CCCL_TRIVIAL_API 
-    bool __nv_internal_fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept
+    bool __internal_fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept
     {
-        if (__nv_internal_fp64emu_is_nan_bits(__x) || __nv_internal_fp64emu_is_nan_bits(__y))
+        if (__internal_fp64emu_is_nan_bits(__x) || __internal_fp64emu_is_nan_bits(__y))
         {
             return false;
         }
@@ -104,13 +104,13 @@ namespace impl
         return (__sign_x != __sign_y)
             ? (__sign_x || (((__x | __y) & __FP64EMU_CMP_ABS_MASK) == 0))
             : ((__x == __y) || (__sign_x ^ (__x < __y)));
-    } // __nv_internal_fp64emu_cmp_le
+    } // __internal_fp64emu_cmp_le
 
     // ne is the logical negation of eq, so unordered (NaN) compares true.
-    _CCCL_TRIVIAL_API  bool     __nv_internal_fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept { return !impl::__nv_internal_fp64emu_cmp_eq (__x, __y); }
+    _CCCL_TRIVIAL_API  bool     __internal_fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept { return !impl::__internal_fp64emu_cmp_eq (__x, __y); }
     // gt / ge are lt / le with swapped operands, preserving IEEE unordered=false.
-    _CCCL_TRIVIAL_API  bool     __nv_internal_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept { return  impl::__nv_internal_fp64emu_cmp_lt (__y, __x); }
-    _CCCL_TRIVIAL_API  bool     __nv_internal_fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept { return  impl::__nv_internal_fp64emu_cmp_le (__y, __x); }
+    _CCCL_TRIVIAL_API  bool     __internal_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept { return  impl::__internal_fp64emu_cmp_lt (__y, __x); }
+    _CCCL_TRIVIAL_API  bool     __internal_fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept { return  impl::__internal_fp64emu_cmp_le (__y, __x); }
 
 
         // ---- True unpacked comparisons -------------------------------------
@@ -128,23 +128,23 @@ namespace impl
         static constexpr int32_t __FP64EMU_UNP_NAN_EXP = 0x0007ff00;
 
         _CCCL_TRIVIAL_API
-        bool __nv_internal_fp64emu_unp_is_nan (fpbits64_unpacked_t __u) noexcept
+        bool __internal_fp64emu_unp_is_nan (fpbits64_unpacked_t __u) noexcept
         {
             return static_cast<int32_t>(__u.exponent) == __FP64EMU_UNP_NAN_EXP;
         }
         _CCCL_TRIVIAL_API
-        bool __nv_internal_fp64emu_unp_is_zero (fpbits64_unpacked_t __u) noexcept
+        bool __internal_fp64emu_unp_is_zero (fpbits64_unpacked_t __u) noexcept
         {
             return __u.mantissa == 0;
         }
 
         _CCCL_TRIVIAL_API 
-        bool __nv_internal_fp64emu_cmp_eq_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
+        bool __internal_fp64emu_cmp_eq_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
         {
-            if (__nv_internal_fp64emu_unp_is_nan(__x) || __nv_internal_fp64emu_unp_is_nan(__y))
+            if (__internal_fp64emu_unp_is_nan(__x) || __internal_fp64emu_unp_is_nan(__y))
                 return false;
-            const bool __zx = __nv_internal_fp64emu_unp_is_zero(__x);
-            const bool __zy = __nv_internal_fp64emu_unp_is_zero(__y);
+            const bool __zx = __internal_fp64emu_unp_is_zero(__x);
+            const bool __zy = __internal_fp64emu_unp_is_zero(__y);
             if (__zx || __zy) return __zx && __zy;          // +0 == -0; zero != nonzero
             // Non-zero, non-NaN: equal iff same sign and identical magnitude key.
             return (__x.sign == __y.sign)
@@ -153,12 +153,12 @@ namespace impl
         }
 
         _CCCL_TRIVIAL_API 
-        bool __nv_internal_fp64emu_cmp_lt_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
+        bool __internal_fp64emu_cmp_lt_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
         {
-            if (__nv_internal_fp64emu_unp_is_nan(__x) || __nv_internal_fp64emu_unp_is_nan(__y))
+            if (__internal_fp64emu_unp_is_nan(__x) || __internal_fp64emu_unp_is_nan(__y))
                 return false;
-            const bool __zx = __nv_internal_fp64emu_unp_is_zero(__x);
-            const bool __zy = __nv_internal_fp64emu_unp_is_zero(__y);
+            const bool __zx = __internal_fp64emu_unp_is_zero(__x);
+            const bool __zy = __internal_fp64emu_unp_is_zero(__y);
             if (__zx && __zy) return false;             // +/-0 are equal
             const bool __sx = (__x.sign != 0);
             const bool __sy = (__y.sign != 0);
@@ -174,33 +174,33 @@ namespace impl
                 ((__x.exponent == __y.exponent) && (__x.mantissa < __y.mantissa));
             // Both negative reverses the magnitude order; both positive keeps it.
             return __sx ? (!__mag_x_lt_y &&
-                         !__nv_internal_fp64emu_cmp_eq_unpacked(__x, __y))
+                         !__internal_fp64emu_cmp_eq_unpacked(__x, __y))
                       : __mag_x_lt_y;
         }
 
         _CCCL_TRIVIAL_API 
-        bool __nv_internal_fp64emu_cmp_le_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
+        bool __internal_fp64emu_cmp_le_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
         {
-            return __nv_internal_fp64emu_cmp_lt_unpacked(__x, __y)
-                || __nv_internal_fp64emu_cmp_eq_unpacked(__x, __y);
+            return __internal_fp64emu_cmp_lt_unpacked(__x, __y)
+                || __internal_fp64emu_cmp_eq_unpacked(__x, __y);
         }
 
         _CCCL_TRIVIAL_API 
-        bool __nv_internal_fp64emu_cmp_gt_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
+        bool __internal_fp64emu_cmp_gt_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
         {
-            return __nv_internal_fp64emu_cmp_lt_unpacked(__y, __x);
+            return __internal_fp64emu_cmp_lt_unpacked(__y, __x);
         }
 
         _CCCL_TRIVIAL_API 
-        bool __nv_internal_fp64emu_cmp_ge_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
+        bool __internal_fp64emu_cmp_ge_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
         {
-            return __nv_internal_fp64emu_cmp_le_unpacked(__y, __x);
+            return __internal_fp64emu_cmp_le_unpacked(__y, __x);
         }
 
         _CCCL_TRIVIAL_API 
-        bool __nv_internal_fp64emu_cmp_ne_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
+        bool __internal_fp64emu_cmp_ne_unpacked (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept
         {
-            return !__nv_internal_fp64emu_cmp_eq_unpacked(__x, __y);
+            return !__internal_fp64emu_cmp_eq_unpacked(__x, __y);
         }
  
 } // namespace impl
@@ -213,39 +213,39 @@ namespace impl
 // Packed-via-unpacked (testing): route the packed comparison builtins through the
 // unpacked cores. unpack(x) yields the fully-accurate, order-preserving form the
 // unpacked comparators expect; comparison is rounding-independent, so no pack step.
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_eq_unpacked (impl::__nv_internal_fp64emu_unpack (__x), impl::__nv_internal_fp64emu_unpack (__y)); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_ne_unpacked (impl::__nv_internal_fp64emu_unpack (__x), impl::__nv_internal_fp64emu_unpack (__y)); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_le_unpacked (impl::__nv_internal_fp64emu_unpack (__x), impl::__nv_internal_fp64emu_unpack (__y)); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_lt_unpacked (impl::__nv_internal_fp64emu_unpack (__x), impl::__nv_internal_fp64emu_unpack (__y)); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_ge_unpacked (impl::__nv_internal_fp64emu_unpack (__x), impl::__nv_internal_fp64emu_unpack (__y)); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_gt_unpacked (impl::__nv_internal_fp64emu_unpack (__x), impl::__nv_internal_fp64emu_unpack (__y)); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_eq_unpacked (impl::__internal_fp64emu_unpack (__x), impl::__internal_fp64emu_unpack (__y)); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_ne_unpacked (impl::__internal_fp64emu_unpack (__x), impl::__internal_fp64emu_unpack (__y)); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_le_unpacked (impl::__internal_fp64emu_unpack (__x), impl::__internal_fp64emu_unpack (__y)); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_lt_unpacked (impl::__internal_fp64emu_unpack (__x), impl::__internal_fp64emu_unpack (__y)); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_ge_unpacked (impl::__internal_fp64emu_unpack (__x), impl::__internal_fp64emu_unpack (__y)); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_gt_unpacked (impl::__internal_fp64emu_unpack (__x), impl::__internal_fp64emu_unpack (__y)); }
 #else
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_eq (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_ne (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_le (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_lt (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_ge (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_gt (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_eq (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_ne (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_le (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_lt (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_ge (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept { return impl::__internal_fp64emu_cmp_gt (__x, __y); }
 #endif // _CCCL_FPEMU_PACKED_VIA_UNPACKED
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_eq (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_eq_unpacked (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_ne (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_ne_unpacked (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_le (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_le_unpacked (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_lt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_lt_unpacked (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_ge (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_ge_unpacked (__x, __y); }
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_gt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__nv_internal_fp64emu_cmp_gt_unpacked (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_eq (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__internal_fp64emu_cmp_eq_unpacked (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_ne (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__internal_fp64emu_cmp_ne_unpacked (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_le (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__internal_fp64emu_cmp_le_unpacked (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_lt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__internal_fp64emu_cmp_lt_unpacked (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_ge (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__internal_fp64emu_cmp_ge_unpacked (__x, __y); }
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_gt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept { return impl::__internal_fp64emu_cmp_gt_unpacked (__x, __y); }
 #else
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_eq (fpbits64_t x, fpbits64_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_ne (fpbits64_t x, fpbits64_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_le (fpbits64_t x, fpbits64_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_lt (fpbits64_t x, fpbits64_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_ge (fpbits64_t x, fpbits64_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_cmp_gt (fpbits64_t x, fpbits64_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_eq (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_ne (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_le (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_lt (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_ge (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL  bool __nv_fp64emu_unpacked_cmp_gt (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_eq (fpbits64_t x, fpbits64_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_ne (fpbits64_t x, fpbits64_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_le (fpbits64_t x, fpbits64_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_lt (fpbits64_t x, fpbits64_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_ge (fpbits64_t x, fpbits64_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_cmp_gt (fpbits64_t x, fpbits64_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_eq (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_ne (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_le (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_lt (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_ge (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool __fp64emu_unpacked_cmp_gt (fpbits64_unpacked_t x, fpbits64_unpacked_t y) noexcept ;
 #endif // _CCCL_FPEMU_INLINE
 
 
@@ -272,43 +272,43 @@ namespace cuda::experimental
 
     // Comparison operators
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator==(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_cmp_eq(__x.bits, __y.bits);
+        return __fp64emu_cmp_eq(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator!=(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_cmp_ne(__x.bits, __y.bits);
+        return __fp64emu_cmp_ne(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator<(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_cmp_lt(__x.bits, __y.bits);
+        return __fp64emu_cmp_lt(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator>(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_cmp_gt(__x.bits, __y.bits);
+        return __fp64emu_cmp_gt(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator<=(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_cmp_le(__x.bits, __y.bits);
+        return __fp64emu_cmp_le(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator>=(const fp64emu_t<_Acc>& __x, const fp64emu_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_cmp_ge(__x.bits, __y.bits);
+        return __fp64emu_cmp_ge(__x.bits, __y.bits);
     }
 
 
     // Unpacked comparison operators
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator==(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_unpacked_cmp_eq(__x.bits, __y.bits);
+        return __fp64emu_unpacked_cmp_eq(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator!=(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_unpacked_cmp_ne(__x.bits, __y.bits);
+        return __fp64emu_unpacked_cmp_ne(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator<(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_unpacked_cmp_lt(__x.bits, __y.bits);
+        return __fp64emu_unpacked_cmp_lt(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator>(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_unpacked_cmp_gt(__x.bits, __y.bits);
+        return __fp64emu_unpacked_cmp_gt(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator<=(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_unpacked_cmp_le(__x.bits, __y.bits);
+        return __fp64emu_unpacked_cmp_le(__x.bits, __y.bits);
     }
     template<fp64emu_accuracy _Acc>  _CCCL_API static inline bool operator>=(const fp64emu_unpacked_t<_Acc>& __x, const fp64emu_unpacked_t<_Acc>& __y) noexcept {
-        return __nv_fp64emu_unpacked_cmp_ge(__x.bits, __y.bits);
+        return __fp64emu_unpacked_cmp_ge(__x.bits, __y.bits);
     }
 
 

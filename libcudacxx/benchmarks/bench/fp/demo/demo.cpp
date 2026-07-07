@@ -462,7 +462,7 @@ KERNEL void ff_acc_perf(double start_val, unsigned char* result, uint32_t never 
     const int u = UNROLL;
     #pragma unroll u
     for (int i = 0; i < REPS; i++) {
-        acc += c;  // Uses optimized __nv_fpmp2_acc via operator+=
+        acc += c;  // Uses optimized __fpmp2_acc via operator+=
         update_bits_ff(acc, acc);
     }
     
@@ -911,7 +911,7 @@ KERNEL void ff_acc_accuracy(const fptype_t* a, const float* b, fptype_t* result,
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < n) {
         fptype_t acc = a[idx];
-        acc += b[idx];  // Uses optimized __nv_fpmp2_acc via operator+=
+        acc += b[idx];  // Uses optimized __fpmp2_acc via operator+=
         result[idx] = acc;
     }
 }
