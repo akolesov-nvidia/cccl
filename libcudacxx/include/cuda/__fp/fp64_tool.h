@@ -22,11 +22,9 @@
 #endif // no system header
 
 #include <cuda/std/__bit/bit_cast.h>
+#include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
-// Pulling in cuda::std::bit_cast above surfaces the cuda::std namespace; make the
-// type-trait set complete so this header's unqualified std:: traits keep
-// resolving (to cuda::std equivalents).
-#include <cuda/std/type_traits>
 
 /**
  * @file fp64_tool.h
@@ -153,7 +151,7 @@
 
 #include <cuda/std/cstdint>
 #include <cuda/std/cmath>
-#include <cuda/std/type_traits>
+#include <cuda/std/__type_traits/is_arithmetic.h>
 
 #if defined(__CUDACC__) && !defined(__CUDA_ARCH__)
     // Include CUDA runtime for host-side functions like cudaMemcpyToSymbol

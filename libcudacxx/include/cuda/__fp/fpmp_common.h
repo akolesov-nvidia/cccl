@@ -22,12 +22,14 @@
 #endif // no system header
 
 #include <cuda/std/__bit/bit_cast.h>
+#include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__type_traits/conditional.h>
+#include <cuda/std/__type_traits/integral_constant.h>
+#include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
-// Pulling in cuda::std::bit_cast above surfaces the cuda::std namespace; make the
-// type-trait and <cmath> sets complete so the library's unqualified std:: names
-// inside namespace cuda::experimental keep resolving (to cuda::std equivalents).
+#include <cuda/std/__type_traits/is_same.h>
+#include <cuda/std/__type_traits/is_trivially_copyable.h>
 #include <cuda/std/cmath>
-#include <cuda/std/type_traits>
 
 /*
     fpmp_common.h - Common Definitions and Internal Utilities for Multi-Precision Floating-Point Library

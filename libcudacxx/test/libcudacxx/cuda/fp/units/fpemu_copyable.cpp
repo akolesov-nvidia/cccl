@@ -12,6 +12,9 @@
 
 #include <cuda/fpemu>
 
+#include <cstdio>
+#include <type_traits>
+
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 int main()

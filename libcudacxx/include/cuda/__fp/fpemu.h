@@ -57,9 +57,11 @@
  * can utilize different computational backends based on template parameters.
  */
  
+#include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/cstdint>
-#include <cuda/std/type_traits>
+#include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
+#include <cuda/std/__type_traits/is_same.h>
 #include <cuda/__fp/fpemu_common.h>
 
 #include <cuda/std/__cccl/prologue.h>
