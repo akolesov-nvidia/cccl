@@ -40,7 +40,7 @@
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if defined(__CUDACC__) && (FPMP_FP64MP2_ENABLE == 1)
+#if defined(__CUDACC__)
 
 #include <cuda_runtime.h>
 

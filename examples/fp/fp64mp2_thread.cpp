@@ -36,17 +36,7 @@
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if FPMP_FP64MP2_ENABLE != 1
-
-int main()
-{
-    fprintf(stderr,
-            "Example skipped: fp64mp2_thread requires FPMP_FP64MP2_ENABLE=1\n"
-            "Rebuild with -DFPMP_FP64MP2_ENABLE=1 to enable fp64mp2 support.\n");
-    return 0;
-}
-
-#elif !defined(__CUDACC__)
+#if !defined(__CUDACC__)
 
 int main()
 {
@@ -181,4 +171,4 @@ int main()
     return 0;
 }
 
-#endif // FPMP_FP64MP2_ENABLE + __CUDACC__
+#endif // 1 + __CUDACC__

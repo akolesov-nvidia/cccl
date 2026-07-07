@@ -3,7 +3,7 @@
     ======================================================================================================
 
     This example demonstrates the runtime size functionality of fp64_tool.h.
-    It tests that precision can be changed at runtime using FP64_TOOL_RUNTIME_SIZE.
+    It tests that precision can be changed at runtime using CCCL_FP64_TOOL_RUNTIME_SIZE.
 
     Test Case:
     -------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 
     Configuration:
     -------------------------------------------------------------------------
-    - Requires FP64_TOOL_RUNTIME_SIZE to be defined
+    - Requires CCCL_FP64_TOOL_RUNTIME_SIZE to be defined
     - Initial mantissa bits: 52 (full precision)
     - Test mantissa bits: 23 (float-like precision)
 */
@@ -56,11 +56,11 @@
 #endif
 
 //=============================================================================
-// Runtime size version (with FP64_TOOL_RUNTIME_SIZE)
+// Runtime size version (with CCCL_FP64_TOOL_RUNTIME_SIZE)
 //=============================================================================
-#define FP64_TOOL_RUNTIME_SIZE
-#define FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
-#define FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
+#define CCCL_FP64_TOOL_RUNTIME_SIZE
+#define CCCL_FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
+#define CCCL_FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
 #include <cuda/fptool>
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)

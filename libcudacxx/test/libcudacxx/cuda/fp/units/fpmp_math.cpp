@@ -705,9 +705,7 @@ int main() {
 
     run_tests<fp32mp2>("fp32mp2", 1e-5);
 
-#if FPMP_FP64MP2_ENABLE == 1
     run_tests<fp64mp2>("fp64mp2", 1e-12);
-#endif
 
     printf("\n  ===========================================================\n");
     printf("  Total: %d passed, %d failed\n\n", g_pass, g_fail);

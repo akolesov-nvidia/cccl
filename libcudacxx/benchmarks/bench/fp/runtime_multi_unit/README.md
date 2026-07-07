@@ -1,7 +1,7 @@
 Runtime Multi-Unit Test
 =======================
 
-This benchmark verifies that `fp64_tool.h` with `FP64_TOOL_RUNTIME_SIZE` can be safely included in **multiple compilation units** within a single binary without causing linker errors, symbol conflicts, or overdefinition issues.
+This benchmark verifies that `fp64_tool.h` with `CCCL_FP64_TOOL_RUNTIME_SIZE` can be safely included in **multiple compilation units** within a single binary without causing linker errors, symbol conflicts, or overdefinition issues.
 
 Overview
 --------

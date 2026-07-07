@@ -7,8 +7,8 @@
     Compares throughput of the standard (FP64-based) and optimized
     (integer-only) conversion paths in both directions:
 
-      1. double -> fp32mp2  (FPMP_OPTIMIZED_DOUBLE_TO_FPMP)
-      2. fp32mp2 -> double  (FPMP_OPTIMIZED_FPMP_TO_DOUBLE)
+      1. double -> fp32mp2  (CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP)
+      2. fp32mp2 -> double  (CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE)
 
     Standard paths use FP64 arithmetic (F2D, D2F, DADD, DSUB),
     bottlenecked on GPUs with limited FP64 throughput (1:64 ratio).

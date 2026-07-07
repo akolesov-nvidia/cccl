@@ -87,10 +87,8 @@ namespace cuda::experimental
     // (host/device accessible)
     _CCCL_GLOBAL_CONSTANT fpbits64_construct_t fpbits64_construct{};
 
-#if __FPEMU_UNPACKED__ == 1
     // Forward declaration of unpacked floating-point class
     template <fp64emu_accuracy _Met> class fp64emu_unpacked_t;
-#endif
 
     /**
     * @brief Primary emulated double-precision floating-point class template
@@ -195,10 +193,8 @@ namespace cuda::experimental
         }
         // Type conversion to fp64emu_t with other accuracy and range
         template<fp64emu_accuracy _Acc = _Met> _CCCL_API inline operator fp64emu_t<_Acc>() const noexcept ;
-#if __FPEMU_UNPACKED__ == 1
         // Type conversion from fp64emu_t to fp64emu_unpacked_t (explicit to avoid overload ambiguity)
         template<fp64emu_accuracy _Acc = _Met> _CCCL_API explicit inline operator fp64emu_unpacked_t<_Acc>() const noexcept ;
-#endif
 
         // ==== Conversion from fp64emu_t to other types:
         // Implicit conversion to double
@@ -477,7 +473,6 @@ namespace cuda::experimental
             operator>=(const _T1& __x, const _T2& __y) noexcept { return fp64emu_t(__x) >= fp64emu_t(__y); }
     }; // class fp64emu_t 
 
-#if __FPEMU_UNPACKED__ == 1
 
     template <fp64emu_accuracy _Met = fp64emu_accuracy::def> 
     class fp64emu_unpacked_t 
@@ -552,12 +547,12 @@ namespace cuda::experimental
         // Implicit conversions from floating-point types 
         _CCCL_API  inline fp64emu_unpacked_t(float f) noexcept ;
         _CCCL_API  inline fp64emu_unpacked_t(double d) noexcept ;        
-#  define __FPEMU_UNP_NARROW_EXPLICIT__
+#  define _CCCL_FPEMU_UNP_NARROW_EXPLICIT
 #else
         // Explicit conversions from floating-point types (to avoid ambiguity with packed type)
         _CCCL_API explicit inline fp64emu_unpacked_t(float __f) noexcept ;
         _CCCL_API explicit inline fp64emu_unpacked_t(double __d) noexcept ;        
-#  define __FPEMU_UNP_NARROW_EXPLICIT__ explicit
+#  define _CCCL_FPEMU_UNP_NARROW_EXPLICIT explicit
 #endif
         // Construction from any standard integer type (int / long / long long + unsigned).
         // 32-bit and narrower are lossless in double; 64-bit values may lose precision. The
@@ -567,7 +562,7 @@ namespace cuda::experimental
         // private out-of-line helpers below); bool / character types are excluded.
         _CCCL_TEMPLATE(class _Tp)
         _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
-        _CCCL_API __FPEMU_UNP_NARROW_EXPLICIT__ inline fp64emu_unpacked_t(_Tp __i) noexcept
+        _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT inline fp64emu_unpacked_t(_Tp __i) noexcept
         {
             if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>) { __set_from_int (static_cast<int32_t>(__i)); }
             else                                                        { __set_from_uint(static_cast<uint32_t>(__i)); }
@@ -579,7 +574,7 @@ namespace cuda::experimental
             if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>) { __set_from_ll (static_cast<int64_t>(__i)); }
             else                                                        { __set_from_ull(static_cast<uint64_t>(__i)); }
         }
-#undef __FPEMU_UNP_NARROW_EXPLICIT__
+#undef _CCCL_FPEMU_UNP_NARROW_EXPLICIT
         // Type conversion to fp64emu_unpacked_t with other accuracy and range
         template<fp64emu_accuracy _Acc = _Met> _CCCL_API inline operator fp64emu_unpacked_t<_Acc>() const noexcept ;
         // Type conversion from fp64emu_unpacked_t to fp64emu_t (explicit to avoid overload ambiguity)
@@ -779,27 +774,25 @@ namespace cuda::experimental
         _CCCL_API friend inline _To bit_cast(const fp64emu_unpacked_t<_Acc>& __from) noexcept ;
 
     }; // class fp64emu_unpacked_t 
-#endif // __FPEMU_UNPACKED__ == 1
 
     /*
     // Aliases for the emulated floating-point types
     */
-    using fp64emu      = fp64emu_t<fp64emu_accuracy::def>;
-    using fp64emu_low  = fp64emu_t<fp64emu_accuracy::low>;
-    using fp64emu_mid  = fp64emu_t<fp64emu_accuracy::mid>;
-    using fp64emu_high = fp64emu_t<fp64emu_accuracy::high>;
-#if __FPEMU_UNPACKED__ == 1
+    using fp64emu               = fp64emu_t<fp64emu_accuracy::def>;
+    using fp64emu_low           = fp64emu_t<fp64emu_accuracy::low>;
+    using fp64emu_mid           = fp64emu_t<fp64emu_accuracy::mid>;
+    using fp64emu_high          = fp64emu_t<fp64emu_accuracy::high>;
+
     using fp64emu_unpacked      = fp64emu_unpacked_t<fp64emu_accuracy::def>;
     using fp64emu_unpacked_low  = fp64emu_unpacked_t<fp64emu_accuracy::low>;
     using fp64emu_unpacked_mid  = fp64emu_unpacked_t<fp64emu_accuracy::mid>;
     using fp64emu_unpacked_high = fp64emu_unpacked_t<fp64emu_accuracy::high>;
-#endif
 
 // Define this macro so that the API sections in _impl.hpp files are activated.
 // The _impl.hpp files are structured with implementation code under their own
 // include guard, and API code (operators, class methods) under this guard.
 // This ensures API code is only compiled after class definitions are complete.
-#define __FPEMU_API_CLASSES_DEFINED__
+#define _CCCL_FPEMU_API_CLASSES_DEFINED
 
 } // namespace cuda::experimental
 

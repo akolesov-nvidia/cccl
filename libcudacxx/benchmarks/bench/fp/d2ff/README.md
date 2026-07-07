@@ -4,14 +4,14 @@ Measures the throughput of conversions between `double` and `fp32mp2`
 (float-float) in both directions, comparing standard (FP64-based) and
 optimized (integer-only) conversion paths:
 
-### double → fp32mp2 (`FPMP_OPTIMIZED_DOUBLE_TO_FPMP`)
+### double → fp32mp2 (`CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`)
 
 | Path | Implementation | FP64 ops |
 |------|----------------|----------|
 | Standard (`=0`, default) | `hi = (float)x; lo = (float)(x - (double)hi)` | 2 (cast + subtract) |
 | Optimized (`=1`) | Integer bit manipulation (bit_cast, shifts, masks, `__clz`) | 0 |
 
-### fp32mp2 → double (`FPMP_OPTIMIZED_FPMP_TO_DOUBLE`)
+### fp32mp2 → double (`CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE`)
 
 | Path | Implementation | FP64 ops |
 |------|----------------|----------|
@@ -93,11 +93,11 @@ make info DEPTH=64
 | File | Description |
 |------|-------------|
 | `d2ff.cpp` | Host driver: runs all four variants, prints comparison tables |
-| `d2ff_std.cpp` | Standard d2ff TU (`FPMP_OPTIMIZED_DOUBLE_TO_FPMP=0`) |
-| `d2ff_opt.cpp` | Optimized d2ff TU (`FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1`) |
+| `d2ff_std.cpp` | Standard d2ff TU (`CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=0`) |
+| `d2ff_opt.cpp` | Optimized d2ff TU (`CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1`) |
 | `d2ff_kernel.hpp` | d2ff kernel + wrapper, parameterized by macros |
-| `ff2d_std.cpp` | Standard ff2d TU (`FPMP_OPTIMIZED_FPMP_TO_DOUBLE=0`) |
-| `ff2d_opt.cpp` | Optimized ff2d TU (`FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1`) |
+| `ff2d_std.cpp` | Standard ff2d TU (`CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=0`) |
+| `ff2d_opt.cpp` | Optimized ff2d TU (`CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1`) |
 | `ff2d_kernel.hpp` | ff2d kernel + wrapper, parameterized by macros |
 | `d2ff_common.hpp` | Shared result struct, parameter defaults, extern declarations |
 | `Makefile` | Build system |
@@ -213,7 +213,7 @@ The optimized conversion wins on two fronts:
 ## Notes
 
 - Requires C++20 (`-std=c++20`) for the double → fp32mp2 direction to
-  enable the constructor path that respects `FPMP_OPTIMIZED_DOUBLE_TO_FPMP`.
+  enable the constructor path that respects `CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`.
   With C++17, the `fpmp2_t(double)` constructor always uses the
   cast-based path regardless of the flag.
 - The fp32mp2 → double direction (`operator double()`) works with any C++

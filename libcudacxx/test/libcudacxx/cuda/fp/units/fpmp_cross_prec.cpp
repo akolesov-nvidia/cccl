@@ -12,7 +12,7 @@
         the input's (hi, lo) exponent gap exceeds 53 bits — i.e. when the
         value is not representable as a single double, like (1.0f, 2^-100f).
 
-      * Downconvert fp64mp2 -> fp32mp2 : __FPMP_EXPLICIT__ (matches the
+      * Downconvert fp64mp2 -> fp32mp2 : _CCCL_FPMP_EXPLICIT (matches the
         existing double -> fp32mp2 narrowing). Splits each double component
         into a (float, float) pair via __nv_fpmp2_from_double<float>, then
         renormalizes with __nv_fpmp2_add<float>.
@@ -21,8 +21,8 @@
 
       1. The convertibility / assignability matrix (compile-time):
            - Upconvert is implicit (lossless widening, like float -> double).
-           - Downconvert honors __FPMP_EXPLICIT__: implicit under
-             FPMP_EXPLICIT_CASTS=0 (default), explicit under =1.
+           - Downconvert honors _CCCL_FPMP_EXPLICIT: implicit under
+             CCCL_FPMP_EXPLICIT_CASTS=0 (default), explicit under =1.
            - All source accuracy tags (def / low / high) work on both sides
              and the destination accuracy tag is preserved.
 
@@ -71,7 +71,6 @@ using namespace fpmp;
 /* =====================================================================
  * Compile-time contract
  * ===================================================================== */
-#if FPMP_FP64MP2_ENABLE == 1
 
 /* --- Upconvert (fp32mp2 -> fp64mp2): implicit, lossless ----------------- */
 static_assert(std::is_constructible<fp64mp2,          fp32mp2>         ::value, "");
@@ -102,10 +101,10 @@ static_assert(std::is_constructible<fp32mp2,          fp64mp2_high>::value, "");
 static_assert(std::is_constructible<fp32mp2_low,     fp64mp2>         ::value, "");
 static_assert(std::is_constructible<fp32mp2_high, fp64mp2>         ::value, "");
 
-/* Convertibility (implicit conversion) depends on FPMP_EXPLICIT_CASTS.
- * The new converting constructor uses __FPMP_EXPLICIT__ which mirrors the
+/* Convertibility (implicit conversion) depends on CCCL_FPMP_EXPLICIT_CASTS.
+ * The new converting constructor uses _CCCL_FPMP_EXPLICIT which mirrors the
  * existing (double -> fp32mp2) narrowing-constructor convention. */
-#if FPMP_EXPLICIT_CASTS == 1
+#if CCCL_FPMP_EXPLICIT_CASTS == 1
     static_assert(!std::is_convertible<fp64mp2, fp32mp2>::value,
                   "downconvert must NOT be implicit under EXPLICIT_CASTS=1");
 #else
@@ -122,7 +121,6 @@ static_assert(std::is_assignable<fp32mp2_high&, fp64mp2_low>    ::value, "");
 static_assert(std::is_same<decltype(fp32mp2_high(std::declval<fp64mp2_low>())),
                            fp32mp2_high>::value, "");
 
-#endif // FPMP_FP64MP2_ENABLE == 1
 
 /* =====================================================================
  * Runtime: shared counters + helpers
@@ -347,7 +345,6 @@ int main()
     printf("\n  fpmp_cross_prec: fp32mp2 <-> fp64mp2 cross-precision conversion\n");
     printf("  ==================================================================\n");
 
-#if FPMP_FP64MP2_ENABLE == 1
     constexpr int N_UP   = 8;
     constexpr int N_DOWN = 4;
     constexpr int N_RT   = 3;
@@ -470,10 +467,6 @@ int main()
         }
     }
 
-#else
-    printf("  (FPMP_FP64MP2_ENABLE != 1; cross-precision conversion is not built)\n");
-    printf("  Skipping runtime checks; compile-time contracts above were not active.\n");
-#endif // FPMP_FP64MP2_ENABLE == 1
 
     printf("\n  ==================================================================\n");
     printf("  Total: %d passed, %d failed\n\n", g_pass, g_fail);

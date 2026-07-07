@@ -10,7 +10,7 @@
     -------------------------------------------------------------------------
     Unlike fp32mp2 where most math functions are dedicated double-float implementations,
     fp64mp2 math functions delegate to higher-precision fallbacks:
-      - When FPMP_FP128_MATH_FALLBACK = 1 (host x86 with libquadmath, or CUDA arch >= 1000):
+      - When _CCCL_FPMP_FP128_MATH_FALLBACK = 1 (host x86 with libquadmath, or CUDA arch >= 1000):
         most calls go through __float128 (~113-bit) for accurate reference results.
       - Otherwise: fall back to system fp64 math (limited to ~52-bit accuracy).
 
@@ -66,17 +66,6 @@
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if FPMP_FP64MP2_ENABLE != 1
-
-int main()
-{
-    fprintf(stderr,
-            "Example skipped: fp64mp2_math requires FPMP_FP64MP2_ENABLE=1\n"
-            "Rebuild with -DFPMP_FP64MP2_ENABLE=1 to enable fp64mp2 support.\n");
-    return 0;
-}
-
-#else // FPMP_FP64MP2_ENABLE == 1
 
 using fptype_t = fp64mp2;
 
@@ -235,4 +224,3 @@ int main()
     return 0;
 } // main
 
-#endif // FPMP_FP64MP2_ENABLE == 1

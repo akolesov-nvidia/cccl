@@ -32,8 +32,8 @@
 //=============================================================================
 // Step 1: Configure precision BEFORE including the header
 //
-//   FP64_TOOL_MANTISSA_BITS  – number of mantissa bits to keep  (1-52, default 52)
-//   FP64_TOOL_EXPONENT_BITS  – number of exponent bits to keep  (1-11, default 11)
+//   CCCL_FP64_TOOL_MANTISSA_BITS  – number of mantissa bits to keep  (1-52, default 52)
+//   CCCL_FP64_TOOL_EXPONENT_BITS  – number of exponent bits to keep  (1-11, default 11)
 //
 // Common configurations:
 //   FP32  : mantissa=23, exponent=8
@@ -41,8 +41,8 @@
 //   FP16  : mantissa=10, exponent=5
 //   TF32  : mantissa=10, exponent=8
 //=============================================================================
-#define FP64_TOOL_MANTISSA_BITS 23   // Float-like mantissa (23 out of 52)
-#define FP64_TOOL_EXPONENT_BITS  8   // Float-like exponent  (8 out of 11)
+#define CCCL_FP64_TOOL_MANTISSA_BITS 23   // Float-like mantissa (23 out of 52)
+#define CCCL_FP64_TOOL_EXPONENT_BITS  8   // Float-like exponent  (8 out of 11)
 #include <cuda/fptool>
 
 // The FP SDK lives in the cuda::experimental namespace (will be reduced to cuda:: later).
@@ -113,7 +113,7 @@ int main()
     printf("FP64 Precision Tool example\n");
     printf("======================================\n");
     printf("Configuration: mantissa = %d bits, exponent = %d bits\n\n",
-           FP64_TOOL_MANTISSA_BITS, FP64_TOOL_EXPONENT_BITS);
+           CCCL_FP64_TOOL_MANTISSA_BITS, CCCL_FP64_TOOL_EXPONENT_BITS);
 
     printf("  a = 1.123456789012345\n");
     printf("  b = 2.987654321098765\n\n");

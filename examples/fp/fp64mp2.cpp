@@ -60,13 +60,11 @@
 
     Configuration Macros:
     -------------------------------------------------------------------------
-    - FPMP_EXPLICIT_CASTS: When 1 (default), conversions like quad to fp64mp2 require
+    - CCCL_FPMP_EXPLICIT_CASTS: When 1 (default), conversions like quad to fp64mp2 require
       explicit casts for type safety. Set to 0 for easier migration from standard types.
-    - FPMP_FP64MP2_ENABLE: Must be 1 (default) for this example. Set to 0 only when
-      fp64mp2 is not needed, to speed up builds and reduce code size.
-    - FPMP_FP128_ENABLE: Auto-detected from compiler/CUDA. Enables __float128 construction
+    - _CCCL_FPMP_FP128_ENABLE: Auto-detected from compiler/CUDA. Enables __float128 construction
       and conversion for fp64mp2. Set to 0 to disable for older compilers.
-    - FPMP_FP128_MATH_FALLBACK: When 1, transcendental functions (exp, sin, log, etc.)
+    - _CCCL_FPMP_FP128_MATH_FALLBACK: When 1, transcendental functions (exp, sin, log, etc.)
       use quad-precision (__float128) for ~113-bit accuracy. Requires libquadmath linkage,
       slower compilation, larger code. When 0 (default), falls back to double precision—
       faster builds, smaller code, but limited accuracy for math functions.
@@ -81,16 +79,6 @@
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 // Check if fp64mp2 is enabled
-#if FPMP_FP64MP2_ENABLE != 1
-
-int main()
-{
-    fprintf(stderr, "Example skipped: fp64mp2 type requires FPMP_FP64MP2_ENABLE=1\n"
-                    "Rebuild with -DFPMP_FP64MP2_ENABLE=1 to enable fp64mp2 support.\n");
-    return 0;
-}
-
-#else // FPMP_FP64MP2_ENABLE == 1
 
 // Type alias for the multi-precision floating-point types (double-double)
 using fptype_t      = fp64mp2;
@@ -343,4 +331,3 @@ int main()
     return 0;
 } // main
 
-#endif // FPMP_FP64MP2_ENABLE == 1

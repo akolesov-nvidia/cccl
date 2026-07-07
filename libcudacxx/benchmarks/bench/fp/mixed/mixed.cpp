@@ -114,12 +114,8 @@
 #ifndef __FPMP_FP64MP2_ENABLED__
     #define __FPMP_FP64MP2_ENABLED__ 1
 #endif
-#if (FPMP_FP64MP2_ENABLE == 0)
-    #undef  __FPMP_FP64MP2_ENABLED__
-    #define __FPMP_FP64MP2_ENABLED__ 0
-#endif
 
-// Note: FPMP_FP128_ENABLE defaults to 0 if not defined by fpmp library
+// Note: _CCCL_FPMP_FP128_ENABLE defaults to 0 if not defined by fpmp library
 
 
 // Multi-precision + emulated floating-point libraries
@@ -130,7 +126,7 @@
 using namespace cuda::experimental;
 using namespace cuda::experimental::fpmp;
 
-// Note: FPMP_FP128_ENABLE is defined by fpmp library or compiler flags
+// Note: _CCCL_FPMP_FP128_ENABLE is defined by fpmp library or compiler flags
 
 // Macros for host/device compatibility
 #if defined(__CUDACC__)
@@ -217,7 +213,7 @@ using fpemu_fast_t = fp64emu_t<fp64emu_accuracy::low>;
 using fp64mp2_bench_t = fp64mp2;
 #endif
 
-// g) Quad precision - available with FPMP_FP128_ENABLE
+// g) Quad precision - available with _CCCL_FPMP_FP128_ENABLE
 //    Uses __float128 on x86 (libquadmath) or long double on ARM64
 #if __FPMP_FP128_ENABLED__ == 1
     #ifndef MIXED_HAS_LIBQUADMATH

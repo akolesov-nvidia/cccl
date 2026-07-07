@@ -44,7 +44,7 @@
 //=============================================================================
 // Reduced precision version (23 mantissa bits like float)
 //=============================================================================
-#define FP64_TOOL_MANTISSA_BITS 23  // Float-like mantissa
+#define CCCL_FP64_TOOL_MANTISSA_BITS 23  // Float-like mantissa
 #include <cuda/fptool>
 
 // The FP SDK lives in the cuda::experimental namespace (will be reduced to cuda:: later).

@@ -41,14 +41,12 @@ static_assert(std::is_trivially_copyable<fp64emu_low>::value,
 static_assert(std::is_trivially_copyable<fp64emu_high>::value,
               "fp64emu_high must be trivially copyable");
 
-#if __FPEMU_UNPACKED__ == 1
 static_assert(std::is_trivially_copyable<fp64emu_unpacked>::value,
               "fp64emu_unpacked must be trivially copyable");
 static_assert(std::is_trivially_copyable<fp64emu_unpacked_low>::value,
               "fp64emu_unpacked_low must be trivially copyable");
 static_assert(std::is_trivially_copyable<fp64emu_unpacked_high>::value,
               "fp64emu_unpacked_high must be trivially copyable");
-#endif
 
 // ============================================================
 // Host-side volatile tests
@@ -130,7 +128,6 @@ bool test_volatile_host() {
     return all_passed;
 }
 
-#if __FPEMU_UNPACKED__ == 1
 template <typename emu_type>
 bool test_volatile_host_unpacked() {
     const double test_val     = 3.141592653589793;
@@ -207,7 +204,6 @@ bool test_volatile_host_unpacked() {
 
     return all_passed;
 }
-#endif // __FPEMU_UNPACKED__
 
 // ============================================================
 // Device-side volatile tests (CUDA)
@@ -341,7 +337,6 @@ int main() {
     all_passed &= test_volatile_host<fp64emu_low>();
     all_passed &= test_volatile_host<fp64emu_high>();
 
-#if __FPEMU_UNPACKED__ == 1
     // Host tests - unpacked types
     std::cout << "\n" << std::string(60, '=') << std::endl;
     std::cout << "HOST VOLATILE TESTS (unpacked)" << std::endl;
@@ -350,7 +345,6 @@ int main() {
     all_passed &= test_volatile_host_unpacked<fp64emu_unpacked>();
     all_passed &= test_volatile_host_unpacked<fp64emu_unpacked_low>();
     all_passed &= test_volatile_host_unpacked<fp64emu_unpacked_high>();
-#endif
 
 #if defined(__CUDACC__)
     // Device tests - packed types
@@ -362,7 +356,6 @@ int main() {
     all_passed &= test_volatile_device<fp64emu_low>();
     all_passed &= test_volatile_device<fp64emu_high>();
 
-#if __FPEMU_UNPACKED__ == 1
     // Device tests - unpacked types
     std::cout << "\n" << std::string(60, '=') << std::endl;
     std::cout << "DEVICE VOLATILE TESTS (unpacked)" << std::endl;
@@ -371,7 +364,6 @@ int main() {
     all_passed &= test_volatile_device<fp64emu_unpacked>();
     all_passed &= test_volatile_device<fp64emu_unpacked_low>();
     all_passed &= test_volatile_device<fp64emu_unpacked_high>();
-#endif
 #endif // __CUDACC__
 
     std::cout << "\n" << std::string(60, '=') << std::endl;

@@ -239,8 +239,8 @@
     #define MAX(a,b) ((a) > (b) ? (a) : (b))
     #define ABS(a) ((a) < 0) ? -(a) : (a)
 
-    #ifndef FP32_BIAS
-        #define FP32_BIAS     127
+    #ifndef _CCCL_FP32_BIAS
+        #define _CCCL_FP32_BIAS     127
     #endif
     #ifndef FP32_EXP_MIN
         #define FP32_EXP_MIN -126
@@ -248,8 +248,8 @@
     #ifndef FP32_EXP_MAX
         #define FP32_EXP_MAX  127
     #endif
-    #ifndef FP64_BIAS
-        #define FP64_BIAS     1023
+    #ifndef _CCCL_FP64_BIAS
+        #define _CCCL_FP64_BIAS     1023
     #endif
     #ifndef FP64_EXP_MIN
         #define FP64_EXP_MIN -1022

@@ -98,8 +98,8 @@ ifdef ABI
     ABI_DATA    := $(word 1,$(subst $(COMMA), ,$(ABI)))
     ABI_CONTROL := $(word 2,$(subst $(COMMA), ,$(ABI)))
     LINKAGE := static
-    ABI_FLAGS = -D__FPMP_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPMP_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL) \
-                -D__FPEMU_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPEMU_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL)
+    ABI_FLAGS = -D_CCCL_FPMP_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPMP_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL) \
+                -D_CCCL_FPEMU_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL)
 else
     ABI_FLAGS =
 endif
@@ -141,7 +141,7 @@ endif
 ifneq (,$(filter $(LINKAGE), static lto))
     LIB_BASE ?= cufp
     LIB_NAME = $(OUT)/lib/lib$(LIB_BASE)$(TARGET_SUFFIX).a
-    COMPILEFLAGS += -DFPMP_LIB=1 -DFPEMU_LIB=1
+    COMPILEFLAGS += -DCCCL_FPMP_LIB=1 -DCCCL_FPEMU_LIB=1
     ifneq (,$(filter $(LINKAGE), lto))
 	    ifeq (,$(filter $(T) $(TARGET), host))
             COMPILEFLAGS += -dlto
@@ -331,7 +331,7 @@ help:
 	@echo "  make TYPE=\"fpemu_acc fpemu_def fpemu_fast\" run # Benchmark FPEMU types"
 	@echo ""
 	@echo "Prerequisites:"
-	@echo "  When FP128 support is enabled (FPMP_FP128_ENABLE=1),"
+	@echo "  When FP128 support is enabled (_CCCL_FPMP_FP128_ENABLE=1),"
 	@echo "  libquadmath is required for linking (provides expq, sinq, etc.)."
 	@echo "  libquadmath is auto-detected (x86 only). Override with HAS_QUADMATH=1/0."
 	@echo "  Current detection: HOST_ARCH=$(HOST_ARCH), HAS_QUADMATH=$(HAS_QUADMATH)"

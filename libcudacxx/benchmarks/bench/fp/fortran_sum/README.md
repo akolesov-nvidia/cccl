@@ -163,8 +163,8 @@ Parameters
 | `MIN_BATCH_MS_ACC` | 100     | OpenACC `acc` auto-tune target (ms): same meaning as `MIN_BATCH_MS_DEV`, but for the OpenACC path.  Kept shorter because OpenACC has ~1 ms per-`!$acc parallel` overhead. |
 | `MIN_BATCH_MS` | _unset_     | Convenience override: when set on the command line, overrides BOTH `MIN_BATCH_MS_DEV` and `MIN_BATCH_MS_ACC` at once.  Existing scripts that pass `MIN_BATCH_MS=X` continue to work unchanged. |
 | `KERNEL_LAUNCHES` | 0        | GPU launches per timed window; **0 = auto-tune to `MIN_BATCH_MS_{DEV,ACC}`**, >0 = fixed override (applies to both `device` and `acc`) |
-| `FP2MP`       | 0            | build the lib with `FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1` (integer-only conversion) |
-| `MP2FP`       | 0            | build the lib with `FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1` (integer-only conversion) |
+| `FP2MP`       | 0            | build the lib with `CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1` (integer-only conversion) |
+| `MP2FP`       | 0            | build the lib with `CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1` (integer-only conversion) |
 | `HOST_STRICT_FP` | auto      | compiler-specific flags pinning strict FP order      |
 | `V` / `VERBOSE` / `VERB` | 0 | verbosity level (0 = silent, 1 = minimal, 2 = full, 3 = very verbose).  `V=3` also enables nvfortran `-Minfo=accel,inline` diagnostics for the `acc` build (kernel schedule + every cross-procedure inline decision; ~750 lines per build). |
 | `OUT`         | `_out`       | build output directory                               |

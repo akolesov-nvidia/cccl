@@ -86,9 +86,9 @@ endif
 # Packed-via-unpacked test mode: route the packed fpemu builtins through the
 # unpacked cores (the unpacked API always co-exists). Opt-in; default off.
 ifneq (,$(filter y Y yes Yes true True 1,$(PACKED_VIA_UNPACKED)))
-    UNIFIED_FLAGS := -D__FPEMU_PACKED_VIA_UNPACKED__=1
+    UNIFIED_FLAGS := -D_CCCL_FPEMU_PACKED_VIA_UNPACKED=1
 else ifneq (,$(filter n N no No false False 0,$(PACKED_VIA_UNPACKED)))
-    UNIFIED_FLAGS := -D__FPEMU_PACKED_VIA_UNPACKED__=0
+    UNIFIED_FLAGS := -D_CCCL_FPEMU_PACKED_VIA_UNPACKED=0
 else
     UNIFIED_FLAGS :=
 endif

@@ -537,8 +537,8 @@ The two kernels live in `fortran_bs_device.cuf` /
 substitute the type to add an `fp64mp2` row (host reference would
 then naturally upgrade to `fp64mp2` for sub-ULP precision) or a
 `real(real32)` row (single-precision sanity check; expect Avg|RelErr|
-~1e-6).  The Makefile builds the FPMP library with
-`FPMP_FP64MP2_ENABLE=1` already, so no library rebuild is needed.
+~1e-6).  The Makefile builds the FPMP library with `fp64mp2`
+support (always enabled), so no library rebuild is needed.
 
 To match `bs.cpp`'s coverage end-to-end (float, fp32mp2_fast,
 fp32mp2, double, fp64emu, fp64emu_accurate, fp64mp2, fp128), the

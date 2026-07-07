@@ -126,7 +126,7 @@ KERNEL_LAUNCHES ?= 0
 # is enabled too (it costs nothing at compile time and lets users tweak
 # the source to add an fp64mp2 BS row if they want a really accurate
 # device reference).
-LIB_EXTRA_FLAGS := -DFPMP_FP64MP2_ENABLE=1
+LIB_EXTRA_FLAGS :=
 
 # Compiler availability detection (parse-time, run once).
 HAS_NVFORTRAN := $(shell command -v nvfortran 2>/dev/null)

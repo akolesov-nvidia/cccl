@@ -11,7 +11,7 @@ The FP SDK lives in the ``cuda::experimental`` namespace (it will be promoted to
 
 .. code:: cpp
 
-   #define FP64_TOOL_MANTISSA_BITS 23  // Emulate float precision (52 → 23 bits)
+   #define CCCL_FP64_TOOL_MANTISSA_BITS 23  // Emulate float precision (52 → 23 bits)
    #include <cuda/fptool>
 
    using namespace cuda::experimental;
@@ -28,15 +28,15 @@ Define these **before** including ``<cuda/fptool>``:
 ============================== ======= =================================================================================================
 Macro                          Default Description
 ============================== ======= =================================================================================================
-``FP64_TOOL_MANTISSA_BITS``    52      Number of mantissa bits to preserve (1-52)
-``FP64_TOOL_EXPONENT_BITS``    11      Number of exponent bits to preserve (1-11)
+``CCCL_FP64_TOOL_MANTISSA_BITS``    52      Number of mantissa bits to preserve (1-52)
+``CCCL_FP64_TOOL_EXPONENT_BITS``    11      Number of exponent bits to preserve (1-11)
 ``FP64_TOOL_IEEE_ROUNDING``    default Use IEEE 754 round-to-nearest-even
-``FP64_TOOL_ROUND_TO_NEAREST`` -       Simple round-to-nearest (biased)
-``FP64_TOOL_TRUNCATION``       -       Simple truncation (floor toward zero)
-``FP64_TOOL_NO_UNDERFLOW``     -       Preserve underflowing values (no flush to zero)
-``FP64_TOOL_NO_OVERFLOW``      -       Preserve overflowing values (no clamp to INF)
-``FP64_TOOL_DISABLE``          -       Disable precision emulation entirely
-``FP64_TOOL_RUNTIME_SIZE``     -       Enable runtime precision control (see `Runtime Precision Control <#runtime-precision-control>`__)
+``CCCL_FP64_TOOL_ROUND_TO_NEAREST`` -       Simple round-to-nearest (biased)
+``CCCL_FP64_TOOL_TRUNCATION``       -       Simple truncation (floor toward zero)
+``CCCL_FP64_TOOL_NO_UNDERFLOW``     -       Preserve underflowing values (no flush to zero)
+``CCCL_FP64_TOOL_NO_OVERFLOW``      -       Preserve overflowing values (no clamp to INF)
+``CCCL_FP64_TOOL_DISABLE``          -       Disable precision emulation entirely
+``CCCL_FP64_TOOL_RUNTIME_SIZE``     -       Enable runtime precision control (see `Runtime Precision Control <#runtime-precision-control>`__)
 ============================== ======= =================================================================================================
 
 Common Precision Configurations
@@ -46,10 +46,10 @@ Common Precision Configurations
 Format Mantissa Exponent Configuration
 ====== ======== ======== =========================================================
 FP64   52       11       Default (no callbacks)
-FP32   23       8        ``FP64_TOOL_MANTISSA_BITS=23, FP64_TOOL_EXPONENT_BITS=8``
-BF16   7        8        ``FP64_TOOL_MANTISSA_BITS=7, FP64_TOOL_EXPONENT_BITS=8``
-FP16   10       5        ``FP64_TOOL_MANTISSA_BITS=10, FP64_TOOL_EXPONENT_BITS=5``
-TF32   10       8        ``FP64_TOOL_MANTISSA_BITS=10, FP64_TOOL_EXPONENT_BITS=8``
+FP32   23       8        ``CCCL_FP64_TOOL_MANTISSA_BITS=23, CCCL_FP64_TOOL_EXPONENT_BITS=8``
+BF16   7        8        ``CCCL_FP64_TOOL_MANTISSA_BITS=7, CCCL_FP64_TOOL_EXPONENT_BITS=8``
+FP16   10       5        ``CCCL_FP64_TOOL_MANTISSA_BITS=10, CCCL_FP64_TOOL_EXPONENT_BITS=5``
+TF32   10       8        ``CCCL_FP64_TOOL_MANTISSA_BITS=10, CCCL_FP64_TOOL_EXPONENT_BITS=8``
 ====== ======== ======== =========================================================
 
 How It Works
@@ -71,7 +71,7 @@ When exponent bits are reduced (e.g., from 11 to 8 for FP32 emulation), values o
 -  **Overflow**: Values too large for reduced exponent → Infinity (±INF)
 -  **Underflow**: Values too small for reduced exponent → Zero (±0)
 
-The ``FP64_TOOL_NO_OVERFLOW`` and ``FP64_TOOL_NO_UNDERFLOW`` macros change this behavior:
+The ``CCCL_FP64_TOOL_NO_OVERFLOW`` and ``CCCL_FP64_TOOL_NO_UNDERFLOW`` macros change this behavior:
 
 -  When defined, the original FP64 value is preserved instead of clamping
 -  The value still goes through mantissa reduction
@@ -81,9 +81,9 @@ Example: Emulate FP32 mantissa with FP64 dynamic range:
 
 .. code:: cpp
 
-   #define FP64_TOOL_MANTISSA_BITS 23
-   #define FP64_TOOL_NO_OVERFLOW
-   #define FP64_TOOL_NO_UNDERFLOW
+   #define CCCL_FP64_TOOL_MANTISSA_BITS 23
+   #define CCCL_FP64_TOOL_NO_OVERFLOW
+   #define CCCL_FP64_TOOL_NO_UNDERFLOW
    #include <cuda/fptool>
    // Now: 23-bit mantissa precision, but full FP64 exponent range
 
@@ -106,7 +106,7 @@ Simple Round-to-Nearest
 
 .. code:: cpp
 
-   #define FP64_TOOL_ROUND_TO_NEAREST
+   #define CCCL_FP64_TOOL_ROUND_TO_NEAREST
 
 Always rounds 0.5 up (biased).
 
@@ -115,26 +115,26 @@ Truncation
 
 .. code:: cpp
 
-   #define FP64_TOOL_TRUNCATION
+   #define CCCL_FP64_TOOL_TRUNCATION
 
 Simple truncation toward zero (floor for positive, ceiling for negative).
 
 Runtime Precision Control
 -------------------------
 
-By default, mantissa and exponent sizes are fixed at compile time. Defining ``FP64_TOOL_RUNTIME_SIZE`` before including the header enables runtime adjustment of both parameters without recompilation.
+By default, mantissa and exponent sizes are fixed at compile time. Defining ``CCCL_FP64_TOOL_RUNTIME_SIZE`` before including the header enables runtime adjustment of both parameters without recompilation.
 
 Enabling Runtime Mode
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: cpp
 
-   #define FP64_TOOL_RUNTIME_SIZE
-   #define FP64_TOOL_MANTISSA_BITS 52  // Initial mantissa (used until changed)
-   #define FP64_TOOL_EXPONENT_BITS 11  // Initial exponent (used until changed)
+   #define CCCL_FP64_TOOL_RUNTIME_SIZE
+   #define CCCL_FP64_TOOL_MANTISSA_BITS 52  // Initial mantissa (used until changed)
+   #define CCCL_FP64_TOOL_EXPONENT_BITS 11  // Initial exponent (used until changed)
    #include <cuda/fptool>
 
-The ``FP64_TOOL_MANTISSA_BITS`` and ``FP64_TOOL_EXPONENT_BITS`` macros set the *initial* values; they can be changed at any point during execution using the setter functions below.
+The ``CCCL_FP64_TOOL_MANTISSA_BITS`` and ``CCCL_FP64_TOOL_EXPONENT_BITS`` macros set the *initial* values; they can be changed at any point during execution using the setter functions below.
 
 Setter Functions
 ~~~~~~~~~~~~~~~~
@@ -155,9 +155,9 @@ CPU Example
 
 .. code:: cpp
 
-   #define FP64_TOOL_RUNTIME_SIZE
-   #define FP64_TOOL_MANTISSA_BITS 52
-   #define FP64_TOOL_EXPONENT_BITS 11
+   #define CCCL_FP64_TOOL_RUNTIME_SIZE
+   #define CCCL_FP64_TOOL_MANTISSA_BITS 52
+   #define CCCL_FP64_TOOL_EXPONENT_BITS 11
    #include <cuda/fptool>
 
    // Start with full precision
@@ -174,9 +174,9 @@ CUDA Example
 
 .. code:: cpp
 
-   #define FP64_TOOL_RUNTIME_SIZE
-   #define FP64_TOOL_MANTISSA_BITS 52
-   #define FP64_TOOL_EXPONENT_BITS 11
+   #define CCCL_FP64_TOOL_RUNTIME_SIZE
+   #define CCCL_FP64_TOOL_MANTISSA_BITS 52
+   #define CCCL_FP64_TOOL_EXPONENT_BITS 11
    #include <cuda/fptool>
 
    __global__ void kernel(double a, double b, double* result) {

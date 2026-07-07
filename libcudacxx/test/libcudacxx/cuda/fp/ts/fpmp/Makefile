@@ -29,8 +29,8 @@
 #    `CONSOLE`     = console stream (`stdout`, `stderr`, `file`, `null`)
 #    `OUT`         = output directory (default: `_out`)
 #    `VERBOSE`     = verbose mode (`0`/`1`/`2`/`3`); aliases: `V`, `VERB`
-#    `FP2MP`       = enable optimized double→fpmp2 conversion (`1` to enable FPMP_OPTIMIZED_DOUBLE_TO_FPMP)
-#    `MP2FP`       = enable optimized fpmp2→double conversion (`1` to enable FPMP_OPTIMIZED_FPMP_TO_DOUBLE)
+#    `FP2MP`       = enable optimized double→fpmp2 conversion (`1` to enable CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP)
+#    `MP2FP`       = enable optimized fpmp2→double conversion (`1` to enable CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE)
 #    `EXTRA_FLAGS` = extra compiler flags (inherited from root Makefile if exported)
 #    `FPMP_NVVM_FP128_EXT` = set by the repo root Makefile for CUDA device builds (extended __nv_fp128_*).
 #                            Standalone builds query the root Makefile when this is unset.
@@ -118,8 +118,8 @@ ifdef ABI
     ABI_DATA    := $(word 1,$(subst $(COMMA), ,$(ABI)))
     ABI_CONTROL := $(word 2,$(subst $(COMMA), ,$(ABI)))
     LINKAGE := static
-    ABI_FLAGS = -D__FPMP_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPMP_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL) \
-                -D__FPEMU_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPEMU_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL)
+    ABI_FLAGS = -D_CCCL_FPMP_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPMP_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL) \
+                -D_CCCL_FPEMU_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL)
 else
     ABI_FLAGS =
 endif
@@ -336,24 +336,24 @@ COMMONFLAGS += $(EXTRA_FLAGS) $(ABI_FLAGS)
 
 # Optimized double → fpmp2 conversion (integer bit manipulation, no FP64 ops)
 ifeq ($(FP2MP), 1)
-    COMMONFLAGS += -DFPMP_OPTIMIZED_DOUBLE_TO_FPMP=1
+    COMMONFLAGS += -DCCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1
 endif
 
 # Optimized fpmp2 → double conversion (integer bit manipulation, no FP64 ops)
 ifeq ($(MP2FP), 1)
-    COMMONFLAGS += -DFPMP_OPTIMIZED_FPMP_TO_DOUBLE=1
+    COMMONFLAGS += -DCCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1
 endif
 
 # FP128 support for reference value verification.
 # The fp128 *type* and the in-test *reference* are always on; the library's
-# fp64mp2 *math* fallback (FPMP_FP128_MATH_FALLBACK) is decided below.
-COMMONFLAGS += -DFPMP_FP128_ENABLE=1
+# fp64mp2 *math* fallback (_CCCL_FPMP_FP128_MATH_FALLBACK) is decided below.
+COMMONFLAGS += -D_CCCL_FPMP_FP128_ENABLE=1
 COMMONFLAGS += -D__TS_FP128_ENABLE__=1
 
-# Library fp64mp2 math fallback selector. Emit EXACTLY ONE -DFPMP_FP128_MATH_FALLBACK
+# Library fp64mp2 math fallback selector. Emit EXACTLY ONE -D_CCCL_FPMP_FP128_MATH_FALLBACK
 # so no compiler frontend can disagree on its value. nvcc preprocesses the host and
 # device passes separately and does NOT reliably honor "last -D wins" for a duplicated
-# (or -U'd then redefined) macro the way g++ does -- a stray -DFPMP_FP128_MATH_FALLBACK=1
+# (or -U'd then redefined) macro the way g++ does -- a stray -D_CCCL_FPMP_FP128_MATH_FALLBACK=1
 # left earlier on the line can survive on the device pass while being overridden on the
 # host pass, silently keeping native fp128 in the device library (false 106-bit result).
 #   - normal                : 1 (library fp64mp2 math uses true binary128)
@@ -371,15 +371,15 @@ ifeq ($(EMU_NO_FP128),1)
 else
     TS_FP128_MATH_FALLBACK := 1
 endif
-COMMONFLAGS += -DFPMP_FP128_MATH_FALLBACK=$(TS_FP128_MATH_FALLBACK)
+COMMONFLAGS += -D_CCCL_FPMP_FP128_MATH_FALLBACK=$(TS_FP128_MATH_FALLBACK)
 
 # Inherit portable fp128 macros from the parent (e.g. tsmp's TSMP_FP128_FLAGS), but
-# drop any FPMP_FP128_ENABLE / FPMP_FP128_MATH_FALLBACK it carries: we set those
+# drop any _CCCL_FPMP_FP128_ENABLE / _CCCL_FPMP_FP128_MATH_FALLBACK it carries: we set those
 # explicitly above and must not let a duplicate re-introduce the value ambiguity.
-COMMONFLAGS += $(filter-out -DFPMP_FP128_ENABLE=% -DFPMP_FP128_MATH_FALLBACK=%,$(FP128_EXTRA_FLAGS))
+COMMONFLAGS += $(filter-out -D_CCCL_FPMP_FP128_ENABLE=% -D_CCCL_FPMP_FP128_MATH_FALLBACK=%,$(FP128_EXTRA_FLAGS))
 
 # Keep the in-test fp128 reference in lock-step with the library build.
-# make/lib.mk couples the extended NVVM flag with -DFPMP_CUDA_FP128_INTRINSICS=1:
+# make/lib.mk couples the extended NVVM flag with -D_CCCL_FPMP_CUDA_FP128_INTRINSICS=1:
 # whenever $(FPMP_NVVM_FP128_EXT) is active on device, the native __nv_fp128_*
 # (true binary128) math is guaranteed, so the library compiles fp64mp2 math with
 # it. The reference (ts.hpp __TS_*Q) is gated on the same macro and MUST define
@@ -393,7 +393,7 @@ COMMONFLAGS += $(filter-out -DFPMP_FP128_ENABLE=% -DFPMP_FP128_MATH_FALLBACK=%,$
 # the same value is harmless.)
 ifeq (,$(filter host,$(T) $(TARGET)))
     ifneq ($(strip $(FPMP_NVVM_FP128_EXT)),)
-        COMMONFLAGS += -DFPMP_CUDA_FP128_INTRINSICS=1
+        COMMONFLAGS += -D_CCCL_FPMP_CUDA_FP128_INTRINSICS=1
     endif
 endif
 
@@ -405,7 +405,7 @@ endif
 ifneq (,$(filter $(LINKAGE), static lto))
     LIB_BASE ?= cufp
     LIB_NAME = $(OUT)/lib/lib$(LIB_BASE)$(TARGET_SUFFIX).a
-	COMMONFLAGS += -DFPMP_LIB=1 -DFPEMU_LIB=1
+	COMMONFLAGS += -DCCCL_FPMP_LIB=1 -DCCCL_FPEMU_LIB=1
 endif
 
 ifneq (,$(filter $(LINKAGE), lto))
@@ -622,9 +622,9 @@ endif
 #   reference. The explicit empty FP128_EXTRA_FLAGS / FPMP_NVVM_FP128_EXT override
 #   any values propagated from the parent `tsmp` command line.
 ifeq ($(EMU_NO_FP128),1)
-LIB_FP128_ARGS = FP128=0 FPMP_FP128_ENABLE=0 FP128_EXTRA_FLAGS= FPMP_NVVM_FP128_EXT=
+LIB_FP128_ARGS = FP128=0 _CCCL_FPMP_FP128_ENABLE=0 FP128_EXTRA_FLAGS= FPMP_NVVM_FP128_EXT=
 else
-LIB_FP128_ARGS = FPMP_FP128_ENABLE=1 FPMP_NVVM_FP128_EXT="$(FPMP_NVVM_FP128_EXT)"
+LIB_FP128_ARGS = _CCCL_FPMP_FP128_ENABLE=1 FPMP_NVVM_FP128_EXT="$(FPMP_NVVM_FP128_EXT)"
 endif
 
 $(LIB_NAME):
@@ -667,8 +667,8 @@ help:
 	@echo "  ARCH     = CUDA arch (default: 86)"
 	@echo "  OUT      = output directory (default: _out)"
 	@echo "  VERBOSE  = 0|1|2|3 (default: 0); aliases: V, VERB"
-	@echo "  FP2MP    = 1 to enable optimized double->fpmp2 conversion (FPMP_OPTIMIZED_DOUBLE_TO_FPMP)"
-	@echo "  MP2FP    = 1 to enable optimized fpmp2->double conversion (FPMP_OPTIMIZED_FPMP_TO_DOUBLE)"
+	@echo "  FP2MP    = 1 to enable optimized double->fpmp2 conversion (CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP)"
+	@echo "  MP2FP    = 1 to enable optimized fpmp2->double conversion (CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE)"
 	@echo "  EXTRA_FLAGS = extra compiler flags"
 	@echo ""
 	@echo "Test knobs:"
@@ -682,7 +682,7 @@ help:
 	@echo "  CONSOLE  = console stream (stdout|stderr|file|null)"
 	@echo ""
 	@echo "Prerequisites:"
-	@echo "  When FP128 support is enabled (FPMP_FP128_ENABLE=1),"
+	@echo "  When FP128 support is enabled (_CCCL_FPMP_FP128_ENABLE=1),"
 	@echo "  libquadmath is required for linking (provides expq, sinq, etc.)."
 	@echo "  libquadmath is auto-detected (x86 only). Override with HAS_QUADMATH=1/0."
 	@echo "  Current detection: HOST_ARCH=$(HOST_ARCH), HAS_QUADMATH=$(HAS_QUADMATH)"

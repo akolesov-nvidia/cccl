@@ -42,8 +42,8 @@
 #                        kernel; >0 = fixed override (default: 0; applies
 #                        to both the `device` and `acc` targets)
 #    `FP2MP` / `MP2FP` = build the lib with the integer-only `double <-> fp32mp2`
-#                        conversion paths (FPMP_OPTIMIZED_DOUBLE_TO_FPMP /
-#                        FPMP_OPTIMIZED_FPMP_TO_DOUBLE).  In `fortran_sum`
+#                        conversion paths (CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP /
+#                        CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE).  In `fortran_sum`
 #                        the only conversion-affected op is `fpmp_to_double`
 #                        in the kernel epilogue (1 thread/block), so these
 #                        are not expected to move throughput here -- see
@@ -151,17 +151,17 @@ KERNEL_LAUNCHES ?= 0
 # the end of each block (1 thread/block), so they are ~free here; the
 # `benchmarks/d2ff` micro-benchmark is the right place to see their
 # isolated speedup.
-#   FP2MP=1  -> -DFPMP_OPTIMIZED_DOUBLE_TO_FPMP=1
-#   MP2FP=1  -> -DFPMP_OPTIMIZED_FPMP_TO_DOUBLE=1
+#   FP2MP=1  -> -DCCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1
+#   MP2FP=1  -> -DCCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1
 FP2MP ?= 0
 MP2FP ?= 0
 
-LIB_EXTRA_FLAGS := -DFPMP_FP64MP2_ENABLE=1
+LIB_EXTRA_FLAGS :=
 ifeq ($(FP2MP),1)
-    LIB_EXTRA_FLAGS += -DFPMP_OPTIMIZED_DOUBLE_TO_FPMP=1
+    LIB_EXTRA_FLAGS += -DCCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1
 endif
 ifeq ($(MP2FP),1)
-    LIB_EXTRA_FLAGS += -DFPMP_OPTIMIZED_FPMP_TO_DOUBLE=1
+    LIB_EXTRA_FLAGS += -DCCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1
 endif
 
 # Compiler availability detection (parse-time, run once).
@@ -512,9 +512,9 @@ help:
 	@echo "                             $(HOST_STRICT_FP)"
 	@echo "                           Pass HOST_STRICT_FP= (empty) to opt out and"
 	@echo "                           let the compiler reassociate the SP loop."
-	@echo "  FP2MP=1            build the lib with FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1"
+	@echo "  FP2MP=1            build the lib with CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=1"
 	@echo "                     (integer-only double->fp32mp2 conversion)"
-	@echo "  MP2FP=1            build the lib with FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1"
+	@echo "  MP2FP=1            build the lib with CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=1"
 	@echo "                     (integer-only fp32mp2->double conversion)"
 	@echo "                     Note: only fpmp_to_double in the kernel epilogue"
 	@echo "                     uses these paths -- expected to be a no-op on"

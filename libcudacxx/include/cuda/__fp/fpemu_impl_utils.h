@@ -48,19 +48,19 @@
 namespace cuda::experimental
 {
 
-// Verify that either __FPEMU_INLINE__ or __FPEMU_BUILD_LIB__/__FPEMU_USE_LIB__ is defined
-#if !defined(__FPEMU_INLINE__) && !defined(__FPEMU_BUILD_LIB__) && !defined(__FPEMU_USE_LIB__)
-    #error "ERROR: either __FPEMU_INLINE__ or __FPEMU_BUILD_LIB__/__FPEMU_USE_LIB__ must be defined"
+// Verify that either _CCCL_FPEMU_INLINE or _CCCL_FPEMU_BUILD_LIB/_CCCL_FPEMU_USE_LIB is defined
+#if !defined(_CCCL_FPEMU_INLINE) && !defined(_CCCL_FPEMU_BUILD_LIB) && !defined(_CCCL_FPEMU_USE_LIB)
+    #error "ERROR: either _CCCL_FPEMU_INLINE or _CCCL_FPEMU_BUILD_LIB/_CCCL_FPEMU_USE_LIB must be defined"
 #endif
 
 /*
- * Packed-via-unpacked TEST mode (__FPEMU_PACKED_VIA_UNPACKED__) is configured in
+ * Packed-via-unpacked TEST mode (_CCCL_FPEMU_PACKED_VIA_UNPACKED) is configured in
  * fpemu_common.h and set by the Makefile's PACKED_VIA_UNPACKED=y. When ON, the
  * packed (fpbits64_t) builtins are routed through the combined unpack ->
  * *_unpacked core -> pack pipeline so the packed test harness exercises the
  * unpacked cores. When OFF (default), the legacy fused packed kernels are used
  * unchanged (byte-for-byte). The unpacked fpbits64_unpacked_t ABI builtins
- * (__FPEMU_UNPACKED__) always co-exist with the packed API regardless of this flag.
+ * always co-exist with the packed API regardless of this flag.
  */
 
 #if defined(__CUDA_LIBDEVICE__)
@@ -104,102 +104,102 @@ namespace cuda::experimental
  *********************************************************************/
 
 // Forced method overrides for arithmetic operations
-#ifndef __FPEMU_ADD_METHOD__
-    #define __FPEMU_ADD_METHOD__   unset
+#ifndef _CCCL_FPEMU_ADD_METHOD
+    #define _CCCL_FPEMU_ADD_METHOD   unset
 #endif
-#ifndef __FPEMU_MUL_METHOD__
-    #define __FPEMU_MUL_METHOD__   unset
+#ifndef _CCCL_FPEMU_MUL_METHOD
+    #define _CCCL_FPEMU_MUL_METHOD   unset
 #endif
-#ifndef __FPEMU_FMA_METHOD__
-    #define __FPEMU_FMA_METHOD__   unset
+#ifndef _CCCL_FPEMU_FMA_METHOD
+    #define _CCCL_FPEMU_FMA_METHOD   unset
 #endif
-#ifndef __FPEMU_DIV_METHOD__
-    #define __FPEMU_DIV_METHOD__   unset
+#ifndef _CCCL_FPEMU_DIV_METHOD
+    #define _CCCL_FPEMU_DIV_METHOD   unset
 #endif
-#ifndef __FPEMU_SQRT_METHOD__
-    #define __FPEMU_SQRT_METHOD__  unset
+#ifndef _CCCL_FPEMU_SQRT_METHOD
+    #define _CCCL_FPEMU_SQRT_METHOD  unset
 #endif
 
 namespace fpemu
 {
-    #define FP32_TOTAL_BITS  32
-    #define FP32_BIAS        127
-    #define FP32_MANT_BITS   23
-    #define FP32_EXP_BITS    8
-    #define FP32_SIGN_BITS   1
-    #define FP32_MANT_MASK   0x007fffff
-    #define FP32_LO_EXP_MASK 0x000000FF
+    #define _CCCL_FP32_TOTAL_BITS  32
+    #define _CCCL_FP32_BIAS        127
+    #define _CCCL_FP32_MANT_BITS   23
+    #define _CCCL_FP32_EXP_BITS    8
+    #define _CCCL_FP32_SIGN_BITS   1
+    #define _CCCL_FP32_MANT_MASK   0x007fffff
+    #define _CCCL_FP32_LO_EXP_MASK 0x000000FF
 
-    #define FP64_TOTAL_BITS   64
-    #define FP64_BIAS         1023
-    #define FP64_MANT_BITS    52
-    #define FP64_EXP_BITS     11
-    #define FP64_SIGN_BITS    1
-    #define FP64_HI_MANT_MASK 0x000FFFFF    
-    #define FP64_HI_SIGN_MASK 0x80000000 
-    #define FP64_LO_EXP_MASK  0x000007FF
+    #define _CCCL_FP64_TOTAL_BITS   64
+    #define _CCCL_FP64_BIAS         1023
+    #define _CCCL_FP64_MANT_BITS    52
+    #define _CCCL_FP64_EXP_BITS     11
+    #define _CCCL_FP64_SIGN_BITS    1
+    #define _CCCL_FP64_HI_MANT_MASK 0x000FFFFF    
+    #define _CCCL_FP64_HI_SIGN_MASK 0x80000000 
+    #define _CCCL_FP64_LO_EXP_MASK  0x000007FF
 
     // ---- Full-width IEEE-754 binary64 bit-field masks and canonical values ----
     // Plain ULL literals (64-bit on every supported platform) avoid relying on
     // the UINT64_C() macro, which is not always available in device builds.
-    #define __FPEMU_SIGN_64__          0x8000000000000000ULL   // sign bit
-    #define __FPEMU_EXP_64__           0x7FF0000000000000ULL   // exponent field (also +infinity)
-    #define __FPEMU_MANT_64__          0x000FFFFFFFFFFFFFULL   // 52-bit trailing significand
-    #define __FPEMU_ABS_64__           0x7FFFFFFFFFFFFFFFULL   // magnitude (everything but sign)
-    #define __FPEMU_HIDDEN_64__        0x0010000000000000ULL   // implicit leading 1 (2^52)
-    #define __FPEMU_QNAN_BIT_64__      0x0008000000000000ULL   // quiet bit (significand MSB)
-    #define __FPEMU_SNAN_PAYLOAD_64__  0x0007FFFFFFFFFFFFULL   // signaling-NaN payload (low 51 bits)
-    #define __FPEMU_INF_64__           0x7FF0000000000000ULL   // +infinity
-    #define __FPEMU_QNAN_64__          0x7FF8000000000000ULL   // exponent field + quiet bit (+qNaN)
-    #define __FPEMU_DEFNAN_64__        0xFFF8000000000000ULL   // canonical default NaN
+    #define _CCCL_FPEMU_SIGN_64          0x8000000000000000ULL   // sign bit
+    #define _CCCL_FPEMU_EXP_64           0x7FF0000000000000ULL   // exponent field (also +infinity)
+    #define _CCCL_FPEMU_MANT_64          0x000FFFFFFFFFFFFFULL   // 52-bit trailing significand
+    #define _CCCL_FPEMU_ABS_64           0x7FFFFFFFFFFFFFFFULL   // magnitude (everything but sign)
+    #define _CCCL_FPEMU_HIDDEN_64        0x0010000000000000ULL   // implicit leading 1 (2^52)
+    #define _CCCL_FPEMU_QNAN_BIT_64      0x0008000000000000ULL   // quiet bit (significand MSB)
+    #define _CCCL_FPEMU_SNAN_PAYLOAD_64  0x0007FFFFFFFFFFFFULL   // signaling-NaN payload (low 51 bits)
+    #define _CCCL_FPEMU_INF_64           0x7FF0000000000000ULL   // +infinity
+    #define _CCCL_FPEMU_QNAN_64          0x7FF8000000000000ULL   // exponent field + quiet bit (+qNaN)
+    #define _CCCL_FPEMU_DEFNAN_64        0xFFF8000000000000ULL   // canonical default NaN
 
     // 1.0f in fp32
-    #define FP32_ONE          0x3f800000
+    #define _CCCL_FP32_ONE          0x3f800000
     // 2.0f in fp32
-    #define FP32_TWO          0x40000000
+    #define _CCCL_FP32_TWO          0x40000000
 
     // Number of extra bits for precise multiplication of the mantissas
-    #define FP64_EXTRA_BITS 9
+    #define _CCCL_FP64_EXTRA_BITS 9
     
     // The value to shift high part of fp64 mantissa to get the exponent
-    #define FP64_HI_MANT_SHIFT         (FP32_TOTAL_BITS - FP64_EXP_BITS - FP64_SIGN_BITS)          // 20
+    #define _CCCL_FP64_HI_MANT_SHIFT         (_CCCL_FP32_TOTAL_BITS - _CCCL_FP64_EXP_BITS - _CCCL_FP64_SIGN_BITS)          // 20
     // The value to shift mantissas product to get the mantissa of the result (to the begin of the mantissa)
     // *2 because the mantissa is 52 bits and the result is 104 bits
-    #define FP64_MANT_MUL_SHIFT        (FP64_MANT_BITS - ((FP64_MANT_BITS*2) - FP64_TOTAL_BITS))   // 12
+    #define _CCCL_FP64_MANT_MUL_SHIFT        (_CCCL_FP64_MANT_BITS - ((_CCCL_FP64_MANT_BITS*2) - _CCCL_FP64_TOTAL_BITS))   // 12
     // The value to shift the mantissa of the result to the high part of the fp32 mantissa
     // to use fp32 computations for the fp64 mantissa
-    #define FP64_MANT_TO_FP32_HI_SHIFT (FP64_EXP_BITS - FP32_EXP_BITS)                             // 3
+    #define _CCCL_FP64_MANT_TO_FP32_HI_SHIFT (_CCCL_FP64_EXP_BITS - _CCCL_FP32_EXP_BITS)                             // 3
     // The value to shift the mantissa of the result to the low part of the fp32 mantissa
     // to use fp32 computations for the fp64 mantissa
-    #define FP64_MANT_TO_FP32_LO_SHIFT (FP32_TOTAL_BITS - FP64_MANT_TO_FP32_HI_SHIFT)              // 29
+    #define _CCCL_FP64_MANT_TO_FP32_LO_SHIFT (_CCCL_FP32_TOTAL_BITS - _CCCL_FP64_MANT_TO_FP32_HI_SHIFT)              // 29
     // Position of the carry bit in the mantissa of the result
     // to be added to the exponent of the result
-    #define FP64_MANT_MUL_CARRY_BIT    (((FP64_MANT_BITS*2) - FP64_TOTAL_BITS) - FP32_TOTAL_BITS)  // 8
+    #define _CCCL_FP64_MANT_MUL_CARRY_BIT    (((_CCCL_FP64_MANT_BITS*2) - _CCCL_FP64_TOTAL_BITS) - _CCCL_FP32_TOTAL_BITS)  // 8
 
     /* Total lengh of the internal representation of the mantissa  */
     //constexpr uint64_t bitwidth = (MANTISSA_WIDTH + EXTRA_BITS);
     /* Exponent bias is 2^(11-1) -1 */    
     /* fp64 mantissa is 52 */
     constexpr uint64_t MANTISSA_WIDTH = 52;
-    constexpr uint64_t EXPONENT_MASK  = __FPEMU_EXP_64__;
-    constexpr uint64_t MANTISSA_MASK  = __FPEMU_MANT_64__;
+    constexpr uint64_t EXPONENT_MASK  = _CCCL_FPEMU_EXP_64;
+    constexpr uint64_t MANTISSA_MASK  = _CCCL_FPEMU_MANT_64;
     constexpr uint32_t EXTRA_BITS     = 9;
     constexpr uint32_t BIAS           = 1023;
     constexpr uint32_t INF_ZERO       = 0x00007ff0 - BIAS - 2048 - 1 + 0xC;; // - 128
 
     /*
     // by default route fpemu's internal bit-casts through
-    // cuda::std::bit_cast. __FPEMU_BIT_CAST__ is the single switch point --
+    // cuda::std::bit_cast. _CCCL_FPEMU_BIT_CAST is the single switch point --
     // define it before including the fpemu headers for a fast re-map back to the
     // in-house polyfill, e.g.:
-    //   #define __FPEMU_BIT_CAST__(To, v) \
+    //   #define _CCCL_FPEMU_BIT_CAST(To, v) \
     //       ::cuda::experimental::fpemu::__fpemu_builtin_bit_cast<To>(v)
     */
-    #ifndef __FPEMU_BIT_CAST__
-    #  define __FPEMU_BIT_CAST__(To, v) ::cuda::std::bit_cast<To>(v)
+    #ifndef _CCCL_FPEMU_BIT_CAST
+    #  define _CCCL_FPEMU_BIT_CAST(To, v) ::cuda::std::bit_cast<To>(v)
     #endif
 
-    // In-house bit cast polyfill, kept available as the __FPEMU_BIT_CAST__
+    // In-house bit cast polyfill, kept available as the _CCCL_FPEMU_BIT_CAST
     // fallback target. Similar to C++20 std::bit_cast.
     template<typename _Tp, typename _Rp>
     _CCCL_API _Tp __fpemu_builtin_bit_cast(const _Rp __value) noexcept 
@@ -225,11 +225,11 @@ namespace fpemu
     }
 
     // Internal bit cast utility used throughout the library. Delegates to the
-    // __FPEMU_BIT_CAST__ switch macro (cuda::std::bit_cast by default).
+    // _CCCL_FPEMU_BIT_CAST switch macro (cuda::std::bit_cast by default).
     template<typename _Tp, typename _Rp>
     _CCCL_API _Tp bit_cast(const _Rp __value) noexcept
     {
-        return __FPEMU_BIT_CAST__(_Tp, __value);
+        return _CCCL_FPEMU_BIT_CAST(_Tp, __value);
     }
     
 
@@ -377,18 +377,18 @@ namespace fpemu
         _CCCL_TRIVIAL_API int __internal_clzll(int64_t __x) noexcept { return __clzll(__x); }
     #endif //__CUDA_ARCH__
 
-        #undef  __max_fp64emu
+        #undef  _CCCL_FPEMU_MAX
     #if defined(__CUDA_ARCH__) && !defined(__CUDA_LIBDEVICE__)
         // Global-scope qualifier: inside namespace cuda::experimental an
         // unqualified `max` now resolves to the fpmp2_t max() template, which
         // shadows the CUDA device `::max(int, int)` builtin we want here.
-        #define __max_fp64emu      ::max
+        #define _CCCL_FPEMU_MAX      ::max
     #else
-        #define __max_fp64emu(a, b) ((a) > (b) ? (a) : (b))
+        #define _CCCL_FPEMU_MAX(a, b) ((a) > (b) ? (a) : (b))
     #endif
 
-    #ifndef __FP64EMU_PTX_XOR__
-      #define __FP64EMU_PTX_XOR__ 0
+    #ifndef _CCCL_FP64EMU_PTX_XOR
+      #define _CCCL_FP64EMU_PTX_XOR 0
     #endif
     /**
      * @brief Invert the most significant bit of a 32-bit integer
@@ -401,7 +401,7 @@ namespace fpemu
      */
     _CCCL_TRIVIAL_API uint32_t __invert_msb(uint32_t __sign) noexcept
     {
-    #if __FP64EMU_PTX_XOR__ == 1
+    #if _CCCL_FP64EMU_PTX_XOR == 1
         uint32_t result;
         asm ("{\n\t"
             ".reg .u32 r0;\n\t"
@@ -912,7 +912,7 @@ namespace fpemu
      *
      * Sets exp (unbiased exponent field, 0..2047) and man (without exponent
      * in man.x[1]) according to rounding mode. Caller folds exp into man via
-     * man.x[1] |= (uint32_t)exp << FP64_HI_MANT_SHIFT when needed.
+     * man.x[1] |= (uint32_t)exp << _CCCL_FP64_HI_MANT_SHIFT when needed.
      *
      * @tparam rm   Rounding mode
      * @param sign  Result sign (true for negative)
@@ -925,24 +925,24 @@ namespace fpemu
     {
         if constexpr (_Rm == fpemu::rounding::rz)
         {
-            __exp = FP64_BIAS * 2;
-            __man = {0xffffffff, FP64_HI_MANT_MASK};
+            __exp = _CCCL_FP64_BIAS * 2;
+            __man = {0xffffffff, _CCCL_FP64_HI_MANT_MASK};
         }
         else if constexpr (_Rm == fpemu::rounding::rn)
         {
-            __exp = FP64_BIAS * 2 + 1;
+            __exp = _CCCL_FP64_BIAS * 2 + 1;
             __man = {0, 0};
         }
         else if constexpr (_Rm == fpemu::rounding::ru)
         {
             if (__sign)
             {
-                __exp = FP64_BIAS * 2;
-                __man = {0xffffffff, FP64_HI_MANT_MASK};
+                __exp = _CCCL_FP64_BIAS * 2;
+                __man = {0xffffffff, _CCCL_FP64_HI_MANT_MASK};
             }
             else
             {
-                __exp = FP64_BIAS * 2 + 1;
+                __exp = _CCCL_FP64_BIAS * 2 + 1;
                 __man = {0, 0};
             }
         }
@@ -950,13 +950,13 @@ namespace fpemu
         {
             if (__sign)
             {
-                __exp = FP64_BIAS * 2 + 1;
+                __exp = _CCCL_FP64_BIAS * 2 + 1;
                 __man = {0, 0};
             }
             else
             {
-                __exp = FP64_BIAS * 2;
-                __man = {0xffffffff, FP64_HI_MANT_MASK};
+                __exp = _CCCL_FP64_BIAS * 2;
+                __man = {0xffffffff, _CCCL_FP64_HI_MANT_MASK};
             }
         }
     } //__fp64_ovfl_sat
@@ -1041,7 +1041,7 @@ namespace fpemu
             {
                 int32_t __sat_exp = 0;
                 __fp64_ovfl_sat<_Rm>(__sign, __sat_exp, __man);
-                __man.x[1] |= (uint32_t)__sat_exp << FP64_HI_MANT_SHIFT;
+                __man.x[1] |= (uint32_t)__sat_exp << _CCCL_FP64_HI_MANT_SHIFT;
             }
         }
 
@@ -1103,7 +1103,7 @@ namespace fpemu
     {
         uint64_t __x64 = fpemu::bit_cast<uint64_t>(__x);
         //Skip sign bit
-        return __internal_clzll(__x64 & __FPEMU_ABS_64__);
+        return __internal_clzll(__x64 & _CCCL_FPEMU_ABS_64);
     } //__flo_u64
 
     /**
@@ -1202,8 +1202,8 @@ namespace fpemu
 namespace impl
 {
 
-#ifndef __FP64EMU_UNPACKED_OUTPUT_INF__
-    #define __FP64EMU_UNPACKED_OUTPUT_INF__ 0
+#ifndef _CCCL_FP64EMU_UNPACKED_OUTPUT_INF
+    #define _CCCL_FP64EMU_UNPACKED_OUTPUT_INF 0
 #endif
 
 #ifndef EXTRA_BITS
@@ -1263,9 +1263,9 @@ _CCCL_TRIVIAL_API fpbits64_t __nv_internal_fp64emu_round_pack (bool     __sign,
             __exp        = 0;
             __round_bits = (uint32_t)(__sig & 0x3FF);
         }
-        else if ((__exp > 0x7FD) || (__sig + __round_increment >= __FPEMU_SIGN_64__))
+        else if ((__exp > 0x7FD) || (__sig + __round_increment >= _CCCL_FPEMU_SIGN_64))
         {
-            uint64_t __ui64_z = (((uint64_t)__sign << 63) + __FPEMU_INF_64__) - (uint64_t)(__round_increment == 0 ? 1 : 0);
+            uint64_t __ui64_z = (((uint64_t)__sign << 63) + _CCCL_FPEMU_INF_64) - (uint64_t)(__round_increment == 0 ? 1 : 0);
             return (fpbits64_t)__ui64_z;
         }
     }

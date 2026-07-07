@@ -5,7 +5,6 @@
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if __FPEMU_UNPACKED__ == 1
 
 /**
  * @brief Example demonstrating the usage of fp64emu library unpacked core builtins for emulated floating-point arithmetic
@@ -224,11 +223,3 @@ int main(int argc, char** argv)
 
     return errors ? 1 : 0;
 }
-#else
-int main(int argc, char** argv) 
-{
-    (void)argv; // Suppress unused parameter warning
-    printf("FPEMU unpacked core is not enabled\n");
-    return 0;
-}
-#endif // __FPEMU_UNPACKED__ == 1

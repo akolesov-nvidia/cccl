@@ -250,12 +250,12 @@ The library supports two compilation modes controlled by user-facing macros:
 ================ ======= =============================================================================================================================
 Macro            Default Description
 ================ ======= =============================================================================================================================
-``FPEMU_INLINE`` ``1``   When ``1`` (default), header-only inline mode. All implementations are compiled directly into the including translation unit.
-``FPEMU_LIB``    ``0``   When ``1``, link against precompiled ``libfpemu.a`` library. Mutually exclusive with ``FPEMU_INLINE=1``.
+``CCCL_FPEMU_INLINE`` ``1``   When ``1`` (default), header-only inline mode. All implementations are compiled directly into the including translation unit.
+``CCCL_FPEMU_LIB``    ``0``   When ``1``, link against precompiled ``libfpemu.a`` library. Mutually exclusive with ``CCCL_FPEMU_INLINE=1``.
 ================ ======= =============================================================================================================================
 
-In the default inline mode (``FPEMU_INLINE=1``) all implementations are compiled
-directly into the including translation unit. Set ``FPEMU_LIB=1`` when compiling
+In the default inline mode (``CCCL_FPEMU_INLINE=1``) all implementations are compiled
+directly into the including translation unit. Set ``CCCL_FPEMU_LIB=1`` when compiling
 against a prebuilt static library:
 
 .. code:: bash
@@ -264,7 +264,7 @@ against a prebuilt static library:
    g++ -std=c++17 -I/path/to/cccl/libcudacxx/include my_code.cpp
 
    # Library mode
-   g++ -std=c++17 -DFPEMU_LIB=1 -I/path/to/cccl/libcudacxx/include my_code.cpp -lfpemu
+   g++ -std=c++17 -DCCCL_FPEMU_LIB=1 -I/path/to/cccl/libcudacxx/include my_code.cpp -lfpemu
 
 Within CCCL the FP SDK is shipped header-only; the default inline mode requires no
 separate build or link step. Library mode is documented for completeness but no

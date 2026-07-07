@@ -24,17 +24,17 @@
 #include <iomanip>
 
     // Pull in the __nv_fp128_* declarations early (CUDA builds only) so the
-    // header's spelling-availability macros (__FLOAT128_CPP_SPELLING_ENABLED__ /
+    // header's spelling-availability macros (_CCCL_FLOAT128_CPP_SPELLING_ENABLED /
     // __FLOAT128_C_SPELLING_ENABLED__) are visible for both the __ts_fp128
     // typedef and the native-reference override below. The header self-guards
     // (it only declares overloads where the host fp128 spelling exists) and has
     // its own include guard, so a later #include is a harmless no-op.
     #if defined(__CUDA_ARCH__) && (defined(__aarch64__) || defined(_M_ARM64)) \
-        && defined(FPMP_CUDA_FP128_INTRINSICS) \
+        && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) \
         && !(defined(__GNUC__) && !defined(__clang__) && !defined(__NVCOMPILER_MAJOR__) \
              && ((__GNUC__ > 13) || (__GNUC__ == 13 && __GNUC_MINOR__ >= 1))) \
-        && !defined(__FLOAT128_CPP_SPELLING_ENABLED__)
-        #define __FLOAT128_CPP_SPELLING_ENABLED__
+        && !defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED)
+        #define _CCCL_FLOAT128_CPP_SPELLING_ENABLED
     #endif
     #if defined(__CUDACC__)
         #include "crt/device_fp128_functions.h"
@@ -139,7 +139,7 @@
      * These macros dispatch to the appropriate math functions based on platform.
      * Branch order matters -- the first matching one wins:
      *   - libm *l: host with TS_HAS_LDOUBLE128 when libquadmath is not used
-     *   - CUDA device with extended __nv_fp128_* (FPMP_CUDA_FP128_INTRINSICS +
+     *   - CUDA device with extended __nv_fp128_* (_CCCL_FPMP_CUDA_FP128_INTRINSICS +
      *     an fp128 spelling): true 128-bit reference for all that have an
      *     intrinsic, double-widen only for atan2/cbrt/erf/erfc/scalbn. Covers
      *     both x86_64 and AArch64; this is the path that gives true 128-bit refs.
@@ -180,10 +180,10 @@
             #define __TS_SCALBNQ(x,n)    scalbnl((x),(n))
             #define __TS_FMODQ(x,y)      fmodl((x),(y))
             #define __TS_REMAINDERQ(x,y) remainderl((x),(y))
-        #elif defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-              (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #elif defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+              (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // CUDA device with the *extended* __nv_fp128_* intrinsics guaranteed
-            // present (FPMP_CUDA_FP128_INTRINSICS is set by the test build whenever
+            // present (_CCCL_FPMP_CUDA_FP128_INTRINSICS is set by the test build whenever
             // host fp128 spelling the crt header could declare them under (__float128 on x86_64, or
             // _Float128 on AArch64 with GCC >= 13.1). One branch serves both
             // x86_64 and AArch64: a true 128-bit reference for every function that
@@ -222,7 +222,7 @@
             #define __TS_REMAINDERQ(x,y) __nv_fp128_remainder((x),(y))
             // No native __nv_fp128_cbrt: reconstruct from pow with a true fp128
             // 1/3 and restore the sign (pow rejects negative bases). Mirrors the
-            // library reference (__FPMP_CBRTQ in fpmp_math.h) so the cbrt
+            // library reference (_CCCL_FPMP_CBRTQ in fpmp_math.h) so the cbrt
             // reference is ~fp128-accurate instead of being capped at ~53 bits.
             #define __TS_CBRTQ(x)        __nv_fp128_copysign(__nv_fp128_pow(__nv_fp128_fabs(x), (__ts_fp128)1 / (__ts_fp128)3), (x))
             // No native __nv_fp128_* for these -- widen through double.
@@ -440,8 +440,8 @@
     #define MAX(a,b) ((a) > (b) ? (a) : (b))
     #define ABS(a) ((a) < 0) ? -(a) : (a)
 
-    #ifndef FP32_BIAS
-        #define FP32_BIAS     127
+    #ifndef _CCCL_FP32_BIAS
+        #define _CCCL_FP32_BIAS     127
     #endif
     #ifndef FP32_EXP_MIN
         #define FP32_EXP_MIN -126
@@ -450,8 +450,8 @@
         #define FP32_EXP_MAX  127
     #endif
 
-    #ifndef FP64_BIAS
-        #define FP64_BIAS     1023
+    #ifndef _CCCL_FP64_BIAS
+        #define _CCCL_FP64_BIAS     1023
     #endif
     #ifndef FP64_EXP_MIN
         #define FP64_EXP_MIN -1022

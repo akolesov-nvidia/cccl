@@ -89,7 +89,7 @@ Basic Usage (Double-Float)
    using namespace cuda::experimental;
 
    // Double-float arithmetic. double -> fp32mp2 is a narrowing conversion, so it
-   // is explicit by default (see FPMP_EXPLICIT_CASTS). The cast stays constexpr.
+   // is explicit by default (see CCCL_FPMP_EXPLICIT_CASTS). The cast stays constexpr.
    fp32mp2 a = fp32mp2(1.23456789123456789);
    fp32mp2 b = fp32mp2(9.87654321987654321);
 
@@ -523,7 +523,7 @@ Prerequisites
 
 -  **CUDA Toolkit**: Version 11.0 or later (for GPU support)
 -  **C++ compiler**: C++17 for the core library
--  **libquadmath** (optional): Required for double-double nath functions when ``FPMP_FP128_MATH_FALLBACK=1`` (provides ``expq``, ``sinq``, etc.)
+-  **libquadmath** (optional): Required for double-double nath functions when ``_CCCL_FPMP_FP128_MATH_FALLBACK=1`` (provides ``expq``, ``sinq``, etc.)
 
 Compilation Modes
 ~~~~~~~~~~~~~~~~~
@@ -533,15 +533,15 @@ The library supports two compilation modes for each component:
 ================ ======= =======================================================================================================================================
 Macro            Default Description
 ================ ======= =======================================================================================================================================
-``FPMP_INLINE``  ``1``   Header-only inline mode for FPMP. When ``1`` (default), all implementations are compiled directly into the including translation unit.
-``FPMP_LIB``     ``0``   When ``1``, link against precompiled library for FPMP. Mutually exclusive with ``FPMP_INLINE=1``.
-``FPEMU_INLINE`` ``1``   Header-only inline mode for FPEMU. When ``1`` (default), all implementations are compiled directly into the including translation unit.
-``FPEMU_LIB``    ``0``   When ``1``, link against precompiled library for FPEMU. Mutually exclusive with ``FPEMU_INLINE=1``.
+``CCCL_FPMP_INLINE``  ``1``   Header-only inline mode for FPMP. When ``1`` (default), all implementations are compiled directly into the including translation unit.
+``CCCL_FPMP_LIB``     ``0``   When ``1``, link against precompiled library for FPMP. Mutually exclusive with ``CCCL_FPMP_INLINE=1``.
+``CCCL_FPEMU_INLINE`` ``1``   Header-only inline mode for FPEMU. When ``1`` (default), all implementations are compiled directly into the including translation unit.
+``CCCL_FPEMU_LIB``    ``0``   When ``1``, link against precompiled library for FPEMU. Mutually exclusive with ``CCCL_FPEMU_INLINE=1``.
 ================ ======= =======================================================================================================================================
 
-In the default inline mode (``FPMP_INLINE=1``, ``FPEMU_INLINE=1``) all implementations
-are compiled directly into the including translation unit. Set ``FPMP_LIB=1`` and/or
-``FPEMU_LIB=1`` when compiling against a prebuilt static library:
+In the default inline mode (``CCCL_FPMP_INLINE=1``, ``CCCL_FPEMU_INLINE=1``) all implementations
+are compiled directly into the including translation unit. Set ``CCCL_FPMP_LIB=1`` and/or
+``CCCL_FPEMU_LIB=1`` when compiling against a prebuilt static library:
 
 .. code:: bash
 
@@ -549,7 +549,7 @@ are compiled directly into the including translation unit. Set ``FPMP_LIB=1`` an
    g++ -std=c++17 -I/path/to/cccl/libcudacxx/include my_code.cpp
 
    # Library mode
-   g++ -std=c++17 -DFPMP_LIB=1 -DFPEMU_LIB=1 -I/path/to/cccl/libcudacxx/include my_code.cpp -lcufp
+   g++ -std=c++17 -DCCCL_FPMP_LIB=1 -DCCCL_FPEMU_LIB=1 -I/path/to/cccl/libcudacxx/include my_code.cpp -lcufp
 
 Within CCCL the FP SDK is shipped header-only; the default inline mode requires no
 separate build or link step. Library mode is documented for completeness but no
@@ -563,15 +563,14 @@ The library behavior can be customized via preprocessor macros (optional):
 ===================================== ======= ==================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 Macro                                 Default Description
 ===================================== ======= ==================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-``FPMP_EXPLICIT_CASTS``               ``1``   When ``1`` (default), lossy/narrowing conversions INTO ``fpmp2_t`` (``double``/``fp64mp2``/``__float128`` and ``int32``/``uint32``/``int64``/``uint64``) require explicit casts, matching CCCL's strict-cast conventions. The widening conversion OUT to ``double`` (``operator double()``) is always implicit and is not affected by this macro. Set ``0`` to restore the fully-implicit model (all conversions implicit) for easier migration of existing code. Note: explicit construction from ``double`` literals (e.g. ``fp32mp2(3.14159)``) remains ``constexpr`` (compile-time).
-``FPMP_FP64MP2_ENABLE``               ``1``   When ``0``, disables ``fp64mp2`` (double-double) support to speed up builds and reduce code size when only ``fp32mp2`` is needed.
-``FPMP_FP128_ENABLE``                 Auto    Automatically computed from compiler version and CUDA capabilities. Can be explicitly set to ``0`` to disable ``__float128`` support (e.g., for older compilers or compatibility).
-``FPMP_FP128_MATH_FALLBACK``          ``0``   When ``1``, ``fp64mp2`` math functions use quad-precision (``__float128``) for higher accuracy. Requires ``libquadmath`` linkage, slower compilation, and larger code. When ``0``, falls back to ``double`` precision—faster builds, smaller code, but reduced accuracy for transcendentals.
-``FPMP_LIB``                          ``0``   When ``1``, link against a precompiled FPMP library. Core arithmetic functions are declared as ``extern "C"`` symbols resolved at link time, reducing compile times and code duplication across translation units. Requires building the library separately (not provided in-tree; the CCCL FP SDK is header-only by default).
-``FPMP_INLINE``                       ``1``   When ``1`` (default), header-only inline mode. All functions are inlined directly into the calling code — no separate library build or link step required. Produces the fastest code (full inlining/optimization) at the cost of longer compile times in large projects. Mutually exclusive with ``FPMP_LIB=1``.
-``FPMP_OPTIMIZED_DOUBLE_TO_FPMP``     ``0``   When ``1``, the ``double`` to ``fpmp2`` conversion uses integer bit manipulation to split the double mantissa into two float components without FP64 arithmetic. This avoids the slow FP64 pipeline on GPUs with limited double-precision throughput (e.g., consumer GPUs with 1:64 ratio). When ``0``, uses the standard cast-based approach. **Note:** the optimized path increases register usage due to additional integer operations. In large kernels with high register pressure, this may cause register spills to local memory, negating the performance benefit. Profile your specific kernel to verify.
-``FPMP_OPTIMIZED_FPMP_TO_DOUBLE``     ``0``   When ``1``, the ``fpmp2`` to ``double`` conversion reconstructs the double bit pattern from two float components using integer arithmetic (float-to-double bit promotion + software double-add) without FP64 operations. When ``0``, uses the standard ``(double)hi + (double)lo`` (2x F2D + DADD = 3 FP64 ops). **Note:** the reverse direction is significantly more complex than the forward direction (requires a full IEEE 754 double adder in integer ops), so the performance benefit depends heavily on the kernel context. Profile your specific kernel to verify.
-``__FPMP_LARGE_TRIG_FP64_FALLBACK__`` ``0``   Controls fp32mp2 ``sin``/``cos``/``sincos``/``tan`` behavior for large arguments (\`
+``CCCL_FPMP_EXPLICIT_CASTS``               ``1``   When ``1`` (default), lossy/narrowing conversions INTO ``fpmp2_t`` (``double``/``fp64mp2``/``__float128`` and ``int32``/``uint32``/``int64``/``uint64``) require explicit casts, matching CCCL's strict-cast conventions. The widening conversion OUT to ``double`` (``operator double()``) is always implicit and is not affected by this macro. Set ``0`` to restore the fully-implicit model (all conversions implicit) for easier migration of existing code. Note: explicit construction from ``double`` literals (e.g. ``fp32mp2(3.14159)``) remains ``constexpr`` (compile-time).
+``_CCCL_FPMP_FP128_ENABLE``                 Auto    Automatically computed from compiler version and CUDA capabilities. Can be explicitly set to ``0`` to disable ``__float128`` support (e.g., for older compilers or compatibility).
+``_CCCL_FPMP_FP128_MATH_FALLBACK``          ``0``   When ``1``, ``fp64mp2`` math functions use quad-precision (``__float128``) for higher accuracy. Requires ``libquadmath`` linkage, slower compilation, and larger code. When ``0``, falls back to ``double`` precision—faster builds, smaller code, but reduced accuracy for transcendentals.
+``CCCL_FPMP_LIB``                          ``0``   When ``1``, link against a precompiled FPMP library. Core arithmetic functions are declared as ``extern "C"`` symbols resolved at link time, reducing compile times and code duplication across translation units. Requires building the library separately (not provided in-tree; the CCCL FP SDK is header-only by default).
+``CCCL_FPMP_INLINE``                       ``1``   When ``1`` (default), header-only inline mode. All functions are inlined directly into the calling code — no separate library build or link step required. Produces the fastest code (full inlining/optimization) at the cost of longer compile times in large projects. Mutually exclusive with ``CCCL_FPMP_LIB=1``.
+``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP``     ``0``   When ``1``, the ``double`` to ``fpmp2`` conversion uses integer bit manipulation to split the double mantissa into two float components without FP64 arithmetic. This avoids the slow FP64 pipeline on GPUs with limited double-precision throughput (e.g., consumer GPUs with 1:64 ratio). When ``0``, uses the standard cast-based approach. **Note:** the optimized path increases register usage due to additional integer operations. In large kernels with high register pressure, this may cause register spills to local memory, negating the performance benefit. Profile your specific kernel to verify.
+``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE``     ``0``   When ``1``, the ``fpmp2`` to ``double`` conversion reconstructs the double bit pattern from two float components using integer arithmetic (float-to-double bit promotion + software double-add) without FP64 operations. When ``0``, uses the standard ``(double)hi + (double)lo`` (2x F2D + DADD = 3 FP64 ops). **Note:** the reverse direction is significantly more complex than the forward direction (requires a full IEEE 754 double adder in integer ops), so the performance benefit depends heavily on the kernel context. Profile your specific kernel to verify.
+``_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK`` ``0``   Controls fp32mp2 ``sin``/``cos``/``sincos``/``tan`` behavior for large arguments (\`
 ===================================== ======= ==================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 
 Header-Only Integration
@@ -880,7 +879,7 @@ Core polynomials (evaluated in fp32mp2 Horner form):
 
 ``sincos`` computes both kernels with quadrant mapping via ``n mod 4`` (sign/swap adjustment). ``sin`` and ``cos`` call ``sincos`` internally.
 
-When ``__FPMP_LARGE_TRIG_FP64_FALLBACK__=0`` (default), the large-argument path uses a dedicated pure-fp32mp2 Payne-Hanek reduction (no fp64 ops) that delivers ~46 bits in the reduced argument. Set to ``1`` to instead delegate the large-\|x\| branch to system fp64 ``sin``/``cos`` (smaller code, accuracy capped by fp64).
+When ``_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK=0`` (default), the large-argument path uses a dedicated pure-fp32mp2 Payne-Hanek reduction (no fp64 ops) that delivers ~46 bits in the reduced argument. Set to ``1`` to instead delegate the large-\|x\| branch to system fp64 ``sin``/``cos`` (smaller code, accuracy capped by fp64).
 
 tan(x)
 ^^^^^^
@@ -900,7 +899,7 @@ Quadrant LSB Result
 
 The full quadrant-mod-4 sign dance from ``sincos`` is unnecessary here because ``tan(x + π) = tan(x)`` absorbs the ``n == 2, 3`` sign flips. Singularities at ``x ≡ π/2 (mod π)`` produce ``±∞`` through the ``n``-odd branch when ``sin(r)`` underflows to zero (IEEE / libdevice convention).
 
-Like ``sin``/``cos``, the large-\|x\| path honors ``__FPMP_LARGE_TRIG_FP64_FALLBACK__``: when ``0`` (default) it uses the dedicated pure-fp32mp2 Payne-Hanek reduction; when set to ``1`` and ``|x_hi| ≥ 2²⁰``, the implementation delegates to system fp64 ``::tan``.
+Like ``sin``/``cos``, the large-\|x\| path honors ``_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK``: when ``0`` (default) it uses the dedicated pure-fp32mp2 Payne-Hanek reduction; when set to ``1`` and ``|x_hi| ≥ 2²⁰``, the implementation delegates to system fp64 ``::tan``.
 
    **Note on accuracy near singularities.** For any input close to ``π/2 + kπ``, the output precision is fundamentally limited by ``tan'(x) = 1 + tan²(x)``, which amplifies the fp32mp2 quantization of the input into the result. At ``x ≈ ±10⁴`` and ``|tan(x)| ≈ 6·10⁵``, the input ulp (~7·10⁻¹²) is amplified by ``tan' ≈ 3·10¹¹`` to ~2.5 in the output, capping the relative precision around 17 bits — *regardless* of which reduction algorithm is used. This is intrinsic to the type, not a bug in either Cody-Waite or Payne-Hanek; both deliver ≳ 40 bits in the reduced argument ``r``.
 

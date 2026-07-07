@@ -88,7 +88,7 @@ TARGET_DEVICE void compute_accuracy_explicit(double a_in, double b_in,
 
     r->mul_def  = static_cast<double>(mul<fpmp2_accuracy::def>(xd, yd));
     r->mul_fast = static_cast<double>(mul<fpmp2_accuracy::low>(xd, yd));
-#if __FPMP_USE_ACCURATE_MUL__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_MUL == 1
     r->mul_acc  = static_cast<double>(mul<fpmp2_accuracy::high>(xd, yd));
 #else
     r->mul_acc  = r->mul_def;
@@ -96,7 +96,7 @@ TARGET_DEVICE void compute_accuracy_explicit(double a_in, double b_in,
 
     r->div_def  = static_cast<double>(div<fpmp2_accuracy::def>(xd, yd));
     r->div_fast = static_cast<double>(div<fpmp2_accuracy::low>(xd, yd));
-#if __FPMP_USE_ACCURATE_DIV__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
     r->div_acc  = static_cast<double>(div<fpmp2_accuracy::high>(xd, yd));
 #else
     r->div_acc  = r->div_def;
@@ -137,7 +137,7 @@ TARGET_DEVICE void compute_operator_ref(double a_in, double b_in,
 
     r->mul_def  = static_cast<double>(xd * yd);
     r->mul_fast = static_cast<double>(xf * yf);
-#if __FPMP_USE_ACCURATE_MUL__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_MUL == 1
     r->mul_acc  = static_cast<double>(xa * ya);
 #else
     r->mul_acc  = r->mul_def;
@@ -145,7 +145,7 @@ TARGET_DEVICE void compute_operator_ref(double a_in, double b_in,
 
     r->div_def  = static_cast<double>(xd / yd);
     r->div_fast = static_cast<double>(xf / yf);
-#if __FPMP_USE_ACCURATE_DIV__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
     r->div_acc  = static_cast<double>(xa / ya);
 #else
     r->div_acc  = r->div_def;
@@ -227,7 +227,7 @@ int main() {
     printf("\n  --- mul<m> vs operator* ---\n");
     check("mul<def>(fp32mp2)      == fp32mp2       * ", res.mul_def,  ref.mul_def,  tol);
     check("mul<low>(fp32mp2)      == fp32mp2_low  * ", res.mul_fast, ref.mul_fast, tol);
-#if __FPMP_USE_ACCURATE_MUL__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_MUL == 1
     check("mul<high>(fp32mp2)     == fp32mp2_high * ", res.mul_acc,  ref.mul_acc,  tol);
 #else
     check("mul<high>(fp32mp2)     == def (fallback)    ", res.mul_acc,  ref.mul_acc,  tol);
@@ -236,7 +236,7 @@ int main() {
     printf("\n  --- div<m> vs operator/ ---\n");
     check("div<def>(fp32mp2)      == fp32mp2       / ", res.div_def,  ref.div_def,  tol);
     check("div<low>(fp32mp2)      == fp32mp2_low  / ", res.div_fast, ref.div_fast, tol);
-#if __FPMP_USE_ACCURATE_DIV__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
     check("div<high>(fp32mp2)     == fp32mp2_high / ", res.div_acc,  ref.div_acc,  tol);
 #else
     check("div<high>(fp32mp2)     == def (fallback)    ", res.div_acc,  ref.div_acc,  tol);

@@ -64,11 +64,11 @@ Features demonstrated:
 - High-precision computation demonstration
 - Comparison with double precision reference
 
-**Note**: `fp64mp2` is enabled by default. To disable it (build float-only), define `FPMP_FP64MP2_ENABLE=0` before including FPMP headers.
+**Note**: `fp64mp2` (double-double) support is always available.
 
 ### fp64mp2_math.cpp — fp64mp2 Math Functions Demo
 
-Minimal example exercising the same math-function API on `fp64mp2`.  Unlike `fp32mp2`, most `fp64mp2` math functions are **not** dedicated double-double implementations but delegate to higher-precision fallbacks (`__float128` via libquadmath when `FPMP_FP128_MATH_FALLBACK=1`, otherwise system fp64), so this example primarily exercises the public API.  Covers the same functions as `fp32mp2_math.cpp` except `icdf` (which is float-only).
+Minimal example exercising the same math-function API on `fp64mp2`.  Unlike `fp32mp2`, most `fp64mp2` math functions are **not** dedicated double-double implementations but delegate to higher-precision fallbacks (`__float128` via libquadmath when `_CCCL_FPMP_FP128_MATH_FALLBACK=1`, otherwise system fp64), so this example primarily exercises the public API.  Covers the same functions as `fp32mp2_math.cpp` except `icdf` (which is float-only).
 
 ### fp32mp2_thread.cpp / fp64mp2_thread.cpp — Thread Cooperation Primitives Demo
 

@@ -387,7 +387,7 @@ template<typename T> struct _mp2fp_
             // operator __fpmp_fp128() conversion. The cast is a no-op on
             // x86_64 and on ARM64 host where both typedefs resolve to the
             // same scalar.
-        #if (FPMP_FP128_ENABLE == 1)
+        #if (_CCCL_FPMP_FP128_ENABLE == 1)
             if constexpr (std::is_same_v<result_type, __ts_fp128>) {
                 return static_cast<result_type>(static_cast<cuda::experimental::__fpmp_fp128>(a));
             } else
@@ -447,7 +447,7 @@ template<typename T> struct _fp2mp_
             // T(a) would be ambiguous against the (double)/(int*)/(uint*)
             // constructors. The cast is a no-op on x86_64 and on ARM64 host
             // where both typedefs resolve to the same scalar.
-        #if (FPMP_FP128_ENABLE == 1)
+        #if (_CCCL_FPMP_FP128_ENABLE == 1)
             if constexpr (std::is_same_v<input_type, __ts_fp128>) {
                 return T(static_cast<cuda::experimental::__fpmp_fp128>(a));
             } else
@@ -861,8 +861,8 @@ template<typename T> struct _floor_
     {
         if constexpr (std::is_same_v<T, __ts_fp128>)
         {
-        #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-            (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+            (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // True binary128 floor -- mirrors the library (fpmp_math.h). Casting
             // the fp128 reference down to double first would drop the low bits and
             // round to the wrong integer for |x| > 2^52 (the work range reaches
@@ -892,8 +892,8 @@ template<typename T> struct _ceil_
     {
         if constexpr (std::is_same_v<T, __ts_fp128>)
         {
-        #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-            (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+            (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // True binary128 ceil -- mirrors the library; see _floor_ for rationale.
             return __nv_fp128_ceil(x);
         #elif defined(__CUDA_ARCH__)
@@ -920,8 +920,8 @@ template<typename T> struct _round_
     {
         if constexpr (std::is_same_v<T, __ts_fp128>)
         {
-        #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-            (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+            (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // True binary128 round -- mirrors the library; see _floor_ for rationale.
             return __nv_fp128_round(x);
         #elif defined(__CUDA_ARCH__)
@@ -948,8 +948,8 @@ template<typename T> struct _trunc_
     {
         if constexpr (std::is_same_v<T, __ts_fp128>)
         {
-        #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-            (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+            (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // True binary128 trunc -- mirrors the library; see _floor_ for rationale.
             return __nv_fp128_trunc(x);
         #elif defined(__CUDA_ARCH__)
@@ -976,8 +976,8 @@ template<typename T> struct _rint_
     {
         if constexpr (std::is_same_v<T, __ts_fp128>)
         {
-        #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-            (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+            (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // True binary128 rint -- mirrors the library; see _floor_ for rationale.
             return __nv_fp128_rint(x);
         #elif defined(__CUDA_ARCH__)
@@ -1004,8 +1004,8 @@ template<typename T> struct _nearbyint_
     {
         if constexpr (std::is_same_v<T, __ts_fp128>)
         {
-        #if defined(__CUDA_ARCH__) && defined(FPMP_CUDA_FP128_INTRINSICS) && \
-            (defined(__FLOAT128_CPP_SPELLING_ENABLED__) || defined(__FLOAT128_C_SPELLING_ENABLED__))
+        #if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) && \
+            (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
             // nearbyint == rint numerically (rint only additionally raises the
             // inexact flag); use native binary128 rint to mirror the library.
             return __nv_fp128_rint(x);

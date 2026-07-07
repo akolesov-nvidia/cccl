@@ -173,9 +173,7 @@ int main() {
 
     run_type_suite<fp32mp2>("fp32mp2");
 
-#if FPMP_FP64MP2_ENABLE == 1
     run_type_suite<fp64mp2>("fp64mp2");
-#endif
 
     printf("\n  =====================================================\n");
     printf("  Total: %d passed, %d failed\n\n", g_pass, g_fail);

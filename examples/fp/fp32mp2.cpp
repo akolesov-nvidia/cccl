@@ -50,12 +50,10 @@
 
     Configuration Macros:
     -------------------------------------------------------------------------
-    - FPMP_EXPLICIT_CASTS: When 1 (default), conversions like double to fp32mp2 require
+    - CCCL_FPMP_EXPLICIT_CASTS: When 1 (default), conversions like double to fp32mp2 require
       explicit casts for type safety. Set to 0 for easier migration from standard types.
-    - FPMP_FP64MP2_ENABLE: Set to 0 to disable fp64mp2 and speed up builds when only
-      fp32mp2 is needed.
-    - FPMP_FP128_ENABLE: Auto-detected; set to 0 to disable __float128 support.
-    - FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math uses quad-precision (requires
+    - _CCCL_FPMP_FP128_ENABLE: Auto-detected; set to 0 to disable __float128 support.
+    - _CCCL_FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math uses quad-precision (requires
       libquadmath). When 0, uses double fallback (faster builds, smaller code).
 */
 #include <stdio.h>

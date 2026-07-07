@@ -60,7 +60,7 @@ __HOST_DECL__ T get_uniform_value(std::mt19937& gen, std::uniform_int_distributi
     uint64_t mantissa_field = (uint64_t)mantissa_dist(gen);
 
     int64_t exp_unbiased    = exp_dist(gen);
-    uint64_t exp_field      = (uint64_t)(exp_unbiased + FP64_BIAS);
+    uint64_t exp_field      = (uint64_t)(exp_unbiased + _CCCL_FP64_BIAS);
 
     uint64_t res = (sign_field << 63 | ((exp_field << 52) & 0x7ff0000000000000) | (mantissa_field & 0xfffffffffffff));
 

@@ -193,7 +193,7 @@ fpbits64_t __nv_internal_fp64emu_pack(fpbits64_unpacked_t __x) noexcept
         {
             int32_t __sat_exp = 0;
             fpemu::__fp64_ovfl_sat<_Rm>(__sign, __sat_exp, __mantissa32);
-            __mantissa32.x[1] |= (uint32_t)__sat_exp << FP64_HI_MANT_SHIFT;
+            __mantissa32.x[1] |= (uint32_t)__sat_exp << _CCCL_FP64_HI_MANT_SHIFT;
         }
     }
 

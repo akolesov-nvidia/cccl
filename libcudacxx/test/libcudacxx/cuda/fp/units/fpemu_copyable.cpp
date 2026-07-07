@@ -21,9 +21,7 @@ int main()
 {
     static_assert(std::is_trivially_copyable<fp64emu>::value, "fp64emu must be trivially copyable");
 
-#if __FPEMU_UNPACKED__ == 1
     static_assert(std::is_trivially_copyable<fp64emu_unpacked>::value, "fp64emu_unpacked must be trivially copyable");
-#endif
 
     // === Test packed type (fp64emu) ===
     {
@@ -56,7 +54,6 @@ int main()
         }
     }
 
-#if __FPEMU_UNPACKED__ == 1
     // === Test unpacked type (fp64emu_unpacked) ===
     {
         // Create a volatile object
@@ -87,7 +84,6 @@ int main()
             printf("  PASS: vx[0] == x[0]\n");
         }
     }
-#endif
 
     return 0;
 }

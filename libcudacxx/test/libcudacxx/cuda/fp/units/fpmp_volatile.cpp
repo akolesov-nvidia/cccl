@@ -41,14 +41,12 @@ static_assert(std::is_trivially_copyable<fp32mp2_low>::value,
 static_assert(std::is_trivially_copyable<fp32mp2_high>::value,
               "fp32mp2_high must be trivially copyable");
 
-#if FPMP_FP64MP2_ENABLE == 1
 static_assert(std::is_trivially_copyable<fp64mp2>::value,
               "fp64mp2 must be trivially copyable");
 static_assert(std::is_trivially_copyable<fp64mp2_low>::value,
               "fp64mp2_low must be trivially copyable");
 static_assert(std::is_trivially_copyable<fp64mp2_high>::value,
               "fp64mp2_high must be trivially copyable");
-#endif
 
 // ============================================================
 // Host-side volatile tests
@@ -265,11 +263,9 @@ int main() {
     all_passed &= test_volatile_host<fp32mp2>();
     all_passed &= test_volatile_host<fp32mp2_low>();
     all_passed &= test_volatile_host<fp32mp2_high>();
-#if FPMP_FP64MP2_ENABLE == 1
     all_passed &= test_volatile_host<fp64mp2>();
     all_passed &= test_volatile_host<fp64mp2_low>();
     all_passed &= test_volatile_host<fp64mp2_high>();
-#endif
 
 #if defined(__CUDACC__)
     // Device tests
@@ -280,11 +276,9 @@ int main() {
     all_passed &= test_volatile_device<fp32mp2>();
     all_passed &= test_volatile_device<fp32mp2_low>();
     all_passed &= test_volatile_device<fp32mp2_high>();
-#if FPMP_FP64MP2_ENABLE == 1
     all_passed &= test_volatile_device<fp64mp2>();
     all_passed &= test_volatile_device<fp64mp2_low>();
     all_passed &= test_volatile_device<fp64mp2_high>();
-#endif
 #endif // __CUDACC__
 
     std::cout << "\n" << std::string(60, '=') << std::endl;

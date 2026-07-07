@@ -4194,25 +4194,6 @@ void DumpDomain(Domain *domain)
 
 void write_solution(Domain* locDom)
 {
-  #if 0
-  Vector_h<Real_t> x_h = locDom->x;
-  Vector_h<Real_t> y_h = locDom->y;
-  Vector_h<Real_t> z_h = locDom->z;
-
-//  printf("Writing solution to file xyz.asc\n");
-  std::stringstream filename;
-  filename << "xyz.asc";
-
-  FILE *fout = fopen(filename.str().c_str(),"wb");
-
-  for (Index_t i=0; i<locDom->numNode; i++) {
-      fprintf(fout,"%10d\n",i);
-      fprintf(fout,"%.10lf\n",(double)x_h[i]);
-      fprintf(fout,"%.10lf\n",(double)y_h[i]);
-      fprintf(fout,"%.10lf\n",(double)z_h[i]);
-  }
-  fclose(fout);
-  #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////

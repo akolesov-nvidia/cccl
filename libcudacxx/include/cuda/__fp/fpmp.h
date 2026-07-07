@@ -29,8 +29,8 @@
     and "double-double" (fp64mp2) representations and can be used from both CPU and GPU (CUDA) code.
     
     Linkage note:
-    - In header mode (default, FPMP_INLINE=1), built-in entry points are defined as inline/static.
-    - In library mode (FPMP_LIB=1), built-in entry points are provided by a
+    - In header mode (default, CCCL_FPMP_INLINE=1), built-in entry points are defined as inline/static.
+    - In library mode (CCCL_FPMP_LIB=1), built-in entry points are provided by a
       separately compiled object/library (see `src/fpmp_lib.cpp`), while the C++ API remains header-based.
 
     Supported Formats:
@@ -40,7 +40,6 @@
       Ideal for consumer GPUs where FP64 performance is limited (often 1/32 of FP32 throughput).
     - Double-Double (fp64mp2): Pairs of double-precision floats (2×64-bit), providing up to ~104 bits of effective mantissa
       (algorithm/method dependent; between IEEE-754 double and binary128).
-      Enabled via FPMP_FP64MP2_ENABLE=1 macro.
 
     Key Features:
     -------------------------------------------------------------------------
@@ -143,23 +142,21 @@
 
     Configuration Macros:
     -------------------------------------------------------------------------
-    - FPMP_EXPLICIT_CASTS: When 1 (default), lossy/narrowing conversions INTO fpmp2_t (e.g., double
+    - CCCL_FPMP_EXPLICIT_CASTS: When 1 (default), lossy/narrowing conversions INTO fpmp2_t (e.g., double
       to fp32mp2, fp64mp2 to fp32mp2, and integer (int32/uint32/int64/uint64) to fpmp2_t) require explicit casts, matching
       CCCL's strict-cast conventions. The widening conversion OUT to double (operator double()) is
       always implicit and is not affected by this macro. Set to 0 to restore the fully-implicit model
       (all conversions implicit) for easier migration of existing code from standard types.
-    - FPMP_FP64MP2_ENABLE: When 1 (default), enables fp64mp2 (double-double) support. Set to 0
-      to speed up builds and reduce code size when only fp32mp2 is needed.
-    - FPMP_FP128_ENABLE: Automatically detected from compiler version and CUDA capabilities.
+    - _CCCL_FPMP_FP128_ENABLE: Automatically detected from compiler version and CUDA capabilities.
       Can be explicitly set to 0 to disable 128-bit float support (older compilers, compatibility).
-    - FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math functions use quad-precision (__fpmp_fp128)
+    - _CCCL_FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math functions use quad-precision (__fpmp_fp128)
       for higher accuracy. Requires libquadmath linkage, slower compilation, larger code.
       When 0 (default), falls back to double precision—faster builds, smaller code, but
       reduced accuracy for transcendental functions.
-    - FPMP_OPTIMIZED_DOUBLE_TO_FPMP: When 1, double-to-fpmp2 conversion uses integer bit
+    - CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP: When 1, double-to-fpmp2 conversion uses integer bit
       manipulation instead of FP64 casts. Avoids the slow FP64 pipeline on GPUs with limited
       double-precision throughput (1:64 ratio). When 0 (default), uses standard casts.
-    - FPMP_OPTIMIZED_FPMP_TO_DOUBLE: When 1, fpmp2-to-double conversion reconstructs the
+    - CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: When 1, fpmp2-to-double conversion reconstructs the
       double bit pattern using integer arithmetic (no FP64 ops). More complex than the forward
       direction (full software double-add). When 0 (default), uses (double)hi + (double)lo.
 
@@ -344,7 +341,6 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     {
     }
 
-#if (FPMP_FP64MP2_ENABLE == 1)
     /*
     // Cross-precision converting constructor + assignment (upconvert): fp32mp2 -> fp64mp2.
     //
@@ -400,7 +396,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     // This typically preserves ~48 bits of effective precision (the fp32mp2
     // limit), losing only ~5 bits relative to the fp64mp2 input.
     //
-    // Marked __FPMP_EXPLICIT__ (matches the existing double -> fp32mp2
+    // Marked _CCCL_FPMP_EXPLICIT (matches the existing double -> fp32mp2
     // narrowing constructor) so callers must opt in via static_cast or
     // direct-init, mirroring the IEEE-754 double -> float narrowing.
     // The companion assignment operator is provided for symmetry; both
@@ -408,7 +404,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     */
     _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
     _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
-    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(const fpmp2_t<double, _TypeAcc2>& __src) noexcept
+    _CCCL_API inline _CCCL_FPMP_EXPLICIT fpmp2_t(const fpmp2_t<double, _TypeAcc2>& __src) noexcept
     {
         float __a_hi, __a_lo, __b_hi, __b_lo;
         __nv_fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
@@ -426,7 +422,6 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
         __nv_fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &mp2_hi, &mp2_lo);
         return *this;
     }
-#endif // FPMP_FP64MP2_ENABLE == 1
 
     /*
     // Conversion operators
@@ -449,9 +444,9 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     _CCCL_TEMPLATE(typename _Up = _FpType)
     _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
 #if __cplusplus >= 202002L
-    _CCCL_API constexpr __FPMP_EXPLICIT__ fpmp2_t(double __d) noexcept
+    _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2_t(double __d) noexcept
     {
-        if (__FPMP_IS_CONSTEVAL__()) {
+        if (_CCCL_FPMP_IS_CONSTEVAL()) {
             mp2_hi = (_FpType)__d;
             mp2_lo = (_FpType)(__d - (double)(_FpType)__d);
         } else {
@@ -459,25 +454,24 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
         }
     }
 #else
-    _CCCL_API constexpr __FPMP_EXPLICIT__ fpmp2_t(double __d) noexcept
+    _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2_t(double __d) noexcept
         : mp2_hi((_FpType)__d), mp2_lo((_FpType)(__d - (double)(_FpType)__d))
     {
     }
 #endif
 
-    #if (FPMP_FP64MP2_ENABLE == 1)
         //  __fpmp_fp128  operations (only for FpType == double)
-        // available only for CUDA architectures >= 1000 or when FPMP_FP128_ENABLE is defined
-        #if FPMP_FP128_ENABLE == 1
+        // available only for CUDA architectures >= 1000 or when _CCCL_FPMP_FP128_ENABLE is defined
+        #if _CCCL_FPMP_FP128_ENABLE == 1
             // Constructor from __fpmp_fp128 (only for FpType == double)
             // C++20: compile-time uses simple double casts, runtime delegates to __nv_fpmp2_from_quad
             // C++17: always uses simple double casts (member initializer list, same as original)
             _CCCL_TEMPLATE(typename _Up = _FpType)
             _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
-            _CCCL_API constexpr __FPMP_EXPLICIT__ fpmp2_t(__fpmp_fp128 __d) noexcept
+            _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2_t(__fpmp_fp128 __d) noexcept
         #if __cplusplus >= 202002L
             {
-                if (__FPMP_IS_CONSTEVAL__()) {
+                if (_CCCL_FPMP_IS_CONSTEVAL()) {
                     mp2_hi = (_FpType)__d;
                     mp2_lo = (_FpType)(__d - (__fpmp_fp128)(_FpType)__d);
                 } else {
@@ -493,8 +487,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
             _CCCL_API inline explicit operator __fpmp_fp128() const noexcept { 
                 return __nv_fpmp2_to_quad(mp2_hi, mp2_lo);
             }
-        #endif // FPMP_FP128_ENABLE == 1
-    #endif // FPMP_FP64MP2_ENABLE == 1
+        #endif // _CCCL_FPMP_FP128_ENABLE == 1
 
     // Constructor from any standard integer type (int / long / long long + unsigned).
     // Dispatches by width and signedness to the fixed-width builtins, so every
@@ -502,7 +495,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     // bool / character types are excluded by __cccl_is_integer_v.
     _CCCL_TEMPLATE(class _Tp)
     _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-    _CCCL_API inline __FPMP_EXPLICIT__ fpmp2_t(_Tp __i) noexcept
+    _CCCL_API inline _CCCL_FPMP_EXPLICIT fpmp2_t(_Tp __i) noexcept
     {
         if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
         {
@@ -517,7 +510,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     }
 
     // ==== Conversion from fpmp2_t to other types:
-    // Conversion to double is ALWAYS implicit (never gated by FPMP_EXPLICIT_CASTS).
+    // Conversion to double is ALWAYS implicit (never gated by CCCL_FPMP_EXPLICIT_CASTS).
     // It is a value-preserving widening conversion (the analog of the implicit
     // IEEE-754 float -> double), so it stays implicit for ergonomics. This does NOT
     // cause hidden FP64 in fpmp<->fpmp conversions or fpmp arithmetic: cross-method
@@ -602,7 +595,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     { 
         fpmp2_t __res; 
         if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        #if __FPMP_USE_ACCURATE_MUL__ == 1
+        #if _CCCL_FPMP_USE_ACCURATE_MUL == 1
         else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         #endif
         else                                               { __nv_fpmp2_mul      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
@@ -614,7 +607,7 @@ class alignas(2 * alignof(_FpType)) fpmp2_t
     { 
         fpmp2_t __res;
         if constexpr (_TypeAcc == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
-        #if __FPMP_USE_ACCURATE_DIV__ == 1
+        #if _CCCL_FPMP_USE_ACCURATE_DIV == 1
         else if constexpr (_TypeAcc == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); }
         #endif
         else                                               { __nv_fpmp2_div      (__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo, &__res.mp2_hi, &__res.mp2_lo); } 
@@ -887,7 +880,7 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> mul (const fpmp2_t<_FpType, _TypeAcc
 {
     _FpType __rhi, __rlo;
     if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_mul  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
-#if __FPMP_USE_ACCURATE_MUL__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_MUL == 1
     else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_mul (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #endif
     else                                             { __nv_fpmp2_mul      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
@@ -908,7 +901,7 @@ _CCCL_API inline fpmp2_t<_FpType, _TypeAcc> div (const fpmp2_t<_FpType, _TypeAcc
 {
     _FpType __rhi, __rlo;
     if constexpr (_Acc == fpmp2_accuracy::low)          { __nv_fpmp2_low_div  (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
-#if __FPMP_USE_ACCURATE_DIV__ == 1
+#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
     else if constexpr (_Acc == fpmp2_accuracy::high)    { __nv_fpmp2_high_div (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
 #endif
     else                                             { __nv_fpmp2_div      (__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__rhi, &__rlo); }
@@ -1049,12 +1042,10 @@ using fp32mp2_low  = fpmp2_t<float, fpmp2_accuracy::low>;
 using fp32mp2_mid  = fpmp2_t<float, fpmp2_accuracy::mid>;
 using fp32mp2_high = fpmp2_t<float, fpmp2_accuracy::high>;
 
-#if FPMP_FP64MP2_ENABLE == 1
-    using fp64mp2      = fpmp2_t<double, fpmp2_accuracy::def>;
-    using fp64mp2_low  = fpmp2_t<double, fpmp2_accuracy::low>;
-    using fp64mp2_mid  = fpmp2_t<double, fpmp2_accuracy::mid>;
-    using fp64mp2_high = fpmp2_t<double, fpmp2_accuracy::high>;
-#endif // FPMP_FP64MP2_ENABLE == 1
+using fp64mp2      = fpmp2_t<double, fpmp2_accuracy::def>;
+using fp64mp2_low  = fpmp2_t<double, fpmp2_accuracy::low>;
+using fp64mp2_mid  = fpmp2_t<double, fpmp2_accuracy::mid>;
+using fp64mp2_high = fpmp2_t<double, fpmp2_accuracy::high>;
 
 } // namespace cuda::experimental
 

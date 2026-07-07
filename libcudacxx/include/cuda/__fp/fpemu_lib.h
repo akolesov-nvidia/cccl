@@ -88,12 +88,12 @@ namespace cuda::experimental
 * - __nv_fp64emu_cmp_gt: Greater than comparison (x > y)
 * 
 */
-__FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool     __nv_fp64emu_cmp_eq (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool     __nv_fp64emu_cmp_ne (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool     __nv_fp64emu_cmp_le (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool     __nv_fp64emu_cmp_lt (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool     __nv_fp64emu_cmp_ge (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  bool     __nv_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t __y) noexcept ;
 
 /*
 // Conversion operations
@@ -112,16 +112,16 @@ __FPEMU_BUILTIN_DECL__  bool     __nv_fp64emu_cmp_gt (fpbits64_t __x, fpbits64_t
 * - __nv_fp64emu_to_int: Convert from fpbits64_t to int32_t
 * 
 */
-__FPEMU_BUILTIN_DECL__ double     __nv_fp64emu_to_double          (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_from_double        (double __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ float      __nv_fp64emu_to_float           (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_from_float         (float __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_from_int           (int32_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_from_uint          (uint32_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_from_ll            (int64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_from_ull           (uint64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ uint64_t   __nv_fp64emu_fpbits64_cast_ull  (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_ull_cast_fpbits64  (uint64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL double     __nv_fp64emu_to_double          (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_from_double        (double __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL float      __nv_fp64emu_to_float           (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_from_float         (float __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_from_int           (int32_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_from_uint          (uint32_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_from_ll            (int64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_from_ull           (uint64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __nv_fp64emu_fpbits64_cast_ull  (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_ull_cast_fpbits64  (uint64_t __x) noexcept ;
 
 
 /**
@@ -137,10 +137,10 @@ __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_ull_cast_fpbits64  (uint64_t __x)
 * - __nv_fp64emu_to_int_rd: Convert with round-toward-negative-infinity rounding
 * 
 */
-__FPEMU_BUILTIN_DECL__    int32_t __nv_fp64emu_to_int_rn (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    int32_t __nv_fp64emu_to_int_rz (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    int32_t __nv_fp64emu_to_int_ru (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    int32_t __nv_fp64emu_to_int_rd (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int32_t __nv_fp64emu_to_int_rn (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int32_t __nv_fp64emu_to_int_rz (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int32_t __nv_fp64emu_to_int_ru (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int32_t __nv_fp64emu_to_int_rd (fpbits64_t __x) noexcept ;
 
 /**
 * @brief Conversion functions from 64-bit floating-point to unsigned 32-bit integer
@@ -155,10 +155,10 @@ __FPEMU_BUILTIN_DECL__    int32_t __nv_fp64emu_to_int_rd (fpbits64_t __x) noexce
 * - __nv_fp64emu_to_uint_rd: Convert with round-toward-negative-infinity rounding
 * 
 */
-__FPEMU_BUILTIN_DECL__    uint32_t __nv_fp64emu_to_uint_rn (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    uint32_t __nv_fp64emu_to_uint_rz (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    uint32_t __nv_fp64emu_to_uint_ru (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    uint32_t __nv_fp64emu_to_uint_rd (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint32_t __nv_fp64emu_to_uint_rn (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint32_t __nv_fp64emu_to_uint_rz (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint32_t __nv_fp64emu_to_uint_ru (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint32_t __nv_fp64emu_to_uint_rd (fpbits64_t __x) noexcept ;
 
 /**
 * @brief Conversion functions from 64-bit floating-point to 64-bit integer
@@ -173,10 +173,10 @@ __FPEMU_BUILTIN_DECL__    uint32_t __nv_fp64emu_to_uint_rd (fpbits64_t __x) noex
 * - __nv_fp64emu_to_ll_rd: Convert with round-toward-negative-infinity rounding
 * 
 */
-__FPEMU_BUILTIN_DECL__    int64_t __nv_fp64emu_to_ll_rn (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    int64_t __nv_fp64emu_to_ll_rz (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    int64_t __nv_fp64emu_to_ll_ru (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    int64_t __nv_fp64emu_to_ll_rd (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int64_t __nv_fp64emu_to_ll_rn (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int64_t __nv_fp64emu_to_ll_rz (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int64_t __nv_fp64emu_to_ll_ru (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    int64_t __nv_fp64emu_to_ll_rd (fpbits64_t __x) noexcept ;
 
 /**
 * @brief Conversion functions from 64-bit floating-point to unsigned 64-bit integer
@@ -191,10 +191,10 @@ __FPEMU_BUILTIN_DECL__    int64_t __nv_fp64emu_to_ll_rd (fpbits64_t __x) noexcep
 * - __nv_fp64emu_to_ull_rd: Convert with round-toward-negative-infinity rounding
 * 
 */
-__FPEMU_BUILTIN_DECL__    uint64_t __nv_fp64emu_to_ull_rn (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    uint64_t __nv_fp64emu_to_ull_rz (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    uint64_t __nv_fp64emu_to_ull_ru (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__    uint64_t __nv_fp64emu_to_ull_rd (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint64_t __nv_fp64emu_to_ull_rn (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint64_t __nv_fp64emu_to_ull_rz (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint64_t __nv_fp64emu_to_ull_ru (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL    uint64_t __nv_fp64emu_to_ull_rd (fpbits64_t __x) noexcept ;
 
 /**
 * @brief Double-precision floating-point addition kernels
@@ -208,20 +208,20 @@ __FPEMU_BUILTIN_DECL__    uint64_t __nv_fp64emu_to_ull_rd (fpbits64_t __x) noexc
 * The default kernel __nv_fp64emu_dadd_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dadd_rn          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dadd_rz          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dadd_ru          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dadd_rd          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dadd_rn          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dadd_rz          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dadd_ru          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dadd_rd          (fpbits64_t __x, fpbits64_t __y) noexcept ;
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_dadd_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rn  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rz  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_ru  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dadd_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rz     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_ru     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_dadd_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dadd_rn  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dadd_rz  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dadd_ru  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dadd_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dadd_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dadd_rz     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dadd_ru     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dadd_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
 
 /**
 * Collection of multiplication kernels with different accuracy, range, and rounding modes:
@@ -233,20 +233,20 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dadd_rd     (fpbits64_t __x,
 * The default kernel __nv_fp64emu_dmul_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rz     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_ru     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dmul_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dmul_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dmul_rz     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dmul_ru     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dmul_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_dmul_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rn  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rz  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_ru  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dmul_rd  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rn  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rz  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_ru  (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rd  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_dmul_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dmul_rn  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dmul_rz  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dmul_ru  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dmul_rd  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dmul_rn  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dmul_rz  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dmul_ru  (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dmul_rd  (fpbits64_t __x, fpbits64_t __y) noexcept ;
 
 
 /**
@@ -259,23 +259,23 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dmul_rd  (fpbits64_t __x, fp
 * The default kernel __nv_fp64emu_dsub_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsub_rn          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsub_rz          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsub_ru          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsub_rd          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsub_rn          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsub_rz          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsub_ru          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsub_rd          (fpbits64_t __x, fpbits64_t __y) noexcept ;
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_dsub_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dsub_rn      (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dsub_rz      (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dsub_ru      (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dsub_rd      (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dsub_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dsub_rz     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dsub_ru     (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dsub_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_dsub_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dsub_rn      (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dsub_rz      (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dsub_ru      (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dsub_rd      (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dsub_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dsub_rz     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dsub_ru     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dsub_rd     (fpbits64_t __x, fpbits64_t __y) noexcept ;
 
 // Negate
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_neg (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_neg (fpbits64_t __x) noexcept ;
 
 /**
 * Collection of division kernels with different accuracy, range, and rounding modes:
@@ -287,14 +287,14 @@ __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_neg (fpbits64_t __x) noexcept ;
 * The default kernel __nv_fp64emu_ddiv_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_ddiv_rn          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_ddiv_rz          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_ddiv_ru          (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_ddiv_rd          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_ddiv_rn          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_ddiv_rz          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_ddiv_ru          (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_ddiv_rd          (fpbits64_t __x, fpbits64_t __y) noexcept ;
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_ddiv_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_ddiv_rn      (fpbits64_t __x, fpbits64_t __y) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_ddiv_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_ddiv_rn (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_ddiv_rn      (fpbits64_t __x, fpbits64_t __y) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_ddiv_rn     (fpbits64_t __x, fpbits64_t __y) noexcept ;
 
 /**
 * Collection of sqrt kernels with different accuracy, range, and rounding modes:
@@ -306,14 +306,14 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_ddiv_rn     (fpbits64_t __x,
 * The default kernel __nv_fp64emu_dsqrt_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsqrt_rn          (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsqrt_rz          (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsqrt_ru          (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_dsqrt_rd          (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsqrt_rn          (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsqrt_rz          (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsqrt_ru          (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_dsqrt_rd          (fpbits64_t __x) noexcept ;
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_dsqrt_rn  (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_dsqrt_rn       (fpbits64_t __x) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dsqrt_rn      (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_dsqrt_rn  (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_dsqrt_rn       (fpbits64_t __x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_dsqrt_rn      (fpbits64_t __x) noexcept ;
 
 /**
 * Collection of fused multiply-add (FMA) kernels with different accuracy, range, and rounding modes:
@@ -325,20 +325,20 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_dsqrt_rn      (fpbits64_t __
 * The default kernel __nv_fp64emu_fma_rn uses correct rounding and full IEEE range.
 */
 // IEEE-754 compliant built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_fma_rn          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_fma_rz          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_fma_ru          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t  __nv_fp64emu_fma_rd          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_fma_rn          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_fma_rz          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_fma_ru          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t  __nv_fp64emu_fma_rd          (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
 // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_fma_rn  (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_fma_rn       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_fma_rz       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_fma_ru       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_fma_rd       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_fma_rn      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_fma_rz      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_fma_ru      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_fma_rd      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_fma_rn  (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_fma_rn       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_fma_rz       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_fma_ru       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_fma_rd       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_fma_rn      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_fma_rz      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_fma_ru      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_fma_rd      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
 
 /*
 * Collection of MAD kernels with different accuracy, range, and rounding modes:
@@ -350,10 +350,10 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_fma_rd      (fpbits64_t __x,
 * The default kernel __nv_fp64emu_mad_rn uses correct rounding and full IEEE range.
 */
 // Custom accuracy built-ins
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mad_rn           (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_high_mad_rn  (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_mid_mad_rn       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
-__FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_mad_rn      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mad_rn           (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_high_mad_rn  (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_mid_mad_rn       (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL  fpbits64_t __nv_fp64emu_low_mad_rn      (fpbits64_t __x, fpbits64_t __y, fpbits64_t __z) noexcept ;
 
 /**
 * Collection of dot product kernels with default and specific accuracy, range, and rounding mode:
@@ -365,10 +365,10 @@ __FPEMU_BUILTIN_DECL__  fpbits64_t __nv_fp64emu_low_mad_rn      (fpbits64_t __x,
 * The default kernel __nv_fp64emu_dot_rn uses correct rounding and full IEEE range.
 */
 // Custom accuracy built-ins
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dot_rn          (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_high_dot_rn (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_mid_dot_rn      (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_low_dot_rn     (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dot_rn          (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_high_dot_rn (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_mid_dot_rn      (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_low_dot_rn     (fpbits64_t __x1, fpbits64_t __y1, fpbits64_t __x2, fpbits64_t __y2) noexcept ;
 
 /**
 * Collection of complex multiplication kernels with default and specific accuracy, range, and rounding mode:
@@ -380,113 +380,111 @@ __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_low_dot_rn     (fpbits64_t __x1, 
 * The default kernel __nv_fp64emu_cmul_rn uses correct rounding and full IEEE range.
 */
 // Custom accuracy built-ins
-__FPEMU_BUILTIN_DECL__ void __nv_fp64emu_cmul_rn          (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
-__FPEMU_BUILTIN_DECL__ void __nv_fp64emu_high_cmul_rn (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
-__FPEMU_BUILTIN_DECL__ void __nv_fp64emu_mid_cmul_rn      (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
-__FPEMU_BUILTIN_DECL__ void __nv_fp64emu_low_cmul_rn     (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_cmul_rn          (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_high_cmul_rn (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_mid_cmul_rn      (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_low_cmul_rn     (fpbits64_t __x_re, fpbits64_t __x_im, fpbits64_t __y_re, fpbits64_t __y_im, fpbits64_t& __r_re, fpbits64_t& __r_im) noexcept ;
 
-#if __FPEMU_UNPACKED__ == 1
 
     // Unpack (exact, method/rounding-independent)
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpack (fpbits64_t __a) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpack (fpbits64_t __a) noexcept ;
     // Packs (per rounding mode)
-    __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_pack_rn (fpbits64_unpacked_t __a) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_pack_rz (fpbits64_unpacked_t __a) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_pack_ru (fpbits64_unpacked_t __a) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_pack_rd (fpbits64_unpacked_t __a) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_pack_rn (fpbits64_unpacked_t __a) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_pack_rz (fpbits64_unpacked_t __a) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_pack_ru (fpbits64_unpacked_t __a) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_pack_rd (fpbits64_unpacked_t __a) noexcept ;
     // Conversions to other types
-    __FPEMU_BUILTIN_DECL__ int32_t  __nv_fp64emu_unpacked_to_int            (fpbits64_unpacked_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ uint32_t __nv_fp64emu_unpacked_to_uint           (fpbits64_unpacked_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ int64_t  __nv_fp64emu_unpacked_to_ll             (fpbits64_unpacked_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ uint64_t __nv_fp64emu_unpacked_to_ull            (fpbits64_unpacked_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ float    __nv_fp64emu_unpacked_to_float          (fpbits64_unpacked_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ double   __nv_fp64emu_unpacked_to_double         (fpbits64_unpacked_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL int32_t  __nv_fp64emu_unpacked_to_int            (fpbits64_unpacked_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL uint32_t __nv_fp64emu_unpacked_to_uint           (fpbits64_unpacked_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL int64_t  __nv_fp64emu_unpacked_to_ll             (fpbits64_unpacked_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL uint64_t __nv_fp64emu_unpacked_to_ull            (fpbits64_unpacked_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL float    __nv_fp64emu_unpacked_to_float          (fpbits64_unpacked_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL double   __nv_fp64emu_unpacked_to_double         (fpbits64_unpacked_t __x) noexcept ; 
     // Custom accuracy built-ins
-    __FPEMU_BUILTIN_DECL__ double __nv_fp64emu_unpacked_high_to_double  (fpbits64_unpacked_t __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ double __nv_fp64emu_unpacked_mid_to_double       (fpbits64_unpacked_t __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ double __nv_fp64emu_unpacked_low_to_double      (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL double __nv_fp64emu_unpacked_high_to_double  (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL double __nv_fp64emu_unpacked_mid_to_double       (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL double __nv_fp64emu_unpacked_low_to_double      (fpbits64_unpacked_t __x) noexcept ;
     // Conversions from other types
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_from_int             (int32_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_from_uint            (uint32_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_from_ll              (int64_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_from_ull             (uint64_t __x) noexcept ; 
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_from_float           (float __x) noexcept ;   
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_from_double          (double __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_from_int             (int32_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_from_uint            (uint32_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_from_ll              (int64_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_from_ull             (uint64_t __x) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_from_float           (float __x) noexcept ;   
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_from_double          (double __x) noexcept ;
     // Custom accuracy built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_from_double (double __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_from_double      (double __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_from_double     (double __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_from_double (double __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_from_double      (double __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_from_double     (double __x) noexcept ;
     // Casts
-    __FPEMU_BUILTIN_DECL__ uint64_t   __nv_fp64emu_unpacked_fpbits64_cast_ull (fpbits64_unpacked_t __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_ull_cast_fpbits64 (uint64_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL uint64_t   __nv_fp64emu_unpacked_fpbits64_cast_ull (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_ull_cast_fpbits64 (uint64_t __x) noexcept ;
     // Comparisons
-    __FPEMU_BUILTIN_DECL__ bool __nv_fp64emu_unpacked_cmp_eq (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ bool __nv_fp64emu_unpacked_cmp_ne (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ bool __nv_fp64emu_unpacked_cmp_le (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ bool __nv_fp64emu_unpacked_cmp_lt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ bool __nv_fp64emu_unpacked_cmp_gt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ bool __nv_fp64emu_unpacked_cmp_ge (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL bool __nv_fp64emu_unpacked_cmp_eq (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL bool __nv_fp64emu_unpacked_cmp_ne (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL bool __nv_fp64emu_unpacked_cmp_le (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL bool __nv_fp64emu_unpacked_cmp_lt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL bool __nv_fp64emu_unpacked_cmp_gt (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL bool __nv_fp64emu_unpacked_cmp_ge (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Negate
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_neg (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_neg (fpbits64_unpacked_t __x) noexcept ;
     //Add
     // IEEE-754 compliant built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dadd          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dadd          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dadd (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dadd      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dadd     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dadd (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dadd      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dadd     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Mul
     // IEEE-754 compliant built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dmul          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ; 
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dmul          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ; 
     // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-  __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t   __nv_fp64emu_unpacked_high_dmul (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dmul      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dmul     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+  _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t   __nv_fp64emu_unpacked_high_dmul (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dmul      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dmul     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Sub
     // IEEE-754 compliant built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dsub          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dsub          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-   __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t  __nv_fp64emu_unpacked_high_dsub (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsub      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsub     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+   _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t  __nv_fp64emu_unpacked_high_dsub (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsub      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsub     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Div
     // IEEE-754 compliant built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_ddiv          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_ddiv          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_ddiv (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_ddiv      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_ddiv     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_ddiv (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_ddiv      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_ddiv     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y) noexcept ;
     // Sqrt
     // IEEE-754 compliant built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dsqrt          (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dsqrt          (fpbits64_unpacked_t __x) noexcept ;
     // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dsqrt (fpbits64_unpacked_t __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsqrt      (fpbits64_unpacked_t __x) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsqrt     (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dsqrt (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsqrt      (fpbits64_unpacked_t __x) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsqrt     (fpbits64_unpacked_t __x) noexcept ;
     // Fma
     // IEEE-754 compliant built-ins
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_fma          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_fma          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
     // Custom accuracy built-ins (accurate = IEEE-754 compliant)
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_fma (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_fma      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_fma     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_fma (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_fma      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_fma     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
     // Mad
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mad          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_mad (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_mad      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_mad     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mad          (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_mad (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_mad      (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_mad     (fpbits64_unpacked_t __x, fpbits64_unpacked_t __y, fpbits64_unpacked_t __z) noexcept ;
     // Dot
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dot          (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dot (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dot      (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
-    __FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dot     (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dot          (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dot (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dot      (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dot     (fpbits64_unpacked_t __x1, fpbits64_unpacked_t __y1, fpbits64_unpacked_t __x2, fpbits64_unpacked_t __y2) noexcept ;
     // Cmul
-    __FPEMU_BUILTIN_DECL__ void __nv_fp64emu_unpacked_cmul          (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
-    __FPEMU_BUILTIN_DECL__ void __nv_fp64emu_unpacked_high_cmul (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
-    __FPEMU_BUILTIN_DECL__ void __nv_fp64emu_unpacked_mid_cmul      (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
-    __FPEMU_BUILTIN_DECL__ void __nv_fp64emu_unpacked_low_cmul     (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_unpacked_cmul          (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_unpacked_high_cmul (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_unpacked_mid_cmul      (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
+    _CCCL_FPEMU_BUILTIN_DECL void __nv_fp64emu_unpacked_low_cmul     (fpbits64_unpacked_t __x_re, fpbits64_unpacked_t __x_im, fpbits64_unpacked_t __y_re, fpbits64_unpacked_t __y_im, fpbits64_unpacked_t& __r_re, fpbits64_unpacked_t& __r_im) noexcept ;
                                            
-#endif // __FPEMU_UNPACKED__ == 1
 
 } // namespace cuda::experimental
 

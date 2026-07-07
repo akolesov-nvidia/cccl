@@ -114,7 +114,6 @@ TARGET void kern_packed_op(const double* x, const double* y, uint32_t* out, int 
     }
 }
 
-#if __FPEMU_UNPACKED__ == 1
 TARGET void kern_unpacked_op(const double* x, const double* y, uint32_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
@@ -130,7 +129,6 @@ TARGET void kern_unpacked_op(const double* x, const double* y, uint32_t* out, in
         out[i] = c;
     }
 }
-#endif
 
 // ============================================================================
 // Host launchers: wrap each kernel so it can be passed as a plain function
@@ -145,10 +143,8 @@ static void launch_builtin(const double* x, const double* y, uint32_t* o, int n)
 static void launch_packed_op(const double* x, const double* y, uint32_t* o, int n)
 { LAUNCH(kern_packed_op, x, y, o, n); SYNC(); }
 
-#if __FPEMU_UNPACKED__ == 1
 static void launch_unpacked_op(const double* x, const double* y, uint32_t* o, int n)
 { LAUNCH(kern_unpacked_op, x, y, o, n); SYNC(); }
-#endif
 
 // ============================================================================
 // Generic runner: launch a kernel and diff every op against native.
@@ -301,11 +297,9 @@ int main()
     errors += run_special_pairs(run_surface, "special pairs", launch_packed_op);
     errors += run_random_pairs (run_surface, "random pairs",  launch_packed_op, 0xBADF00D);
 
-#if __FPEMU_UNPACKED__ == 1
     printf("\n  --- C++ unpacked operators (fp64emu_unpacked) ---\n");
     errors += run_special_pairs(run_surface, "special pairs", launch_unpacked_op);
     errors += run_random_pairs (run_surface, "random pairs",  launch_unpacked_op, 0x1234567);
-#endif
 
     printf("\nfpemu_cmp: %s (%d errors)\n", errors ? "FAIL" : "PASS", errors);
     return errors ? 1 : 0;

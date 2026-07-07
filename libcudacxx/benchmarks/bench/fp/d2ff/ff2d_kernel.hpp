@@ -7,7 +7,7 @@
       FF2D_KERNEL_NAME  — name of the __global__ kernel function
       FF2D_WRAPPER_NAME — name of the host wrapper that launches + times it
 
-    FPMP_OPTIMIZED_FPMP_TO_DOUBLE must be set (or left at default 0) before
+    CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE must be set (or left at default 0) before
     this include to select the conversion path under test.
 */
 

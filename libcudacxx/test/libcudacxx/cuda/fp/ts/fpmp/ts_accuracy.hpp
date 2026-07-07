@@ -168,7 +168,7 @@ __HOST_DEVICE_DECL__ fpmp_type to_fpmp_for_storage(T val) {
         // so a direct fpmp_type(__ts_fp128) call would be ambiguous against
         // the (double)/(int32_t)/(int64_t)/(uint*_t) constructors. The cast
         // is a no-op on x86_64 and on ARM64 host where both typedefs match.
-    #if (FPMP_FP128_ENABLE == 1)
+    #if (_CCCL_FPMP_FP128_ENABLE == 1)
         if constexpr (std::is_same_v<T, __ts_fp128> &&
                       std::is_same_v<mp_component_t<fpmp_type>, double>)
         {

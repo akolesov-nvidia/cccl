@@ -49,7 +49,7 @@ static bool is_nan_f(uint32_t b) { return ((b >> 23) & 0xFF) == 0xFF && (b & 0x0
 // not preserved. That payload loss is inherent to the unpacked representation,
 // so a NaN-vs-NaN bit difference is reported as a WARNING (not a failure) in
 // that mode only; the legacy bit-reinterpret path must stay strictly bit-exact.
-#if (__FPEMU_PACKED_VIA_UNPACKED__ == 1)
+#if (_CCCL_FPEMU_PACKED_VIA_UNPACKED == 1)
 static constexpr bool g_relax_nan_payload = true;
 #else
 static constexpr bool g_relax_nan_payload = false;

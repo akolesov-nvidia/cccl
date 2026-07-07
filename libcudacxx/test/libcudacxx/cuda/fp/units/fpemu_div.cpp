@@ -150,7 +150,6 @@ TARGET void kern_packed_op(const double* x, const double* y, uint64_t* out, int 
     }
 }
 
-#if __FPEMU_UNPACKED__ == 1
 TARGET void kern_unpacked_op(const double* x, const double* y, uint64_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
@@ -159,7 +158,6 @@ TARGET void kern_unpacked_op(const double* x, const double* y, uint64_t* out, in
         out[i * NCONV + M_RN] = d_bits((double)(a / b));
     }
 }
-#endif
 
 // ============================================================================
 // Generic runner
@@ -299,11 +297,9 @@ int main()
     errors += run_surface("special pairs", kern_packed_op, RN1, 1, sx, sy, NS);
     errors += run_surface("random pairs",  kern_packed_op, RN1, 1, rx, ry, NR);
 
-#if __FPEMU_UNPACKED__ == 1
     printf("\n  --- C++ unpacked operator/ (rn) ---\n");
     errors += run_surface("special pairs", kern_unpacked_op, RN1, 1, sx, sy, NS);
     errors += run_surface("random pairs",  kern_unpacked_op, RN1, 1, rx, ry, NR);
-#endif
 
     delete[] sx; delete[] sy; delete[] rx; delete[] ry;
 

@@ -148,7 +148,6 @@ TARGET void kern_packed_op(const double* x, uint64_t* out, int n)
     }
 }
 
-#if __FPEMU_UNPACKED__ == 1
 TARGET void kern_unpacked_op(const double* x, uint64_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
@@ -156,7 +155,6 @@ TARGET void kern_unpacked_op(const double* x, uint64_t* out, int n)
         out[i * NCONV + M_RN] = d_bits((double)sqrt(a));
     }
 }
-#endif
 
 // ============================================================================
 // Generic runner
@@ -284,11 +282,9 @@ int main()
     errors += run_surface("special values", kern_packed_op, RN1, 1, sx, NS);
     errors += run_surface("random values",  kern_packed_op, RN1, 1, rx, NR);
 
-#if __FPEMU_UNPACKED__ == 1
     printf("\n  --- C++ unpacked sqrt (rn) ---\n");
     errors += run_surface("special values", kern_unpacked_op, RN1, 1, sx, NS);
     errors += run_surface("random values",  kern_unpacked_op, RN1, 1, rx, NR);
-#endif
 
     delete[] sx; delete[] rx;
 

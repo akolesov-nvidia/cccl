@@ -31,7 +31,7 @@
 
     Configuration:
     -------------------------------------------------------------------------
-    - Requires FP64_TOOL_RUNTIME_SIZE to be defined
+    - Requires CCCL_FP64_TOOL_RUNTIME_SIZE to be defined
     - Tests that setter functions work correctly across compilation units
 */
 
@@ -60,11 +60,11 @@
 #endif
 
 //=============================================================================
-// Runtime size version (with FP64_TOOL_RUNTIME_SIZE) - FIRST COMPILATION UNIT
+// Runtime size version (with CCCL_FP64_TOOL_RUNTIME_SIZE) - FIRST COMPILATION UNIT
 //=============================================================================
-#define FP64_TOOL_RUNTIME_SIZE
-#define FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
-#define FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
+#define CCCL_FP64_TOOL_RUNTIME_SIZE
+#define CCCL_FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
+#define CCCL_FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
 #include <cuda/fptool>
 using namespace cuda::experimental;  // fp64_tool_t and setters live here now
 

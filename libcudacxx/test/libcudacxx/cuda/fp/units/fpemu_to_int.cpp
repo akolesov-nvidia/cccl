@@ -223,7 +223,6 @@ TARGET void kern_packed_cast(const double* x, uint64_t* out, int n)
     }
 }
 
-#if __FPEMU_UNPACKED__ == 1
 TARGET void kern_unpacked_cast(const double* x, uint64_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
@@ -235,7 +234,6 @@ TARGET void kern_unpacked_cast(const double* x, uint64_t* out, int n)
         o[T_U64*4 + M_RZ] = enc_u64((uint64_t)e);
     }
 }
-#endif
 
 // ============================================================================
 // Generic runner: launch a surface kernel and the reference kernel, then diff
@@ -366,11 +364,9 @@ int main()
     errors += run_surface("special values", kern_packed_cast, RZ4, 4, g_special, g_special_n);
     errors += run_surface("random values",  kern_packed_cast, RZ4, 4, rnd, NR);
 
-#if __FPEMU_UNPACKED__ == 1
     printf("\n  --- C++ unpacked cast operators (rz) ---\n");
     errors += run_surface("special values", kern_unpacked_cast, RZ4, 4, g_special, g_special_n);
     errors += run_surface("random values",  kern_unpacked_cast, RZ4, 4, rnd, NR);
-#endif
 
     delete[] rnd;
 

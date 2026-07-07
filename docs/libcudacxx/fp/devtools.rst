@@ -84,8 +84,8 @@ Parameter                      Values                                           
 ``CONSOLE``                    ``stdout``, ``stderr``, ``file``, ``null``                                                                                                                                                                                                  ``stdout`` Output stream
 ``OUT``                        path                                                                                                                                                                                                                                        ``_out``   Output directory
 ``VERBOSE`` / ``V``            0–3                                                                                                                                                                                                                                         0          Verbosity level
-``FP2MP``                      ``1``                                                                                                                                                                                                                                       -          Enable optimized double→fpmp2 conversion (``FPMP_OPTIMIZED_DOUBLE_TO_FPMP``)
-``MP2FP``                      ``1``                                                                                                                                                                                                                                       -          Enable optimized fpmp2→double conversion (``FPMP_OPTIMIZED_FPMP_TO_DOUBLE``)
+``FP2MP``                      ``1``                                                                                                                                                                                                                                       -          Enable optimized double→fpmp2 conversion (``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP``)
+``MP2FP``                      ``1``                                                                                                                                                                                                                                       -          Enable optimized fpmp2→double conversion (``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE``)
 ``EXTRA_FLAGS``                string                                                                                                                                                                                                                                      -          Extra compiler flags
 ============================== =========================================================================================================================================================================================================================================== ========== ============================================================================
 
@@ -314,8 +314,8 @@ directions, comparing standard (FP64-based) and optimized (integer-only) paths:
 ================ ================================= ==================== ============================== ==============
 Direction        Flag                              Standard             Optimized                      FP64 ops saved
 ================ ================================= ==================== ============================== ==============
-double → fp32mp2 ``FPMP_OPTIMIZED_DOUBLE_TO_FPMP`` FP64 cast + subtract Integer bit split              2
-fp32mp2 → double ``FPMP_OPTIMIZED_FPMP_TO_DOUBLE`` 2x F2D + DADD        Integer promote + software add 3
+double → fp32mp2 ``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`` FP64 cast + subtract Integer bit split              2
+fp32mp2 → double ``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE`` 2x F2D + DADD        Integer promote + software add 3
 ================ ================================= ==================== ============================== ==============
 
 All four kernel variants are compiled into the same binary via separate

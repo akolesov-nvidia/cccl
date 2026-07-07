@@ -6,7 +6,6 @@
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if __FPEMU_UNPACKED__ == 1
 
 /*
  * @brief Example demonstrating the usage of bit_cast for unpacked floating-point types
@@ -220,14 +219,4 @@ int main()
     return errors ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-#else // __FPEMU_UNPACKED__ != 1
-
-int main()
-{
-    printf("This example requires __FPEMU_UNPACKED__ to be enabled.\n");
-    printf("Please compile with -D__FPEMU_UNPACKED__=1\n");
-    return 0;
-}
-
-#endif // __FPEMU_UNPACKED__ == 1
 

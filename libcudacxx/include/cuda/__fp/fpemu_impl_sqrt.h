@@ -124,7 +124,7 @@ namespace impl
              fp64emu_accuracy   _Acc = fp64emu_accuracy::def>
     _CCCL_TRIVIAL_API fpbits64_t __nv_internal_fp64emu_dsqrt(fpbits64_t __x) noexcept
     {
-    #if (__FPEMU_PACKED_VIA_UNPACKED__ == 1)
+    #if (_CCCL_FPEMU_PACKED_VIA_UNPACKED == 1)
         // Packed-via-unpacked (testing): pack(dsqrt_unpacked(unpack(x))). The
         // dsqrt_unpacked core handles special operands and method selection; the
         // universal unpack/pack are the shared prologue/epilogue. Rounding is
@@ -140,19 +140,19 @@ namespace impl
 
         bool           __sign_x = (__ui64_x >> 63) != 0;
         int32_t        __exp_x  = (int32_t)((__ui64_x >> 52) & 0x7FF);
-        uint64_t       __mant_x = __ui64_x & __FPEMU_MANT_64__;
+        uint64_t       __mant_x = __ui64_x & _CCCL_FPEMU_MANT_64;
 
         // -------- special operands (NaN / Inf / negative / zero) --------
         if (__exp_x == 0x7FF)
         {
-            if (__mant_x)  return (fpbits64_t)(__ui64_x | __FPEMU_QNAN_BIT_64__);   // NaN -> quiet NaN
+            if (__mant_x)  return (fpbits64_t)(__ui64_x | _CCCL_FPEMU_QNAN_BIT_64);   // NaN -> quiet NaN
             if (!__sign_x) return (fpbits64_t)__ui64_x;                            // +inf -> +inf
-            return (fpbits64_t)__FPEMU_DEFNAN_64__;                          // sqrt(-inf) -> NaN
+            return (fpbits64_t)_CCCL_FPEMU_DEFNAN_64;                          // sqrt(-inf) -> NaN
         }
         if (__sign_x)
         {
             if (!(__exp_x | (int32_t)(__mant_x != 0))) return (fpbits64_t)__ui64_x;   // -0 -> -0
-            return (fpbits64_t)__FPEMU_DEFNAN_64__;                          // sqrt(negative) -> NaN
+            return (fpbits64_t)_CCCL_FPEMU_DEFNAN_64;                          // sqrt(negative) -> NaN
         }
         if (!__exp_x)
         {
@@ -167,7 +167,7 @@ namespace impl
         // -------- fixed-point reciprocal-sqrt root --------
         int32_t __exp_z = ((__exp_x - 0x3FF) >> 1) + 0x3FE;
         __exp_x        &= 1;
-        __mant_x       |= __FPEMU_HIDDEN_64__;
+        __mant_x       |= _CCCL_FPEMU_HIDDEN_64;
 
         uint32_t __mant32_x  = (uint32_t)(__mant_x >> 21);
         uint32_t __rcp32     = __nv_internal_fp64emu_sqrt_recip_sqrt32((uint32_t)__exp_x, __mant32_x);
@@ -187,12 +187,12 @@ namespace impl
             uint64_t __mant64_z_shftd = __mant64_z >> 6;
             __rem64                   = (__mant_x << 52) - __mant64_z_shftd * __mant64_z_shftd;
 
-            if (__rem64 & __FPEMU_SIGN_64__) { --__mant64_z; }
+            if (__rem64 & _CCCL_FPEMU_SIGN_64) { --__mant64_z; }
             else { if (__rem64) __mant64_z |= 1; }
         }
 
         return __nv_internal_fp64emu_round_pack<_Rm>(false, __exp_z, __mant64_z);
-    #endif // __FPEMU_PACKED_VIA_UNPACKED__
+    #endif // _CCCL_FPEMU_PACKED_VIA_UNPACKED
     } // __nv_internal_fp64emu_dsqrt
 
     // Unpacked operation
@@ -220,16 +220,16 @@ namespace impl
 
         // Special operands (canonical packed result, then unpack -- rare path).
         if (__exp_x == __NAN_EXP)
-            return __nv_internal_fp64emu_unpack((fpbits64_t)__FPEMU_DEFNAN_64__);
+            return __nv_internal_fp64emu_unpack((fpbits64_t)_CCCL_FPEMU_DEFNAN_64);
         if (__exp_x == __INF_EXP)
         {
-            if (!__sign_x) return __nv_internal_fp64emu_unpack((fpbits64_t)__FPEMU_INF_64__); // +inf -> +inf
-            return __nv_internal_fp64emu_unpack((fpbits64_t)__FPEMU_DEFNAN_64__);           // sqrt(-inf) -> NaN
+            if (!__sign_x) return __nv_internal_fp64emu_unpack((fpbits64_t)_CCCL_FPEMU_INF_64); // +inf -> +inf
+            return __nv_internal_fp64emu_unpack((fpbits64_t)_CCCL_FPEMU_DEFNAN_64);           // sqrt(-inf) -> NaN
         }
         if (__sign_x)
         {
-            if (__zero_x) return __nv_internal_fp64emu_unpack((fpbits64_t)__FPEMU_SIGN_64__);  // -0 -> -0
-            return __nv_internal_fp64emu_unpack((fpbits64_t)__FPEMU_DEFNAN_64__);            // sqrt(negative) -> NaN
+            if (__zero_x) return __nv_internal_fp64emu_unpack((fpbits64_t)_CCCL_FPEMU_SIGN_64);  // -0 -> -0
+            return __nv_internal_fp64emu_unpack((fpbits64_t)_CCCL_FPEMU_DEFNAN_64);            // sqrt(negative) -> NaN
         }
         if (__zero_x)
             return __nv_internal_fp64emu_unpack((fpbits64_t)0);                              // +0 -> +0
@@ -255,7 +255,7 @@ namespace impl
             __mant64_z               &= ~(uint64_t)0x3F;
             uint64_t __mant64_z_shftd = __mant64_z >> 6;
             __rem64                   = (__mant_x << 52) - __mant64_z_shftd * __mant64_z_shftd;
-            if (__rem64 & __FPEMU_SIGN_64__) { --__mant64_z; }
+            if (__rem64 & _CCCL_FPEMU_SIGN_64) { --__mant64_z; }
             else { if (__rem64) __mant64_z |= 1; }
         }
 
@@ -273,43 +273,39 @@ namespace impl
 // ============================================================================
 // Builtin declarations/implementations for sqrt operations
 // ============================================================================
-#if defined(__FPEMU_INLINE__)
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_rn (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_rz (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rz, fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_ru (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::ru, fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_rd (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rd, fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_high_dsqrt_rn (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_mid_dsqrt_rn  (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::mid>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_low_dsqrt_rn  (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::low>(__x); }
-#if __FPEMU_UNPACKED__ == 1
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dsqrt      (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dsqrt (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::high>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsqrt  (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::mid>(__x); }
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsqrt  (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::low>(__x); }
-#endif
+#if defined(_CCCL_FPEMU_INLINE)
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_rn (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_rz (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rz, fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_ru (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::ru, fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_rd (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rd, fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_high_dsqrt_rn (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_mid_dsqrt_rn  (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::mid>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_low_dsqrt_rn  (fpbits64_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt<fpemu::rounding::rn, fp64emu_accuracy::low>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dsqrt      (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dsqrt (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsqrt  (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::mid>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsqrt  (fpbits64_unpacked_t __x) noexcept { return impl::__nv_internal_fp64emu_dsqrt_unpacked<fp64emu_accuracy::low>(__x); }
 #else
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_rn (fpbits64_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_rz (fpbits64_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_ru (fpbits64_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_dsqrt_rd (fpbits64_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_high_dsqrt_rn (fpbits64_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_mid_dsqrt_rn  (fpbits64_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_t __nv_fp64emu_low_dsqrt_rn  (fpbits64_t x) noexcept ;
-#if __FPEMU_UNPACKED__ == 1
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_dsqrt      (fpbits64_unpacked_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dsqrt (fpbits64_unpacked_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsqrt  (fpbits64_unpacked_t x) noexcept ;
-__FPEMU_BUILTIN_DECL__ fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsqrt  (fpbits64_unpacked_t x) noexcept ;
-#endif
-#endif // __FPEMU_INLINE__
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_rn (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_rz (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_ru (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_dsqrt_rd (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_high_dsqrt_rn (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_mid_dsqrt_rn  (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_t __nv_fp64emu_low_dsqrt_rn  (fpbits64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_dsqrt      (fpbits64_unpacked_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_high_dsqrt (fpbits64_unpacked_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_mid_dsqrt  (fpbits64_unpacked_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked_t __nv_fp64emu_unpacked_low_dsqrt  (fpbits64_unpacked_t x) noexcept ;
+#endif // _CCCL_FPEMU_INLINE
 
 } // namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>
-#endif // __FPEMU_IMPL_SQRT_HPP__ (builtins)
+#endif // _CUDA___FP_FPEMU_IMPL_SQRT_H (builtins)
 
-#if defined(__FPEMU_API_CLASSES_DEFINED__) && !defined(__FPEMU_DSQRT_API_MERGED__)
-#define __FPEMU_DSQRT_API_MERGED__
+#if defined(_CCCL_FPEMU_API_CLASSES_DEFINED) && !defined(_CCCL_FPEMU_DSQRT_API_MERGED)
+#define _CCCL_FPEMU_DSQRT_API_MERGED
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -343,7 +339,6 @@ namespace cuda::experimental
     _CCCL_API fp64emu_t<_Acc> __dsqrt_rd (const fp64emu_t<_Acc>& __x) noexcept { 
         return fp64emu_t<_Acc>(fpbits64_construct, __nv_fp64emu_dsqrt_rd(__x.bits)); } 
 
-#if __FPEMU_UNPACKED__ == 1
 
 
     template<fp64emu_accuracy _Acc>
@@ -360,9 +355,8 @@ namespace cuda::experimental
     }
 
 
-#endif // __FPEMU_UNPACKED__ == 1
 
 } // namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>
-#endif // __FPEMU_IMPL_SQRT_HPP__
+#endif // _CUDA___FP_FPEMU_IMPL_SQRT_H

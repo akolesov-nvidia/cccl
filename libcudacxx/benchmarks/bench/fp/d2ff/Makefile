@@ -7,8 +7,8 @@
 #                       ==========
 #
 #  Benchmarks both conversion directions:
-#    double -> fp32mp2_t  (FPMP_OPTIMIZED_DOUBLE_TO_FPMP)
-#    fp32mp2_t -> double  (FPMP_OPTIMIZED_FPMP_TO_DOUBLE)
+#    double -> fp32mp2_t  (CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP)
+#    fp32mp2_t -> double  (CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE)
 #
 #  For each direction, standard (FP64) and optimized (INT32 bit ops) variants
 #  are compiled into the same binary via separate compilation and compared
@@ -87,8 +87,8 @@ ifdef ABI
     ABI_DATA    := $(word 1,$(subst $(COMMA), ,$(ABI)))
     ABI_CONTROL := $(word 2,$(subst $(COMMA), ,$(ABI)))
     LINKAGE := static
-    ABI_FLAGS = -D__FPMP_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPMP_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL) \
-                -D__FPEMU_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPEMU_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL)
+    ABI_FLAGS = -D_CCCL_FPMP_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPMP_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL) \
+                -D_CCCL_FPEMU_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL)
 else
     ABI_FLAGS =
 endif
@@ -145,7 +145,7 @@ endif
 ifneq (,$(filter $(LINKAGE), static lto))
     LIB_BASE ?= cufp
     LIB_NAME = $(OUT)/lib/lib$(LIB_BASE)$(TARGET_SUFFIX).a
-    COMPILEFLAGS += -DFPMP_LIB=1
+    COMPILEFLAGS += -DCCCL_FPMP_LIB=1
     ifneq (,$(filter $(LINKAGE), lto))
         ifeq (,$(filter $(T) $(TARGET), host))
             COMPILEFLAGS += -dlto
@@ -162,14 +162,14 @@ else
 endif
 
 # d2ff measures both the standard (FP64-cast) and optimized (integer-only)
-# conversion paths in the same binary by hardcoding FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-# / FPMP_OPTIMIZED_FPMP_TO_DOUBLE in the per-TU sources (d2ff_*/ff2d_*.cpp).
+# conversion paths in the same binary by hardcoding CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
+# / CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE in the per-TU sources (d2ff_*/ff2d_*.cpp).
 # An external -D from EXTRA_FLAGS (e.g. propagated from the root Makefile via
 # FP2MP / MP2FP) would either silently swap the std TU to the opt path, or
 # clash with the opt TU's own #define. Strip those flags here to keep the
 # benchmark's A/B comparison meaningful regardless of root-level settings.
-EXTRA_FLAGS_FILTERED := $(filter-out -DFPMP_OPTIMIZED_DOUBLE_TO_FPMP=% \
-                                     -DFPMP_OPTIMIZED_FPMP_TO_DOUBLE=%, \
+EXTRA_FLAGS_FILTERED := $(filter-out -DCCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=% \
+                                     -DCCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=%, \
                                      $(EXTRA_FLAGS))
 COMPILEFLAGS += $(EXTRA_FLAGS_FILTERED) $(ABI_FLAGS)
 LINKFLAGS    += $(EXTRA_FLAGS_FILTERED)

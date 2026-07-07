@@ -42,7 +42,7 @@
  * ## Quick Start
  *
  * ```cpp
- * #define FP64_TOOL_MANTISSA_BITS 23  // Emulate float precision (52 bits -> 23 bits)
+ * #define CCCL_FP64_TOOL_MANTISSA_BITS 23  // Emulate float precision (52 bits -> 23 bits)
  * #include "fp64_tool.h"
  *
  * fp64_tool a = 1.5, b = 2.5;
@@ -54,15 +54,15 @@
  *
  * | Macro                        | Default   | Description                                    |
  * |------------------------------|-----------|------------------------------------------------|
- * | `FP64_TOOL_MANTISSA_BITS`    | 52        | Number of mantissa bits to preserve (1-52)     |
- * | `FP64_TOOL_EXPONENT_BITS`    | 11        | Number of exponent bits to preserve (1-11)     |
+ * | `CCCL_FP64_TOOL_MANTISSA_BITS`    | 52        | Number of mantissa bits to preserve (1-52)     |
+ * | `CCCL_FP64_TOOL_EXPONENT_BITS`    | 11        | Number of exponent bits to preserve (1-11)     |
  * | `FP64_TOOL_IEEE_ROUNDING`    | default   | Use IEEE 754 round-to-nearest-even             |
- * | `FP64_TOOL_ROUND_TO_NEAREST` | -         | Simple round-to-nearest                        |
- * | `FP64_TOOL_TRUNCATION`       | -         | Simple truncation (floor toward zero)          |
- * | `FP64_TOOL_NO_UNDERFLOW`     | -         | Preserve underflowing values (no flush to zero)|
- * | `FP64_TOOL_NO_OVERFLOW`      | -         | Preserve overflowing values (no clamp to INF)  |
- * | `FP64_TOOL_DISABLE`          | undefined | Disable precision emulation                    |
- * | `FP64_TOOL_RUNTIME_SIZE`     | undefined | Enable runtime precision control (see below)   |
+ * | `CCCL_FP64_TOOL_ROUND_TO_NEAREST` | -         | Simple round-to-nearest                        |
+ * | `CCCL_FP64_TOOL_TRUNCATION`       | -         | Simple truncation (floor toward zero)          |
+ * | `CCCL_FP64_TOOL_NO_UNDERFLOW`     | -         | Preserve underflowing values (no flush to zero)|
+ * | `CCCL_FP64_TOOL_NO_OVERFLOW`      | -         | Preserve overflowing values (no clamp to INF)  |
+ * | `CCCL_FP64_TOOL_DISABLE`          | undefined | Disable precision emulation                    |
+ * | `CCCL_FP64_TOOL_RUNTIME_SIZE`     | undefined | Enable runtime precision control (see below)   |
  *
  * ## Underflow/Overflow Control
  *
@@ -72,8 +72,8 @@
  *   - **Underflow**: Values too small for reduced exponent → Zero (±0)
  *
  * Defining these macros changes this behavior:
- *   - `FP64_TOOL_NO_OVERFLOW`: Keep original FP64 value when it would overflow
- *   - `FP64_TOOL_NO_UNDERFLOW`: Keep original FP64 value when it would underflow
+ *   - `CCCL_FP64_TOOL_NO_OVERFLOW`: Keep original FP64 value when it would overflow
+ *   - `CCCL_FP64_TOOL_NO_UNDERFLOW`: Keep original FP64 value when it would underflow
  *
  * This is useful for algorithms that need extended dynamic range while still
  * emulating reduced mantissa precision.
@@ -83,10 +83,10 @@
  * | Format   | Mantissa | Exponent | Configuration                                          |
  * |----------|----------|----------|--------------------------------------------------------|
  * | FP64     | 52       | 11       | Default (no callbacks applied)                         |
- * | FP32     | 23       | 8        | `FP64_TOOL_MANTISSA_BITS=23, FP64_TOOL_EXPONENT_BITS=8`|
- * | BF16     | 7        | 8        | `FP64_TOOL_MANTISSA_BITS=7, FP64_TOOL_EXPONENT_BITS=8` |
- * | FP16     | 10       | 5        | `FP64_TOOL_MANTISSA_BITS=10, FP64_TOOL_EXPONENT_BITS=5`|
- * | TF32     | 10       | 8        | `FP64_TOOL_MANTISSA_BITS=10, FP64_TOOL_EXPONENT_BITS=8`|
+ * | FP32     | 23       | 8        | `CCCL_FP64_TOOL_MANTISSA_BITS=23, CCCL_FP64_TOOL_EXPONENT_BITS=8`|
+ * | BF16     | 7        | 8        | `CCCL_FP64_TOOL_MANTISSA_BITS=7, CCCL_FP64_TOOL_EXPONENT_BITS=8` |
+ * | FP16     | 10       | 5        | `CCCL_FP64_TOOL_MANTISSA_BITS=10, CCCL_FP64_TOOL_EXPONENT_BITS=5`|
+ * | TF32     | 10       | 8        | `CCCL_FP64_TOOL_MANTISSA_BITS=10, CCCL_FP64_TOOL_EXPONENT_BITS=8`|
  *
  * ## How It Works
  *
@@ -101,14 +101,14 @@
  * ## Runtime Precision Control
  *
  * By default, mantissa and exponent sizes are compile-time constants. Defining
- * `FP64_TOOL_RUNTIME_SIZE` before including this header enables changing them
- * at runtime without recompilation. The `FP64_TOOL_MANTISSA_BITS` and
- * `FP64_TOOL_EXPONENT_BITS` macros then set the initial values only.
+ * `CCCL_FP64_TOOL_RUNTIME_SIZE` before including this header enables changing them
+ * at runtime without recompilation. The `CCCL_FP64_TOOL_MANTISSA_BITS` and
+ * `CCCL_FP64_TOOL_EXPONENT_BITS` macros then set the initial values only.
  *
  * ```cpp
- * #define FP64_TOOL_RUNTIME_SIZE
- * #define FP64_TOOL_MANTISSA_BITS 52   // initial mantissa (full precision)
- * #define FP64_TOOL_EXPONENT_BITS 11   // initial exponent (full range)
+ * #define CCCL_FP64_TOOL_RUNTIME_SIZE
+ * #define CCCL_FP64_TOOL_MANTISSA_BITS 52   // initial mantissa (full precision)
+ * #define CCCL_FP64_TOOL_EXPONENT_BITS 11   // initial exponent (full range)
  * #include "fp64_tool.h"
  * ```
  *
@@ -174,8 +174,8 @@
  *   - 10: FP16/TF32 precision
  *   - 7:  BF16 precision
  */
-#ifndef FP64_TOOL_MANTISSA_BITS
-  #define FP64_TOOL_MANTISSA_BITS 52
+#ifndef CCCL_FP64_TOOL_MANTISSA_BITS
+  #define CCCL_FP64_TOOL_MANTISSA_BITS 52
 #endif
 
 /**
@@ -187,39 +187,39 @@
  *   - 8:  FP32/BF16/TF32 range
  *   - 5:  FP16 range
  */
-#ifndef FP64_TOOL_EXPONENT_BITS
-  #define FP64_TOOL_EXPONENT_BITS 11
+#ifndef CCCL_FP64_TOOL_EXPONENT_BITS
+  #define CCCL_FP64_TOOL_EXPONENT_BITS 11
 #endif
 
-#if defined(FP64_TOOL_RUNTIME_SIZE)
-  #define __FP64_TOOL_RUNTIME_SIZE__ 1
+#if defined(CCCL_FP64_TOOL_RUNTIME_SIZE)
+  #define _CCCL_FP64_TOOL_RUNTIME_SIZE 1
 #else
-  #define __FP64_TOOL_RUNTIME_SIZE__ 0
+  #define _CCCL_FP64_TOOL_RUNTIME_SIZE 0
 #endif
 
 /* Internal flags: auto-detect if reduction is needed */
-#if __FP64_TOOL_RUNTIME_SIZE__ || FP64_TOOL_EXPONENT_BITS < 11
-  #define __FP64_TOOL_REDUCE_EXPONENT__
-  #ifndef __FP64_TOOL_ENABLE__
-    #define __FP64_TOOL_ENABLE__
+#if _CCCL_FP64_TOOL_RUNTIME_SIZE || CCCL_FP64_TOOL_EXPONENT_BITS < 11
+  #define _CCCL_FP64_TOOL_REDUCE_EXPONENT
+  #ifndef _CCCL_FP64_TOOL_ENABLE
+    #define _CCCL_FP64_TOOL_ENABLE
   #endif
 #endif
-#if __FP64_TOOL_RUNTIME_SIZE__ || FP64_TOOL_MANTISSA_BITS < 52
-  #define __FP64_TOOL_REDUCE_MANTISSA__
-  #ifndef __FP64_TOOL_ENABLE__
-    #define __FP64_TOOL_ENABLE__
+#if _CCCL_FP64_TOOL_RUNTIME_SIZE || CCCL_FP64_TOOL_MANTISSA_BITS < 52
+  #define _CCCL_FP64_TOOL_REDUCE_MANTISSA
+  #ifndef _CCCL_FP64_TOOL_ENABLE
+    #define _CCCL_FP64_TOOL_ENABLE
   #endif
 #endif
 
 // Master switch for precision emulation disabling
-#if defined FP64_TOOL_DISABLE
-  #undef __FP64_TOOL_ENABLE__
+#if defined CCCL_FP64_TOOL_DISABLE
+  #undef _CCCL_FP64_TOOL_ENABLE
 #endif
 
-#if defined FP64_TOOL_RUNTIME_SIZE
-    #define __FP64_TOOL_CONST_QUALIFIER const
+#if defined CCCL_FP64_TOOL_RUNTIME_SIZE
+    #define _CCCL_FP64_TOOL_CONST_QUALIFIER const
 #else
-    #define __FP64_TOOL_CONST_QUALIFIER constexpr
+    #define _CCCL_FP64_TOOL_CONST_QUALIFIER constexpr
 #endif
 
 //=============================================================================
@@ -263,11 +263,11 @@ inline constexpr fpbits64_raw_t fpbits64_raw{};
 /**
  * @brief Check for __builtin_bit_cast availability (C++20 or compiler extension)
  */
-#undef __FP64_TOOL_HAS_BUILTIN_BIT_CAST__
+#undef _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST
 #ifdef __has_builtin
-    #define __FP64_TOOL_HAS_BUILTIN_BIT_CAST__ __has_builtin(__builtin_bit_cast)
+    #define _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST __has_builtin(__builtin_bit_cast)
 #else
-    #define __FP64_TOOL_HAS_BUILTIN_BIT_CAST__ 0
+    #define _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST 0
 #endif
 
 /**
@@ -287,7 +287,7 @@ inline constexpr fpbits64_raw_t fpbits64_raw{};
 template<typename _To, typename _From>
 _CCCL_TRIVIAL_API _To __fp64_tool_bit_cast(const _From& __src) noexcept {
     static_assert(sizeof(_To) == sizeof(_From), "Size mismatch in __fp64_tool_bit_cast");
-#if __FP64_TOOL_HAS_BUILTIN_BIT_CAST__ && !defined(__CUDA_ARCH__)
+#if _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST && !defined(__CUDA_ARCH__)
     // Prefer compiler builtin if available (C++20 or compiler extension)
     return __builtin_bit_cast(_To, __src);
 #else
@@ -306,26 +306,26 @@ _CCCL_TRIVIAL_API _To __fp64_tool_bit_cast(const _From& __src) noexcept {
  * @brief Internal macro wrapper for bit_cast.
  *
  * CCCL integration: routes through CCCL's cuda::std::bit_cast by default.
- * __FP64_TOOL_BIT_CAST__ is the single switch point -- define it before
+ * _CCCL_FP64_TOOL_BIT_CAST is the single switch point -- define it before
  * including this header for a fast re-map back to the in-house polyfill:
- *   #define __FP64_TOOL_BIT_CAST__(To, src) __fp64_tool_bit_cast<To>(src)
+ *   #define _CCCL_FP64_TOOL_BIT_CAST(To, src) __fp64_tool_bit_cast<To>(src)
  */
-#ifndef __FP64_TOOL_BIT_CAST__
-#  define __FP64_TOOL_BIT_CAST__(To, src) ::cuda::std::bit_cast<To>(src)
+#ifndef _CCCL_FP64_TOOL_BIT_CAST
+#  define _CCCL_FP64_TOOL_BIT_CAST(To, src) ::cuda::std::bit_cast<To>(src)
 #endif
 
-#if defined(FP64_TOOL_RUNTIME_SIZE)
+#if defined(CCCL_FP64_TOOL_RUNTIME_SIZE)
 
 // Global device variables (shared across all threads) - must be non-static for CUDA
 // On device: __device__ variables are in global memory, shared across all threads
 // On host: static variables for normal C++ behavior
 #if defined(__CUDACC__)
-[[maybe_unused]] __device__ static int __fp64_tool_device_mantissa_bits = FP64_TOOL_MANTISSA_BITS;
-[[maybe_unused]] __device__ static int __fp64_tool_device_exponent_bits = FP64_TOOL_EXPONENT_BITS;
+[[maybe_unused]] __device__ static int __fp64_tool_device_mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
+[[maybe_unused]] __device__ static int __fp64_tool_device_exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
 #endif
 
-[[maybe_unused]] static int __fp64_tool_host_mantissa_bits = FP64_TOOL_MANTISSA_BITS;
-[[maybe_unused]] static int __fp64_tool_host_exponent_bits = FP64_TOOL_EXPONENT_BITS;
+[[maybe_unused]] static int __fp64_tool_host_mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
+[[maybe_unused]] static int __fp64_tool_host_exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
 
 // Device-side setter (can be called from __device__ or __global__ functions)
 // Only thread 0 in block 0 sets the value to avoid race conditions
@@ -391,39 +391,39 @@ _CCCL_TRIVIAL_API _To __fp64_tool_bit_cast(const _From& __src) noexcept {
  * reduced precision. It's called before and after each arithmetic operation.
  * 
  * The reduction happens in two phases:
- * 1. **Exponent reduction** (if FP64_TOOL_EXPONENT_BITS < 11):
+ * 1. **Exponent reduction** (if CCCL_FP64_TOOL_EXPONENT_BITS < 11):
  *    - Values outside the reduced exponent range become infinity or zero
  *    - Preserves the sign bit
  * 
- * 2. **Mantissa reduction** (if FP64_TOOL_MANTISSA_BITS < 52):
+ * 2. **Mantissa reduction** (if CCCL_FP64_TOOL_MANTISSA_BITS < 52):
  *    - Excess mantissa bits are removed via truncation or rounding
  *    - Three rounding modes available: truncation, round-to-nearest, IEEE 754
  * 
  * @param v  Reference to the bit pattern to modify (modified in place)
  * 
- * @note This function is only compiled when __FP64_TOOL_ENABLE__ is defined
+ * @note This function is only compiled when _CCCL_FP64_TOOL_ENABLE is defined
  * @note Thread-safe: no shared state is modified
  */
-#if defined __FP64_TOOL_ENABLE__
+#if defined _CCCL_FP64_TOOL_ENABLE
 _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept 
 {
     (void)__v;  /* Suppress unused parameter warning when no reduction is configured */
     //-------------------------------------------------------------------------
     // Phase 1: Exponent Range Reduction
     //-------------------------------------------------------------------------
-#if defined(__FP64_TOOL_REDUCE_EXPONENT__)    
+#if defined(_CCCL_FP64_TOOL_REDUCE_EXPONENT)    
     /* Only check overflow/underflow if at least one clamping mode is enabled */
-    #if !defined(FP64_TOOL_NO_OVERFLOW) || !defined(FP64_TOOL_NO_UNDERFLOW)
+    #if !defined(CCCL_FP64_TOOL_NO_OVERFLOW) || !defined(CCCL_FP64_TOOL_NO_UNDERFLOW)
     {
         /* Get the exponent bits for the device or host */
-        #if __FP64_TOOL_RUNTIME_SIZE__
+        #if _CCCL_FP64_TOOL_RUNTIME_SIZE
             #if defined(__CUDA_ARCH__)
-        __FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_device_exponent_bits;
+        _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_device_exponent_bits;
             #else
-        __FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_host_exponent_bits;
+        _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_host_exponent_bits;
             #endif
         #else
-        __FP64_TOOL_CONST_QUALIFIER int __exponent_bits = FP64_TOOL_EXPONENT_BITS;
+        _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
         #endif
 
         /* IEEE 754 double-precision bit layout:
@@ -433,8 +433,8 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept
          */
         constexpr uint64_t __EXP_MASK = 0x7FFULL << 52;    // Bits 52-62
         constexpr int64_t __ORIGINAL_BIAS = 1023;          // FP64 exponent bias
-        __FP64_TOOL_CONST_QUALIFIER int64_t __NEW_BIAS = (1LL << (__exponent_bits - 1)) - 1;
-        __FP64_TOOL_CONST_QUALIFIER int64_t __max_encoded = (1LL << __exponent_bits) - 2;
+        _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __NEW_BIAS = (1LL << (__exponent_bits - 1)) - 1;
+        _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __max_encoded = (1LL << __exponent_bits) - 2;
 
         uint64_t __bits = __v;
         uint64_t __exp_bits = (__bits & __EXP_MASK) >> 52;
@@ -442,7 +442,7 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept
         int64_t __new_exp_bits = __unbiased_exp + __NEW_BIAS;
 
         /* Check for overflow/underflow in reduced exponent range */
-        #if !defined(FP64_TOOL_NO_OVERFLOW)
+        #if !defined(CCCL_FP64_TOOL_NO_OVERFLOW)
         if (__new_exp_bits > __max_encoded) 
         {
             /* Overflow: clamp to FP64 infinity (preserve sign) */
@@ -453,7 +453,7 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept
         }
         #endif
         
-        #if !defined(FP64_TOOL_NO_UNDERFLOW)
+        #if !defined(CCCL_FP64_TOOL_NO_UNDERFLOW)
         if (__new_exp_bits < 1) 
         {
             /* Underflow: flush to signed zero */
@@ -465,27 +465,27 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept
         /* Normal range: fall through to mantissa reduction */
     }
     #endif /* !NO_OVERFLOW || !NO_UNDERFLOW */
-#endif /* __FP64_TOOL_REDUCE_EXPONENT__ */
+#endif /* _CCCL_FP64_TOOL_REDUCE_EXPONENT */
 
     //-------------------------------------------------------------------------
     // Phase 2: Mantissa Precision Reduction
     //-------------------------------------------------------------------------
-#if defined(__FP64_TOOL_REDUCE_MANTISSA__)
+#if defined(_CCCL_FP64_TOOL_REDUCE_MANTISSA)
     /* Get the mantissa bits for the device or host */
-    #if __FP64_TOOL_RUNTIME_SIZE__
+    #if _CCCL_FP64_TOOL_RUNTIME_SIZE
         #if defined(__CUDA_ARCH__)
-    __FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_device_mantissa_bits;
+    _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_device_mantissa_bits;
         #else
-    __FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_host_mantissa_bits;
+    _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_host_mantissa_bits;
         #endif
     #else
-    __FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = FP64_TOOL_MANTISSA_BITS;
+    _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
     #endif
 
     /* Calculate how many low bits to discard */
     const int __reduce_mantissa_bits = 52 - __mantissa_bits;
     
-    #if defined(FP64_TOOL_TRUNCATION)
+    #if defined(CCCL_FP64_TOOL_TRUNCATION)
         //---------------------------------------------------------------------
         // Mode A: Simple Truncation (round toward zero)
         //---------------------------------------------------------------------
@@ -493,7 +493,7 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept
         __v >>= __reduce_mantissa_bits;
         __v <<= __reduce_mantissa_bits;
         
-    #elif defined(FP64_TOOL_ROUND_TO_NEAREST)
+    #elif defined(CCCL_FP64_TOOL_ROUND_TO_NEAREST)
         //---------------------------------------------------------------------
         // Mode B: Round to Nearest (biased - always rounds 0.5 up)
         //---------------------------------------------------------------------
@@ -532,19 +532,19 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64_t& __v) noexcept
             __v <<= __reduce_mantissa_bits;
         }
     #endif /* rounding mode selection */
-#endif /* __FP64_TOOL_REDUCE_MANTISSA__ */
+#endif /* _CCCL_FP64_TOOL_REDUCE_MANTISSA */
 
 } /* __fp64_tool_callback */
 
 /** @brief Macro to invoke the precision callback */
-#define __FP64_TOOL_CALLBACK__(v) __fp64_tool_callback(v)
+#define _CCCL_FP64_TOOL_CALLBACK(v) __fp64_tool_callback(v)
 
-#else /* !__FP64_TOOL_ENABLE__ */
+#else /* !_CCCL_FP64_TOOL_ENABLE */
 
 /** @brief No-op when precision emulation is disabled */
-#define __FP64_TOOL_CALLBACK__(v)
+#define _CCCL_FP64_TOOL_CALLBACK(v)
 
-#endif /* __FP64_TOOL_ENABLE__ */
+#endif /* _CCCL_FP64_TOOL_ENABLE */
 
 //=============================================================================
 // SECTION 5: Main Class Definition
@@ -598,17 +598,17 @@ public:
     _CCCL_API inline fp64_tool_t(const volatile fp64_tool_t& __o) noexcept : bits(__o.bits) {}
 
     /** @brief Construct from double (implicit conversion) */
-    _CCCL_API inline fp64_tool_t(double __d) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, __d)) {}
+    _CCCL_API inline fp64_tool_t(double __d) noexcept : bits(_CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __d)) {}
     
     /** @brief Construct from float (implicit conversion with promotion) */
-    _CCCL_API inline fp64_tool_t(float __f) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__f))) {}
+    _CCCL_API inline fp64_tool_t(float __f) noexcept : bits(_CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, static_cast<double>(__f))) {}
 
     /** @brief Construct from any standard integer type (int / long / long long + unsigned).
      *  Routes through double, so every width/signedness is handled uniformly and
      *  portably (LP64 and LLP64). Excludes bool / character types by design. */
     _CCCL_TEMPLATE(class _Tp)
     _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-    _CCCL_API inline fp64_tool_t(_Tp __i) noexcept : bits(__FP64_TOOL_BIT_CAST__(fpbits64_t, static_cast<double>(__i))) {}
+    _CCCL_API inline fp64_tool_t(_Tp __i) noexcept : bits(_CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, static_cast<double>(__i))) {}
 
     //=========================================================================
     // Assignment Operators
@@ -632,12 +632,12 @@ public:
 
     /** @brief Convert to double (implicit, preserves full precision) */
     _CCCL_API inline operator double() const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits); 
     }
     
     /** @brief Convert to float (explicit, may lose precision) */
     _CCCL_API inline explicit operator float() const noexcept { 
-        return static_cast<float>(__FP64_TOOL_BIT_CAST__(double, bits)); 
+        return static_cast<float>(_CCCL_FP64_TOOL_BIT_CAST(double, bits)); 
     }
     
     /** @brief Convert to any standard integer type (explicit, truncates toward zero).
@@ -645,7 +645,7 @@ public:
     _CCCL_TEMPLATE(class _Tp)
     _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
     _CCCL_API inline explicit operator _Tp() const noexcept { 
-        return static_cast<_Tp>(__FP64_TOOL_BIT_CAST__(double, bits)); 
+        return static_cast<_Tp>(_CCCL_FP64_TOOL_BIT_CAST(double, bits)); 
     }
 
     //=========================================================================
@@ -662,56 +662,56 @@ public:
      */
     _CCCL_API inline fp64_tool_t operator+(const fp64_tool_t& __y) const noexcept {
         fpbits64_t __a = bits, __b = __y.bits;
-        __FP64_TOOL_CALLBACK__(__a); 
-        __FP64_TOOL_CALLBACK__(__b);
+        _CCCL_FP64_TOOL_CALLBACK(__a); 
+        _CCCL_FP64_TOOL_CALLBACK(__b);
         #if defined(__CUDA_ARCH__)
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __dadd_rn(__FP64_TOOL_BIT_CAST__(double, __a), __FP64_TOOL_BIT_CAST__(double, __b)));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __dadd_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
         #else
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __FP64_TOOL_BIT_CAST__(double, __a) + __FP64_TOOL_BIT_CAST__(double, __b));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, _CCCL_FP64_TOOL_BIT_CAST(double, __a) + _CCCL_FP64_TOOL_BIT_CAST(double, __b));
         #endif
-        __FP64_TOOL_CALLBACK__(__r);
+        _CCCL_FP64_TOOL_CALLBACK(__r);
         return fp64_tool_t(fpbits64_raw, __r);
     }
 
     /** @brief Subtraction with precision callbacks */
     _CCCL_API inline fp64_tool_t operator-(const fp64_tool_t& __y) const noexcept {
         fpbits64_t __a = bits, __b = __y.bits;
-        __FP64_TOOL_CALLBACK__(__a); 
-        __FP64_TOOL_CALLBACK__(__b);
+        _CCCL_FP64_TOOL_CALLBACK(__a); 
+        _CCCL_FP64_TOOL_CALLBACK(__b);
         #if defined(__CUDA_ARCH__)
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __dsub_rn(__FP64_TOOL_BIT_CAST__(double, __a), __FP64_TOOL_BIT_CAST__(double, __b)));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __dsub_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
         #else
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __FP64_TOOL_BIT_CAST__(double, __a) - __FP64_TOOL_BIT_CAST__(double, __b));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, _CCCL_FP64_TOOL_BIT_CAST(double, __a) - _CCCL_FP64_TOOL_BIT_CAST(double, __b));
         #endif
-        __FP64_TOOL_CALLBACK__(__r);
+        _CCCL_FP64_TOOL_CALLBACK(__r);
         return fp64_tool_t(fpbits64_raw, __r);
     }
 
     /** @brief Multiplication with precision callbacks */
     _CCCL_API inline fp64_tool_t operator*(const fp64_tool_t& __y) const noexcept {
         fpbits64_t __a = bits, __b = __y.bits;
-        __FP64_TOOL_CALLBACK__(__a); 
-        __FP64_TOOL_CALLBACK__(__b);
+        _CCCL_FP64_TOOL_CALLBACK(__a); 
+        _CCCL_FP64_TOOL_CALLBACK(__b);
         #if defined(__CUDA_ARCH__)
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __dmul_rn(__FP64_TOOL_BIT_CAST__(double, __a), __FP64_TOOL_BIT_CAST__(double, __b)));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __dmul_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
         #else
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __FP64_TOOL_BIT_CAST__(double, __a) * __FP64_TOOL_BIT_CAST__(double, __b));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, _CCCL_FP64_TOOL_BIT_CAST(double, __a) * _CCCL_FP64_TOOL_BIT_CAST(double, __b));
         #endif
-        __FP64_TOOL_CALLBACK__(__r);
+        _CCCL_FP64_TOOL_CALLBACK(__r);
         return fp64_tool_t(fpbits64_raw, __r);
     }
 
     /** @brief Division with precision callbacks */
     _CCCL_API inline fp64_tool_t operator/(const fp64_tool_t& __y) const noexcept {
         fpbits64_t __a = bits, __b = __y.bits;
-        __FP64_TOOL_CALLBACK__(__a); 
-        __FP64_TOOL_CALLBACK__(__b);
+        _CCCL_FP64_TOOL_CALLBACK(__a); 
+        _CCCL_FP64_TOOL_CALLBACK(__b);
         #if defined(__CUDA_ARCH__)
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __ddiv_rn(__FP64_TOOL_BIT_CAST__(double, __a), __FP64_TOOL_BIT_CAST__(double, __b)));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __ddiv_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
         #else
-            fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __FP64_TOOL_BIT_CAST__(double, __a) / __FP64_TOOL_BIT_CAST__(double, __b));
+            fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, _CCCL_FP64_TOOL_BIT_CAST(double, __a) / _CCCL_FP64_TOOL_BIT_CAST(double, __b));
         #endif
-        __FP64_TOOL_CALLBACK__(__r);
+        _CCCL_FP64_TOOL_CALLBACK(__r);
         return fp64_tool_t(fpbits64_raw, __r);
     }
 
@@ -787,32 +787,32 @@ public:
 
     /** @brief Equality comparison */
     _CCCL_API inline bool operator==(const fp64_tool_t& __y) const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits) == __FP64_TOOL_BIT_CAST__(double, __y.bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits) == _CCCL_FP64_TOOL_BIT_CAST(double, __y.bits); 
     }
     
     /** @brief Inequality comparison */
     _CCCL_API inline bool operator!=(const fp64_tool_t& __y) const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits) != __FP64_TOOL_BIT_CAST__(double, __y.bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits) != _CCCL_FP64_TOOL_BIT_CAST(double, __y.bits); 
     }
     
     /** @brief Less than comparison */
     _CCCL_API inline bool operator<(const fp64_tool_t& __y) const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits) < __FP64_TOOL_BIT_CAST__(double, __y.bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits) < _CCCL_FP64_TOOL_BIT_CAST(double, __y.bits); 
     }
     
     /** @brief Greater than comparison */
     _CCCL_API inline bool operator>(const fp64_tool_t& __y) const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits) > __FP64_TOOL_BIT_CAST__(double, __y.bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits) > _CCCL_FP64_TOOL_BIT_CAST(double, __y.bits); 
     }
     
     /** @brief Less than or equal comparison */
     _CCCL_API inline bool operator<=(const fp64_tool_t& __y) const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits) <= __FP64_TOOL_BIT_CAST__(double, __y.bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits) <= _CCCL_FP64_TOOL_BIT_CAST(double, __y.bits); 
     }
     
     /** @brief Greater than or equal comparison */
     _CCCL_API inline bool operator>=(const fp64_tool_t& __y) const noexcept { 
-        return __FP64_TOOL_BIT_CAST__(double, bits) >= __FP64_TOOL_BIT_CAST__(double, __y.bits); 
+        return _CCCL_FP64_TOOL_BIT_CAST(double, bits) >= _CCCL_FP64_TOOL_BIT_CAST(double, __y.bits); 
     }
 };
 
@@ -830,13 +830,13 @@ public:
  */
 _CCCL_API inline fp64_tool_t sqrt(const fp64_tool_t& __x) noexcept {
     fpbits64_t __a = __x.bits;
-    __FP64_TOOL_CALLBACK__(__a);
+    _CCCL_FP64_TOOL_CALLBACK(__a);
     #if defined(__CUDA_ARCH__)
-        fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __dsqrt_rn(__FP64_TOOL_BIT_CAST__(double, __a)));
+        fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __dsqrt_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a)));
     #else
-        fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, ::sqrt(__FP64_TOOL_BIT_CAST__(double, __a)));
+        fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, ::sqrt(_CCCL_FP64_TOOL_BIT_CAST(double, __a)));
     #endif
-    __FP64_TOOL_CALLBACK__(__r);
+    _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool_t(fpbits64_raw, __r);
 }
 
@@ -854,15 +854,15 @@ _CCCL_API inline fp64_tool_t sqrt(const fp64_tool_t& __x) noexcept {
  */
 _CCCL_API inline fp64_tool_t fma(const fp64_tool_t& __x, const fp64_tool_t& __y, const fp64_tool_t& __z) noexcept {
     fpbits64_t __a = __x.bits, __b = __y.bits, __c = __z.bits;
-    __FP64_TOOL_CALLBACK__(__a); 
-    __FP64_TOOL_CALLBACK__(__b); 
-    __FP64_TOOL_CALLBACK__(__c);
+    _CCCL_FP64_TOOL_CALLBACK(__a); 
+    _CCCL_FP64_TOOL_CALLBACK(__b); 
+    _CCCL_FP64_TOOL_CALLBACK(__c);
     #if defined(__CUDA_ARCH__)
-        fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, __fma_rn(__FP64_TOOL_BIT_CAST__(double, __a), __FP64_TOOL_BIT_CAST__(double, __b), __FP64_TOOL_BIT_CAST__(double, __c)));
+        fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, __fma_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b), _CCCL_FP64_TOOL_BIT_CAST(double, __c)));
     #else
-        fpbits64_t __r = __FP64_TOOL_BIT_CAST__(fpbits64_t, ::fma(__FP64_TOOL_BIT_CAST__(double, __a), __FP64_TOOL_BIT_CAST__(double, __b), __FP64_TOOL_BIT_CAST__(double, __c)));
+        fpbits64_t __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64_t, ::fma(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b), _CCCL_FP64_TOOL_BIT_CAST(double, __c)));
     #endif
-    __FP64_TOOL_CALLBACK__(__r);
+    _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool_t(fpbits64_raw, __r);
 }
 

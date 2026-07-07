@@ -98,13 +98,13 @@ namespace ts
         // Range expectation for the reference/analysis.
         //   * Legacy packed API: def/fast flush (FTZ/DAZ) -> range::normal; accurate
         //     is full IEEE -> range::full.
-        //   * Unpacked approach (__FPEMU_PACKED_VIA_UNPACKED__==1, i.e. the
+        //   * Unpacked approach (_CCCL_FPEMU_PACKED_VIA_UNPACKED==1, i.e. the
         //     fp64emu_unpacked type and the packed-via-unpacked test build): the
         //     unpack/pack are fully accurate and method-INDEPENDENT, so every method
         //     is full-range (no FTZ/DAZ). accurate is bit-exact IEEE -> range::full;
         //     def/fast handle denormals correctly (checked) but keep the sanctioned
         //     inf/nan relaxations (fp32 fast inf-inf, overflow boundary) -> range::finite.
-#if defined(__FPEMU_PACKED_VIA_UNPACKED__) && (__FPEMU_PACKED_VIA_UNPACKED__ == 1)
+#if defined(_CCCL_FPEMU_PACKED_VIA_UNPACKED) && (_CCCL_FPEMU_PACKED_VIA_UNPACKED == 1)
         static constexpr ts::range range            = (mthd == ts::method::accurate) ? ts::range::full :
                                                        (mthd == ts::method::def)      ? ts::range::finite :
                                                        (mthd == ts::method::fast)     ? ts::range::finite :

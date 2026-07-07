@@ -29,6 +29,6 @@ Demonstrates runtime-configurable precision reduction:
 - **Use case**: Exploring precision thresholds without recompilation
 
 Features demonstrated:
-- Changing mantissa precision at runtime via `FP64_TOOL_RUNTIME_SIZE`
+- Changing mantissa precision at runtime via `CCCL_FP64_TOOL_RUNTIME_SIZE`
 - Testing precision boundaries (e.g., 1 + 2⁻⁵² with full vs. reduced mantissa)
 - Verifying that precision reduction correctly rounds away small values

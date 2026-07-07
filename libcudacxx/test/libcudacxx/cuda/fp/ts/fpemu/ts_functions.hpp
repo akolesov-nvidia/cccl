@@ -467,7 +467,6 @@ struct polyf8_function
     }
 };
 
-#if __FPEMU_UNPACKED__ == 1
 
 template<typename Tin, typename Tout, ts::rounding rm = ts::rounding::def>
 struct polyu8_function
@@ -497,7 +496,6 @@ struct polyu8_function
     }
 };
 
-#endif // __FPEMU_UNPACKED__ == 1
 
 // Standalone compilation of device function
 #if defined __DEVICE_FUNC__

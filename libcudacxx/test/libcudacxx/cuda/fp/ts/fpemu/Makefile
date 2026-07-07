@@ -88,8 +88,8 @@ ifdef ABI
     ABI_DATA    := $(word 1,$(subst $(COMMA), ,$(ABI)))
     ABI_CONTROL := $(word 2,$(subst $(COMMA), ,$(ABI)))
     LINKAGE := static
-    ABI_FLAGS = -D__FPMP_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPMP_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL) \
-                -D__FPEMU_ABI_PRESERVE_N_DATA__=$(ABI_DATA) -D__FPEMU_ABI_PRESERVE_N_CONTROL__=$(ABI_CONTROL)
+    ABI_FLAGS = -D_CCCL_FPMP_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPMP_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL) \
+                -D_CCCL_FPEMU_ABI_PRESERVE_N_DATA=$(ABI_DATA) -D_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL=$(ABI_CONTROL)
 else
     ABI_FLAGS =
 endif
@@ -351,10 +351,10 @@ COMMONFLAGS += $(EXTRA_FLAGS) $(ABI_FLAGS)
 ifneq (,$(filter $(LINKAGE), static lto))
     LIB_BASE ?= cufp
     LIB_NAME = $(OUT)/lib/lib$(LIB_BASE)$(TARGET_SUFFIX).a
-	COMMONFLAGS += -DFPEMU_LIB=1
+	COMMONFLAGS += -DCCCL_FPEMU_LIB=1
 else
     LIB_NAME =
-	COMMONFLAGS += -D__FPEMU_INLINE__
+	COMMONFLAGS += -D_CCCL_FPEMU_INLINE
 endif
 
 ifneq (,$(filter $(LINKAGE), lto))
@@ -434,7 +434,7 @@ ifdef PRINT_LIMIT
 endif
 
 ifneq (,$(filter $(PACKED_VIA_UNPACKED), 1 y Y yes Yes true True))
-	COMMONFLAGS += -D__FPEMU_PACKED_VIA_UNPACKED__=1
+	COMMONFLAGS += -D_CCCL_FPEMU_PACKED_VIA_UNPACKED=1
 endif
 
 # TIMING: run timing (default is 0)

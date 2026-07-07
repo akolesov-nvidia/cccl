@@ -7,7 +7,7 @@
       D2FF_KERNEL_NAME  — name of the __global__ kernel function
       D2FF_WRAPPER_NAME — name of the host wrapper that launches + times it
 
-    FPMP_OPTIMIZED_DOUBLE_TO_FPMP must be set (or left at default 0) before
+    CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP must be set (or left at default 0) before
     this include to select the conversion path under test.
 */
 

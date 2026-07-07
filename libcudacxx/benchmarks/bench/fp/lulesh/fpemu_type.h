@@ -10,7 +10,7 @@
 #endif
 
 #if defined(USE_FPMP)
-  #define FPMP_EXPLICIT_CASTS 1
+  #define CCCL_FPMP_EXPLICIT_CASTS 1
   #include "fpmp.h"
   #include "fpmp_math.h"
   using fp64emu_t = __nv_fpmp2_t<float, fpmp::method::__METHOD__>;

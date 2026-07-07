@@ -55,69 +55,69 @@ namespace cuda::experimental
  * Compilation mode macros
  *********************************************************************/
 
-// FPEMU_LIB: Compilation mode control.
-//   1 = link against precompiled library (maps to __FPEMU_USE_LIB__)
+// CCCL_FPEMU_LIB: Compilation mode control.
+//   1 = link against precompiled library (maps to _CCCL_FPEMU_USE_LIB)
 //   0 = header-only inline mode (default)
-// FPEMU_INLINE is the inverse alias: FPEMU_INLINE=1 is equivalent to FPEMU_LIB=0.
-#ifndef FPEMU_LIB
-    #ifdef FPEMU_INLINE
-        #if FPEMU_INLINE == 1
-            #define FPEMU_LIB 0
+// CCCL_FPEMU_INLINE is the inverse alias: CCCL_FPEMU_INLINE=1 is equivalent to CCCL_FPEMU_LIB=0.
+#ifndef CCCL_FPEMU_LIB
+    #ifdef CCCL_FPEMU_INLINE
+        #if CCCL_FPEMU_INLINE == 1
+            #define CCCL_FPEMU_LIB 0
         #else
-            #define FPEMU_LIB 1
+            #define CCCL_FPEMU_LIB 1
         #endif
     #else
-        #define FPEMU_LIB 0
+        #define CCCL_FPEMU_LIB 0
     #endif
 #endif
-#ifndef FPEMU_INLINE
-    #if FPEMU_LIB == 1
-        #define FPEMU_INLINE 0
+#ifndef CCCL_FPEMU_INLINE
+    #if CCCL_FPEMU_LIB == 1
+        #define CCCL_FPEMU_INLINE 0
     #else
-        #define FPEMU_INLINE 1
+        #define CCCL_FPEMU_INLINE 1
     #endif
 #endif
-#if FPEMU_LIB == 1 && !defined(__FPEMU_USE_LIB__)
-    #define __FPEMU_USE_LIB__
+#if CCCL_FPEMU_LIB == 1 && !defined(_CCCL_FPEMU_USE_LIB)
+    #define _CCCL_FPEMU_USE_LIB
 #endif
 
 // If neither inline nor lib is defined internally, default to inline
-#if !defined __FPEMU_INLINE__ && !defined __FPEMU_BUILD_LIB__ && !defined __FPEMU_USE_LIB__
-    #define __FPEMU_INLINE__
+#if !defined _CCCL_FPEMU_INLINE && !defined _CCCL_FPEMU_BUILD_LIB && !defined _CCCL_FPEMU_USE_LIB
+    #define _CCCL_FPEMU_INLINE
 #endif
 
 // If neither host nor device is defined, default to device
 #if defined __CUDACC__
-    #undef  __FPEMU_HOST__
-    #undef  __FPEMU_DEVICE__
-    #define __FPEMU_DEVICE__
+    #undef  _CCCL_FPEMU_HOST
+    #undef  _CCCL_FPEMU_DEVICE
+    #define _CCCL_FPEMU_DEVICE
 #else
-    #undef  __FPEMU_DEVICE__
-    #undef  __FPEMU_HOST__
-    #define __FPEMU_HOST__
+    #undef  _CCCL_FPEMU_DEVICE
+    #undef  _CCCL_FPEMU_HOST
+    #define _CCCL_FPEMU_HOST
 #endif
 
 /*
 // Custom ABI for builtins in static library
 */
-#if ((defined __CUDA_LIBDEVICE__) || (defined __FPEMU_BUILD_LIB__) || (defined __FPEMU_USE_LIB__)) && \
+#if ((defined __CUDA_LIBDEVICE__) || (defined _CCCL_FPEMU_BUILD_LIB) || (defined _CCCL_FPEMU_USE_LIB)) && \
      (defined(__CUDACC_VER_MAJOR__) && (__CUDACC_VER_MAJOR__ >= 13))
-  #ifndef __FPEMU_ABI_PRESERVE_N_DATA__
-    #define __FPEMU_ABI_PRESERVE_N_DATA__    -1
+  #ifndef _CCCL_FPEMU_ABI_PRESERVE_N_DATA
+    #define _CCCL_FPEMU_ABI_PRESERVE_N_DATA    -1
   #endif
-  #ifndef __FPEMU_ABI_PRESERVE_N_CONTROL__
-    #define __FPEMU_ABI_PRESERVE_N_CONTROL__ -1
+  #ifndef _CCCL_FPEMU_ABI_PRESERVE_N_CONTROL
+    #define _CCCL_FPEMU_ABI_PRESERVE_N_CONTROL -1
   #endif
-  #if (__FPEMU_ABI_PRESERVE_N_DATA__ != -1) && (__FPEMU_ABI_PRESERVE_N_CONTROL__ != -1)
-    #define __FPEMU_ABI_STR1__(x) #x
-    #define __FPEMU_ABI_STR__(x) __FPEMU_ABI_STR1__(x)
-    #define __FPEMU_ABI_PRAGMA_TEXT__ nv_abi preserve_n_data(__FPEMU_ABI_PRESERVE_N_DATA__) preserve_n_control(__FPEMU_ABI_PRESERVE_N_CONTROL__)
-    #define __FPEMU_ABI__ _Pragma(__FPEMU_ABI_STR__(__FPEMU_ABI_PRAGMA_TEXT__))
+  #if (_CCCL_FPEMU_ABI_PRESERVE_N_DATA != -1) && (_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL != -1)
+    #define _CCCL_FPEMU_ABI_STR1(x) #x
+    #define _CCCL_FPEMU_ABI_STR(x) _CCCL_FPEMU_ABI_STR1(x)
+    #define _CCCL_FPEMU_ABI_PRAGMA_TEXT nv_abi preserve_n_data(_CCCL_FPEMU_ABI_PRESERVE_N_DATA) preserve_n_control(_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL)
+    #define _CCCL_FPEMU_ABI _Pragma(_CCCL_FPEMU_ABI_STR(_CCCL_FPEMU_ABI_PRAGMA_TEXT))
   #else
-    #define __FPEMU_ABI__
+    #define _CCCL_FPEMU_ABI
   #endif
 #else
-  #define __FPEMU_ABI__
+  #define _CCCL_FPEMU_ABI
 #endif
 
 /*********************************************************************
@@ -132,11 +132,11 @@ namespace cuda::experimental
 // The only decorator that still needs a dedicated macro is the extern-"C"
 // ABI symbol used when building or linking the standalone libcufp library.
 #if defined __CUDA_LIBDEVICE__
-    #define __FPEMU_BUILTIN_DECL__   __FPEMU_ABI__ extern "C" _CCCL_HOST_DEVICE
-#elif defined __FPEMU_INLINE__
-    #define __FPEMU_BUILTIN_DECL__   _CCCL_TRIVIAL_API
-#else // __FPEMU_BUILD_LIB__ or __FPEMU_USE_LIB__
-    #define __FPEMU_BUILTIN_DECL__   __FPEMU_ABI__ extern "C" _CCCL_HOST_DEVICE
+    #define _CCCL_FPEMU_BUILTIN_DECL   _CCCL_FPEMU_ABI extern "C" _CCCL_HOST_DEVICE
+#elif defined _CCCL_FPEMU_INLINE
+    #define _CCCL_FPEMU_BUILTIN_DECL   _CCCL_TRIVIAL_API
+#else // _CCCL_FPEMU_BUILD_LIB or _CCCL_FPEMU_USE_LIB
+    #define _CCCL_FPEMU_BUILTIN_DECL   _CCCL_FPEMU_ABI extern "C" _CCCL_HOST_DEVICE
 #endif
 
 /*********************************************************************
@@ -144,24 +144,21 @@ namespace cuda::experimental
  *********************************************************************/
 
 // Define the default values for the enums
-#ifndef __FPEMU_DEFAULT_ROUNDING__
-    #define __FPEMU_DEFAULT_ROUNDING__ rn
+#ifndef _CCCL_FPEMU_DEFAULT_ROUNDING
+    #define _CCCL_FPEMU_DEFAULT_ROUNDING rn
 #endif
 
 // Unpacked API presence. Default ON so the packed (fpbits64_t) legacy API and
 // the unpacked (fpbits64_unpacked_t) API co-exist in the same package: this
 // gates the *_unpacked cores, the universal pack/unpack, and the *_unpacked
 // builtins/operators. Set to 0 only to strip the unpacked API entirely.
-#ifndef __FPEMU_UNPACKED__
-    #define __FPEMU_UNPACKED__ 1
-#endif
 
 // Route the PACKED API through the unpack -> *_unpacked core -> pack pipeline
 // instead of the legacy fused kernels. Set by the Makefile's PACKED_VIA_UNPACKED=y.
 // This is a TESTING knob (it lets the packed test harness exercise the unpacked
 // cores); default OFF keeps the packed API on its legacy implementations.
-#ifndef __FPEMU_PACKED_VIA_UNPACKED__
-    #define __FPEMU_PACKED_VIA_UNPACKED__ 0
+#ifndef _CCCL_FPEMU_PACKED_VIA_UNPACKED
+    #define _CCCL_FPEMU_PACKED_VIA_UNPACKED 0
 #endif
 
 /*********************************************************************
@@ -227,7 +224,7 @@ namespace fpemu
         rz    =  1,
         ru    =  2,
         rd    =  3,
-        def   = __FPEMU_DEFAULT_ROUNDING__
+        def   = _CCCL_FPEMU_DEFAULT_ROUNDING
     };
 
 } // namespace fpemu

@@ -14,22 +14,6 @@
 #include "ts_types.hpp"
 #include "ts_utils.hpp"
 
-// Check if requested type is fp64mp2 but FPMP_FP64MP2_ENABLE is disabled
-#if (FPMP_TYPE_ID == fp64mp2_id) && (FPMP_FP64MP2_ENABLE != 1)
-
-#include <cstdio>
-
-// Minimal main() when fp64mp2 is requested but not enabled
-int main (int argc, char *argv[])
-{
-    (void)argc; (void)argv;
-    fprintf(stderr, "Test skipped: fp64mp2 type requested but FPMP_FP64MP2_ENABLE=0\n"
-           "Rebuild with -DFPMP_FP64MP2_ENABLE=1 to enable fp64mp2 support.\n");
-    return 0;
-}
-
-#else // fp64mp2 enabled or using fp32mp2
-
 #include "ts_utils.hpp"
 #include "ts_functions.hpp"
 #include "ts_print.hpp"
@@ -437,5 +421,3 @@ int main (int argc, char *argv[])
 
     return 0;
 }
-
-#endif // fp64mp2 enabled or using fp32mp2

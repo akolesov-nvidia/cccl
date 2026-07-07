@@ -207,7 +207,7 @@ ts::result compare(native_out_type a, native_ref_type r, uint64_t& diff, int32_t
         // Branch for big finite reference and NaNs/INF result
         else if (std::isfinite(r_double) && (std::isinf(a_double)))
         {
-            int32_t big_exp = FP64_EXP_MAX + FP64_BIAS;
+            int32_t big_exp = FP64_EXP_MAX + _CCCL_FP64_BIAS;
             
             if ((ts::config.range == ts::range::normal) || (ts::config.range == ts::range::finite))
             {

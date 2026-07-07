@@ -77,21 +77,19 @@ static_assert(std::is_convertible<fp32mp2_high, fp32mp2_high>::value, "");
 /* Cross-FpType conversion contract:
  *   - Upconvert (fp32mp2 -> fp64mp2) is implicit (lossless widening, like
  *     IEEE float -> double).
- *   - Downconvert (fp64mp2 -> fp32mp2) honors __FPMP_EXPLICIT__: implicit
- *     under FPMP_EXPLICIT_CASTS=0 (default), explicit under =1.
+ *   - Downconvert (fp64mp2 -> fp32mp2) honors _CCCL_FPMP_EXPLICIT: implicit
+ *     under CCCL_FPMP_EXPLICIT_CASTS=0 (default), explicit under =1.
  *   The dedicated cross-precision invariants are exercised in detail by
  *   units/fpmp_cross_prec.cpp. */
-#if FPMP_FP64MP2_ENABLE == 1
 static_assert(std::is_convertible<fp32mp2, fp64mp2>::value,
               "fp32mp2 -> fp64mp2 must be implicit (lossless upconvert)");
-  #if FPMP_EXPLICIT_CASTS == 1
+  #if CCCL_FPMP_EXPLICIT_CASTS == 1
     static_assert(!std::is_convertible<fp64mp2, fp32mp2>::value,
                   "fp64mp2 -> fp32mp2 must be explicit under EXPLICIT_CASTS=1");
   #else
     static_assert(std::is_convertible<fp64mp2, fp32mp2>::value,
                   "fp64mp2 -> fp32mp2 implicit by default (matches double -> fp32mp2)");
   #endif
-#endif
 
 /* Assignment side of the contract.
  *
@@ -117,14 +115,12 @@ static_assert(std::is_same<decltype(fp32mp2_low(std::declval<fp32mp2_high>())),
 /* =====================================================================
  * Compile-time contract for fp64mp2 (FpType == double)
  * ===================================================================== */
-#if FPMP_FP64MP2_ENABLE == 1
 static_assert( std::is_constructible<fp64mp2_low,     fp64mp2_high>::value, "");
 static_assert( std::is_constructible<fp64mp2_high, fp64mp2>         ::value, "");
 static_assert(!std::is_convertible <fp64mp2_high, fp64mp2_low>::value, "");
 static_assert(!std::is_convertible <fp64mp2,          fp64mp2_low>::value, "");
 static_assert(!std::is_assignable  <fp64mp2_low&,    fp64mp2_high>::value, "");
 static_assert(!std::is_assignable  <fp64mp2_low&,    fp64mp2>         ::value, "");
-#endif
 
 /* =====================================================================
  * Runtime bit-equality check
@@ -158,14 +154,10 @@ TARGET_DEVICE void compute_pairs(F32* p32, F64* p64) {
     p32[1] = { 0x1.fffffep+126f,     -0x1.0p+102f };  /* near float max */
     p32[2] = { 1.0e-30f,              1.0e-38f };     /* tiny */
     p32[3] = { -3.1415927f,           1.5e-8f };      /* negative */
-#if FPMP_FP64MP2_ENABLE == 1
     p64[0] = { 1.234567890123456,     1.0e-18 };
     p64[1] = { 1.0e+300,              1.0e+283 };
     p64[2] = { -2.7182818284590452,   1.5e-17 };
     p64[3] = { 1.0e-200,              1.0e-217 };
-#else
-    (void)p64;
-#endif
 }
 
 int main() {
@@ -201,7 +193,6 @@ int main() {
         check_bit_exact<fp32mp2_high, fp32mp2_low>    (lbl, fp32mp2_high(p32[i].hi, p32[i].lo));
     }
 
-#if FPMP_FP64MP2_ENABLE == 1
     printf("\n  --- fp64mp2: spot-check cross-accuracy pairs ---\n");
     for (int i = 0; i < 4; ++i) {
         char lbl[80];
@@ -212,7 +203,6 @@ int main() {
         check_bit_exact<fp64mp2,          fp64mp2_low>(lbl,
             fp64mp2         (p64[i].hi, p64[i].lo));
     }
-#endif
 
     /* Sanity: exercise the four explicit-conversion shapes a user may write
      * and confirm each routes through the bit-exact cross-accuracy ctor.
