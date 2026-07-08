@@ -481,8 +481,8 @@ struct polyu8_function
         }
         else
         {
-            fpbits64_unpacked x_unpacked = __fp64emu_unpacked_from_double(x);
-            fpbits64_unpacked poly = __fp64emu_unpacked_mid_mad(x_unpacked,__fp64emu_unpacked_from_double(C7),
+            __fpbits64_unpacked x_unpacked = __fp64emu_unpacked_from_double(x);
+            __fpbits64_unpacked poly = __fp64emu_unpacked_mid_mad(x_unpacked,__fp64emu_unpacked_from_double(C7),
                                                                                        __fp64emu_unpacked_from_double(C6));
             poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C5));
             poly = __fp64emu_unpacked_mid_mad(poly,x_unpacked,__fp64emu_unpacked_from_double(C4));

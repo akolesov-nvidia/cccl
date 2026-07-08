@@ -128,8 +128,8 @@ namespace cuda::experimental
     #define _CCCL_FPEMU_DEFAULT_ROUNDING rn
 #endif
 
-// Unpacked API presence. Default ON so the packed (fpbits64) legacy API and
-// the unpacked (fpbits64_unpacked) API co-exist in the same package: this
+// Unpacked API presence. Default ON so the packed (__fpbits64) legacy API and
+// the unpacked (__fpbits64_unpacked) API co-exist in the same package: this
 // gates the *_unpacked cores, the universal pack/unpack, and the *_unpacked
 // builtins/operators. Set to 0 only to strip the unpacked API entirely.
 
@@ -148,48 +148,47 @@ namespace cuda::experimental
 /**
 * @brief Bit representation of a double-precision floating point number
 *
-* This struct provides a simple wrapper around a 64-bit integer value that represents
-* the IEEE-754 binary encoding of a double-precision floating point number.
-* The value field contains the raw bits including sign, exponent and mantissa.
+* @internal Library-internal type. It is the raw-bits vocabulary of the emulation
+* builtins (and the extern-"C" library ABI); it is NOT part of the public C++ API.
+* C++ users operate on the fpemu class (double in, overloaded ops, double out) and
+* never handle __fpbits64 directly. If the builtins are ever exposed to compilers,
+* a public alias can be introduced then.
+*
+* Holds the IEEE-754 binary encoding of a double (sign, exponent and mantissa bits).
 */
-typedef uint64_t fpbits64;
+typedef uint64_t __fpbits64;
 
 /**
 * @brief Unpacked representation of a double-precision floating point number
-* 
-* This struct represents a double-precision floating point number in an unpacked format.
-* It contains the sign, exponent, and mantissa components.
+*
+* @internal Library-internal type (see __fpbits64). Represents a double in unpacked
+* form (separate sign, exponent, mantissa) for the *_unpacked builtins; not public.
 */
 typedef struct 
 {
     uint32_t sign;
     uint32_t exponent;
     uint64_t mantissa;
-} fpbits64_unpacked;
+} __fpbits64_unpacked;
 
-// NOTE: the public fpemu_accuracy enum now lives in <cuda/__fp/fpemu.h>
-// (the user-facing entry point).
-
-    /**
-    * @brief Rounding modes for floating point operations
-    *
-    * Enumeration of supported rounding modes:
-    * - rn: Round to nearest (ties to even) - default IEEE-754 rounding
-    * - rz: Round toward zero (truncation)
-    * - ru: Round toward positive infinity 
-    * - rd: Round toward negative infinity
-    */
-    enum struct __fpemu_rounding
-    {
-        unset = -1,
-        rn    =  0,
-        rz    =  1,
-        ru    =  2,
-        rd    =  3,
-        def   = _CCCL_FPEMU_DEFAULT_ROUNDING
-    };
-
-
+/**
+* @brief Rounding modes for floating point operations
+*
+* Enumeration of supported rounding modes:
+* - rn: Round to nearest (ties to even) - default IEEE-754 rounding
+* - rz: Round toward zero (truncation)
+* - ru: Round toward positive infinity 
+* - rd: Round toward negative infinity
+*/
+enum struct __fpemu_rounding
+{
+    unset = -1,
+    rn    =  0,
+    rz    =  1,
+    ru    =  2,
+    rd    =  3,
+    def   = _CCCL_FPEMU_DEFAULT_ROUNDING
+};
 
 } // namespace cuda::experimental
 

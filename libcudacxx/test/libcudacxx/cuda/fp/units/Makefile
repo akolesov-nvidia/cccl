@@ -50,7 +50,7 @@ OUT     ?= $(THIS_DIR)/_out
 # Linkage mode: `inline` (default, header-only) | `static` | `lto`.
 # static/lto build + link the precompiled library (libcufp) instead of inlining
 # every op. The library build itself lives in the dev-only cccl-fpdev repo
-# (make/lib.mk + src/), a sibling of the CCCL checkout by default; FPDEV_DIR can
+# (lib/make/lib.mk + lib/src/ + lib/include/), a sibling of the CCCL checkout by default; FPDEV_DIR can
 # be overridden (the cccl-fpdev root Makefile passes it explicitly).
 LINKAGE       ?= inline
 DEVICE_SUFFIX ?=
@@ -122,7 +122,7 @@ OBJFLAGS  += $(UNIFIED_FLAGS) $(EXTRA_FLAGS)
 LINKFLAGS += $(EXTRA_FLAGS)
 
 # Library linkage: for static/lto compile in use-lib mode (extern-"C" ABI) and
-# link against libcufp built by cccl-fpdev/make/lib.mk. Device adds -dlto (lto)
+# link against libcufp built by cccl-fpdev/lib/make/lib.mk. Device adds -dlto (lto)
 # or -rdc=true (static); host just links the .a. inline mode leaves LIB_NAME
 # empty so the header-only path is unchanged.
 ifneq (,$(filter $(LINKAGE),static lto))
@@ -186,7 +186,7 @@ $(OUT):
 # Build the library (only a real prerequisite when LINKAGE=static|lto; otherwise
 # LIB_NAME is empty and this rule is never referenced).
 $(LIB_NAME):
-	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) CCCL_ROOT=$(abspath $(CCCL_INCLUDE)/../..) lib
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/lib/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) CCCL_ROOT=$(abspath $(CCCL_INCLUDE)/../..) lib
 
 $(OBJ_FILES): $(OUT)/%.o: $(THIS_DIR)/%.cpp $(LIB_NAME) | $(OUT)
 	$(CXX) $(OBJFLAGS) $(INCLUDES) $< -o $@

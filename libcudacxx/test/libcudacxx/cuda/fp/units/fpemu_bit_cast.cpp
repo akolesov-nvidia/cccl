@@ -35,7 +35,7 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
     #define HOST_DEVICE
 #endif
 
-HOST_DEVICE void print_bits(fpbits64 bits, const char* label)
+HOST_DEVICE void print_bits(__fpbits64 bits, const char* label)
 {
     printf("%s: 0x%016" PRIx64 "\n", label, bits);
 }

@@ -56,10 +56,10 @@ namespace cuda::experimental
 /*
  * Packed-via-unpacked TEST mode (_CCCL_FPEMU_PACKED_VIA_UNPACKED) is configured in
  * fpemu_common.h and set by the Makefile's PACKED_VIA_UNPACKED=y. When ON, the
- * packed (fpbits64) builtins are routed through the combined unpack ->
+ * packed (__fpbits64) builtins are routed through the combined unpack ->
  * *_unpacked core -> pack pipeline so the packed test harness exercises the
  * unpacked cores. When OFF (default), the legacy fused packed kernels are used
- * unchanged (byte-for-byte). The unpacked fpbits64_unpacked ABI builtins
+ * unchanged (byte-for-byte). The unpacked __fpbits64_unpacked ABI builtins
  * always co-exist with the packed API regardless of this flag.
  */
 
@@ -1241,7 +1241,7 @@ _CCCL_TRIVIAL_API uint64_t __internal_fp64emu_shr_jam64 (uint64_t __a,
 ///        bit at bit 62 and whose 'exp' is the biased exponent minus one.
 ///        Shared by divide and square root (square root passes sign = false).
 template<__fpemu_rounding _Rm>
-_CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_round_pack (bool     __sign, 
+_CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_round_pack (bool     __sign, 
                                                           int32_t  __exp, 
                                                           uint64_t __sig) noexcept
 {
@@ -1264,7 +1264,7 @@ _CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_round_pack (bool     __sign,
         else if ((__exp > 0x7FD) || (__sig + __round_increment >= _CCCL_FPEMU_SIGN_64))
         {
             uint64_t __ui64_z = (((uint64_t)__sign << 63) + _CCCL_FPEMU_INF_64) - (uint64_t)(__round_increment == 0 ? 1 : 0);
-            return (fpbits64)__ui64_z;
+            return (__fpbits64)__ui64_z;
         }
     }
 
@@ -1273,10 +1273,10 @@ _CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_round_pack (bool     __sign,
     if (!__sig) __exp = 0;
 
     uint64_t __ui64_z = ((uint64_t)__sign << 63) + ((uint64_t)(uint32_t)__exp << 52) + __sig;
-    return (fpbits64)__ui64_z;
+    return (__fpbits64)__ui64_z;
 } // __internal_fp64emu_round_pack
 
-// NOTE: the fpbits64_unpacked pack/unpack routines
+// NOTE: the __fpbits64_unpacked pack/unpack routines
 //   __internal_fp64emu_unpack / __internal_fp64emu_pack
 // were moved to fpemu_impl_unpack.h (shared prologue/epilogue for every op).
 

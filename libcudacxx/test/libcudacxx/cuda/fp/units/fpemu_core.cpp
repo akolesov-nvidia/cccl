@@ -53,10 +53,10 @@ TARGET_DEVICE void run_example(double *inp, double *out, double* eout)
     double dy = inp[1];
     double dz = inp[2];
 
-    // Convert double to fpbits64
-    fpbits64 ex = __fp64emu_from_double(dx);
-    fpbits64 ey = __fp64emu_from_double(dy);
-    fpbits64 ez = __fp64emu_from_double(dz);
+    // Convert double to __fpbits64
+    __fpbits64 ex = __fp64emu_from_double(dx);
+    __fpbits64 ey = __fp64emu_from_double(dy);
+    __fpbits64 ez = __fp64emu_from_double(dz);
 
     // Perform native double-precision arithmetic
     out[0] = dx * dy;

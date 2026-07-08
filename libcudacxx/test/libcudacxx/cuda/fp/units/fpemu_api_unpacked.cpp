@@ -14,7 +14,7 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
  * - Multiply-add operations (simulated FMA)
  * 
  * The example demonstrates the unpacked floating-point workflow:
- * 1. Convert double values to unpacked format using fpbits64_unpacked
+ * 1. Convert double values to unpacked format using __fpbits64_unpacked
  * 2. Perform arithmetic operations using unpacked C++ API:
  *    - Addition: High accuracy with normal range (ha_normal_dadd_unpacked_rn)
  *    - Multiplication: High accuracy with normal range (ha_normal_dmul_unpacked_rn)

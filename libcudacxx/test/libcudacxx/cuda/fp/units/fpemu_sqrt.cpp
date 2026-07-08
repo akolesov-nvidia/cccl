@@ -131,7 +131,7 @@ TARGET void kern_ref(const double* x, uint64_t* out, int n)
 TARGET void kern_builtin(const double* x, uint64_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
-        fpbits64 a = __fp64emu_from_double(x[i]);
+        __fpbits64 a = __fp64emu_from_double(x[i]);
         uint64_t*  o = out + i * NCONV;
         o[M_RN] = (uint64_t)__fp64emu_dsqrt_rn(a);
         o[M_RZ] = (uint64_t)__fp64emu_dsqrt_rz(a);

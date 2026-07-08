@@ -60,7 +60,7 @@ NUM_BLOCKS  ?= 2048
 
 # Current directory
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-# Dev-only library build (make/lib.mk + src/) lives in the sibling cccl-fpdev
+# Dev-only library build (lib/make/lib.mk + lib/src/ + lib/include/) lives in the sibling cccl-fpdev
 # repo; overridable (the cccl-fpdev root Makefile passes it explicitly).
 FPDEV_DIR ?= $(abspath $(THIS_DIR)/../../../../../../cccl-fpdev)
 # Custom ABI: ABI=x,y (forces LINKAGE=static)
@@ -195,7 +195,7 @@ $(OUT):
 	$(Q)mkdir -p $(OUT)
 
 $(LIB_NAME):
-	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=device OUT=$(OUT) lib
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/lib/make/lib.mk TARGET=device OUT=$(OUT) lib
 
 # Clean up generated files
 clean:

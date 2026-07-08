@@ -85,8 +85,8 @@ static uint32_t native_codes(double x, double y)
 TARGET void kern_builtin(const double* x, const double* y, uint32_t* out, int n)
 {
     for (int i = 0; i < n; i++) {
-        fpbits64 ex = __fp64emu_from_double(x[i]);
-        fpbits64 ey = __fp64emu_from_double(y[i]);
+        __fpbits64 ex = __fp64emu_from_double(x[i]);
+        __fpbits64 ey = __fp64emu_from_double(y[i]);
         uint32_t c = 0;
         c |= (uint32_t)__fp64emu_cmp_eq(ex, ey) << OP_EQ;
         c |= (uint32_t)__fp64emu_cmp_ne(ex, ey) << OP_NE;

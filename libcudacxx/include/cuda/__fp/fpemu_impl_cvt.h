@@ -115,7 +115,7 @@ namespace cuda::experimental
     _CCCL_TRIVIAL_API int64_t __internal_fp64emu_round_to_i64 (bool __sign, uint64_t __sig, uint64_t __sigExtra) noexcept
     {
         const int64_t __sat = __sign ? (int64_t)0x8000000000000000ULL
-                                 : (int64_t)0x7FFFFFFFFFFFFFFFULL;
+                                     : (int64_t)0x7FFFFFFFFFFFFFFFULL;
         bool __increment;
         if constexpr (_Rm == __fpemu_rounding::rn)
         {
@@ -170,7 +170,7 @@ namespace cuda::experimental
     }
 
     template<__fpemu_rounding _Rm  = __fpemu_rounding::rz>
-    _CCCL_TRIVIAL_API  int32_t __internal_fp64emu_fpbits64_to_int (fpbits64 __x) noexcept
+    _CCCL_TRIVIAL_API  int32_t __internal_fp64emu_fpbits64_to_int (__fpbits64 __x) noexcept
     {
         const bool    __sign = ((uint64_t)__x >> 63) != 0;
         const int32_t __exp  = (int32_t)(((uint64_t)__x >> _CCCL_FP64_MANT_BITS) & 0x7FF);
@@ -185,7 +185,7 @@ namespace cuda::experimental
     } // __internal_fp64emu_fpbits64_to_int
 
     template<__fpemu_rounding _Rm  = __fpemu_rounding::rz>
-    _CCCL_TRIVIAL_API  uint32_t __internal_fp64emu_fpbits64_to_uint (fpbits64 __x) noexcept
+    _CCCL_TRIVIAL_API  uint32_t __internal_fp64emu_fpbits64_to_uint (__fpbits64 __x) noexcept
     {
         const bool    __sign = ((uint64_t)__x >> 63) != 0;
         const int32_t __exp  = (int32_t)(((uint64_t)__x >> _CCCL_FP64_MANT_BITS) & 0x7FF);
@@ -200,7 +200,7 @@ namespace cuda::experimental
     } // __internal_fp64emu_fpbits64_to_uint
 
     template<__fpemu_rounding _Rm  = __fpemu_rounding::rz>
-    _CCCL_TRIVIAL_API  int64_t __internal_fp64emu_fpbits64_to_ll (fpbits64 __x) noexcept
+    _CCCL_TRIVIAL_API  int64_t __internal_fp64emu_fpbits64_to_ll (__fpbits64 __x) noexcept
     {
         const bool    __sign = ((uint64_t)__x >> 63) != 0;
         const int32_t __exp  = (int32_t)(((uint64_t)__x >> _CCCL_FP64_MANT_BITS) & 0x7FF);
@@ -232,7 +232,7 @@ namespace cuda::experimental
     } // __internal_fp64emu_fpbits64_to_ll
 
     template<__fpemu_rounding _Rm  = __fpemu_rounding::rz>
-    _CCCL_TRIVIAL_API  uint64_t __internal_fp64emu_fpbits64_to_ull (fpbits64 __x) noexcept
+    _CCCL_TRIVIAL_API  uint64_t __internal_fp64emu_fpbits64_to_ull (__fpbits64 __x) noexcept
     {
         const bool    __sign = ((uint64_t)__x >> 63) != 0;
         const int32_t __exp  = (int32_t)(((uint64_t)__x >> _CCCL_FP64_MANT_BITS) & 0x7FF);
@@ -263,7 +263,7 @@ namespace cuda::experimental
         return __internal_fp64emu_round_to_ui64<_Rm>(__sign, __sig_int, __sig_extra);
     } // __internal_fp64emu_fpbits64_to_ull
 
-    _CCCL_TRIVIAL_API  float __internal_fp64emu_fpbits64_to_float (fpbits64 __x) noexcept
+    _CCCL_TRIVIAL_API  float __internal_fp64emu_fpbits64_to_float (__fpbits64 __x) noexcept
     {
         uint64_t __bits = (uint64_t)__x;
         uint32_t __sign = (uint32_t)(__bits >> 63) << 31;
@@ -331,7 +331,7 @@ namespace cuda::experimental
         return __fpemu_bit_cast<float>(__sign | __sig_sub);
     } // __internal_fp64emu_fpbits64_to_float
 
-    _CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_float_to_fpbits64  (float __x) noexcept
+    _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_float_to_fpbits64  (float __x) noexcept
     {
         uint32_t __bits = __fpemu_bit_cast<uint32_t>(__x);
         uint64_t __sign = (uint64_t)(__bits >> 31) << 63;
@@ -341,14 +341,14 @@ namespace cuda::experimental
         if (__exp == 0xFF) 
         {
             if (__frac == 0)
-                return (fpbits64)(__sign | ((uint64_t)0x7FF << _CCCL_FP64_MANT_BITS));
+                return (__fpbits64)(__sign | ((uint64_t)0x7FF << _CCCL_FP64_MANT_BITS));
             // NaN: preserve sign, set quiet bit, widen payload
             uint64_t __d_frac = ((uint64_t)__frac << 29) | ((uint64_t)1 << (_CCCL_FP64_MANT_BITS - 1));
-            return (fpbits64)(__sign | ((uint64_t)0x7FF << _CCCL_FP64_MANT_BITS) | __d_frac);
+            return (__fpbits64)(__sign | ((uint64_t)0x7FF << _CCCL_FP64_MANT_BITS) | __d_frac);
         }
 
         if (__exp == 0 && __frac == 0)
-            return (fpbits64)__sign;
+            return (__fpbits64)__sign;
 
         // Subnormal float → normalize
         if (__exp == 0) 
@@ -361,13 +361,13 @@ namespace cuda::experimental
         // Exact widening conversion
         uint64_t __d_exp  = (uint64_t)(__exp + (_CCCL_FP64_BIAS - _CCCL_FP32_BIAS));
         uint64_t __d_frac = (uint64_t)__frac << (_CCCL_FP64_MANT_BITS - _CCCL_FP32_MANT_BITS);
-        return (fpbits64)(__sign | (__d_exp << _CCCL_FP64_MANT_BITS) | __d_frac);
+        return (__fpbits64)(__sign | (__d_exp << _CCCL_FP64_MANT_BITS) | __d_frac);
     } // __internal_fp64emu_float_to_fpbits64
 
     _CCCL_TRIVIAL_API 
-    fpbits64 __internal_fp64emu_int_to_fpbits64  (int32_t __x) noexcept  
+    __fpbits64 __internal_fp64emu_int_to_fpbits64  (int32_t __x) noexcept  
     { 
-        if (__x == 0) return (fpbits64)0;
+        if (__x == 0) return (__fpbits64)0;
 
         uint64_t __sign  = (__x < 0) ? (1ULL << 63) : 0ULL;
         uint32_t __abs_x = (uint32_t)((__x < 0) ? -(int64_t)__x : (int64_t)__x);
@@ -376,25 +376,25 @@ namespace cuda::experimental
         uint64_t __exp      = (uint64_t)(_CCCL_FP64_BIAS + 31 - __nz);
         uint64_t __mantissa = ((uint64_t)__abs_x << (21 + __nz)) & __fpemu_MANTISSA_MASK;
 
-        return (fpbits64)(__sign | (__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
+        return (__fpbits64)(__sign | (__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
     } // __internal_fp64emu_int_to_fpbits64
 
     _CCCL_TRIVIAL_API 
-    fpbits64 __internal_fp64emu_uint_to_fpbits64 (uint32_t __x) noexcept 
+    __fpbits64 __internal_fp64emu_uint_to_fpbits64 (uint32_t __x) noexcept 
     { 
-        if (__x == 0) return (fpbits64)0;
+        if (__x == 0) return (__fpbits64)0;
 
         int32_t __nz        = __internal_clz((int)__x);
         uint64_t __exp      = (uint64_t)(_CCCL_FP64_BIAS + 31 - __nz);
         uint64_t __mantissa = ((uint64_t)__x << (21 + __nz)) & __fpemu_MANTISSA_MASK;
 
-        return (fpbits64)((__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
+        return (__fpbits64)((__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
     } // __internal_fp64emu_uint_to_fpbits64
 
     _CCCL_TRIVIAL_API 
-    fpbits64 __internal_fp64emu_ll_to_fpbits64   (int64_t __x) noexcept  
+    __fpbits64 __internal_fp64emu_ll_to_fpbits64   (int64_t __x) noexcept  
     { 
-        if (__x == 0) return (fpbits64)0;
+        if (__x == 0) return (__fpbits64)0;
 
         uint64_t __sign = (__x < 0) ? (1ULL << 63) : 0ULL;
         uint64_t __absA = (__x < 0) ? -(uint64_t)__x : (uint64_t)__x;
@@ -406,7 +406,7 @@ namespace cuda::experimental
         {
             // <= 53 significant bits: exact
             uint64_t __mantissa = (__absA << (__nz - 11)) & __fpemu_MANTISSA_MASK;
-            return (fpbits64)(__sign | ((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
+            return (__fpbits64)(__sign | ((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
         }
 
         // > 53 significant bits: round to nearest even
@@ -422,13 +422,13 @@ namespace cuda::experimental
         }
 
         uint64_t __mantissa = __sig53 & __fpemu_MANTISSA_MASK;
-        return (fpbits64)(__sign | ((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
+        return (__fpbits64)(__sign | ((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
     } // __internal_fp64emu_ll_to_fpbits64
 
     _CCCL_TRIVIAL_API 
-    fpbits64 __internal_fp64emu_ull_to_fpbits64  (uint64_t __x) noexcept 
+    __fpbits64 __internal_fp64emu_ull_to_fpbits64  (uint64_t __x) noexcept 
     {
-        if (__x == 0) return (fpbits64)0;
+        if (__x == 0) return (__fpbits64)0;
 
         int32_t __nz = __internal_clzll((int64_t)__x);
         int32_t __exp = _CCCL_FP64_BIAS + 63 - __nz;
@@ -437,7 +437,7 @@ namespace cuda::experimental
         {
             // <= 53 significant bits: exact
             uint64_t __mantissa = (__x << (__nz - 11)) & __fpemu_MANTISSA_MASK;
-            return (fpbits64)(((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
+            return (__fpbits64)(((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
         }
 
         // > 53 significant bits: round to nearest even
@@ -453,63 +453,63 @@ namespace cuda::experimental
         }
 
         uint64_t __mantissa = __sig53 & __fpemu_MANTISSA_MASK;
-        return (fpbits64)(((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
+        return (__fpbits64)(((uint64_t)__exp << _CCCL_FP64_MANT_BITS) | __mantissa);
     } // __internal_fp64emu_ull_to_fpbits64
 
 
-    // fpbits64<->uint64 casts
-    _CCCL_TRIVIAL_API uint64_t   __internal_fp64emu_fpbits64_cast_ull (fpbits64 __x) noexcept { return __x; }
-    _CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_ull_cast_fpbits64 (uint64_t __x) noexcept   { return fpbits64{__x}; }
+    // __fpbits64<->uint64 casts
+    _CCCL_TRIVIAL_API uint64_t   __internal_fp64emu_fpbits64_cast_ull (__fpbits64 __x) noexcept { return __x; }
+    _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_ull_cast_fpbits64 (uint64_t __x) noexcept   { return __fpbits64{__x}; }
 
-    // double<->fpbits64 conversions
-    _CCCL_TRIVIAL_API double     __internal_fp64emu_fpbits64_to_double (fpbits64 __x) noexcept { return __fpemu_bit_cast<double>(__x); }
-    _CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_double_to_fpbits64 (double __x) noexcept
+    // double<->__fpbits64 conversions
+    _CCCL_TRIVIAL_API double     __internal_fp64emu_fpbits64_to_double (__fpbits64 __x) noexcept { return __fpemu_bit_cast<double>(__x); }
+    _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_double_to_fpbits64 (double __x) noexcept
     { 
-        return __fpemu_bit_cast<fpbits64>(__x);
+        return __fpemu_bit_cast<__fpbits64>(__x);
     }
 
 
-    _CCCL_TRIVIAL_API uint64_t   __internal_fp64emu_fpbits64_unpacked_cast_ull (fpbits64_unpacked __x) noexcept 
+    _CCCL_TRIVIAL_API uint64_t   __internal_fp64emu_fpbits64_unpacked_cast_ull (__fpbits64_unpacked __x) noexcept 
     { 
-        fpbits64 __x_packed = __internal_fp64emu_pack(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_pack(__x);
         return __internal_fp64emu_fpbits64_cast_ull(__x_packed);
     }
 
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_ull_cast_fpbits64_unpacked (uint64_t __x) noexcept
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_ull_cast_fpbits64_unpacked (uint64_t __x) noexcept
     { 
-        fpbits64 __x_packed = __internal_fp64emu_ull_cast_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_ull_cast_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }
 
     /**
-     * @brief Convert a fpbits64_unpacked to a double
+     * @brief Convert a __fpbits64_unpacked to a double
      * 
-     * This function converts a fpbits64_unpacked to a double.
+     * This function converts a __fpbits64_unpacked to a double.
      * 
-     * @param x The fpbits64_unpacked to convert
+     * @param x The __fpbits64_unpacked to convert
      * @return The converted double
      */
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API double __internal_fp64emu_fpbits64_unpacked_to_double (fpbits64_unpacked __x) noexcept 
+    _CCCL_TRIVIAL_API double __internal_fp64emu_fpbits64_unpacked_to_double (__fpbits64_unpacked __x) noexcept 
     { 
-        fpbits64 __x_packed = __internal_fp64emu_pack<_Rm>(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_pack<_Rm>(__x);
         return __internal_fp64emu_fpbits64_to_double(__x_packed); 
     }
 
     /**
-     * @brief Convert a double to a fpbits64_unpacked
+     * @brief Convert a double to a __fpbits64_unpacked
      * 
-     * This function converts a double to a fpbits64_unpacked.
+     * This function converts a double to a __fpbits64_unpacked.
      * 
      * @param x The double to convert
-     * @return The converted fpbits64_unpacked
+     * @return The converted __fpbits64_unpacked
      */
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_double_to_fpbits64_unpacked (double __x) noexcept
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_double_to_fpbits64_unpacked (double __x) noexcept
     { 
-        fpbits64 __x_packed = __internal_fp64emu_double_to_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_double_to_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }
 
@@ -527,7 +527,7 @@ namespace cuda::experimental
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API  int32_t __internal_fp64emu_fpbits64_unpacked_to_int (fpbits64_unpacked __x) noexcept
+    _CCCL_TRIVIAL_API  int32_t __internal_fp64emu_fpbits64_unpacked_to_int (__fpbits64_unpacked __x) noexcept
     {
         const bool    __sign = (__x.sign != 0);
         const int32_t __exp  = (int32_t)__x.exponent;
@@ -540,7 +540,7 @@ namespace cuda::experimental
     }
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API  uint32_t __internal_fp64emu_fpbits64_unpacked_to_uint (fpbits64_unpacked __x) noexcept
+    _CCCL_TRIVIAL_API  uint32_t __internal_fp64emu_fpbits64_unpacked_to_uint (__fpbits64_unpacked __x) noexcept
     {
         const bool    __sign = (__x.sign != 0);
         const int32_t __exp  = (int32_t)__x.exponent;
@@ -554,7 +554,7 @@ namespace cuda::experimental
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API  int64_t __internal_fp64emu_fpbits64_unpacked_to_ll (fpbits64_unpacked __x) noexcept
+    _CCCL_TRIVIAL_API  int64_t __internal_fp64emu_fpbits64_unpacked_to_ll (__fpbits64_unpacked __x) noexcept
     {
         const bool    __sign = (__x.sign != 0);
         const int32_t __exp  = (int32_t)__x.exponent;
@@ -586,7 +586,7 @@ namespace cuda::experimental
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API  uint64_t __internal_fp64emu_fpbits64_unpacked_to_ull (fpbits64_unpacked __x) noexcept
+    _CCCL_TRIVIAL_API  uint64_t __internal_fp64emu_fpbits64_unpacked_to_ull (__fpbits64_unpacked __x) noexcept
     {
         const bool    __sign = (__x.sign != 0);
         const int32_t __exp  = (int32_t)__x.exponent;
@@ -616,49 +616,49 @@ namespace cuda::experimental
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API  float __internal_fp64emu_fpbits64_unpacked_to_float (fpbits64_unpacked __x) noexcept
+    _CCCL_TRIVIAL_API  float __internal_fp64emu_fpbits64_unpacked_to_float (__fpbits64_unpacked __x) noexcept
     {
-        fpbits64 __x_packed = __internal_fp64emu_pack<_Rm>(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_pack<_Rm>(__x);
         return __internal_fp64emu_fpbits64_to_float(__x_packed);
     }
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_float_to_fpbits64_unpacked  (float __x) noexcept     
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_float_to_fpbits64_unpacked  (float __x) noexcept     
     { 
-        fpbits64 __x_packed = __internal_fp64emu_float_to_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_float_to_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_int_to_fpbits64_unpacked  (int32_t __x) noexcept     
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_int_to_fpbits64_unpacked  (int32_t __x) noexcept     
     { 
-        fpbits64 __x_packed = __internal_fp64emu_int_to_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_int_to_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_uint_to_fpbits64_unpacked  (uint32_t __x) noexcept     
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_uint_to_fpbits64_unpacked  (uint32_t __x) noexcept     
     { 
-        fpbits64 __x_packed = __internal_fp64emu_uint_to_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_uint_to_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }   
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_ull_to_fpbits64_unpacked  (uint64_t __x) noexcept     
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_ull_to_fpbits64_unpacked  (uint64_t __x) noexcept     
     { 
-        fpbits64 __x_packed = __internal_fp64emu_ull_to_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_ull_to_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }
 
     template<__fpemu_rounding _Rm   = __fpemu_rounding::def,
              fpemu_accuracy   _Acc  = fpemu_accuracy::def>
-    _CCCL_TRIVIAL_API fpbits64_unpacked __internal_fp64emu_ll_to_fpbits64_unpacked  (int64_t __x) noexcept     
+    _CCCL_TRIVIAL_API __fpbits64_unpacked __internal_fp64emu_ll_to_fpbits64_unpacked  (int64_t __x) noexcept     
     { 
-        fpbits64 __x_packed = __internal_fp64emu_ll_to_fpbits64(__x);
+        __fpbits64 __x_packed = __internal_fp64emu_ll_to_fpbits64(__x);
         return __internal_fp64emu_unpack(__x_packed);
     }
 
@@ -674,137 +674,137 @@ namespace cuda::experimental
 // unpacked cores. fp->int unpack(x) then the rounding-aware unpacked core; fp->fp
 // goes through the universal unpack/pack; int/fp->fp builds the unpacked value and
 // packs (rn -- the integer/widening conversions are exact or already rounded).
-// The pure bit-reinterpret casts (fpbits64<->ull) are NOT rerouted: they must
+// The pure bit-reinterpret casts (__fpbits64<->ull) are NOT rerouted: they must
 // preserve the exact bit pattern and have no unpacked-core equivalent.
-_CCCL_FPEMU_BUILTIN_DECL double     __fp64emu_to_double (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL float      __fp64emu_to_float  (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_float (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_double (double __x) noexcept   { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_double_to_fpbits64_unpacked (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_float  (float __x) noexcept    { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_float_to_fpbits64_unpacked (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_int    (int32_t __x) noexcept  { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_int_to_fpbits64_unpacked (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_uint   (uint32_t __x) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_uint_to_fpbits64_unpacked (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_ll     (int64_t __x) noexcept  { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_ll_to_fpbits64_unpacked (__x)); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_ull    (uint64_t __x) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_ull_to_fpbits64_unpacked (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL double     __fp64emu_to_double (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL float      __fp64emu_to_float  (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_float (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rn> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rz> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::ru> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rd> (__internal_fp64emu_unpack (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_double (double __x) noexcept   { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_double_to_fpbits64_unpacked (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_float  (float __x) noexcept    { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_float_to_fpbits64_unpacked (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_int    (int32_t __x) noexcept  { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_int_to_fpbits64_unpacked (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_uint   (uint32_t __x) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_uint_to_fpbits64_unpacked (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_ll     (int64_t __x) noexcept  { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_ll_to_fpbits64_unpacked (__x)); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_ull    (uint64_t __x) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rn> (__internal_fp64emu_ull_to_fpbits64_unpacked (__x)); }
 #else
-_CCCL_FPEMU_BUILTIN_DECL double     __fp64emu_to_double (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_double (__x); }
-_CCCL_FPEMU_BUILTIN_DECL float      __fp64emu_to_float  (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_float (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::rn> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::rz> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::ru> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::rd> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::rn> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::rz> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::ru> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::rd> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::rn> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::rz> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::ru> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::rd> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rn (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::rn> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rz (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::rz> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_ru (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::ru> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rd (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::rd> (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_double (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64 (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_float  (float __x) noexcept    { return __internal_fp64emu_float_to_fpbits64 (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_int    (int32_t __x) noexcept  { return __internal_fp64emu_int_to_fpbits64 (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_uint   (uint32_t __x) noexcept { return __internal_fp64emu_uint_to_fpbits64 (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_ll     (int64_t __x) noexcept  { return __internal_fp64emu_ll_to_fpbits64 (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_ull    (uint64_t __x) noexcept { return __internal_fp64emu_ull_to_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL double     __fp64emu_to_double (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_double (__x); }
+_CCCL_FPEMU_BUILTIN_DECL float      __fp64emu_to_float  (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_float (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::rn> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::rz> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::ru> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_int<__fpemu_rounding::rd> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::rn> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::rz> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::ru> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_uint<__fpemu_rounding::rd> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::rn> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::rz> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::ru> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ll<__fpemu_rounding::rd> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rn (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::rn> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rz (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::rz> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_ru (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::ru> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rd (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_to_ull<__fpemu_rounding::rd> (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_double (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_float  (float __x) noexcept    { return __internal_fp64emu_float_to_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_int    (int32_t __x) noexcept  { return __internal_fp64emu_int_to_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_uint   (uint32_t __x) noexcept { return __internal_fp64emu_uint_to_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_ll     (int64_t __x) noexcept  { return __internal_fp64emu_ll_to_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_ull    (uint64_t __x) noexcept { return __internal_fp64emu_ull_to_fpbits64 (__x); }
 #endif // _CCCL_FPEMU_PACKED_VIA_UNPACKED
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_fpbits64_cast_ull  (fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_cast_ull (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_ull_cast_fpbits64  (uint64_t __x) noexcept   { return __internal_fp64emu_ull_cast_fpbits64 (__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpack  (fpbits64 __a) noexcept          { return __internal_fp64emu_unpack(__a); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_rn (fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rn>(__a); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_rz (fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rz>(__a); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_ru (fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::ru>(__a); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_rd (fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rd>(__a); }
-_CCCL_FPEMU_BUILTIN_DECL int32_t  __fp64emu_unpacked_to_int            (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rz>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint32_t __fp64emu_unpacked_to_uint           (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rz>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL int64_t  __fp64emu_unpacked_to_ll             (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rz>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t __fp64emu_unpacked_to_ull            (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rz>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL float    __fp64emu_unpacked_to_float          (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_float(__x); }
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_to_double         (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double(__x); }
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_high_to_double(fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double<__fpemu_rounding::rn, fpemu_accuracy::high>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_mid_to_double     (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double<__fpemu_rounding::rn, fpemu_accuracy::mid>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_low_to_double    (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double<__fpemu_rounding::rn, fpemu_accuracy::low>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_int             (int32_t __x) noexcept  { return __internal_fp64emu_int_to_fpbits64_unpacked(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_uint            (uint32_t __x) noexcept { return __internal_fp64emu_uint_to_fpbits64_unpacked(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_ll              (int64_t __x) noexcept  { return __internal_fp64emu_ll_to_fpbits64_unpacked(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_ull             (uint64_t __x) noexcept { return __internal_fp64emu_ull_to_fpbits64_unpacked(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_float           (float __x) noexcept    { return __internal_fp64emu_float_to_fpbits64_unpacked(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_double          (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_high_from_double (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked<__fpemu_rounding::rn, fpemu_accuracy::high>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_mid_from_double      (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked<__fpemu_rounding::rn, fpemu_accuracy::mid>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_low_from_double     (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked<__fpemu_rounding::rn, fpemu_accuracy::low>(__x); }
-_CCCL_FPEMU_BUILTIN_DECL uint64_t            __fp64emu_unpacked_fpbits64_cast_ull           (fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_cast_ull(__x); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_ull_cast_fpbits64           (uint64_t __x) noexcept { return __internal_fp64emu_ull_cast_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_fpbits64_cast_ull  (__fpbits64 __x) noexcept { return __internal_fp64emu_fpbits64_cast_ull (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_ull_cast_fpbits64  (uint64_t __x) noexcept   { return __internal_fp64emu_ull_cast_fpbits64 (__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpack  (__fpbits64 __a) noexcept          { return __internal_fp64emu_unpack(__a); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_rn (__fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rn>(__a); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_rz (__fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rz>(__a); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_ru (__fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::ru>(__a); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_rd (__fpbits64_unpacked __a) noexcept { return __internal_fp64emu_pack<__fpemu_rounding::rd>(__a); }
+_CCCL_FPEMU_BUILTIN_DECL int32_t  __fp64emu_unpacked_to_int            (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_int<__fpemu_rounding::rz>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint32_t __fp64emu_unpacked_to_uint           (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_uint<__fpemu_rounding::rz>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL int64_t  __fp64emu_unpacked_to_ll             (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ll<__fpemu_rounding::rz>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t __fp64emu_unpacked_to_ull            (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_ull<__fpemu_rounding::rz>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL float    __fp64emu_unpacked_to_float          (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_float(__x); }
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_to_double         (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double(__x); }
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_high_to_double(__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double<__fpemu_rounding::rn, fpemu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_mid_to_double     (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double<__fpemu_rounding::rn, fpemu_accuracy::mid>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_low_to_double    (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_to_double<__fpemu_rounding::rn, fpemu_accuracy::low>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_int             (int32_t __x) noexcept  { return __internal_fp64emu_int_to_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_uint            (uint32_t __x) noexcept { return __internal_fp64emu_uint_to_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_ll              (int64_t __x) noexcept  { return __internal_fp64emu_ll_to_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_ull             (uint64_t __x) noexcept { return __internal_fp64emu_ull_to_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_float           (float __x) noexcept    { return __internal_fp64emu_float_to_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_double          (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_high_from_double (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked<__fpemu_rounding::rn, fpemu_accuracy::high>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_mid_from_double      (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked<__fpemu_rounding::rn, fpemu_accuracy::mid>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_low_from_double     (double __x) noexcept   { return __internal_fp64emu_double_to_fpbits64_unpacked<__fpemu_rounding::rn, fpemu_accuracy::low>(__x); }
+_CCCL_FPEMU_BUILTIN_DECL uint64_t            __fp64emu_unpacked_fpbits64_cast_ull           (__fpbits64_unpacked __x) noexcept { return __internal_fp64emu_fpbits64_unpacked_cast_ull(__x); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_ull_cast_fpbits64           (uint64_t __x) noexcept { return __internal_fp64emu_ull_cast_fpbits64_unpacked(__x); }
 #else
-_CCCL_FPEMU_BUILTIN_DECL double     __fp64emu_to_double (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_double (double x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL float      __fp64emu_to_float  (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_float  (float x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_int    (int32_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_uint   (uint32_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_ll     (int64_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_from_ull    (uint64_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_fpbits64_cast_ull  (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_ull_cast_fpbits64  (uint64_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rn (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rz (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_ru (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rd (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rn (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rz (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_ru (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rd (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rn (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rz (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_ru (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rd (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rn (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rz (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_ru (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rd (fpbits64 x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpack  (fpbits64 a) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_rn (fpbits64_unpacked a) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_rz (fpbits64_unpacked a) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_ru (fpbits64_unpacked a) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64          __fp64emu_pack_rd (fpbits64_unpacked a) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int32_t  __fp64emu_unpacked_to_int            (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint32_t __fp64emu_unpacked_to_uint           (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL int64_t  __fp64emu_unpacked_to_ll             (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t __fp64emu_unpacked_to_ull            (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL float    __fp64emu_unpacked_to_float          (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_to_double         (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_high_to_double(fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_mid_to_double     (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_low_to_double    (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_int             (int32_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_uint            (uint32_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_ll              (int64_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_ull             (uint64_t x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_float           (float x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_from_double          (double x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_high_from_double (double x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_mid_from_double      (double x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_low_from_double     (double x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL uint64_t            __fp64emu_unpacked_fpbits64_cast_ull           (fpbits64_unpacked x) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_ull_cast_fpbits64           (uint64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL double     __fp64emu_to_double (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_double (double x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL float      __fp64emu_to_float  (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_float  (float x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_int    (int32_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_uint   (uint32_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_ll     (int64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_from_ull    (uint64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_fpbits64_cast_ull  (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_ull_cast_fpbits64  (uint64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rn (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rz (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_ru (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int32_t    __fp64emu_to_int_rd (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rn (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rz (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_ru (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint32_t   __fp64emu_to_uint_rd (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rn (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rz (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_ru (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int64_t    __fp64emu_to_ll_rd (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rn (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rz (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_ru (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t   __fp64emu_to_ull_rd (__fpbits64 x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpack  (__fpbits64 a) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_rn (__fpbits64_unpacked a) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_rz (__fpbits64_unpacked a) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_ru (__fpbits64_unpacked a) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64          __fp64emu_pack_rd (__fpbits64_unpacked a) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int32_t  __fp64emu_unpacked_to_int            (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint32_t __fp64emu_unpacked_to_uint           (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL int64_t  __fp64emu_unpacked_to_ll             (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t __fp64emu_unpacked_to_ull            (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL float    __fp64emu_unpacked_to_float          (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_to_double         (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_high_to_double(__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_mid_to_double     (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL double   __fp64emu_unpacked_low_to_double    (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_int             (int32_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_uint            (uint32_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_ll              (int64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_ull             (uint64_t x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_float           (float x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_from_double          (double x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_high_from_double (double x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_mid_from_double      (double x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_low_from_double     (double x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL uint64_t            __fp64emu_unpacked_fpbits64_cast_ull           (__fpbits64_unpacked x) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_ull_cast_fpbits64           (uint64_t x) noexcept ;
 #endif // _CCCL_FPEMU_INLINE
 
 } // namespace cuda::experimental
@@ -829,7 +829,7 @@ namespace cuda::experimental
     template<fpemu_accuracy _AccDst> 
         _CCCL_API inline fpemu<_FpType, _AccSrc>::operator fpemu<double, _AccDst>() const noexcept 
         { 
-            return fpemu<double, _AccDst>(fpbits64_construct, bits); 
+            return fpemu<double, _AccDst>(__fpbits64_construct, bits); 
         }
 
     // Type conversion from fpemu to fpemu_unpacked
@@ -837,8 +837,8 @@ namespace cuda::experimental
     template<fpemu_accuracy _AccDst> 
         _CCCL_API inline fpemu<_FpType, _AccSrc>::operator fpemu_unpacked<double, _AccDst>() const noexcept 
         { 
-            fpbits64_unpacked __bits_unpacked = __fp64emu_unpack(bits);
-            return fpemu_unpacked<double, _AccDst>(fpbits64_construct, __bits_unpacked); 
+            __fpbits64_unpacked __bits_unpacked = __fp64emu_unpack(bits);
+            return fpemu_unpacked<double, _AccDst>(__fpbits64_construct, __bits_unpacked); 
         }
 
     /*
@@ -851,27 +851,27 @@ namespace cuda::experimental
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline fpemu<_FpType, _Acc>::fpemu(float __d) noexcept { 
         bits = __fp64emu_from_float (__d); }
     template<fpemu_accuracy _Acc>  _CCCL_API inline fpemu<double, _Acc> __float2double  (float __x) noexcept { 
-        return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_from_float (__x)); }
+        return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_float (__x)); }
     // from int32_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu<_FpType, _Acc>::__set_from_int (int32_t __d) noexcept { 
         bits = __fp64emu_from_int (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu<double, _Acc> __int2double  (int32_t __x) noexcept { 
-        return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_from_int (__x)); }
+        return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_int (__x)); }
     // from uint32_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu<_FpType, _Acc>::__set_from_uint(uint32_t __d) noexcept { 
         bits = __fp64emu_from_uint (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu<double, _Acc> __uint2double (uint32_t __x) noexcept { 
-        return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_from_uint (__x)); }
+        return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_uint (__x)); }
     // from int64_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu<_FpType, _Acc>::__set_from_ll  (int64_t __d) noexcept { 
         bits = __fp64emu_from_ll (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu<double, _Acc> __ll2double (int64_t __x) noexcept { 
-        return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_from_ll (__x)); }
+        return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_ll (__x)); }
     // from uint64_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu<_FpType, _Acc>::__set_from_ull (uint64_t __d) noexcept { 
         bits = __fp64emu_from_ull (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu<double, _Acc> __ull2double(uint64_t __x) noexcept { 
-        return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_from_ull (__x)); }
+        return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_ull (__x)); }
 
     /*
     // Type conversions from fpemu to other types
@@ -935,7 +935,7 @@ namespace cuda::experimental
     template<fpemu_accuracy _AccDst> 
         _CCCL_API inline fpemu_unpacked<_FpType, _AccSrc>::operator fpemu_unpacked<double, _AccDst>() const noexcept 
         { 
-            return fpemu_unpacked<double, _AccDst>(fpbits64_construct, bits); 
+            return fpemu_unpacked<double, _AccDst>(__fpbits64_construct, bits); 
         }
 
     // Type conversion from fpemu_unpacked to fpemu
@@ -943,8 +943,8 @@ namespace cuda::experimental
     template<fpemu_accuracy _AccDst> 
         _CCCL_API inline fpemu_unpacked<_FpType, _AccSrc>::operator fpemu<double, _AccDst>() const noexcept 
         { 
-            fpbits64 __bits_packed = __fp64emu_pack_rn(bits);
-            return fpemu<double, _AccDst>(fpbits64_construct, __bits_packed); 
+            __fpbits64 __bits_packed = __fp64emu_pack_rn(bits);
+            return fpemu<double, _AccDst>(__fpbits64_construct, __bits_packed); 
         }
 
     /*
@@ -961,27 +961,27 @@ namespace cuda::experimental
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline fpemu_unpacked<_FpType, _Acc>::fpemu_unpacked(float __d) noexcept { 
         bits = __fp64emu_unpacked_from_float (__d);  }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu_unpacked<double, _Acc>  __float2double (float __x) noexcept { 
-        return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_from_float (__x)); }
+        return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_from_float (__x)); }
     // from int32_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu_unpacked<_FpType, _Acc>::__set_from_int (int32_t __d) noexcept { 
         bits = __fp64emu_unpacked_from_int (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu_unpacked<double, _Acc>  __int2double (int32_t __x) noexcept { 
-        return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_from_int (__x)); }
+        return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_from_int (__x)); }
     // from uint32_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu_unpacked<_FpType, _Acc>::__set_from_uint(uint32_t __d) noexcept { 
         bits = __fp64emu_unpacked_from_uint (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu_unpacked<double, _Acc>  __uint2double (uint32_t __x) noexcept { 
-        return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_from_uint (__x)); }
+        return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_from_uint (__x)); }
     // from int64_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu_unpacked<_FpType, _Acc>::__set_from_ll  (int64_t __d) noexcept { 
         bits = __fp64emu_unpacked_from_ll (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu_unpacked<double, _Acc>  __ll2double (int64_t __x) noexcept  { 
-        return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_from_ll (__x)); }
+        return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_from_ll (__x)); }
     // from uint64_t
     template <typename _FpType, fpemu_accuracy _Acc> _CCCL_API inline void fpemu_unpacked<_FpType, _Acc>::__set_from_ull (uint64_t __d) noexcept { 
         bits = __fp64emu_unpacked_from_ull (__d); }
     template<fpemu_accuracy _Acc> _CCCL_API inline fpemu_unpacked<double, _Acc>  __ull2double (uint64_t __x) noexcept { 
-        return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_from_ull (__x)); }
+        return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_from_ull (__x)); }
 
     /*
     // Conversion operators from fpemu_unpacked to other types
@@ -1022,7 +1022,7 @@ if      constexpr (_Acc == fpemu_accuracy::high) { return __fp64emu_unpacked_hig
         _CCCL_API inline _To bit_cast(const fpemu_unpacked<double, _M2>& __from) noexcept
         {
             // Pack the unpacked value to get IEEE-754 representation
-            fpbits64 __packed = __fp64emu_pack_rn(__from.bits);
+            __fpbits64 __packed = __fp64emu_pack_rn(__from.bits);
             return __fpemu_bit_cast<_To>(__packed);
         }
 

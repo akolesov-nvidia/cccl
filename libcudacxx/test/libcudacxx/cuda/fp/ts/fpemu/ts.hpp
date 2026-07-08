@@ -39,7 +39,7 @@
     #include <cuda/fpemu>
 
     // The CCCL FP SDK puts these directly in cuda::experimental:
-    // fpemu<double, fpemu_accuracy>, fpemu_unpacked<double, ...>, the fpbits64*
+    // fpemu<double, fpemu_accuracy>, fpemu_unpacked<double, ...>, the __fpbits64*
     // layouts and the __fp64emu_* builtins. Pull the namespace in so the
     // existing (now unqualified) references resolve.
     using namespace cuda::experimental;

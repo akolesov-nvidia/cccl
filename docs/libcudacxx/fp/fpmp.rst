@@ -668,7 +668,6 @@ umbrella):
        ├── fpmp.h               # Types, C++ class fpmp2, operators/conversions, core ops
        ├── fpmp_common.h        # Platform/compiler macros, utilities, error-free transform building blocks
        ├── fpmp_impl.h          # Low-level C-style API (builtins, conversions, comparisons, atomics)
-       ├── fpmp_lib.h           # Built-in function declarations for direct C-style usage
        ├── fpmp_limits.h        # cuda::std::numeric_limits<> specialization for fp32mp2/fp64mp2
        └── fpmp_math.h          # Math extensions (exp, log, pow, trig, ...) + placeholders
 
@@ -694,7 +693,6 @@ Header                        Description
 ``cuda/__fp/fpmp.h``        Types, C++ class ``fpmp2`` with operators/conversions, and core ops.
 ``cuda/__fp/fpmp_common.h`` Platform/compiler macros, utilities, and shared building blocks for error-free transforms.
 ``cuda/__fp/fpmp_impl.h``   Low-level C-style API (builtins for arithmetic, conversions, comparisons; CUDA atomics).
-``cuda/__fp/fpmp_lib.h``    Built-in function declarations for direct C-style usage (fp32mp2/fp64mp2 arithmetic, conversions, comparisons, math).
 ``cuda/__fp/fpmp_limits.h`` ``cuda::std::numeric_limits<>`` specialization for the ``fp32mp2``/``fp64mp2`` types (and their method variants); pulled in by ``<cuda/fpmp>``.
 ``cuda/__fp/fpmp_math.h``   Math extensions: dedicated fp32mp2 implementations for ``exp``, ``log``, ``pow``, ``sin``, ``cos``, ``tan``, ``sincos``, ``asin``, ``acos``, ``atan``, ``atan2``, ``tanh``, ``erf``, ``erfc``, ``normcdfinv``, ``icdf``, ``cbrt``, ``rcbrt``, ``floor``, ``ceil``, ``round``, ``trunc``, ``fabs``, ``fmin``, ``fmax``, ``min``, ``max``; remaining CUDA math functions are placeholder wrappers (higher precision).
 ============================= ===================================================================================================================================================================================================================================================================================================================================================================================================================

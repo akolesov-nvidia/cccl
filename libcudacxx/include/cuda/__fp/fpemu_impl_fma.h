@@ -51,7 +51,7 @@ extern "C" double fma(double __x, double __y, double __z);
     /**
      * @brief Pure FMA core operating on the unpacked representation.
      *
-     * Consumes/produces fpbits64_unpacked exactly as produced by the universal
+     * Consumes/produces __fpbits64_unpacked exactly as produced by the universal
      * __internal_fp64emu_unpack and consumed by __internal_fp64emu_pack.
      * Inputs carry a normalized mantissa (implicit bit set, denormals normalized)
      * with inf/nan encoded in the exponent band (around the 0x00007ff0 / 0x0007ff00
@@ -64,9 +64,9 @@ extern "C" double fma(double __x, double __y, double __z);
      */
     template<fpemu_accuracy   _Acc = fpemu_accuracy::def>
     _CCCL_TRIVIAL_API
-    fpbits64_unpacked __internal_fp64emu_fma_unpacked(fpbits64_unpacked __a,
-                                                      fpbits64_unpacked __b,
-                                                      fpbits64_unpacked __c) noexcept
+    __fpbits64_unpacked __internal_fp64emu_fma_unpacked(__fpbits64_unpacked __a,
+                                                        __fpbits64_unpacked __b,
+                                                        __fpbits64_unpacked __c) noexcept
     {
         constexpr fpemu_accuracy   __acc_forced = fpemu_accuracy::_CCCL_FPEMU_FMA_METHOD;
         constexpr fpemu_accuracy   __acc_used   = (__acc_forced != fpemu_accuracy::unset) ? __acc_forced : _Acc;
@@ -78,7 +78,7 @@ extern "C" double fma(double __x, double __y, double __z);
         constexpr uint32_t __INF_EXP = 0x00007ff0u;
         constexpr int32_t  __NAN_EXP = 0x0007ff00;
 
-        fpbits64_unpacked __r;
+        __fpbits64_unpacked __r;
         __uint128_t __mantissa_ab;
         __uint64x2 __ab_res;
 
@@ -202,9 +202,9 @@ extern "C" double fma(double __x, double __y, double __z);
     template<__fpemu_rounding    _Rm  = __fpemu_rounding::def, 
              fpemu_accuracy   _Acc = fpemu_accuracy::def>
     _CCCL_TRIVIAL_API
-    fpbits64 __internal_fp64emu_fma (fpbits64 __x, 
-                                     fpbits64 __y, 
-                                     fpbits64 __z) noexcept
+    __fpbits64 __internal_fp64emu_fma (__fpbits64 __x, 
+                                       __fpbits64 __y, 
+                                       __fpbits64 __z) noexcept
     {
         // Forced parameters for the fused multiply-add operation
         constexpr fpemu_accuracy   __acc_forced = fpemu_accuracy::_CCCL_FPEMU_FMA_METHOD;
@@ -215,11 +215,11 @@ extern "C" double fma(double __x, double __y, double __z);
                     // FMA = pack(fma_unpacked(unpack(x), unpack(y), unpack(z))). The fma_unpacked
                     // core selects accurate/def/fast internally; the universal full-range
                     // unpack/pack are the shared prologue/epilogue (def/fast are full-range here).
-                    fpbits64_unpacked __a = __internal_fp64emu_unpack(__x);
-                    fpbits64_unpacked __b = __internal_fp64emu_unpack(__y);
-                    fpbits64_unpacked __c = __internal_fp64emu_unpack(__z);
-                    fpbits64_unpacked __r = __internal_fp64emu_fma_unpacked<__acc_used>(__a, __b, __c);
-                    fpbits64 __result = __internal_fp64emu_pack<_Rm>(__r);
+                    __fpbits64_unpacked __a = __internal_fp64emu_unpack(__x);
+                    __fpbits64_unpacked __b = __internal_fp64emu_unpack(__y);
+                    __fpbits64_unpacked __c = __internal_fp64emu_unpack(__z);
+                    __fpbits64_unpacked __r = __internal_fp64emu_fma_unpacked<__acc_used>(__a, __b, __c);
+                    __fpbits64 __result = __internal_fp64emu_pack<_Rm>(__r);
 
                     if constexpr (_Rm == __fpemu_rounding::rd)
                     {
@@ -233,7 +233,7 @@ extern "C" double fma(double __x, double __y, double __z);
                         const bool __tiny_artifact   = (__result == UINT64_C(0x0000000100000000));
                         if (__opposite_signs && (__exact_zero || __tiny_artifact))
                         {
-                            fpbits64_unpacked __zneg;
+                            __fpbits64_unpacked __zneg;
                             __zneg.sign     = 1U << 31;
                             __zneg.exponent = 0;
                             __zneg.mantissa = 0;
@@ -251,41 +251,41 @@ extern "C" double fma(double __x, double __y, double __z);
 // Builtin declarations/implementations for FMA operations
 // ============================================================================
 #if defined(_CCCL_FPEMU_INLINE)
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_rn          (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_rz          (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rz, fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_ru          (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::ru, fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_rd          (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rd, fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_high_fma_rn (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_rn      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::mid>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_rz      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rz, fpemu_accuracy::mid>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_ru      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::ru, fpemu_accuracy::mid>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_rd      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rd, fpemu_accuracy::mid>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_rn      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::low>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_rz      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rz, fpemu_accuracy::low>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_ru      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::ru, fpemu_accuracy::low>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_rd      (fpbits64 __x, fpbits64 __y, fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rd, fpemu_accuracy::low>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_fma          (fpbits64_unpacked __x, fpbits64_unpacked __y, fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_high_fma     (fpbits64_unpacked __x, fpbits64_unpacked __y, fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::high>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_mid_fma      (fpbits64_unpacked __x, fpbits64_unpacked __y, fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::mid>(__x, __y, __z); }
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_low_fma      (fpbits64_unpacked __x, fpbits64_unpacked __y, fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::low>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_rn          (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_rz          (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rz, fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_ru          (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::ru, fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_rd          (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rd, fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_high_fma_rn (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_rn      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::mid>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_rz      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rz, fpemu_accuracy::mid>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_ru      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::ru, fpemu_accuracy::mid>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_rd      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rd, fpemu_accuracy::mid>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_rn      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rn, fpemu_accuracy::low>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_rz      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rz, fpemu_accuracy::low>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_ru      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::ru, fpemu_accuracy::low>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_rd      (__fpbits64 __x, __fpbits64 __y, __fpbits64 __z) noexcept { return __internal_fp64emu_fma<__fpemu_rounding::rd, fpemu_accuracy::low>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_fma          (__fpbits64_unpacked __x, __fpbits64_unpacked __y, __fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_high_fma     (__fpbits64_unpacked __x, __fpbits64_unpacked __y, __fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::high>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_mid_fma      (__fpbits64_unpacked __x, __fpbits64_unpacked __y, __fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::mid>(__x, __y, __z); }
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_low_fma      (__fpbits64_unpacked __x, __fpbits64_unpacked __y, __fpbits64_unpacked __z) noexcept { return __internal_fp64emu_fma_unpacked<fpemu_accuracy::low>(__x, __y, __z); }
 #else
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_rn          (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_rz          (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_ru          (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_fma_rd          (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_high_fma_rn     (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_rn      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_rz      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_ru      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_mid_fma_rd      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_rn      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_rz      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_ru      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64 __fp64emu_low_fma_rd      (fpbits64 x, fpbits64 y, fpbits64 z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_fma      (fpbits64_unpacked x, fpbits64_unpacked y, fpbits64_unpacked z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_high_fma (fpbits64_unpacked x, fpbits64_unpacked y, fpbits64_unpacked z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_mid_fma  (fpbits64_unpacked x, fpbits64_unpacked y, fpbits64_unpacked z) noexcept ;
-_CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_low_fma  (fpbits64_unpacked x, fpbits64_unpacked y, fpbits64_unpacked z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_rn          (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_rz          (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_ru          (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_fma_rd          (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_high_fma_rn     (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_rn      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_rz      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_ru      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_mid_fma_rd      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_rn      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_rz      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_ru      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64 __fp64emu_low_fma_rd      (__fpbits64 x, __fpbits64 y, __fpbits64 z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_fma      (__fpbits64_unpacked x, __fpbits64_unpacked y, __fpbits64_unpacked z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_high_fma (__fpbits64_unpacked x, __fpbits64_unpacked y, __fpbits64_unpacked z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_mid_fma  (__fpbits64_unpacked x, __fpbits64_unpacked y, __fpbits64_unpacked z) noexcept ;
+_CCCL_FPEMU_BUILTIN_DECL __fpbits64_unpacked __fp64emu_unpacked_low_fma  (__fpbits64_unpacked x, __fpbits64_unpacked y, __fpbits64_unpacked z) noexcept ;
 #endif // _CCCL_FPEMU_INLINE
 
 } // namespace cuda::experimental
@@ -299,63 +299,69 @@ _CCCL_FPEMU_BUILTIN_DECL fpbits64_unpacked __fp64emu_unpacked_low_fma  (fpbits64
 
 namespace cuda::experimental
 {
-
-
 // ============================================================================
 // API (merged from fp64emu_fma_api.hpp)
 // ============================================================================
-
-
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu<double, _Acc> fma (const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const fpemu<double, _Acc>& __z) noexcept { 
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_high_fma_rn(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_low_fma_rn(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_mid_fma_rn(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu<double, _Acc> fma (const fpemu<double, _Acc>& __x, 
+                                       const fpemu<double, _Acc>& __y, 
+                                       const fpemu<double, _Acc>& __z) noexcept { 
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_fma_rn(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_fma_rn(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_fma_rn(__x.bits, __y.bits, __z.bits)); }
     }
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu<double, _Acc> __fma_rn (const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const fpemu<double, _Acc>& __z) noexcept { 
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_high_fma_rn(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_low_fma_rn(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_mid_fma_rn(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu<double, _Acc> __fma_rn (const fpemu<double, _Acc>& __x, 
+                                            const fpemu<double, _Acc>& __y, 
+                                            const fpemu<double, _Acc>& __z) noexcept { 
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_fma_rn(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_fma_rn(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_fma_rn(__x.bits, __y.bits, __z.bits)); }
     }
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu<double, _Acc> __fma_rz (const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const fpemu<double, _Acc>& __z) noexcept {
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_fma_rz(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::mid)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_mid_fma_rz(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_low_fma_rz(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_fma_rz(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu<double, _Acc> __fma_rz (const fpemu<double, _Acc>& __x, 
+                                            const fpemu<double, _Acc>& __y, 
+                                            const fpemu<double, _Acc>& __z) noexcept {
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_fma_rz(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::mid)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_fma_rz(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_fma_rz(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_fma_rz(__x.bits, __y.bits, __z.bits)); }
     }
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu<double, _Acc> __fma_ru (const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const fpemu<double, _Acc>& __z) noexcept {
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_fma_ru(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::mid)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_mid_fma_ru(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_low_fma_ru(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_fma_ru(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu<double, _Acc> __fma_ru (const fpemu<double, _Acc>& __x, 
+                                            const fpemu<double, _Acc>& __y, 
+                                            const fpemu<double, _Acc>& __z) noexcept {
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_fma_ru(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::mid)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_fma_ru(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_fma_ru(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_fma_ru(__x.bits, __y.bits, __z.bits)); }
     }
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu<double, _Acc> __fma_rd (const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const fpemu<double, _Acc>& __z) noexcept {
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_fma_rd(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::mid)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_mid_fma_rd(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_low_fma_rd(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu<double, _Acc>(fpbits64_construct, __fp64emu_fma_rd(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu<double, _Acc> __fma_rd (const fpemu<double, _Acc>& __x, 
+                                            const fpemu<double, _Acc>& __y, 
+                                            const fpemu<double, _Acc>& __z) noexcept {
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_fma_rd(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::mid)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_fma_rd(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_fma_rd(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_fma_rd(__x.bits, __y.bits, __z.bits)); }
     }
-
-
 
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu_unpacked<double, _Acc> fma (const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y, const fpemu_unpacked<double, _Acc>& __z) noexcept { 
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_high_fma(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_low_fma(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_mid_fma(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu_unpacked<double, _Acc> fma (const fpemu_unpacked<double, _Acc>& __x, 
+                                                const fpemu_unpacked<double, _Acc>& __y, 
+                                                const fpemu_unpacked<double, _Acc>& __z) noexcept { 
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_fma(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_fma(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_fma(__x.bits, __y.bits, __z.bits)); }
     }
     template<fpemu_accuracy _Acc>
-    _CCCL_API fpemu_unpacked<double, _Acc> __fma_rn (const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y, const fpemu_unpacked<double, _Acc>& __z) noexcept { 
-        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_high_fma(__x.bits, __y.bits, __z.bits)); }
-        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_low_fma(__x.bits, __y.bits, __z.bits)); }
-        else                                             { return fpemu_unpacked<double, _Acc>(fpbits64_construct, __fp64emu_unpacked_mid_fma(__x.bits, __y.bits, __z.bits)); }
+    _CCCL_API fpemu_unpacked<double, _Acc> __fma_rn (const fpemu_unpacked<double, _Acc>& __x, 
+                                                     const fpemu_unpacked<double, _Acc>& __y, 
+                                                     const fpemu_unpacked<double, _Acc>& __z) noexcept { 
+        if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_fma(__x.bits, __y.bits, __z.bits)); }
+        else if constexpr (_Acc == fpemu_accuracy::low)  { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_fma(__x.bits, __y.bits, __z.bits)); }
+        else                                             { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_fma(__x.bits, __y.bits, __z.bits)); }
     }
-
-
 
 } // namespace cuda::experimental
 

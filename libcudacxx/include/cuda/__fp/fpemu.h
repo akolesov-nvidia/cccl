@@ -118,22 +118,23 @@ namespace cuda::experimental
     };
 
     /**
-    * @brief Tag type for explicit construction of fpbits64 values
+    * @brief Tag type for constructing an fpemu directly from raw __fpbits64 bits.
     *
-    * This struct serves as a tag type to disambiguate constructors that take
-    * raw bit values. It prevents implicit conversions from raw integers to
-    * floating-point values and ensures that bit-level construction is explicit.
+    * @internal Library-internal. This disambiguates the raw-bits constructor
+    * `fpemu(__fpbits64_construct_tag, const __fpbits64&)` from the value-converting
+    * constructors (fpemu(double), fpemu(integer), ...): since __fpbits64 is just
+    * uint64_t, a plain bits constructor would collide with the integer-value
+    * constructors. The builtin forwarders (fpemu_impl_*.h) use it to wrap a raw
+    * __fp64emu_* result back into an fpemu without a conversion. Not public.
     *
-    * Usage:
-    *   fpbits64 value = fpbits64_construct_tag{}, raw_bits;
-    *   // or by the constexpr instance:
-    *   fpbits64 value = fpbits64_construct, raw_bits;
+    * Usage (internal):
+    *   return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_double(x));
     */
-    struct fpbits64_construct_tag { explicit fpbits64_construct_tag() = default; };
+    struct __fpbits64_construct_tag { explicit __fpbits64_construct_tag() = default; };
 
-    // Global constant instance of fpbits64_construct_tag for convenient usage
+    // Global constant instance of __fpbits64_construct_tag for convenient usage
     // (host/device accessible)
-    _CCCL_GLOBAL_CONSTANT fpbits64_construct_tag fpbits64_construct{};
+    _CCCL_GLOBAL_CONSTANT __fpbits64_construct_tag __fpbits64_construct{};
 
     // Forward declaration of unpacked floating-point class
     template <typename _FpType, fpemu_accuracy _Met> class fpemu_unpacked;
@@ -151,7 +152,7 @@ namespace cuda::experimental
     *              - low: Low accuracy with normal range
     *
     * This class provides:
-    *   - Storage of the value as fpbits64 (raw IEEE-754 format)
+    *   - Storage of the value as __fpbits64 (raw IEEE-754 format)
     *   - Construction from and conversion to standard C++ types (int, float, double)
     *   - Arithmetic operators and mathematical functions
     *   - Fine-grained control over rounding and accuracy level
@@ -171,15 +172,15 @@ namespace cuda::experimental
         static_assert(::cuda::std::is_same_v<_FpType, double>, "cuda::experimental::fpemu currently supports only _FpType == double, posible future extension to other types emulation");
 
         // Internal representation of the floating-point value
-        // fpbits64 is defined in fpemu_common.h
-        fpbits64 bits;
+        // __fpbits64 is defined in fpemu_common.h
+        __fpbits64 bits;
         
         /*
         // Constructors and assignment operators
         */
         // Basic constructors
         _CCCL_API inline fpemu() noexcept : bits{0u} {}
-        _CCCL_API inline fpemu(fpbits64_construct_tag, const fpbits64& __f) noexcept : bits(__f) {}
+        _CCCL_API inline fpemu(__fpbits64_construct_tag, const __fpbits64& __f) noexcept : bits(__f) {}
         /*
         // Defaulted copy constructor (trivially copyable)
         // Note: NVCC implicitly makes defaulted special members __host__ __device__
@@ -534,15 +535,15 @@ namespace cuda::experimental
         static_assert(::cuda::std::is_same_v<_FpType, double>, "cuda::experimental::fpemu_unpacked currently supports only _FpType == double");
 
         // Internal representation of the unpacked floating-point value
-        // fpbits64_unpacked is defined in fpemu_common.h
-        fpbits64_unpacked bits;
+        // __fpbits64_unpacked is defined in fpemu_common.h
+        __fpbits64_unpacked bits;
         
         /*
         // Constructors and assignment operators
         */
         // Basic constructors
         _CCCL_API inline fpemu_unpacked() noexcept : bits{0u, 0, 0} {}
-        _CCCL_API inline fpemu_unpacked(fpbits64_construct_tag, const fpbits64_unpacked& __f) noexcept : bits(__f) {}
+        _CCCL_API inline fpemu_unpacked(__fpbits64_construct_tag, const __fpbits64_unpacked& __f) noexcept : bits(__f) {}
         /*
         // Defaulted copy constructor (trivially copyable)
         // Note: NVCC implicitly makes defaulted special members __host__ __device__

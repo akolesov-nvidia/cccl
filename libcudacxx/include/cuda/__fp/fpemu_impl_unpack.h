@@ -26,8 +26,8 @@
  * @brief Common pack/unpack routines for the FPEMU library
  *
  * This header holds the two routines that convert between the packed IEEE-754
- * binary64 representation (fpbits64) and the public unpacked ABI
- * (fpbits64_unpacked) used by the arithmetic cores:
+ * binary64 representation (__fpbits64) and the public unpacked ABI
+ * (__fpbits64_unpacked) used by the arithmetic cores:
  *
  *   - __internal_fp64emu_unpack  (packed   -> unpacked)
  *   - __internal_fp64emu_pack    (unpacked -> packed)
@@ -72,9 +72,9 @@ namespace cuda::experimental
  * @return The unpacked representation
  */
 _CCCL_TRIVIAL_API
-fpbits64_unpacked __internal_fp64emu_unpack(fpbits64 __x) noexcept
+__fpbits64_unpacked __internal_fp64emu_unpack(__fpbits64 __x) noexcept
 {
-    fpbits64_unpacked __a_unpacked;
+    __fpbits64_unpacked __a_unpacked;
     __uint32x2 __a32 = __fpemu_bit_cast<__uint32x2>(__x);
     __a_unpacked.sign = __a32.x[1] & ( 1U << 31 );
     __a32.x[1] &= 0x7fffffff;
@@ -131,7 +131,7 @@ fpbits64_unpacked __internal_fp64emu_unpack(fpbits64 __x) noexcept
  */
 template<__fpemu_rounding _Rm = __fpemu_rounding::def>
 _CCCL_TRIVIAL_API
-fpbits64 __internal_fp64emu_pack(fpbits64_unpacked __x) noexcept
+__fpbits64 __internal_fp64emu_pack(__fpbits64_unpacked __x) noexcept
 {
     const bool    __sign     = __x.sign != 0;
     const bool    __is_inf   = (static_cast<int32_t>(__x.exponent) >= 0x2000);
@@ -197,7 +197,7 @@ fpbits64 __internal_fp64emu_pack(fpbits64_unpacked __x) noexcept
     }
 
     __mantissa32.x[1] += __x.sign;
-    return __fpemu_bit_cast<fpbits64>(__mantissa32);
+    return __fpemu_bit_cast<__fpbits64>(__mantissa32);
 }
 
 

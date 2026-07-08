@@ -105,12 +105,12 @@ Core Built-in Functions
 -----------------------
 
 For direct control over the accuracy level, the ``libfpemu`` library provides
-C-callable built-in functions operating on the raw ``fpbits64`` type
+C-callable built-in functions operating on the raw ``__fpbits64`` type
 (a ``uint64_t`` holding the IEEE-754 bit pattern).
 
 These built-in declarations are available through ``<cuda/fpemu>``.
 
-Naming convention (packed ``fpbits64``)
+Naming convention (packed ``__fpbits64``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
@@ -120,7 +120,7 @@ Naming convention (packed ``fpbits64``)
    __fp64emu_mid_<op>_<rm>        — mid      (1-2 LSB error, limited IEEE-754 specials support)
    __fp64emu_low_<op>_<rm>        — low      (up to half mantissa bits, limited IEEE-754 specials support)
 
-Naming convention (unpacked ``fpbits64_unpacked``)
+Naming convention (unpacked ``__fpbits64_unpacked``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
@@ -140,17 +140,17 @@ Example
 
    #include <cuda/fpemu>
 
-   fpbits64 x = __fp64emu_from_double(1.2345);
-   fpbits64 y = __fp64emu_from_double(2.3456);
+   __fpbits64 x = __fp64emu_from_double(1.2345);
+   __fpbits64 y = __fp64emu_from_double(2.3456);
 
    // High-accuracy multiply (correctly rounded)
-   fpbits64 r1 = __fp64emu_high_dmul_rn(x, y);
+   __fpbits64 r1 = __fp64emu_high_dmul_rn(x, y);
 
    // Low-accuracy add
-   fpbits64 r2 = __fp64emu_low_dadd_rn(x, y);
+   __fpbits64 r2 = __fp64emu_low_dadd_rn(x, y);
 
    // Default FMA (== high)
-   fpbits64 r3 = __fp64emu_fma_rn(x, y, r2);
+   __fpbits64 r3 = __fp64emu_fma_rn(x, y, r2);
 
    double result = __fp64emu_to_double(r3);
 
@@ -233,14 +233,14 @@ Using core built-ins from library directly
 
    #include <cuda/fpemu>
 
-   fpbits64 x = __fp64emu_from_double(value);
-   fpbits64 y = __fp64emu_from_double(value);
+   __fpbits64 x = __fp64emu_from_double(value);
+   __fpbits64 y = __fp64emu_from_double(value);
 
    // IEEE-754 compliant multiply
-   fpbits64 r = __fp64emu_dmul_rn(x, y);
+   __fpbits64 r = __fp64emu_dmul_rn(x, y);
 
    // Fast variant of the same operation
-   fpbits64 r_fast = __fp64emu_low_dmul_rn(x, y);
+   __fpbits64 r_fast = __fp64emu_low_dmul_rn(x, y);
 
 Compilation modes
 ~~~~~~~~~~~~~~~~~
