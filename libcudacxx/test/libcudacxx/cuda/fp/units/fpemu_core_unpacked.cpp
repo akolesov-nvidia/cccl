@@ -14,7 +14,7 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
  * - Multiply-add operations (simulated FMA)
  * 
  * The example demonstrates the unpacked floating-point workflow:
- * 1. Convert double values to unpacked format using fpbits64_unpacked_t
+ * 1. Convert double values to unpacked format using fpbits64_unpacked
  * 2. Perform arithmetic operations using unpacked core builtins:
  *    - Addition: mid accuracy (__fp64emu_unpacked_mid_dadd)
  *    - Multiplication: mid accuracy (__fp64emu_unpacked_mid_dmul)
@@ -70,28 +70,28 @@ TARGET_DEVICE void run_example(double *inp, double *out, double* eout, double* e
     out[4] = C0 + dx * (C1 + dx * (C2 + dx * (C3 + dx * (C4 + dx * (C5 + dx * (C6 + dx * C7))))));
 
     // packed emulated doubles
-    fpbits64_t ex = __fp64emu_from_double(dx);
-    fpbits64_t ey = __fp64emu_from_double(dy);
-    fpbits64_t ez = __fp64emu_from_double(dz);
-    fpbits64_t ew = __fp64emu_from_double(dw);
+    fpbits64 ex = __fp64emu_from_double(dx);
+    fpbits64 ey = __fp64emu_from_double(dy);
+    fpbits64 ez = __fp64emu_from_double(dz);
+    fpbits64 ew = __fp64emu_from_double(dw);
     // packed multiply
-    fpbits64_t eres_mul = __fp64emu_mid_dmul_rn(ex, ey);
+    fpbits64 eres_mul = __fp64emu_mid_dmul_rn(ex, ey);
     eres_mul            = __fp64emu_mid_dmul_rn(eres_mul, ez);
     eres_mul            = __fp64emu_mid_dmul_rn(eres_mul, ew);
     eout[0]             = __fp64emu_to_double(eres_mul);
     // packed add
-    fpbits64_t eres_add = __fp64emu_mid_dadd_rn(ex, ey);
+    fpbits64 eres_add = __fp64emu_mid_dadd_rn(ex, ey);
     eres_add            = __fp64emu_mid_dadd_rn(eres_add, ez);
     eres_add            = __fp64emu_mid_dadd_rn(eres_add, ew);
     eout[1]             = __fp64emu_to_double(eres_add);
     // packed mad
-    fpbits64_t eres_m1  = __fp64emu_mid_mad_rn(ex, ey, ez);
+    fpbits64 eres_m1  = __fp64emu_mid_mad_rn(ex, ey, ez);
     eout[2]             = __fp64emu_to_double(eres_m1);
     // packed dot
-    fpbits64_t eres_dot  = __fp64emu_mid_dot_rn(ex, ez, ey, ew);
+    fpbits64 eres_dot  = __fp64emu_mid_dot_rn(ex, ez, ey, ew);
     eout[3]              = __fp64emu_to_double(eres_dot);
     // packed poly
-    fpbits64_t poly = __fp64emu_dmul_rn(ex,__fp64emu_from_double(C7));
+    fpbits64 poly = __fp64emu_dmul_rn(ex,__fp64emu_from_double(C7));
     poly    = __fp64emu_dadd_rn(poly,__fp64emu_from_double(C6));
     poly    = __fp64emu_dmul_rn(poly,ex);
     poly    = __fp64emu_dadd_rn(poly,__fp64emu_from_double(C5));
@@ -108,28 +108,28 @@ TARGET_DEVICE void run_example(double *inp, double *out, double* eout, double* e
     eout[4] = __fp64emu_to_double(poly);
 
     // unpacked emulated doubles
-    fpbits64_unpacked_t eux = __fp64emu_unpacked_from_double(dx);
-    fpbits64_unpacked_t euy = __fp64emu_unpacked_from_double(dy);
-    fpbits64_unpacked_t euz = __fp64emu_unpacked_from_double(dz);
-    fpbits64_unpacked_t euw = __fp64emu_unpacked_from_double(dw);
+    fpbits64_unpacked eux = __fp64emu_unpacked_from_double(dx);
+    fpbits64_unpacked euy = __fp64emu_unpacked_from_double(dy);
+    fpbits64_unpacked euz = __fp64emu_unpacked_from_double(dz);
+    fpbits64_unpacked euw = __fp64emu_unpacked_from_double(dw);
     // unpacked multiply
-    fpbits64_unpacked_t eures_mul = __fp64emu_unpacked_mid_dmul(eux, euy);
+    fpbits64_unpacked eures_mul = __fp64emu_unpacked_mid_dmul(eux, euy);
     eures_mul                     = __fp64emu_unpacked_mid_dmul(eures_mul, euz);
     eures_mul                     = __fp64emu_unpacked_mid_dmul(eures_mul, euw);
     euout[0]                      = __fp64emu_unpacked_to_double(eures_mul);
     // unpacked add
-    fpbits64_unpacked_t eures_add = __fp64emu_unpacked_mid_dadd(eux, euy);
+    fpbits64_unpacked eures_add = __fp64emu_unpacked_mid_dadd(eux, euy);
     eures_add                     = __fp64emu_unpacked_mid_dadd(eures_add, euz);
     eures_add                     = __fp64emu_unpacked_mid_dadd(eures_add, euw);
     euout[1]                      = __fp64emu_unpacked_to_double(eures_add);
     // unpacked mad
-    fpbits64_unpacked_t eures_m1  = __fp64emu_unpacked_mid_mad(eux, euy, euz);
+    fpbits64_unpacked eures_m1  = __fp64emu_unpacked_mid_mad(eux, euy, euz);
     euout[2]                      = __fp64emu_unpacked_to_double(eures_m1);
     // unpacked dot
-    fpbits64_unpacked_t eures_dot = __fp64emu_unpacked_mid_dot(eux, euz, euy, euw);
+    fpbits64_unpacked eures_dot = __fp64emu_unpacked_mid_dot(eux, euz, euy, euw);
     euout[3]                      = __fp64emu_unpacked_to_double(eures_dot);
     
-    fpbits64_unpacked_t upoly = __fp64emu_unpacked_mid_dmul(eux,__fp64emu_unpacked_from_double(C7));
+    fpbits64_unpacked upoly = __fp64emu_unpacked_mid_dmul(eux,__fp64emu_unpacked_from_double(C7));
     upoly    = __fp64emu_unpacked_mid_dadd(upoly,__fp64emu_unpacked_from_double(C6));
     upoly    = __fp64emu_unpacked_mid_dmul(upoly,eux);
     upoly    = __fp64emu_unpacked_mid_dadd(upoly,__fp64emu_unpacked_from_double(C5));

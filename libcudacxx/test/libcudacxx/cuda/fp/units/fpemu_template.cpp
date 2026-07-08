@@ -6,13 +6,13 @@
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 /**
- * @brief Example demonstrating how to pass template accuracy parameters to the fp64emu_t template type
+ * @brief Example demonstrating how to pass template accuracy parameters to the fpemu template type
  *
  * This example shows how to explicitly specify accuracy template parameters
- * when constructing fp64emu emulated floating-point types. By using the fp64emu_t<m>
+ * when constructing fp64emu emulated floating-point types. By using the fpemu<double, m>
  * template, users can select the desired accuracy level at compile time for each variable or operation.
  *
- * The run_mode template function illustrates this by instantiating fp64emu_t with different
+ * The run_mode template function illustrates this by instantiating fpemu with different
  * accuracy levels (high, mid, low), enabling control over
  * floating-point emulation behavior. This approach is useful for applications requiring
  * precise selection of floating-point semantics for correctness, performance, or compatibility.
@@ -40,11 +40,11 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 
 // Define the run_mode template function
 // m: accuracy level (high, mid, low; def == high)
-template<fp64emu_accuracy m = fp64emu_accuracy::def>
+template<fpemu_accuracy m = fpemu_accuracy::def>
 __device__ void run_mode(double *inp, double *out)
 {
-    fp64emu_t<m> x = inp[0];
-    fp64emu_t<m> c = 0.001;
+    fpemu<double, m> x = inp[0];
+    fpemu<double, m> c = 0.001;
     // Compute: ((x + x) * x - x) / (x + c) using builtins
     // Accuracy m is deduced from argument types - dispatches to correct accuracy builtin
     out[0] = __ddiv_rn(__dsub_rn(__dmul_rn(__dadd_rn(x, x), x), x), __dadd_rn(x, c));
@@ -71,9 +71,9 @@ __device__ void run_native_hw(double *inp, double *out)
 TARGET_DEVICE void run_example(double *inp, double *out) 
 {
     run_native_hw(&inp[0], &out[0]);  // Native hardware
-    run_mode<fp64emu_accuracy::high>(&inp[1], &out[1]);  // Emulated high
-    run_mode<fp64emu_accuracy::def>(&inp[2], &out[2]);      // Emulated def
-    run_mode<fp64emu_accuracy::low>(&inp[3], &out[3]);     // Emulated low
+    run_mode<fpemu_accuracy::high>(&inp[1], &out[1]);  // Emulated high
+    run_mode<fpemu_accuracy::def>(&inp[2], &out[2]);      // Emulated def
+    run_mode<fpemu_accuracy::low>(&inp[3], &out[3]);     // Emulated low
 }
 
 int main(int argc, char** argv) 

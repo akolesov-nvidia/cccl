@@ -14,10 +14,10 @@
 
     Accuracy Levels:
     -------------------------------------------------------------------------
-    - fp64emu_accuracy::high — correctly rounded, full IEEE-754 range (INF, NaN, subnormals)
-    - fp64emu_accuracy::mid  — up to 1-2 LSB error, limited special value support
-    - fp64emu_accuracy::low  — up to half mantissa bits lost, limited special value support
-    - fp64emu_accuracy::def  — default selector (== high, IEEE-correct)
+    - fpemu_accuracy::high — correctly rounded, full IEEE-754 range (INF, NaN, subnormals)
+    - fpemu_accuracy::mid  — up to 1-2 LSB error, limited special value support
+    - fpemu_accuracy::low  — up to half mantissa bits lost, limited special value support
+    - fpemu_accuracy::def  — default selector (== high, IEEE-correct)
 
     Features Demonstrated:
     -------------------------------------------------------------------------
@@ -50,7 +50,7 @@
 
     Types Used:
     -------------------------------------------------------------------------
-    - fp64emu      : Default emulation type (fp64emu_accuracy::def, == high)
+    - fp64emu      : Default emulation type (fpemu_accuracy::def, == high)
     - fp64emu_high : High-accuracy emulation type (correctly rounded, full IEEE range)
     - fp64emu_low  : Low-accuracy emulation type (reduced precision, higher performance)
 */

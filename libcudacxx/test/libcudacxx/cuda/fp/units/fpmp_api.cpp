@@ -7,7 +7,7 @@
     This unit test compares native double-precision arithmetic operations with float-float (ffloat) type:
     - Basic arithmetic: multiplication, addition, division, and subtraction
     - Fused multiply-add (FMA) operations
-    - Uses fp32mp2 (i.e. fpmp2_t<float, fpmp2_accuracy::def>) for extended precision via (hi, lo) components
+    - Uses fp32mp2 (i.e. fpmp2<float, fpmp2_accuracy::def>) for extended precision via (hi, lo) components
 
     Test Approach:
     -------------------------------------------------------------------------
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
     // 1. Host: CPU computation using native double precision
     // 2. Device (fp64): GPU/device computation using native double precision
     // 3. Device (ffloat): GPU/device computation using float-float extended precision
-    printf("  ** This example demonstrates the usage of float-float (fp32mp2) C++ API\n     with multi-precision arithmetic using fpmp2_t<float, fpmp2_accuracy::def>\n\n");
+    printf("  ** This example demonstrates the usage of float-float (fp32mp2) C++ API\n     with multi-precision arithmetic using fpmp2<float, fpmp2_accuracy::def>\n\n");
     
     // Multiplication comparison
     printf("                    Host:         %.4f * %.4f  = %.18f\n",   inp[0], inp[1], inp[0] * inp[1]);

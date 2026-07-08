@@ -340,7 +340,7 @@
     #endif
 
     #if FPMP_TYPE_ID == fp32mp2_id
-        #define FPMP_TYPE cuda::experimental::fpmp2_t<float,cuda::experimental::fpmp2_accuracy::__METHOD__>
+        #define FPMP_TYPE cuda::experimental::fpmp2<float,cuda::experimental::fpmp2_accuracy::__METHOD__>
         #define REF_TYPE  double
         #define BASE_TYPE float
         #define BASE_TYPE_NAME fp32
@@ -348,7 +348,7 @@
         #define MANTISSA_BITS 46
     #elif FPMP_TYPE_ID == fp64mp2_id
         #if (TS_HAS_LIBQUADMATH == 1) || (TS_HAS_LDOUBLE128 == 1)
-            #define FPMP_TYPE cuda::experimental::fpmp2_t<double,cuda::experimental::fpmp2_accuracy::__METHOD__>
+            #define FPMP_TYPE cuda::experimental::fpmp2<double,cuda::experimental::fpmp2_accuracy::__METHOD__>
             #define REF_TYPE  __ts_fp128
             #define BASE_TYPE double
             #define BASE_TYPE_NAME fp64
@@ -612,7 +612,7 @@
     #include <cuda/fpmp>
     #include <cuda/fpmp_math>
 
-    // The CCCL FP SDK lives in cuda::experimental (class fpmp2_t<FpType,
+    // The CCCL FP SDK lives in cuda::experimental (class fpmp2<FpType,
     // fpmp2_accuracy::X> and the internal __fpmp_* helpers); bring it into scope
     // so the harness can use the unqualified names.
     using namespace cuda::experimental;

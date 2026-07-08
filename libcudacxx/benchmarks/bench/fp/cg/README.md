@@ -17,7 +17,7 @@ The Conjugate Gradient method is an iterative algorithm for solving systems of l
 ### Core Functionality
 - **Conjugate Gradient Solver**: Complete CG implementation with residual recomputation
 - **2D Laplacian Operator**: 5-point stencil sparse matrix-vector multiplication
-- **Flexible Data Types**: Support for both native `double` and custom `fp64emu_t` types
+- **Flexible Data Types**: Support for both native `double` and custom `fpemu` types
 - **Emulation Support**: Built-in support for fp64emu emulation system
 
 ### Performance Features
@@ -149,7 +149,7 @@ The Makefile supports several configuration options:
 
 #### Enable fp64emu Emulation (Default)
 ```bash
-# Uses fp64emu_t type for all computations
+# Uses fpemu type for all computations
 make rerun
 ```
 

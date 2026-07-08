@@ -136,13 +136,13 @@ namespace cuda::experimental
     #define _CCCL_FPMP_USE_LIB
 #endif
 
-// CCCL_FPMP_EXPLICIT_CASTS controls whether lossy/narrowing conversions INTO fpmp2_t
+// CCCL_FPMP_EXPLICIT_CASTS controls whether lossy/narrowing conversions INTO fpmp2
 // are explicit. It gates only the constructors:
 //   - double      -> fp32mp2   (narrowing)
 //   - fp64mp2     -> fp32mp2   (narrowing)
 //   - __float128  -> fp64mp2   (narrowing)
-//   - int32_t / uint32_t -> fpmp2_t
-//   - int64_t / uint64_t -> fpmp2_t
+//   - int32_t / uint32_t -> fpmp2
+//   - int64_t / uint64_t -> fpmp2
 // The conversion OUT to double (operator double()) is always implicit and is NOT
 // affected by this macro (it is a value-preserving widening conversion).
 //
@@ -469,7 +469,7 @@ namespace cuda::experimental
 /*
 // Accuracy level for fpmp arithmetic (public; defined directly in
 // cuda::experimental). Named fpmp2_accuracy, so
-// callers write e.g. fpmp2_t<float, fpmp2_accuracy::high>.
+// callers write e.g. fpmp2<float, fpmp2_accuracy::high>.
 // mid is the Dekker-based split and error accumulation technique
 // high is the Thall-based split and error accumulation technique
 // low is the fast arithmetic operation without re-normalizations
@@ -493,7 +493,7 @@ enum struct fpmp2_accuracy
     _CCCL_TRIVIAL_API _To __fpmp_builtin_bit_cast(_From __v) noexcept
     {
         // Static checks to ensure bit_cast requirements
-        static_assert(sizeof(_To) == sizeof(_From),              "bit_cast requires source and destination types to have the same size");
+        static_assert(sizeof(_To) == sizeof(_From),                "bit_cast requires source and destination types to have the same size");
         static_assert(::cuda::std::is_trivially_copyable_v<_From>, "bit_cast requires From to be trivially copyable");
         static_assert(::cuda::std::is_trivially_copyable_v<_To>,   "bit_cast requires To to be trivially copyable");
         
@@ -801,9 +801,9 @@ enum struct fpmp2_accuracy
     */
     // Multiply 2 floats exactly, assuming no over/underflow.
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType __fpmp_two_mult_fma (const _FpType __x, 
-                                                const _FpType __y,
-                                                _FpType* const __res_lo) noexcept
+    _CCCL_TRIVIAL_API _FpType __fpmp_two_mult_fma (const _FpType  __x, 
+                                                   const _FpType  __y,
+                                                   _FpType* const __res_lo) noexcept
     {
         _FpType __res_hi = __fpmp_mul_rn(__x, __y);
         *__res_lo       = __fpmp_fma_rn(__x, __y, -__res_hi);
@@ -815,9 +815,9 @@ enum struct fpmp2_accuracy
     // (Usually we just check if |x| >= |y|).
     // If this is not known use the function below.
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType __fpmp_fast_two_sum (const _FpType __x, 
-                                                const _FpType __y, 
-                                                _FpType* const __res_lo) noexcept
+    _CCCL_TRIVIAL_API _FpType __fpmp_fast_two_sum (const _FpType  __x, 
+                                                   const _FpType  __y, 
+                                                   _FpType* const __res_lo) noexcept
     {
         _FpType __res_hi = __fpmp_add_rn(__x, __y);
         _FpType __diff   = __fpmp_sub_rn(__res_hi, __x);
@@ -828,9 +828,9 @@ enum struct fpmp2_accuracy
     // Add 2 floats, returning the answer exactly in 'hi' and 'lo' parts.
     // This makes no assumptions on the magnitudes of |x| and |y|.
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API _FpType __fpmp_two_sum (const _FpType __x, 
-                                           const _FpType __y,
-                                           _FpType* const __res_lo) noexcept
+    _CCCL_TRIVIAL_API _FpType __fpmp_two_sum (const _FpType  __x, 
+                                              const _FpType  __y,
+                                              _FpType* const __res_lo) noexcept
     {
         _FpType __res_hi  = __fpmp_add_rn(__x, __y);
         _FpType __a_prime = __fpmp_sub_rn(__res_hi, __y);
@@ -844,8 +844,8 @@ enum struct fpmp2_accuracy
     // double -> (hi, lo) conversions (plain versions)
     // only for the C++ class below to be optimized in compile-time
     _CCCL_API _CCCL_FPMP_CONSTEXPR void __fpmp_from_double (const double __x, 
-                                                           float*       __res_hi, 
-                                                           float*       __res_lo) _CCCL_FPMP_NOEXCEPT
+                                                            float*       __res_hi, 
+                                                            float*       __res_lo) _CCCL_FPMP_NOEXCEPT
     {
         *__res_hi = (float)__x;
         *__res_lo = (float)(__x - (double)(float)__x);

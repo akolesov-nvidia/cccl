@@ -52,7 +52,7 @@ using namespace cuda::experimental;
   #define __METHOD__ def
 #endif
 
-using ffloat = fpmp2_t<float, fpmp2_accuracy::__METHOD__>;
+using ffloat = fpmp2<float, fpmp2_accuracy::__METHOD__>;
 
 typedef struct ffloat4_32a {
     ffloat x, y, z, w;

@@ -4,7 +4,7 @@
     Author:  Andrei Kolesov
     Date:    2026
 
-    This test verifies that fp64emu_t and fp64emu_unpacked_t types:
+    This test verifies that fpemu and fpemu_unpacked types:
     1. Are trivially copyable (required for cooperative_groups, __shfl intrinsics, etc.)
     2. Correctly support volatile construction (copy from volatile object)
     3. Correctly support volatile assignment (assign to/from volatile object)
@@ -309,7 +309,7 @@ bool test_volatile_device() {
 // ============================================================
 int main() {
     std::cout << "\n" << std::string(60, '=') << std::endl;
-    std::cout << "Volatile and Trivial Copyability Tests for fp64emu_t" << std::endl;
+    std::cout << "Volatile and Trivial Copyability Tests for fpemu" << std::endl;
     std::cout << std::string(60, '=') << std::endl;
 
 #if defined(__CUDACC__)

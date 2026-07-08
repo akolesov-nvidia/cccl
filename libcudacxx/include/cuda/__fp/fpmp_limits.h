@@ -21,10 +21,10 @@
 #  pragma system_header
 #endif // no system header
 /*
-    fpmp_limits.h - cuda::std::numeric_limits specialization for fpmp2_t
+    fpmp_limits.h - cuda::std::numeric_limits specialization for fpmp2
     ======================================================================================================
     Provides a cuda::std::numeric_limits<> specialization for the multi-precision double-word types
-    fpmp2_t<FpType, met> (fp32mp2 = double-float, fp64mp2 = double-double), mirroring the standard
+    fpmp2<FpType, met> (fp32mp2 = double-float, fp64mp2 = double-double), mirroring the standard
     std::numeric_limits interface.
 
     Conventions (see docs/libcudacxx/fp/fpmp_spec.rst):
@@ -75,14 +75,14 @@ template <class _FpType>
 _CCCL_BEGIN_NAMESPACE_CUDA_STD
 
 template <class _FpType, ::cuda::experimental::fpmp2_accuracy _Met>
-class numeric_limits<::cuda::experimental::fpmp2_t<_FpType, _Met>>
+class numeric_limits<::cuda::experimental::fpmp2<_FpType, _Met>>
 {
 private:
   // numeric_limits of the underlying IEEE-754 component type (float or double).
   using __base = numeric_limits<_FpType>;
 
 public:
-  using type = ::cuda::experimental::fpmp2_t<_FpType, _Met>;
+  using type = ::cuda::experimental::fpmp2<_FpType, _Met>;
 
   static constexpr bool is_specialized = true;
 

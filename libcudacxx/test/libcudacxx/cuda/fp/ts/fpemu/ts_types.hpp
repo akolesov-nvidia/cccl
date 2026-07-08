@@ -242,7 +242,7 @@ namespace ts
                 MALLOC(native_ref1, native_out_type, max_len);
                 
                 // Initialize memory with loop. The emulated input/output types may
-                // be a class (packed fp64emu_t or unpacked fp64emu_unpacked_t) with
+                // be a class (packed fpemu or unpacked fpemu_unpacked) with
                 // no implicit int assignment, so zero them via a double conversion
                 // (every emulated type provides a from-double constructor).
                 for (uint64_t i = 0; i < max_len; i++) {

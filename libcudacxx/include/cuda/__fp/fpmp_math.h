@@ -158,7 +158,7 @@
       Standard names isfinite/isinf/isnan/signbit are exposed only when the
       corresponding macro is not defined.
 
-    Warp Shuffle (CUDA-only, modern __shfl_sync family): the fpmp2_t overloads
+    Warp Shuffle (CUDA-only, modern __shfl_sync family): the fpmp2 overloads
     of __shfl_sync / __shfl_xor_sync / __shfl_down_sync / __shfl_up_sync are
     thread-cooperation primitives, not math, so they live in the core header
     <cuda/__fp/fpmp.h> (available via <cuda/fpmp>), not here.
@@ -395,8 +395,8 @@ namespace cuda::experimental
     *
     *   p(x) = c[0] + c[1]*x + c[2]*x^2 + ... + c[N-1]*x^(N-1)
     *
-    * with x given as fpmp2_t<FpType, met> and the coefficient
-    * table `c[]` packed as fpmp2_t<FpType, met> in ascending order
+    * with x given as fpmp2<FpType, met> and the coefficient
+    * table `c[]` packed as fpmp2<FpType, met> in ascending order
     * of degree (c[0] = constant term, c[N-1] = leading coefficient).
     *
     * The template parameter M controls the precision split:
@@ -406,7 +406,7 @@ namespace cuda::experimental
     *     are treated as plain FpType constants. Their `.lo()` parts
     *     are assumed to be zero (which is the natural state when the
     *     coefficient is built from a single FpType literal via the
-    *     implicit `fpmp2_t(FpType)` ctor; using a ffloat literal
+    *     implicit `fpmp2(FpType)` ctor; using a ffloat literal
     *     whose `.lo()` happens to be zero -- e.g. for layout
     *     consistency -- works just as well, the `.lo()` is simply
     *     ignored in this phase). The leading M iterations run in
@@ -445,15 +445,15 @@ namespace cuda::experimental
     *   met    : fpmp arithmetic accuracy level (deduced from arguments).
     *********************************************************************/
     template<int _Mp, int _Np, typename _FpType, fpmp2_accuracy _TypeAcc>
-    _CCCL_API inline fpmp2_t<_FpType, _TypeAcc>
-    __fpmp_poly_horner_mixed(const fpmp2_t<_FpType, _TypeAcc>& __x,
-                      const fpmp2_t<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
+    _CCCL_API inline fpmp2<_FpType, _TypeAcc>
+    __fpmp_poly_horner_mixed(const fpmp2<_FpType, _TypeAcc>& __x,
+                      const fpmp2<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
     {
         static_assert(_Np >= 2, "poly_horner_mixed requires at least 2 coefficients (degree >= 1)");
         static_assert(_Mp >= 0, "poly_horner_mixed: M must be non-negative");
         static_assert(_Mp <= _Np, "poly_horner_mixed: M must not exceed N");
 
-        using ff_t = fpmp2_t<_FpType, _TypeAcc>;
+        using ff_t = fpmp2<_FpType, _TypeAcc>;
 
         if constexpr (_Mp == 0)
         {
@@ -507,7 +507,7 @@ namespace cuda::experimental
     *
     *   p(x) = c[0] + c[1]*x + c[2]*x^2 + ... + c[N-1]*x^(N-1)
     *
-    * with x and c[k] given as fpmp2_t<FpType, met> (ascending order
+    * with x and c[k] given as fpmp2<FpType, met> (ascending order
     * of degree, c[0] = constant term, c[N-1] = leading coefficient).
     * The bulk of the work runs in single-precision FpType arithmetic
     * with an error-tracking ("compensated") Horner inner loop, then two
@@ -523,7 +523,7 @@ namespace cuda::experimental
     *             truncation noise; mirrors the M-split of
     *             `poly_horner_mixed<M>`. Top M coefficients are required
     *             to have c[k].lo() == 0 (the natural state for plain
-    *             FpType literals built via `fpmp2_t(FpType)` ctor).
+    *             FpType literals built via `fpmp2(FpType)` ctor).
     *   Phase 1:  compensated Horner over the remaining (N-M) coefficients
     *             c[N-M-1] ... c[0] -- running FpType acc + FpType err such
     *             that acc + err equals Sum_{k<=N-M-1} c[k].hi * x.hi^k + acc0
@@ -538,7 +538,7 @@ namespace cuda::experimental
     *   Phase 3:  fast_two_sum(acc, err+corr) -> (hi, lo) ffloat
     *
     * Coefficients with c[k].lo == 0 (e.g. those built from a pure
-    * FpType constant via the implicit `fpmp2_t(FpType)` ctor)
+    * FpType constant via the implicit `fpmp2(FpType)` ctor)
     * fold cleanly: their Phase 2a iterations are no-ops, and Phase 2b's
     * `(FpType)k * c[k].hi()` constant evaluates at compile time inside
     * the unrolled loop. This makes the helper a uniform way to express
@@ -562,9 +562,9 @@ namespace cuda::experimental
     *   met    : fpmp arithmetic accuracy level (deduced from arguments)
     *********************************************************************/
     template<int _Mp = 0, int _Np, typename _FpType, fpmp2_accuracy _TypeAcc>
-    _CCCL_API inline fpmp2_t<_FpType, _TypeAcc>
-    __fpmp_poly_horner_comp(const fpmp2_t<_FpType, _TypeAcc>& __x,
-                     const fpmp2_t<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
+    _CCCL_API inline fpmp2<_FpType, _TypeAcc>
+    __fpmp_poly_horner_comp(const fpmp2<_FpType, _TypeAcc>& __x,
+                     const fpmp2<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
     {
         static_assert(_Np >= 2, "poly_horner_comp requires at least 2 coefficients (degree >= 1)");
         static_assert(_Mp >= 0, "poly_horner_comp: M must be non-negative");
@@ -645,7 +645,7 @@ namespace cuda::experimental
         _FpType __lo  = __fpmp_add_rn(__err, __corr);
         _FpType __rhi = __fpmp_add_rn(__acc, __lo);
         _FpType __rlo = __fpmp_sub_rn(__lo, __fpmp_sub_rn(__rhi, __acc));
-        return fpmp2_t<_FpType, _TypeAcc>(__rhi, __rlo);
+        return fpmp2<_FpType, _TypeAcc>(__rhi, __rlo);
     } // poly_horner_comp
 
     /*********************************************************************
@@ -694,9 +694,9 @@ namespace cuda::experimental
     *********************************************************************/
     template<__fpmp_poly_method _Strategy, int _Mp = 0,
              int _Np, typename _FpType, fpmp2_accuracy _TypeAcc>
-    _CCCL_API inline fpmp2_t<_FpType, _TypeAcc>
-    __fpmp_poly_eval(const fpmp2_t<_FpType, _TypeAcc>& __x,
-              const fpmp2_t<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
+    _CCCL_API inline fpmp2<_FpType, _TypeAcc>
+    __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x,
+              const fpmp2<_FpType, _TypeAcc> (&__c)[_Np]) noexcept
     {
         if constexpr (_Strategy == __fpmp_poly_method::horner_mixed) {
             return __fpmp_poly_horner_mixed<_Mp>(__x, __c);
@@ -1448,7 +1448,7 @@ namespace cuda::experimental
              * the rest of the fp64mp2 math surface; this else branch
              * exists so the primary template is well-formed for any
              * `FpType` and stays compilable in isolation. */
-            using mp2_t = fpmp2_t<_FpType>;
+            using mp2_t = fpmp2<_FpType>;
             const double __r = ::ldexp(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n);
             mp2_t __result(__r);
             *__res_hi = __result.hi();
@@ -3061,7 +3061,7 @@ namespace cuda::experimental
         uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
         if (__abs_bits >= 0x49800000U) 
         {
-            using mp2_t = fpmp2_t<_FpType>;
+            using mp2_t = fpmp2<_FpType>;
             double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
             double __sd = ::sin(__xd), __cd = ::cos(__xd);
             /* Split each fp64 result into (hi, lo) via the fp32mp2(double)
@@ -3174,7 +3174,7 @@ namespace cuda::experimental
         uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
         if (__abs_bits >= 0x49800000U)   /* |x_hi| >= 2^20 */
         {
-            using mp2_t = fpmp2_t<_FpType>;
+            using mp2_t = fpmp2<_FpType>;
             double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
             double td = ::tan(__xd);
             /* Split the fp64 result into (hi, lo) via the fp32mp2(double)
@@ -3195,7 +3195,7 @@ namespace cuda::experimental
         __internal_fpmp2_sin_kernel(__r_hi, __r_lo, &__s_hi, &__s_lo);
         __internal_fpmp2_cos_kernel(__r_hi, __r_lo, &__c_hi, &__c_lo);
 
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         mp2_t __s(__s_hi, __s_lo);
         mp2_t __c(__c_hi, __c_lo);
 
@@ -3290,8 +3290,8 @@ namespace cuda::experimental
     /* ---- (kernel 2) asin polynomial P(y); used by both asin & acos ---- */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __internal_fpmp2_asin_poly(
-        const fpmp2_t<_FpType>& __y,
-        fpmp2_t<_FpType>* __result) noexcept
+        const fpmp2<_FpType>& __y,
+        fpmp2<_FpType>* __result) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -3317,7 +3317,7 @@ namespace cuda::experimental
         };
 
         ffloat __q = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__y_fast, __asin_c);
-        fpmp2_t<_FpType> __res(__q.hi(), __q.lo());
+        fpmp2<_FpType> __res(__q.hi(), __q.lo());
         *__result = __res;
     }
 
@@ -3330,8 +3330,8 @@ namespace cuda::experimental
      * per-op renormalisation, single conversion in/out around the call. */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __internal_fpmp2_acos_poly(
-        const fpmp2_t<_FpType>& __y,
-        fpmp2_t<_FpType>* __result) noexcept
+        const fpmp2<_FpType>& __y,
+        fpmp2<_FpType>* __result) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -3354,7 +3354,7 @@ namespace cuda::experimental
         };
 
         ffloat __q = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__y_fast, __acos_c);
-        fpmp2_t<_FpType> __res(__q.hi(), __q.lo());
+        fpmp2<_FpType> __res(__q.hi(), __q.lo());
         *__result = __res;
     }
 
@@ -3526,7 +3526,7 @@ namespace cuda::experimental
                       "dedicated __fpmp2_asin is fp32mp2 only; "
                       "fp64mp2 has its own specialization");
 
-        using ffloat = fpmp2_t<_FpType>;
+        using ffloat = fpmp2<_FpType>;
 
         const bool __is_neg = __x_hi < _FpType(0);
         ffloat __x(__x_hi, __x_lo);
@@ -3576,7 +3576,7 @@ namespace cuda::experimental
                       "dedicated __fpmp2_acos is fp32mp2 only; "
                       "fp64mp2 has its own specialization");
 
-        using ffloat = fpmp2_t<_FpType>;
+        using ffloat = fpmp2<_FpType>;
 
         const bool __is_neg = __x_hi < _FpType(0);
         ffloat __x(__x_hi, __x_lo);
@@ -4737,7 +4737,7 @@ namespace cuda::experimental
                                                            _FpType*      __res_hi,
                                                            _FpType*      __res_lo)
     {
-        using ffloat = fpmp2_t<_FpType, _CCCL_FPMP_METHOD>;
+        using ffloat = fpmp2<_FpType, _CCCL_FPMP_METHOD>;
 
         ffloat __a(__a_hi, __a_lo);
         ffloat __r;
@@ -5443,13 +5443,13 @@ namespace cuda::experimental
     #undef _CCCL_FPMP_MATH_PLACEHOLDER_INT_FP
 
     // Helper macro: placeholder implementation that delegates to a standard double-precision
-    // math function with proper hi/lo splitting via fpmp2_t conversions.
-    // Uses explicit fpmp2_t construction/conversion to avoid NVCC name resolution issues.
+    // math function with proper hi/lo splitting via fpmp2 conversions.
+    // Uses explicit fpmp2 construction/conversion to avoid NVCC name resolution issues.
     #define _CCCL_FPMP_MATH_PLACEHOLDER_1A(name) \
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
         mp2_t __result(__r); \
         *__res_hi = __result.hi(); *__res_lo = __result.lo(); \
@@ -5459,7 +5459,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, const _FpType __y_hi, const _FpType __y_lo, _FpType* __res_hi, _FpType* __res_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo))); \
         mp2_t __result(__r); \
         *__res_hi = __result.hi(); *__res_lo = __result.lo(); \
@@ -5469,7 +5469,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
     }
 
@@ -5477,7 +5477,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API long long int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
     }
 
@@ -5485,7 +5485,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API long int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
     }
 
@@ -5493,7 +5493,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n); \
         mp2_t __result(__r); \
         *__res_hi = __result.hi(); *__res_lo = __result.lo(); \
@@ -5503,7 +5503,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n); \
         mp2_t __result(__r); \
         *__res_hi = __result.hi(); *__res_lo = __result.lo(); \
@@ -5513,7 +5513,7 @@ namespace cuda::experimental
     template<typename _FpType = float> \
     _CCCL_TRIVIAL_API void __fpmp2_##name (int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) \
     { \
-        using mp2_t = fpmp2_t<_FpType>; \
+        using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(__n, static_cast<double>(mp2_t(__x_hi, __x_lo))); \
         mp2_t __result(__r); \
         *__res_hi = __result.hi(); *__res_lo = __result.lo(); \
@@ -5557,7 +5557,7 @@ namespace cuda::experimental
                                                  _FpType*      __res_hi,
                                                  _FpType*      __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         const double __r = ::rint(static_cast<double>(mp2_t(__x_hi, __x_lo)));
         mp2_t __result(__r);
         *__res_hi = __result.hi();
@@ -5570,7 +5570,7 @@ namespace cuda::experimental
                                                       _FpType*      __res_hi,
                                                       _FpType*      __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         const double __r = ::nearbyint(static_cast<double>(mp2_t(__x_hi, __x_lo)));
         mp2_t __result(__r);
         *__res_hi = __result.hi();
@@ -5581,7 +5581,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_j0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::j0(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5596,7 +5596,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_j1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::j1(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5611,7 +5611,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_y0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::y0(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5626,7 +5626,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_y1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::y1(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5642,7 +5642,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_cyl_bessel_i0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::cyl_bessel_i0(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5657,7 +5657,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_cyl_bessel_i1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::cyl_bessel_i1(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5673,7 +5673,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_jn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::jn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5688,7 +5688,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_yn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::yn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5704,7 +5704,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_frexp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo, int* __nptr) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __r = ::frexp(static_cast<double>(mp2_t(__x_hi, __x_lo)), __nptr);
         mp2_t __result(__r);
         *__res_hi = __result.hi(); *__res_lo = __result.lo();
@@ -5714,7 +5714,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_modf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo, _FpType* __iptr_hi, _FpType* __iptr_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __ipart;
         double __r = ::modf(static_cast<double>(mp2_t(__x_hi, __x_lo)), &__ipart);
         mp2_t __result(__r), __iresult(__ipart);
@@ -5726,7 +5726,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_remquo(const _FpType __x_hi, const _FpType __x_lo, const _FpType __y_hi, const _FpType __y_lo, _FpType* __res_hi, _FpType* __res_lo, int* __quo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __r = ::remquo(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)), __quo);
         mp2_t __result(__r);
         *__res_hi = __result.hi(); *__res_lo = __result.lo();
@@ -5757,7 +5757,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_sinpi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
     #if defined(__CUDA_ARCH__)
         double __r = ::sinpi(__xd);
@@ -5771,7 +5771,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_cospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
     #if defined(__CUDA_ARCH__)
         double __r = ::cospi(__xd);
@@ -5785,7 +5785,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_sincospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __sin_hi, _FpType* __sin_lo, _FpType* __cos_hi, _FpType* __cos_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
         double __sd, __cd;
     #if defined(__CUDA_ARCH__)
@@ -5802,7 +5802,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_normcdf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
     #if defined(__CUDA_ARCH__)
         double __r = ::normcdf(__xd);
@@ -5819,7 +5819,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_erfcinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::erfcinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5834,7 +5834,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_erfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::erfinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5849,7 +5849,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_erfcx(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::erfcx(static_cast<double>(mp2_t(__x_hi, __x_lo)));
     #else
@@ -5865,7 +5865,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_norm3d(const _FpType __a_hi, const _FpType __a_lo, const _FpType __b_hi, const _FpType __b_lo, const _FpType __c_hi, const _FpType __c_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __ad = static_cast<double>(mp2_t(__a_hi, __a_lo));
         double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
         double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
@@ -5881,7 +5881,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_norm4d(const _FpType __a_hi, const _FpType __a_lo, const _FpType __b_hi, const _FpType __b_lo, const _FpType __c_hi, const _FpType __c_lo, const _FpType __d_hi, const _FpType __d_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __ad = static_cast<double>(mp2_t(__a_hi, __a_lo));
         double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
         double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
@@ -5898,7 +5898,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_rnorm3d(const _FpType __a_hi, const _FpType __a_lo, const _FpType __b_hi, const _FpType __b_lo, const _FpType __c_hi, const _FpType __c_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __ad = static_cast<double>(mp2_t(__a_hi, __a_lo));
         double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
         double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
@@ -5914,7 +5914,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_rnorm4d(const _FpType __a_hi, const _FpType __a_lo, const _FpType __b_hi, const _FpType __b_lo, const _FpType __c_hi, const _FpType __c_lo, const _FpType __d_hi, const _FpType __d_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
         double __ad = static_cast<double>(mp2_t(__a_hi, __a_lo));
         double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
         double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
@@ -5931,7 +5931,7 @@ namespace cuda::experimental
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_rhypot(const _FpType __x_hi, const _FpType __x_lo, const _FpType __y_hi, const _FpType __y_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
-        using mp2_t = fpmp2_t<_FpType>;
+        using mp2_t = fpmp2<_FpType>;
     #if defined(__CUDA_ARCH__)
         double __r = ::rhypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));
     #else
@@ -6936,402 +6936,402 @@ namespace cuda::experimental
 
 /*
 * ============================================================================
-* Freestanding API functions for fpmp2_t class
+* Freestanding API functions for fpmp2 class
 * ============================================================================
 */
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> exp (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_exp(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> exp (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_exp(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> log (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_log(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> log (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_log(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> log2 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_log2(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> log2 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_log2(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> log10 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_log10(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> log10 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_log10(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> log1p (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_log1p(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> log1p (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_log1p(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> pow (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_pow(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> pow (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_pow(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> cbrt (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_cbrt(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> cbrt (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_cbrt(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> sin (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_sin(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> sin (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_sin(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> cos (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_cos(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> cos (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_cos(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline void sincos (const fpmp2_t<_FpType, _TypeAcc>& __x, fpmp2_t<_FpType, _TypeAcc>* __s, fpmp2_t<_FpType, _TypeAcc>* __c) noexcept 
-{ _FpType __sin_hi, __sin_lo, __cos_hi, __cos_lo; __fpmp2_sincos(__x.hi(), __x.lo(), &__sin_hi, &__sin_lo, &__cos_hi, &__cos_lo); *__s = fpmp2_t<_FpType, _TypeAcc>(__sin_hi, __sin_lo); *__c = fpmp2_t<_FpType, _TypeAcc>(__cos_hi, __cos_lo); }
+_CCCL_API inline void sincos (const fpmp2<_FpType, _TypeAcc>& __x, fpmp2<_FpType, _TypeAcc>* __s, fpmp2<_FpType, _TypeAcc>* __c) noexcept 
+{ _FpType __sin_hi, __sin_lo, __cos_hi, __cos_lo; __fpmp2_sincos(__x.hi(), __x.lo(), &__sin_hi, &__sin_lo, &__cos_hi, &__cos_lo); *__s = fpmp2<_FpType, _TypeAcc>(__sin_hi, __sin_lo); *__c = fpmp2<_FpType, _TypeAcc>(__cos_hi, __cos_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> asin (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_asin(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> asin (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_asin(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> acos (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_acos(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> acos (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_acos(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> atan (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_atan(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> atan (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_atan(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> atan2 (const fpmp2_t<_FpType, _TypeAcc>& __y, const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_atan2(__y.hi(), __y.lo(), __x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> atan2 (const fpmp2<_FpType, _TypeAcc>& __y, const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_atan2(__y.hi(), __y.lo(), __x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> sinh (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_sinh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> sinh (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_sinh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> cosh (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_cosh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> cosh (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_cosh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> tanh (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_tanh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> tanh (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_tanh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> erf (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_erf(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> erf (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_erf(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> erfc (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_erfc(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> erfc (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_erfc(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> boys_f0 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_boys_f0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> boys_f0 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_boys_f0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> normcdfinv (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept 
-{ _FpType __res_hi, __res_lo; __fpmp2_normcdfinv(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> normcdfinv (const fpmp2<_FpType, _TypeAcc>& __x) noexcept 
+{ _FpType __res_hi, __res_lo; __fpmp2_normcdfinv(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<float, _TypeAcc> icdf (uint32_t __x) noexcept 
-{ float __res_hi, __res_lo; __fpmp2_icdf(__x, &__res_hi, &__res_lo); return fpmp2_t<float, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<float, _TypeAcc> icdf (uint32_t __x) noexcept 
+{ float __res_hi, __res_lo; __fpmp2_icdf(__x, &__res_hi, &__res_lo); return fpmp2<float, _TypeAcc>(__res_hi, __res_lo); }
 
 template <fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<float, _TypeAcc> icdf (uint64_t __x) noexcept 
-{ float __res_hi, __res_lo; __fpmp2_icdf(__x, &__res_hi, &__res_lo); return fpmp2_t<float, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<float, _TypeAcc> icdf (uint64_t __x) noexcept 
+{ float __res_hi, __res_lo; __fpmp2_icdf(__x, &__res_hi, &__res_lo); return fpmp2<float, _TypeAcc>(__res_hi, __res_lo); }
 
 // Inverse hyperbolic functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> acosh (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_acosh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> acosh (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_acosh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> asinh (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_asinh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> asinh (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_asinh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> atanh (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_atanh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> atanh (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_atanh(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Tangent
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> tan (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_tan(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> tan (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_tan(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Additional exponential/logarithmic functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> exp2 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_exp2(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> exp2 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_exp2(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> exp10 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_exp10(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> exp10 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_exp10(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> expm1 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_expm1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> expm1 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_expm1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> logb (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_logb(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> logb (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_logb(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Rounding functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> ceil (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_ceil(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> ceil (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_ceil(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> floor (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_floor(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> floor (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_floor(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> trunc (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_trunc(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> trunc (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_trunc(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> round (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_round(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> round (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_round(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> rint (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_rint(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> rint (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_rint(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> nearbyint (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_nearbyint(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> nearbyint (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_nearbyint(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Absolute value
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> fabs (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_fabs(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> fabs (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_fabs(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Gamma functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> lgamma (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_lgamma(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> lgamma (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_lgamma(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> tgamma (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_tgamma(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> tgamma (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_tgamma(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Bessel functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> j0 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_j0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> j0 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_j0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> j1 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_j1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> j1 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_j1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> y0 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_y0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> y0 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_y0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> y1 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_y1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> y1 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_y1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> jn (int __n, const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_jn(__n, __x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> jn (int __n, const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_jn(__n, __x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> yn (int __n, const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_yn(__n, __x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> yn (int __n, const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_yn(__n, __x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> cyl_bessel_i0 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_cyl_bessel_i0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> cyl_bessel_i0 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_cyl_bessel_i0(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> cyl_bessel_i1 (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_cyl_bessel_i1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> cyl_bessel_i1 (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_cyl_bessel_i1(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // CUDA-specific trigonometric functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> sinpi (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_sinpi(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> sinpi (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_sinpi(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> cospi (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_cospi(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> cospi (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_cospi(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline void sincospi (const fpmp2_t<_FpType, _TypeAcc>& __x, fpmp2_t<_FpType, _TypeAcc>* __s, fpmp2_t<_FpType, _TypeAcc>* __c) noexcept
-{ _FpType __sin_hi, __sin_lo, __cos_hi, __cos_lo; __fpmp2_sincospi(__x.hi(), __x.lo(), &__sin_hi, &__sin_lo, &__cos_hi, &__cos_lo); *__s = fpmp2_t<_FpType, _TypeAcc>(__sin_hi, __sin_lo); *__c = fpmp2_t<_FpType, _TypeAcc>(__cos_hi, __cos_lo); }
+_CCCL_API inline void sincospi (const fpmp2<_FpType, _TypeAcc>& __x, fpmp2<_FpType, _TypeAcc>* __s, fpmp2<_FpType, _TypeAcc>* __c) noexcept
+{ _FpType __sin_hi, __sin_lo, __cos_hi, __cos_lo; __fpmp2_sincospi(__x.hi(), __x.lo(), &__sin_hi, &__sin_lo, &__cos_hi, &__cos_lo); *__s = fpmp2<_FpType, _TypeAcc>(__sin_hi, __sin_lo); *__c = fpmp2<_FpType, _TypeAcc>(__cos_hi, __cos_lo); }
 
 // Normal distribution CDF and reciprocal functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> normcdf (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_normcdf(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> normcdf (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_normcdf(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> rcbrt (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_rcbrt(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> rcbrt (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_rcbrt(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> erfcinv (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_erfcinv(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> erfcinv (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_erfcinv(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> erfinv (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_erfinv(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> erfinv (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_erfinv(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> erfcx (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_erfcx(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> erfcx (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_erfcx(__x.hi(), __x.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> norm3d (const fpmp2_t<_FpType, _TypeAcc>& __a, const fpmp2_t<_FpType, _TypeAcc>& __b, const fpmp2_t<_FpType, _TypeAcc>& __c) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_norm3d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> norm3d (const fpmp2<_FpType, _TypeAcc>& __a, const fpmp2<_FpType, _TypeAcc>& __b, const fpmp2<_FpType, _TypeAcc>& __c) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_norm3d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> norm4d (const fpmp2_t<_FpType, _TypeAcc>& __a, const fpmp2_t<_FpType, _TypeAcc>& __b, const fpmp2_t<_FpType, _TypeAcc>& __c, const fpmp2_t<_FpType, _TypeAcc>& __d) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_norm4d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), __d.hi(), __d.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> norm4d (const fpmp2<_FpType, _TypeAcc>& __a, const fpmp2<_FpType, _TypeAcc>& __b, const fpmp2<_FpType, _TypeAcc>& __c, const fpmp2<_FpType, _TypeAcc>& __d) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_norm4d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), __d.hi(), __d.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> rnorm3d (const fpmp2_t<_FpType, _TypeAcc>& __a, const fpmp2_t<_FpType, _TypeAcc>& __b, const fpmp2_t<_FpType, _TypeAcc>& __c) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_rnorm3d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> rnorm3d (const fpmp2<_FpType, _TypeAcc>& __a, const fpmp2<_FpType, _TypeAcc>& __b, const fpmp2<_FpType, _TypeAcc>& __c) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_rnorm3d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> rnorm4d (const fpmp2_t<_FpType, _TypeAcc>& __a, const fpmp2_t<_FpType, _TypeAcc>& __b, const fpmp2_t<_FpType, _TypeAcc>& __c, const fpmp2_t<_FpType, _TypeAcc>& __d) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_rnorm4d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), __d.hi(), __d.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> rnorm4d (const fpmp2<_FpType, _TypeAcc>& __a, const fpmp2<_FpType, _TypeAcc>& __b, const fpmp2<_FpType, _TypeAcc>& __c, const fpmp2<_FpType, _TypeAcc>& __d) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_rnorm4d(__a.hi(), __a.lo(), __b.hi(), __b.lo(), __c.hi(), __c.lo(), __d.hi(), __d.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Two-argument functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> fmax (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_fmax(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> fmax (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_fmax(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> fmin (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_fmin(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> fmin (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_fmin(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> max (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_max(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> max (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_max(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> min (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_min(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> min (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_min(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> fmod (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_fmod(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> fmod (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_fmod(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> remainder (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_remainder(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> remainder (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_remainder(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> hypot (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_hypot(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> hypot (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_hypot(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> copysign (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_copysign(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> copysign (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_copysign(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> fdim (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_fdim(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> fdim (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_fdim(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> nextafter (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_nextafter(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> nextafter (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_nextafter(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> rhypot (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_rhypot(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> rhypot (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_rhypot(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Functions with special signatures
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> remquo (const fpmp2_t<_FpType, _TypeAcc>& __x, const fpmp2_t<_FpType, _TypeAcc>& __y, int* __quo) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_remquo(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo, __quo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> remquo (const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y, int* __quo) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_remquo(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo, __quo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> ldexp (const fpmp2_t<_FpType, _TypeAcc>& __x, int __n) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_ldexp(__x.hi(), __x.lo(), __n, &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> ldexp (const fpmp2<_FpType, _TypeAcc>& __x, int __n) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_ldexp(__x.hi(), __x.lo(), __n, &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> scalbn (const fpmp2_t<_FpType, _TypeAcc>& __x, int __n) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_scalbn(__x.hi(), __x.lo(), __n, &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> scalbn (const fpmp2<_FpType, _TypeAcc>& __x, int __n) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_scalbn(__x.hi(), __x.lo(), __n, &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> scalbln (const fpmp2_t<_FpType, _TypeAcc>& __x, long int __n) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_scalbln(__x.hi(), __x.lo(), __n, &__res_hi, &__res_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> scalbln (const fpmp2<_FpType, _TypeAcc>& __x, long int __n) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_scalbln(__x.hi(), __x.lo(), __n, &__res_hi, &__res_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> frexp (const fpmp2_t<_FpType, _TypeAcc>& __x, int* __nptr) noexcept
-{ _FpType __res_hi, __res_lo; __fpmp2_frexp(__x.hi(), __x.lo(), &__res_hi, &__res_lo, __nptr); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> frexp (const fpmp2<_FpType, _TypeAcc>& __x, int* __nptr) noexcept
+{ _FpType __res_hi, __res_lo; __fpmp2_frexp(__x.hi(), __x.lo(), &__res_hi, &__res_lo, __nptr); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline fpmp2_t<_FpType, _TypeAcc> modf (const fpmp2_t<_FpType, _TypeAcc>& __x, fpmp2_t<_FpType, _TypeAcc>* __iptr) noexcept
-{ _FpType __res_hi, __res_lo, __i_hi, __i_lo; __fpmp2_modf(__x.hi(), __x.lo(), &__res_hi, &__res_lo, &__i_hi, &__i_lo); *__iptr = fpmp2_t<_FpType, _TypeAcc>(__i_hi, __i_lo); return fpmp2_t<_FpType, _TypeAcc>(__res_hi, __res_lo); }
+_CCCL_API inline fpmp2<_FpType, _TypeAcc> modf (const fpmp2<_FpType, _TypeAcc>& __x, fpmp2<_FpType, _TypeAcc>* __iptr) noexcept
+{ _FpType __res_hi, __res_lo, __i_hi, __i_lo; __fpmp2_modf(__x.hi(), __x.lo(), &__res_hi, &__res_lo, &__i_hi, &__i_lo); *__iptr = fpmp2<_FpType, _TypeAcc>(__i_hi, __i_lo); return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo); }
 
 // Functions returning integer types
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int ilogb (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
+_CCCL_API inline int ilogb (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 { return __fpmp2_ilogb(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline long long int llrint (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
+_CCCL_API inline long long int llrint (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 { return __fpmp2_llrint(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline long long int llround (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
+_CCCL_API inline long long int llround (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 { return __fpmp2_llround(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline long int lrint (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
+_CCCL_API inline long int lrint (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 { return __fpmp2_lrint(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline long int lround (const fpmp2_t<_FpType, _TypeAcc>& __x) noexcept
+_CCCL_API inline long int lround (const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 { return __fpmp2_lround(__x.hi(), __x.lo()); }
 
 // Classification functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_isfinite (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int fpmp_isfinite (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return __fpmp2_isfinite(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_isinf (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int fpmp_isinf (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return __fpmp2_isinf(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_isnan (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int fpmp_isnan (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return __fpmp2_isnan(__x.hi(), __x.lo()); }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_signbit (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int fpmp_signbit (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return __fpmp2_signbit(__x.hi(), __x.lo()); }
 
 // Standard names are provided only when no conflicting macro is active.
 #ifndef isfinite
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int isfinite (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int isfinite (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return fpmp_isfinite(__x); }
 #endif
 
 #ifndef isinf
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int isinf (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int isinf (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return fpmp_isinf(__x); }
 #endif
 
 #ifndef isnan
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int isnan (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int isnan (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return fpmp_isnan(__x); }
 #endif
 
 #ifndef signbit
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int signbit (const fpmp2_t<_FpType, _TypeAcc>& __x)
+_CCCL_API inline int signbit (const fpmp2<_FpType, _TypeAcc>& __x)
 _CCCL_FPMP_NOEXCEPT
 { return fpmp_signbit(__x); }
 #endif
 
 /*
-* Note: the fpmp2_t warp-shuffle overloads (__shfl_sync, __shfl_xor_sync,
+* Note: the fpmp2 warp-shuffle overloads (__shfl_sync, __shfl_xor_sync,
 * __shfl_down_sync, __shfl_up_sync) are thread-cooperation primitives, not math
 * functions, so they live in the core header <cuda/__fp/fpmp.h> (available via
 * <cuda/fpmp>) rather than here.

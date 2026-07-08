@@ -56,10 +56,10 @@ namespace cuda::experimental
 /*
  * Packed-via-unpacked TEST mode (_CCCL_FPEMU_PACKED_VIA_UNPACKED) is configured in
  * fpemu_common.h and set by the Makefile's PACKED_VIA_UNPACKED=y. When ON, the
- * packed (fpbits64_t) builtins are routed through the combined unpack ->
+ * packed (fpbits64) builtins are routed through the combined unpack ->
  * *_unpacked core -> pack pipeline so the packed test harness exercises the
  * unpacked cores. When OFF (default), the legacy fused packed kernels are used
- * unchanged (byte-for-byte). The unpacked fpbits64_unpacked_t ABI builtins
+ * unchanged (byte-for-byte). The unpacked fpbits64_unpacked ABI builtins
  * always co-exist with the packed API regardless of this flag.
  */
 
@@ -245,7 +245,7 @@ namespace cuda::experimental
      * - nan: Not a Number (quiet or signaling)
      * - denormal: Denormalized number with leading zeros
      */
-    enum struct __fpclass_t
+    enum struct __fpclass
     {
         normal     = 0,
         zero       = 1,
@@ -265,7 +265,7 @@ namespace cuda::experimental
      * @var sign The sign bit (0 for positive, 1<<31 for negative)
      * @var fpclass The floating point class (normal, zero, inf, nan, denormal)
      *
-     * @note `fpclass` carries a default member initializer (`__fpclass_t::normal`)
+     * @note `fpclass` carries a default member initializer (`__fpclass::normal`)
      *       so that any code path producing an `__fp64emu_unpacked` that does not
      *       explicitly classify the value (e.g. intermediate result structs
      *       in fma/add/mul) leaves the field with
@@ -282,7 +282,7 @@ namespace cuda::experimental
         uint64_t mantissa;
         int32_t exponent;
         uint32_t sign;
-        __fpclass_t fpclass = __fpclass_t::normal;
+        __fpclass fpclass = __fpclass::normal;
     };
 
     /**
@@ -292,7 +292,7 @@ namespace cuda::experimental
      * which is useful for certain operations that require 64-bit arithmetic
      * but can be performed by 32-bit operations.    
      */
-    struct __uint32x2_t 
+    struct __uint32x2 
     {
         uint32_t x[2];
     };
@@ -304,7 +304,7 @@ namespace cuda::experimental
      * which is useful for certain operations that require 64-bit arithmetic
      * but can be performed by 32-bit operations.    
      */
-    struct __uint64x2_t 
+    struct __uint64x2 
     {
         uint64_t x[2];
     };
@@ -316,10 +316,10 @@ namespace cuda::experimental
      * which is useful for certain operations that require 128-bit arithmetic
      * but can be performed by 64-bit operations.    
      */
-    struct __uint32x4_t
+    struct __uint32x4
     {
-        __uint32x2_t lo;
-        __uint32x2_t hi;
+        __uint32x2 lo;
+        __uint32x2 hi;
     };
 
     #ifndef __CUDA_ARCH__
@@ -379,7 +379,7 @@ namespace cuda::experimental
         #undef  _CCCL_FPEMU_MAX
     #if defined(__CUDA_ARCH__) && !defined(__CUDA_LIBDEVICE__)
         // Global-scope qualifier: inside namespace cuda::experimental an
-        // unqualified `max` now resolves to the fpmp2_t max() template, which
+        // unqualified `max` now resolves to the fpmp2 max() template, which
         // shadows the CUDA device `::max(int, int)` builtin we want here.
         #define _CCCL_FPEMU_MAX      ::max
     #else
@@ -420,7 +420,7 @@ namespace cuda::experimental
      * @brief Multiply two 64-bit integers and return the high 32 bits of the result
      * 
      * This function performs multiplication of two 64-bit integers represented as pairs
-     * of 32-bit integers (__uint32x2_t). It returns only the high 32 bits of the 128-bit
+     * of 32-bit integers (__uint32x2). It returns only the high 32 bits of the 128-bit
      * multiplication result.
      * 
      * The implementation is optimized differently for CUDA and CPU:
@@ -432,18 +432,18 @@ namespace cuda::experimental
      * 2. Handles carries between the partial products
      * 3. Extracts and combines the high bits to form the final 32-bit result
      * 
-     * @tparam _Acc The accuracy level (fp64emu_accuracy)
+     * @tparam _Acc The accuracy level (fpemu_accuracy)
      * @param a_ First 64-bit multiplicand as two 32-bit integers
      * @param b_ Second 64-bit multiplicand as two 32-bit integers
      * @return The high 32 bits of the multiplication result
      */
-    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API uint32_t __mul_32(__uint32x2_t __a, __uint32x2_t __b) noexcept
+    template<fpemu_accuracy _Acc = fpemu_accuracy::high>
+    _CCCL_TRIVIAL_API uint32_t __mul_32(__uint32x2 __a, __uint32x2 __b) noexcept
     {
         uint32_t __res;
 #if defined  __CUDA_ARCH__
-        __uint32x2_t __a64 = __fpemu_bit_cast<__uint32x2_t>(__a);
-        __uint32x2_t __b64 = __fpemu_bit_cast<__uint32x2_t>(__b);
+        __uint32x2 __a64 = __fpemu_bit_cast<__uint32x2>(__a);
+        __uint32x2 __b64 = __fpemu_bit_cast<__uint32x2>(__b);
         uint32_t __res32;
         asm ("{\n\t"
             ".reg .u32 r0, ahi, bhi;\n\t"
@@ -472,21 +472,21 @@ namespace cuda::experimental
      * @brief Multiply two 64-bit integers and return the high 64 bits of the result
      * 
      * This function performs multiplication of two 64-bit integers represented as pairs
-     * of 32-bit integers (__uint32x2_t). It returns the high 64 bits of the 128-bit result.
+     * of 32-bit integers (__uint32x2). It returns the high 64 bits of the 128-bit result.
      * 
      * The implementation is optimized differently for CUDA and CPU:
      * - On CUDA: Uses PTX assembly instructions for efficient 64-bit multiplication
      * - On CPU: Uses standard C++ arithmetic with careful handling of carries
      * 
-     * @tparam _Acc The accuracy level (fp64emu_accuracy)
+     * @tparam _Acc The accuracy level (fpemu_accuracy)
      * @param a_ First 64-bit multiplicand as two 32-bit integers
      * @param b_ Second 64-bit multiplicand as two 32-bit integers
      * @return The high 64 bits of the multiplication result as two 32-bit integers
      */
-    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API __uint32x2_t __mul_64(__uint32x2_t __a, __uint32x2_t __b) noexcept
+    template<fpemu_accuracy _Acc = fpemu_accuracy::high>
+    _CCCL_TRIVIAL_API __uint32x2 __mul_64(__uint32x2 __a, __uint32x2 __b) noexcept
     {
-        __uint32x2_t __res;
+        __uint32x2 __res;
 #if defined  __CUDA_ARCH__
         uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
         uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
@@ -506,7 +506,7 @@ namespace cuda::experimental
             "}"
             : "=l"(__res64)
             : "l"(__a64), "l"(__b64));
-        __res = __fpemu_bit_cast<__uint32x2_t>(__res64);
+        __res = __fpemu_bit_cast<__uint32x2>(__res64);
 #else
         // Split inputs into 32-bit parts
         uint32_t __alo = __a.x[0], __ahi = __a.x[1];
@@ -538,8 +538,8 @@ namespace cuda::experimental
      * @brief Multiply two 64-bit integers and return the full 128-bit result
      * 
      * This function performs multiplication of two 64-bit integers represented as pairs
-     * of 32-bit integers (__uint32x2_t). It returns the full 128-bit result stored in
-     * a __uint32x4_t structure containing both high and low 64 bits.
+     * of 32-bit integers (__uint32x2). It returns the full 128-bit result stored in
+     * a __uint32x4 structure containing both high and low 64 bits.
      * 
      * The implementation handles the multiplication by:
      * 1. Computing partial products (lo*lo, lo*hi, hi*lo, hi*hi)
@@ -550,15 +550,15 @@ namespace cuda::experimental
      * - On CUDA: Uses built-in __umul64hi for high bits
      * - On CPU: Uses standard C++ arithmetic with careful handling of carries
      * 
-     * @tparam _Acc The accuracy level (fp64emu_accuracy)
+     * @tparam _Acc The accuracy level (fpemu_accuracy)
      * @param a_ First 64-bit multiplicand as two 32-bit integers
      * @param b_ Second 64-bit multiplicand as two 32-bit integers
      * @return The full 128-bit multiplication result as four 32-bit integers
      */
-    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API __uint32x4_t __mul_128(__uint32x2_t __a, __uint32x2_t __b) noexcept
+    template<fpemu_accuracy _Acc = fpemu_accuracy::high>
+    _CCCL_TRIVIAL_API __uint32x4 __mul_128(__uint32x2 __a, __uint32x2 __b) noexcept
     {
-        __uint32x4_t __res;
+        __uint32x4 __res;
 
         // Split inputs into 32-bit parts
         uint32_t __alo = __a.x[0], __ahi = __a.x[1];
@@ -587,7 +587,7 @@ namespace cuda::experimental
         uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
         uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
         uint64_t __res64 = __umul64hi(__a64, __b64);
-        __res.hi = __fpemu_bit_cast<__uint32x2_t>(__res64);
+        __res.hi = __fpemu_bit_cast<__uint32x2>(__res64);
 #else
         uint64_t __hi_hi = uint64_t(__ahi) * __bhi;  // (a.hi * b.hi)
         uint32_t __lo_hi_hi = uint32_t(__lo_hi >> 32);
@@ -614,11 +614,11 @@ namespace cuda::experimental
      * @param shift The number of bits to shift (positive for left shift)
      * @return The shifted value as two 32-bit integers
      */
-     _CCCL_TRIVIAL_API __uint32x2_t __shl_64 (__uint32x2_t __man, int __shift) noexcept
+     _CCCL_TRIVIAL_API __uint32x2 __shl_64 (__uint32x2 __man, int __shift) noexcept
      {
          uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
          __man64 <<= __shift;
-         return __fpemu_bit_cast<__uint32x2_t>(__man64);
+         return __fpemu_bit_cast<__uint32x2>(__man64);
      } //__shl_64
  
      /**
@@ -631,14 +631,14 @@ namespace cuda::experimental
       * @param shift The number of bits to shift (positive for right shift)
       * @return The shifted value as two 32-bit integers
       */
-     _CCCL_TRIVIAL_API __uint32x2_t __shr_64 (__uint32x2_t __man, int __shift) noexcept
+     _CCCL_TRIVIAL_API __uint32x2 __shr_64 (__uint32x2 __man, int __shift) noexcept
      {
          uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>64) ? 64 : __shift : 0;
  #endif
          __man64 = __man64 >> __shift;
-         return __fpemu_bit_cast<__uint32x2_t>(__man64);
+         return __fpemu_bit_cast<__uint32x2>(__man64);
      } //__shr_64
 
      /**
@@ -692,7 +692,7 @@ namespace cuda::experimental
     } //__fadd_dir
 
      template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
-     _CCCL_TRIVIAL_API __uint32x2_t __shr_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false) noexcept
+     _CCCL_TRIVIAL_API __uint32x2 __shr_64_rnd (__uint32x2 __man, int __shift, bool __sign = false) noexcept
      {
          uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
  #ifndef __CUDA_ARCH__
@@ -712,7 +712,7 @@ namespace cuda::experimental
          {
              if (__sign && __inexact) __man64++;
          }
-         return __fpemu_bit_cast<__uint32x2_t>(__man64);
+         return __fpemu_bit_cast<__uint32x2>(__man64);
      } //__shr_64_rnd
 
     /**
@@ -766,15 +766,15 @@ namespace cuda::experimental
       * @param shift The number of bits to shift (positive for right shift)
       * @return The shifted and rounded value as two 32-bit integers
       */
-      template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-     _CCCL_TRIVIAL_API __uint32x2_t __sar_64 (__uint32x2_t __man, int __shift) noexcept
+      template<fpemu_accuracy _Acc = fpemu_accuracy::high>
+     _CCCL_TRIVIAL_API __uint32x2 __sar_64 (__uint32x2 __man, int __shift) noexcept
      {
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
  #endif
          int64_t __man64 = __fpemu_bit_cast<int64_t>(__man);
         __man64 = __man64 >> __shift;
-         __uint32x2_t __res = __fpemu_bit_cast<__uint32x2_t>(__man64);
+         __uint32x2 __res = __fpemu_bit_cast<__uint32x2>(__man64);
          return __res;
      } //__sar_64_rnd
 
@@ -794,17 +794,17 @@ namespace cuda::experimental
       * @param sign Result sign (used for directed rounding modes ru/rd)
       * @return The shifted and rounded value as two 32-bit integers
       */
-      template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
-               __fpemu_rounding _Rm = __fpemu_rounding::rn>
-     _CCCL_TRIVIAL_API __uint32x2_t __sar_64_rnd (__uint32x2_t __man, int __shift, bool __sign = false) noexcept
+      template<fpemu_accuracy   _Acc = fpemu_accuracy::high,
+               __fpemu_rounding _Rm  = __fpemu_rounding::rn>
+     _CCCL_TRIVIAL_API __uint32x2 __sar_64_rnd (__uint32x2 __man, int __shift, bool __sign = false) noexcept
      {
  #ifndef __CUDA_ARCH__
          __shift = (__shift > 0) ? (__shift>63) ? 63 : __shift : 0;
  #endif
          int64_t __man64 = __fpemu_bit_cast<int64_t>(__man);
          int64_t __man64_res = __man64 >> __shift;
-         __uint32x2_t __res = __fpemu_bit_cast<__uint32x2_t>(__man64_res);
-         if constexpr (_Acc == fp64emu_accuracy::high)
+         __uint32x2 __res = __fpemu_bit_cast<__uint32x2>(__man64_res);
+         if constexpr (_Acc == fpemu_accuracy::high)
          {
             uint64_t __mask = (1LLU << __shift) - 1;
             bool __sticky = (__man64 & __mask) != 0;
@@ -840,8 +840,8 @@ namespace cuda::experimental
      * @param input The input number as two 32-bit integers
      * @return The extracted exponent value
      */
-     template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API int32_t __unpack_exp(__uint32x2_t __input) noexcept
+     template<fpemu_accuracy _Acc = fpemu_accuracy::high>
+    _CCCL_TRIVIAL_API int32_t __unpack_exp(__uint32x2 __input) noexcept
     {
         int32_t __exp;
 
@@ -855,7 +855,7 @@ namespace cuda::experimental
         __input.x[1] = __input.x[1] & 0x000fffff;
 
         //Check for NAN and INF
-        if constexpr (_Acc == fp64emu_accuracy::high) 
+        if constexpr (_Acc == fpemu_accuracy::high) 
         {
             if (__exp == 0x7ff) 
             {
@@ -887,10 +887,10 @@ namespace cuda::experimental
      * @param is_zero_exp Whether the exponent is zero (denormal case)
      * @return The extracted mantissa as two 32-bit integers
      */
-    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high>
-    _CCCL_TRIVIAL_API __uint32x2_t __unpack_mant(bool *__sign, __uint32x2_t __input, bool __is_zero_exp) noexcept
+    template<fpemu_accuracy _Acc = fpemu_accuracy::high>
+    _CCCL_TRIVIAL_API __uint32x2 __unpack_mant(bool *__sign, __uint32x2 __input, bool __is_zero_exp) noexcept
     {
-        __uint32x2_t __man32x2;
+        __uint32x2 __man32x2;
 
         //Extract sign
         *__sign = (__input.x[1] & 0x80000000) != 0;
@@ -920,7 +920,7 @@ namespace cuda::experimental
      */
     template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
     _CCCL_TRIVIAL_API
-    void __fp64_ovfl_sat (bool __sign, int32_t& __exp, __uint32x2_t& __man) noexcept
+    void __fp64_ovfl_sat (bool __sign, int32_t& __exp, __uint32x2& __man) noexcept
     {
         if constexpr (_Rm == __fpemu_rounding::rz)
         {
@@ -974,15 +974,15 @@ namespace cuda::experimental
      * @param man The mantissa as two 32-bit integers
      * @return The packed 64-bit double precision number
      */
-    template<fp64emu_accuracy _Acc = fp64emu_accuracy::high,
-             __fpemu_rounding _Rm = __fpemu_rounding::rn>
-    _CCCL_TRIVIAL_API uint64_t __pack (bool __sign, uint32_t __exp, __uint32x2_t __man) noexcept
+    template<fpemu_accuracy   _Acc = fpemu_accuracy::high,
+             __fpemu_rounding _Rm  = __fpemu_rounding::rn>
+    _CCCL_TRIVIAL_API uint64_t __pack (bool __sign, uint32_t __exp, __uint32x2 __man) noexcept
     {
 
         bool __zero_mantissa = __man.x[0] == 0 && __man.x[1] == 0;
         bool __is_nan = false;
         // Check for NAN
-        if constexpr (_Acc == fp64emu_accuracy::high)
+        if constexpr (_Acc == fpemu_accuracy::high)
         {
             __is_nan =
                 __exp >= (0x000047ff - __fpemu_BIAS - 52 - 1) ||     //NAN * x && NAN + x
@@ -1001,14 +1001,14 @@ namespace cuda::experimental
         // far above the largest finite-overflow exponent. Reuse that magic as the
         // inf floor so the discriminator is operation-independent.
         bool __is_inf = false;
-        if constexpr (_Acc == fp64emu_accuracy::high)
+        if constexpr (_Acc == fpemu_accuracy::high)
         {
             __is_inf = (__exp >= (0x000017ff - __fpemu_BIAS - 52 - 1)) && !__is_nan;
         }
         // Check for exact zero result
         if ( __zero_mantissa && __exp < 0x000007ff) __exp = 0;
     
-        if constexpr (_Acc == fp64emu_accuracy::high)
+        if constexpr (_Acc == fpemu_accuracy::high)
         {
             // Convert special value of NAN|INF back to IEEE
             if (__exp >= 0x000007ff) __exp = 0x000007ff;
@@ -1046,7 +1046,7 @@ namespace cuda::experimental
 
 
         // Pack everything to FP64
-        __uint32x2_t __res = {__man.x[0], __man.x[1] | (__sign << 31)};
+        __uint32x2 __res = {__man.x[0], __man.x[1] | (__sign << 31)};
 
         return __fpemu_bit_cast<uint64_t>(__res);
     } //__pack
@@ -1065,11 +1065,11 @@ namespace cuda::experimental
      * @param c The 64-bit value to convert as two 32-bit integers
      * @return The two's complement of the input value
      */
-    _CCCL_TRIVIAL_API __uint32x2_t __two_comp (__uint32x2_t __c) noexcept
+    _CCCL_TRIVIAL_API __uint32x2 __two_comp (__uint32x2 __c) noexcept
     {
         uint64_t __c64   = __fpemu_bit_cast<uint64_t>(__c);
         uint64_t __res64 = 0 - __c64; //IMAD.WIDE.U32 Rd, RZ, RZ, -Rc
-        return __fpemu_bit_cast<__uint32x2_t>(__res64);
+        return __fpemu_bit_cast<__uint32x2>(__res64);
     } //__imad_wide_sub
 
 
@@ -1083,7 +1083,7 @@ namespace cuda::experimental
      * @param x The 64-bit value to analyze as two 32-bit integers
      * @return The position of the most significant set bit (0-based)
      */
-    _CCCL_TRIVIAL_API int32_t __flo_s64 (__uint32x2_t __x) noexcept
+    _CCCL_TRIVIAL_API int32_t __flo_s64 (__uint32x2 __x) noexcept
     {
         int64_t __x64 = __fpemu_bit_cast<int64_t>(__x);
         return __internal_clzll(__x64<<1);
@@ -1098,7 +1098,7 @@ namespace cuda::experimental
      * @param x The 64-bit value to analyze as two 32-bit integers
      * @return The position of the most significant set bit (0-based)
      */
-    _CCCL_TRIVIAL_API int32_t __flo_u64 (__uint32x2_t __x) noexcept
+    _CCCL_TRIVIAL_API int32_t __flo_u64 (__uint32x2 __x) noexcept
     {
         uint64_t __x64 = __fpemu_bit_cast<uint64_t>(__x);
         //Skip sign bit
@@ -1115,12 +1115,12 @@ namespace cuda::experimental
      * @param b Second operand as two 32-bit integers
      * @return The sum as two 32-bit integers
      */
-    _CCCL_TRIVIAL_API __uint32x2_t __iadd_u64 (__uint32x2_t __a, __uint32x2_t __b) noexcept
+    _CCCL_TRIVIAL_API __uint32x2 __iadd_u64 (__uint32x2 __a, __uint32x2 __b) noexcept
     {
         uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
         uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
         uint64_t __res64 = __a64 + __b64;
-        return __fpemu_bit_cast<__uint32x2_t>(__res64);
+        return __fpemu_bit_cast<__uint32x2>(__res64);
     } //__iadd_u64
 
     /**
@@ -1133,12 +1133,12 @@ namespace cuda::experimental
      * @param b Second operand as two 32-bit integers
      * @return The difference as two 32-bit integers
      */
-     _CCCL_TRIVIAL_API __uint32x2_t __isub_u64 (__uint32x2_t __a, __uint32x2_t __b) noexcept
+     _CCCL_TRIVIAL_API __uint32x2 __isub_u64 (__uint32x2 __a, __uint32x2 __b) noexcept
      {
          uint64_t __a64 = __fpemu_bit_cast<uint64_t>(__a);
          uint64_t __b64 = __fpemu_bit_cast<uint64_t>(__b);
          uint64_t __res64 = __a64 - __b64;
-         return __fpemu_bit_cast<__uint32x2_t>(__res64);
+         return __fpemu_bit_cast<__uint32x2>(__res64);
      } //__isub_u64
 
     /**
@@ -1154,7 +1154,7 @@ namespace cuda::experimental
      * @return The rounded value as two 32-bit integers
      */
     template<__fpemu_rounding _Rm = __fpemu_rounding::rn>
-    _CCCL_TRIVIAL_API __uint32x2_t __round (__uint32x2_t __man, const int __shift, bool __sign = false) noexcept
+    _CCCL_TRIVIAL_API __uint32x2 __round (__uint32x2 __man, const int __shift, bool __sign = false) noexcept
     {
         uint64_t __man64 = __fpemu_bit_cast<uint64_t>(__man);
         const int __rshift = __fpemu_EXTRA_BITS + __shift;
@@ -1184,7 +1184,7 @@ namespace cuda::experimental
                 if (__sign && __inexact) __man64++;
             }
         }
-        return __fpemu_bit_cast<__uint32x2_t>(__man64);
+        return __fpemu_bit_cast<__uint32x2>(__man64);
     } //__round
 
     // NOTE: the representation pack/unpack routines
@@ -1215,7 +1215,7 @@ namespace cuda::experimental
 
 /// @brief High 64 bits of a 64x64 -> 128 unsigned multiply (host/device).
 _CCCL_TRIVIAL_API uint64_t __internal_fp64emu_mulhi64 (uint64_t __a, 
-                                                                uint64_t __b) noexcept
+                                                       uint64_t __b) noexcept
 {
 #if defined(__CUDA_ARCH__)
     return __umul64hi(__a, __b);
@@ -1241,9 +1241,9 @@ _CCCL_TRIVIAL_API uint64_t __internal_fp64emu_shr_jam64 (uint64_t __a,
 ///        bit at bit 62 and whose 'exp' is the biased exponent minus one.
 ///        Shared by divide and square root (square root passes sign = false).
 template<__fpemu_rounding _Rm>
-_CCCL_TRIVIAL_API fpbits64_t __internal_fp64emu_round_pack (bool     __sign, 
-                                                                     int32_t  __exp, 
-                                                                     uint64_t __sig) noexcept
+_CCCL_TRIVIAL_API fpbits64 __internal_fp64emu_round_pack (bool     __sign, 
+                                                          int32_t  __exp, 
+                                                          uint64_t __sig) noexcept
 {
     constexpr bool __round_near_even = (_Rm == __fpemu_rounding::rn);
     uint32_t __round_increment = 0x200;
@@ -1264,7 +1264,7 @@ _CCCL_TRIVIAL_API fpbits64_t __internal_fp64emu_round_pack (bool     __sign,
         else if ((__exp > 0x7FD) || (__sig + __round_increment >= _CCCL_FPEMU_SIGN_64))
         {
             uint64_t __ui64_z = (((uint64_t)__sign << 63) + _CCCL_FPEMU_INF_64) - (uint64_t)(__round_increment == 0 ? 1 : 0);
-            return (fpbits64_t)__ui64_z;
+            return (fpbits64)__ui64_z;
         }
     }
 
@@ -1273,10 +1273,10 @@ _CCCL_TRIVIAL_API fpbits64_t __internal_fp64emu_round_pack (bool     __sign,
     if (!__sig) __exp = 0;
 
     uint64_t __ui64_z = ((uint64_t)__sign << 63) + ((uint64_t)(uint32_t)__exp << 52) + __sig;
-    return (fpbits64_t)__ui64_z;
+    return (fpbits64)__ui64_z;
 } // __internal_fp64emu_round_pack
 
-// NOTE: the fpbits64_unpacked_t pack/unpack routines
+// NOTE: the fpbits64_unpacked pack/unpack routines
 //   __internal_fp64emu_unpack / __internal_fp64emu_pack
 // were moved to fpemu_impl_unpack.h (shared prologue/epilogue for every op).
 

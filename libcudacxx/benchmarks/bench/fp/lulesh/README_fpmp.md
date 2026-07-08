@@ -2,7 +2,7 @@
 
 ## Problem
 
-When running LULESH with `DATATYPE=fpmp` (`fpmp2_t<float>`), the simulation
+When running LULESH with `DATATYPE=fpmp` (`fpmp2<float>`), the simulation
 produced NaN for energy values starting at cycle 2, eventually corrupting all
 elements. The same code works correctly with native `double`, `float`, and `fpemu`.
 
@@ -80,7 +80,7 @@ if (!(ssc > Real_t(.1111111e-36)))
 
 ## Guideline for fpmp users
 
-Any code using `fpmp2_t<float>` should be aware that intermediate
+Any code using `fpmp2<float>` should be aware that intermediate
 products must stay within float's representable range. When porting code that
 relies on `inf` propagation semantics (common in IEEE-754 compliant code),
 replace comparisons like `x < 0` with NaN-safe equivalents `!(x >= 0)` at

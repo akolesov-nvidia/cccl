@@ -46,7 +46,7 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 TARGET_DEVICE void run_example(double *inp, double *out) 
 {
     // high accuracy: builtins deduce the accuracy level from argument type
-    fp64emu_t<fp64emu_accuracy::high> acc_x = inp[0];
+    fpemu<double, fpemu_accuracy::high> acc_x = inp[0];
     auto acc_r = __dadd_rn(acc_x, acc_x);
     acc_r = __dmul_rn(acc_r, acc_x);
     acc_r = __dsub_rn(acc_r, acc_x);
@@ -54,7 +54,7 @@ TARGET_DEVICE void run_example(double *inp, double *out)
     acc_r = __fma_rn(acc_r, acc_x, acc_x);
     acc_r = __dsqrt_rn(acc_r);
 
-    // default accuracy: fp64emu is fp64emu_t<fp64emu_accuracy::def> (== high)
+    // default accuracy: fp64emu is fpemu<double, fpemu_accuracy::def> (== high)
     fp64emu def_x = inp[0];
     auto def_r = __dadd_rn(def_x, def_x);
     def_r = __dmul_rn(def_r, def_x);
@@ -64,7 +64,7 @@ TARGET_DEVICE void run_example(double *inp, double *out)
     def_r = __dsqrt_rn(def_r);
 
     // low accuracy: builtins deduce the accuracy level from argument type
-    fp64emu_t<fp64emu_accuracy::low> fast_x = inp[0];
+    fpemu<double, fpemu_accuracy::low> fast_x = inp[0];
     auto fast_r = __dadd_rn(fast_x, fast_x);
     fast_r = __dmul_rn(fast_r, fast_x);
     fast_r = __dsub_rn(fast_r, fast_x);

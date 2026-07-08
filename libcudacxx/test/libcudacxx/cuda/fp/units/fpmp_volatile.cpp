@@ -4,7 +4,7 @@
     Author:  Andrei Kolesov
     Date:    2026
 
-    This test verifies that fpmp2_t types:
+    This test verifies that fpmp2 types:
     1. Are trivially copyable (required for cooperative_groups, __shfl intrinsics, etc.)
     2. Correctly support volatile construction (copy from volatile object)
     3. Correctly support volatile assignment (assign to/from volatile object)
@@ -155,7 +155,7 @@ __global__ void test_volatile_kernel(const mp_type input, mp_type *results) {
     // results[2] = assign from volatile
 
     // Use raw aligned storage for __shared__ to avoid dynamic initialization warning
-    // (fpmp2_t's default constructor counts as dynamic init for __shared__)
+    // (fpmp2's default constructor counts as dynamic init for __shared__)
     __shared__ alignas(alignof(mp_type)) unsigned char shared_buf[sizeof(mp_type)];
     volatile mp_type& shared_vol = *reinterpret_cast<volatile mp_type*>(shared_buf);
 
@@ -236,7 +236,7 @@ bool test_volatile_device() {
 // ============================================================
 int main() {
     std::cout << "\n" << std::string(60, '=') << std::endl;
-    std::cout << "Volatile and Trivial Copyability Tests for fpmp2_t" << std::endl;
+    std::cout << "Volatile and Trivial Copyability Tests for fpmp2" << std::endl;
     std::cout << std::string(60, '=') << std::endl;
 
 #if defined(__CUDACC__)

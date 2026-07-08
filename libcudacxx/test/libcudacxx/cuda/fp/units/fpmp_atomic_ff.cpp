@@ -262,7 +262,7 @@ bool test_atomic_accuracy(int num_threads = 512, int num_blocks = 4)
 int main(int argc, char** argv)
 {
     std::cout << "\n" << std::string(60, '=') << std::endl;
-    std::cout << "AtomicAdd/AtomicSub Sanity Test for fpmp2_t" << std::endl;
+    std::cout << "AtomicAdd/AtomicSub Sanity Test for fpmp2" << std::endl;
     std::cout << std::string(60, '=') << std::endl;
     
     // Get device properties

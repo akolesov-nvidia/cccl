@@ -133,7 +133,7 @@ static __bs_fp128 to_f128_val(const T& x) {
 }
 
 template<typename FpType, fpmp2_accuracy met>
-static __bs_fp128 to_f128_val(const fpmp2_t<FpType, met>& x) {
+static __bs_fp128 to_f128_val(const fpmp2<FpType, met>& x) {
     return (__bs_fp128)x.hi() + (__bs_fp128)x.lo();
 }
 

@@ -40,7 +40,7 @@
  *
  * Note: Warp shuffle helpers for fpmp2 pairs (__shfl_sync, __shfl_xor_sync,
  * __shfl_down_sync, __shfl_up_sync) are intentionally not part of the library
- * API. They are header-only inline templates over fpmp2_t<FpType, met>
+ * API. They are header-only inline templates over fpmp2<FpType, met>
  * provided by fpmp_math.h and have no extern "C" entry point here, because
  * their body is just two CUDA scalar shuffle intrinsics with nothing to
  * outline.

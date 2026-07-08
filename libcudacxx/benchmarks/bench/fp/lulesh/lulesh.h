@@ -27,7 +27,7 @@ typedef int    Index_t ; /* array subscript and loop index */
 typedef int    Int_t ;   /* integer representation */
 
 #ifdef EMULATED_PRECISION
-    typedef fp64emu_t  Real_t ;  /* emulated floating point */
+    typedef fpemu  Real_t ;  /* emulated floating point */
 #elif defined(DOUBLE_PRECISION)
     typedef real8  Real_t ;      /* double precision */
 #else

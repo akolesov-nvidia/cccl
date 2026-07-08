@@ -194,17 +194,17 @@ using fp64_t = double;
 
 // d) FPEMU accurate
 #if __FPEMU_ACCURATE_ENABLED__ == 1
-using fpemu_accurate_t = fp64emu_t<fp64emu_accuracy::high>;
+using fpemu_accurate_t = fpemu<double, fpemu_accuracy::high>;
 #endif
 
 // e) FPEMU def
 #if __FPEMU_DEF_ENABLED__ == 1
-using fpemu_def_t = fp64emu_t<fp64emu_accuracy::mid>;
+using fpemu_def_t = fpemu<double, fpemu_accuracy::mid>;
 #endif
 
 // f) FPEMU fast
 #if __FPEMU_FAST_ENABLED__ == 1
-using fpemu_fast_t = fp64emu_t<fp64emu_accuracy::low>;
+using fpemu_fast_t = fpemu<double, fpemu_accuracy::low>;
 #endif
 
 // f) Double-double 

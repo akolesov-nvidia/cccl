@@ -13,12 +13,12 @@ against speed:
 ============================ ======================== ======================================
 Accuracy                     Mantissa precision       Special-value support
 ============================ ======================== ======================================
-``fp64emu_accuracy::high``   Correctly rounded        Full IEEE-754 (INF, NaN, subnormals)
-``fp64emu_accuracy::mid``    Up to 1-2 LSB error      Limited INF, NaN and subnormal support
-``fp64emu_accuracy::low``    Up to half mantissa bits Limited INF, NaN and subnormal support
+``fpemu_accuracy::high``   Correctly rounded        Full IEEE-754 (INF, NaN, subnormals)
+``fpemu_accuracy::mid``    Up to 1-2 LSB error      Limited INF, NaN and subnormal support
+``fpemu_accuracy::low``    Up to half mantissa bits Limited INF, NaN and subnormal support
 ============================ ======================== ======================================
 
-``fp64emu_accuracy::def`` is the default selector and equals ``high`` (IEEE-correct).
+``fpemu_accuracy::def`` is the default selector and equals ``high`` (IEEE-correct).
 
 Rounding modes ``rn`` (nearest), ``rz`` (toward zero), ``ru`` (toward +∞) and
 ``rd`` (toward −∞) are supported for every accuracy level.
@@ -37,18 +37,18 @@ Table of Contents
 C++ API
 -------
 
-The primary interface is the C++ template class ``fp64emu_t<fp64emu_accuracy>``.
-The ``fp64emu_accuracy`` template parameter selects the accuracy level at compile time,
+The primary interface is the C++ template class ``fpemu<double, fpemu_accuracy>``.
+The ``fpemu_accuracy`` template parameter selects the accuracy level at compile time,
 so there is no runtime branching overhead.
 
 Convenient type aliases are provided:
 
 .. code:: c++
 
-   using fp64emu      = fp64emu_t<fp64emu_accuracy::def>;   // default (== high)
-   using fp64emu_low  = fp64emu_t<fp64emu_accuracy::low>;   // low accuracy
-   using fp64emu_mid  = fp64emu_t<fp64emu_accuracy::mid>;   // mid accuracy
-   using fp64emu_high = fp64emu_t<fp64emu_accuracy::high>;  // high accuracy
+   using fp64emu      = fpemu<double, fpemu_accuracy::def>;   // default (== high)
+   using fp64emu_low  = fpemu<double, fpemu_accuracy::low>;   // low accuracy
+   using fp64emu_mid  = fpemu<double, fpemu_accuracy::mid>;   // mid accuracy
+   using fp64emu_high = fpemu<double, fpemu_accuracy::high>;  // high accuracy
 
 The class supports:
 
@@ -75,11 +75,11 @@ Basic usage
    fp64emu w = __fma_rn(x, y, z); // fused multiply-add
 
    // High accuracy (correctly rounded, full IEEE-754)
-   fp64emu_t<fp64emu_accuracy::high> a = 1.0;
+   fpemu<double, fpemu_accuracy::high> a = 1.0;
    auto b = __dadd_rn(a, a);     // accuracy deduced from argument type
 
    // Low accuracy (up to half mantissa bits error)
-   fp64emu_t<fp64emu_accuracy::low> f = 1.0;
+   fpemu<double, fpemu_accuracy::low> f = 1.0;
    auto g = f * f;
 
    // Convert back to double
@@ -88,13 +88,13 @@ Basic usage
 Unpacked representation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-An unpacked variant ``fp64emu_unpacked_t<fp64emu_accuracy>`` stores the sign,
+An unpacked variant ``fpemu_unpacked<double, fpemu_accuracy>`` stores the sign,
 exponent, and mantissa as separate fields. This avoids repeated pack/unpack
 overhead in chains of operations:
 
 .. code:: c++
 
-   using fp64emu_unpacked = fp64emu_unpacked_t<fp64emu_accuracy::def>;
+   using fp64emu_unpacked = fpemu_unpacked<double, fpemu_accuracy::def>;
 
    fp64emu_unpacked a(1.0);
    fp64emu_unpacked b(2.0);
@@ -105,12 +105,12 @@ Core Built-in Functions
 -----------------------
 
 For direct control over the accuracy level, the ``libfpemu`` library provides
-C-callable built-in functions operating on the raw ``fpbits64_t`` type
+C-callable built-in functions operating on the raw ``fpbits64`` type
 (a ``uint64_t`` holding the IEEE-754 bit pattern).
 
 These built-in declarations are available through ``<cuda/fpemu>``.
 
-Naming convention (packed ``fpbits64_t``)
+Naming convention (packed ``fpbits64``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
@@ -120,7 +120,7 @@ Naming convention (packed ``fpbits64_t``)
    __fp64emu_mid_<op>_<rm>        — mid      (1-2 LSB error, limited IEEE-754 specials support)
    __fp64emu_low_<op>_<rm>        — low      (up to half mantissa bits, limited IEEE-754 specials support)
 
-Naming convention (unpacked ``fpbits64_unpacked_t``)
+Naming convention (unpacked ``fpbits64_unpacked``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
@@ -140,17 +140,17 @@ Example
 
    #include <cuda/fpemu>
 
-   fpbits64_t x = __fp64emu_from_double(1.2345);
-   fpbits64_t y = __fp64emu_from_double(2.3456);
+   fpbits64 x = __fp64emu_from_double(1.2345);
+   fpbits64 y = __fp64emu_from_double(2.3456);
 
    // High-accuracy multiply (correctly rounded)
-   fpbits64_t r1 = __fp64emu_high_dmul_rn(x, y);
+   fpbits64 r1 = __fp64emu_high_dmul_rn(x, y);
 
    // Low-accuracy add
-   fpbits64_t r2 = __fp64emu_low_dadd_rn(x, y);
+   fpbits64 r2 = __fp64emu_low_dadd_rn(x, y);
 
    // Default FMA (== high)
-   fpbits64_t r3 = __fp64emu_fma_rn(x, y, r2);
+   fpbits64 r3 = __fp64emu_fma_rn(x, y, r2);
 
    double result = __fp64emu_to_double(r3);
 
@@ -177,16 +177,16 @@ Complex multiply   ``cmul()``   ``cmul``
 Conversions
 ~~~~~~~~~~~
 
-Implicit and explicit conversions between ``fp64emu_t`` and standard types:
+Implicit and explicit conversions between ``fpemu`` and standard types:
 
 =========================== ===================
 Conversion                  Direction
 =========================== ===================
-``double`` ↔ ``fp64emu_t``  implicit both ways
-``float`` → ``fp64emu_t``   implicit
-``fp64emu_t`` → ``float``   explicit cast
-``int32_t`` ↔ ``fp64emu_t`` implicit / explicit
-``int64_t`` ↔ ``fp64emu_t`` explicit cast
+``double`` ↔ ``fpemu``  implicit both ways
+``float`` → ``fpemu``   implicit
+``fpemu`` → ``float``   explicit cast
+``int32_t`` ↔ ``fpemu`` implicit / explicit
+``int64_t`` ↔ ``fpemu`` explicit cast
 =========================== ===================
 
 Comparisons
@@ -209,7 +209,7 @@ Setting a global accuracy level
    using real_t = fp64emu;
 
    real_t a = 1.0, b = 2.0;
-   real_t c = a * b + a;   // all operations use fp64emu_accuracy::def
+   real_t c = a * b + a;   // all operations use fpemu_accuracy::def
 
 Mixing accuracy levels in the same code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -219,11 +219,11 @@ Mixing accuracy levels in the same code
    #include <cuda/fpemu>
 
    // High-accuracy computation in a critical section
-   fp64emu_t<fp64emu_accuracy::high> precise_a = input;
+   fpemu<double, fpemu_accuracy::high> precise_a = input;
    auto precise_r = __fma_rn(precise_a, precise_a, precise_a);
 
    // Low-accuracy computation in a non-critical section
-   fp64emu_t<fp64emu_accuracy::low> fast_a = input;
+   fpemu<double, fpemu_accuracy::low> fast_a = input;
    auto fast_r = fast_a * fast_a;
 
 Using core built-ins from library directly
@@ -233,14 +233,14 @@ Using core built-ins from library directly
 
    #include <cuda/fpemu>
 
-   fpbits64_t x = __fp64emu_from_double(value);
-   fpbits64_t y = __fp64emu_from_double(value);
+   fpbits64 x = __fp64emu_from_double(value);
+   fpbits64 y = __fp64emu_from_double(value);
 
    // IEEE-754 compliant multiply
-   fpbits64_t r = __fp64emu_dmul_rn(x, y);
+   fpbits64 r = __fp64emu_dmul_rn(x, y);
 
    // Fast variant of the same operation
-   fpbits64_t r_fast = __fp64emu_low_dmul_rn(x, y);
+   fpbits64 r_fast = __fp64emu_low_dmul_rn(x, y);
 
 Compilation modes
 ~~~~~~~~~~~~~~~~~

@@ -214,7 +214,7 @@ The optimized conversion wins on two fronts:
 
 - Requires C++20 (`-std=c++20`) for the double → fp32mp2 direction to
   enable the constructor path that respects `CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`.
-  With C++17, the `fpmp2_t(double)` constructor always uses the
+  With C++17, the `fpmp2(double)` constructor always uses the
   cast-based path regardless of the flag.
 - The fp32mp2 → double direction (`operator double()`) works with any C++
   standard since it calls `__fpmp2_to_double` directly.

@@ -106,7 +106,7 @@ template class Allocator<Vector_h<double> >;
 template class Allocator<Vector_h<int> >;
 
 #ifdef EMULATED_PRECISION
-template class Allocator<Vector_d<fp64emu_t> >;
-template class Allocator<Vector_h<fp64emu_t> >;
+template class Allocator<Vector_d<fpemu> >;
+template class Allocator<Vector_h<fpemu> >;
 #endif
 

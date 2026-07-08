@@ -1,5 +1,5 @@
 /*
-    limits.cpp - Unit Test for cuda::std::numeric_limits<fpmp2_t> specialization
+    limits.cpp - Unit Test for cuda::std::numeric_limits<fpmp2> specialization
     ======================================================================================================
     Author:  Andrei Kolesov
     Date:    2026

@@ -8,7 +8,7 @@
 // never the mantissa that actually feeds the unpacked cores. The timing-loop
 // perturbation below special-cases this type to mutate the MANTISSA instead.
 template<typename T> struct ts_is_unpacked { static constexpr bool value = false; };
-template<fp64emu_accuracy m> struct ts_is_unpacked<fp64emu_unpacked_t<m>> { static constexpr bool value = true; };
+template<fpemu_accuracy m> struct ts_is_unpacked<fpemu_unpacked<double, m>> { static constexpr bool value = true; };
 
 // Function to mask the subnormal values
 template<typename T, bool ftz = false>

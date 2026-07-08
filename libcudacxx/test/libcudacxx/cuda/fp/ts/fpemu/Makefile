@@ -13,7 +13,6 @@
 #    `TARGET`   = target device (`device` (default), `host`)
 #    `FUNC`   = function to evaluate (`fma`, `add`, `mul`, `sub`, `div`, `mad`, ...)
 #    `API`    = emulated API to exercise; list allowed (`packed`, `unpacked`) (default is `packed`)
-#               (legacy `TYPE`=`fp64emu`/`fp64emu_unpacked` still accepted as an alias)
 #    `ROUNDING` = rounding mode (`rn`, `rz`, `ru`, `rd`)
 #    `ACCURACY`   = accuracy level (`high`, `mid`, `low`; `def` == high)
 #    `ARCH` = CUDA sm_xx (unset: nvidia-smi, else 86)
@@ -158,9 +157,9 @@ UNPACKED_METHODS   = mid low
 
 # API selects which emulated API the harness exercises. It may be a LIST so one
 # invocation evaluates both side by side (distinct target names and log rows):
-#   packed   -> __fp64emu_t           (packed API: legacy kernels, or the
+#   packed   -> fpemu           (packed API: legacy kernels, or the
 #                                          unpack->core->pack path when PACKED_VIA_UNPACKED=y)
-#   unpacked -> __fp64emu_unpacked_t  (unpacked API directly: operands are stored
+#   unpacked -> fpemu_unpacked  (unpacked API directly: operands are stored
 #                                          already unpacked, so the TIMED kernel runs the
 #                                          pure unpacked cores -- unpack/pack happen only in
 #                                          dataset fill and accuracy compare, OUTSIDE the
@@ -168,16 +167,6 @@ UNPACKED_METHODS   = mid low
 # The emulated C++ type is selected PER TARGET from the api token (see get_type
 # below), so a single build can carry both packed and unpacked executables.
 ALL_APIS = packed unpacked
-
-# Back-compat: the legacy TYPE parameter (fp64emu / fp64emu_unpacked, with or
-# without the _t suffix) maps onto API. Prefer API in new usage.
-ifdef TYPE
-    ifneq (,$(filter $(TYPE), fp64emu_unpacked fp64emu_unpacked_t))
-        API ?= unpacked
-    else
-        API ?= packed
-    endif
-endif
 
 API  ?= packed
 ifeq ($(API),all)
@@ -375,7 +364,7 @@ get_w4 = $(word 4,$(subst -, ,$(call get_basename,$(1))))
 # Map W3 to ACCURACY
 get_method = $(if $(filter high,$(1)),high,$(if $(filter mid,$(1)),mid,$(if $(filter low,$(1)),low,$(if $(filter cr,$(1)),high,$(if $(filter ha,$(1)),mid,$(if $(filter la,$(1)),low,$(if $(filter def,$(1)),def,mid)))))))
 # Map W4 (api) to the emulated C++ type fed to the harness (default packed)
-get_type = $(if $(filter unpacked,$(1)),fp64emu_unpacked_t,fp64emu_t)
+get_type = $(if $(filter unpacked,$(1)),fpemu_unpacked,fpemu)
 # Build the full flags for a target
 get_target_flags = $(INCLUDES) -D__FUNC__=$(call get_w1,$(1)) -D__ROUNDING__=$(call get_w2,$(1)) -D__METHOD__=$(call get_w3,$(1)) -D__TYPE__=$(call get_type,$(call get_w4,$(1)))
 # THREADS: number of threads per block
@@ -641,7 +630,6 @@ help:
 	@echo "  SET        = test set (def=default functions, opt=optimized functions, all=all functions)"
 	@echo "  FUNC       = function to evaluate (fma, mad, add, sub, mul, div, sqrt, exp, poly4, polyf4, poly8, polyf8)"
 	@echo "  API        = emulated API to exercise; list allowed (packed (default), unpacked)"
-	@echo "               (legacy TYPE=fp64emu/fp64emu_unpacked still accepted as an alias)"
 	@echo "  ROUNDING   = rounding mode (rn, rz, ru, rd)"
 	@echo "  ACCURACY     = accuracy level (high (default), mid, low) [alias: ACC]"
 	@echo ""

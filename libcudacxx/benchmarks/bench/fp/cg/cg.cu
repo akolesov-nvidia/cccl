@@ -30,7 +30,7 @@
 #ifdef NO_EMULATION
 using data_type = double;
 #else
-using data_type = fp64emu_t;
+using data_type = fpemu;
 #endif
 
 #define PROBLEM_SIZE 2048
@@ -94,7 +94,7 @@ void print_gpu_info()
  * 
  * Sets all elements of vector 'a' to the constant value 'v'.
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param a Device pointer to output vector
  * @param n Number of elements in vector
  * @param v Constant value to fill vector with
@@ -113,7 +113,7 @@ __global__ void fill_kernel(T* a, int n, T v)
  * 
  * Performs the BLAS-like operation: y[i] = a * x[i] + b * y[i]
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param n Number of elements in vectors
  * @param a Scalar multiplier for vector x
  * @param x Input vector (read-only)
@@ -135,7 +135,7 @@ __global__ void axpby_kernel(int n, T a, const T* __restrict__ x,
  * 
  * Performs the BLAS-like operation: y[i] += a * x[i]
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param n Number of elements in vectors
  * @param a Scalar multiplier
  * @param x Input vector (read-only)
@@ -156,7 +156,7 @@ __global__ void axpy_kernel(int n, T a, const T* __restrict__ x,
  * 
  * Copies elements from vector x to vector y.
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param y Output vector (destination)
  * @param x Input vector (source, read-only)
  * @param n Number of elements to copy
@@ -176,7 +176,7 @@ __global__ void copy_kernel(T* __restrict__ y, const T* __restrict__ x, int n)
  * Computes y = A*x where A is the 5-point stencil Laplacian operator on an N×N grid.
  * The Laplacian operator implements: y[i,j] = 4*x[i,j] - x[i-1,j] - x[i+1,j] - x[i,j-1] - x[i,j+1]
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param x Input vector (read-only)
  * @param y Output vector (write-only)
  * @param N Grid dimension (creates N×N grid)
@@ -207,7 +207,7 @@ __global__ void spmv2d_laplacian(const T* __restrict__ x,
  * 1. Each thread computes partial sums across the vector
  * 2. Block-level reduction using shared memory and tree-based algorithm
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param a First input vector (read-only)
  * @param b Second input vector (read-only)
  * @param blockSums Output array for block sums (one per block)
@@ -244,7 +244,7 @@ __global__ void dot_kernel(const T* __restrict__ a,
  * 2. Copying block sums back to host
  * 3. Performing final reduction on CPU
  * 
- * @tparam T Data type (double, fp64emu_t, etc.)
+ * @tparam T Data type (double, fpemu, etc.)
  * @param n Number of elements in vectors
  * @param d_a Device pointer to first vector
  * @param d_b Device pointer to second vector

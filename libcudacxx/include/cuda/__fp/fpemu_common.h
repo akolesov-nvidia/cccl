@@ -148,8 +148,8 @@ namespace cuda::experimental
     #define _CCCL_FPEMU_DEFAULT_ROUNDING rn
 #endif
 
-// Unpacked API presence. Default ON so the packed (fpbits64_t) legacy API and
-// the unpacked (fpbits64_unpacked_t) API co-exist in the same package: this
+// Unpacked API presence. Default ON so the packed (fpbits64) legacy API and
+// the unpacked (fpbits64_unpacked) API co-exist in the same package: this
 // gates the *_unpacked cores, the universal pack/unpack, and the *_unpacked
 // builtins/operators. Set to 0 only to strip the unpacked API entirely.
 
@@ -172,7 +172,7 @@ namespace cuda::experimental
 * the IEEE-754 binary encoding of a double-precision floating point number.
 * The value field contains the raw bits including sign, exponent and mantissa.
 */
-typedef uint64_t fpbits64_t;
+typedef uint64_t fpbits64;
 
 /**
 * @brief Unpacked representation of a double-precision floating point number
@@ -185,19 +185,19 @@ typedef struct
     uint32_t sign;
     uint32_t exponent;
     uint64_t mantissa;
-} fpbits64_unpacked_t;
+} fpbits64_unpacked;
 
 /**
 * @brief Accuracy level for floating-point emulation (public).
 *
 * Defined directly in cuda::experimental (no internal fpemu:: namespace) and named
-* fp64emu_accuracy, so callers write e.g. fp64emu_t<fp64emu_accuracy::high>.
+* fpemu_accuracy, so callers write e.g. fpemu<double, fpemu_accuracy::high>.
 * - high: Correctly rounded with full IEEE-754 range (infinities, NaNs, subnormals)
 * - mid:  High accuracy (1-2 ULP) with normal range
 * - low:  Low accuracy (up to half mantissa) with normal range
 * - def:  Default selector; equals high so the default is IEEE-correct.
 */
-enum struct fp64emu_accuracy
+enum struct fpemu_accuracy
 {
     unset = -1,
     low   =  1,

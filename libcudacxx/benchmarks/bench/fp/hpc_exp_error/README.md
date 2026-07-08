@@ -2,7 +2,7 @@
 
 This benchmark studies how a "long composition of `exp()`" workload
 behaves under three working types — `float`, `double`, and the
-double-float `fpmp2_t<float, *>` family — and across
+double-float `fpmp2<float, *>` family — and across
 two semantically equivalent rewrites of the same expression.
 
 The questions the benchmark answers:
@@ -82,7 +82,7 @@ doesn't accept the GCC-only quad-precision flags).
 | ------------- | ------------------------------------------ | --------- | ------------------------------------------- |
 | `Float`       | `float`                                    | ~24 bits  | reference for the FP32:FP64 throughput ratio |
 | `Double`      | `double`                                   | ~53 bits  | native baseline                             |
-| `Fpmp2`       | `fpmp2_t<float, fpmp2_accuracy::def>`      | ~46 bits  | 2-Sum-style add with low-part renormalize   |
+| `Fpmp2`       | `fpmp2<float, fpmp2_accuracy::def>`      | ~46 bits  | 2-Sum-style add with low-part renormalize   |
 
 `fp32mp2` represents a value as `(hi, lo)` where `hi` is the FP32
 approximation and `lo` is the unnormalized residual. The `add` is a

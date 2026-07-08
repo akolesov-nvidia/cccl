@@ -4,11 +4,11 @@
     Author:  generated
     Date:    2026
 
-    Different specializations of fpmp2_t<FpType, met> share the same
+    Different specializations of fpmp2<FpType, met> share the same
     (hi, lo) representation; only the accuracy tag (which selects the
     arithmetic algorithm used downstream) differs. Without a dedicated
     converting constructor, the compiler would fall back on
-    operator double() + fpmp2_t(double) — an expensive round trip
+    operator double() + fpmp2(double) — an expensive round trip
     that is especially painful on GPUs with limited FP64 throughput.
 
     fpmp.h provides an `explicit` cross-accuracy converting constructor

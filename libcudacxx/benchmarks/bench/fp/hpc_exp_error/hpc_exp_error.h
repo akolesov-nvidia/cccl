@@ -19,7 +19,7 @@
 	     chain depths, plus a fitted log-log slope alpha).
 
 	The double-float type used here is the default-accuracy variant
-	  fp32mp2 = fpmp2_t<float, fpmp2_accuracy::def>
+	  fp32mp2 = fpmp2<float, fpmp2_accuracy::def>
 	(2-Sum-style add with low-part renormalisation).
 */
 

@@ -115,7 +115,7 @@ Double-Double Precision (Quad-like)
    #include <cuda/fpmp>
 
    // Type aliases for double-double
-   using fp64mp2 = fpmp2_t<double, fpmp2_accuracy::def>;
+   using fp64mp2 = fpmp2<double, fpmp2_accuracy::def>;
 
    // Double-double arithmetic (~106-bit mantissa)
    fp64mp2 a = 1.234567890123456789;
@@ -256,7 +256,7 @@ operations, but specific steps (e.g., argument reductions) require higher accura
    ffloat s = mad<fpmp2_accuracy::def>(a, b, c);   // default multiply-add
 
 This approach calls the underlying C-style API directly on scalar ``(hi, lo)`` pairs
-without instantiating a second ``fpmp2_t`` class specialization, avoiding the
+without instantiating a second ``fpmp2`` class specialization, avoiding the
 register pressure issues that arise from mixing types on GPU.
 
 Mathematical Functions
@@ -457,7 +457,7 @@ Example 2: Double-Double High Precision
 
    #include <cuda/fpmp>
 
-   using fp64mp2 = fpmp2_t<double, fpmp2_accuracy::def>;
+   using fp64mp2 = fpmp2<double, fpmp2_accuracy::def>;
 
    // Compute (1 + 1e-15)^2 - 1 - 2e-15 with quad-like precision
    // This should be exactly 1e-30, but double precision loses it
@@ -563,7 +563,7 @@ The library behavior can be customized via preprocessor macros (optional):
 ===================================== ======= ==================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 Macro                                 Default Description
 ===================================== ======= ==================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-``CCCL_FPMP_EXPLICIT_CASTS``               ``1``   When ``1`` (default), lossy/narrowing conversions INTO ``fpmp2_t`` (``double``/``fp64mp2``/``__float128`` and ``int32``/``uint32``/``int64``/``uint64``) require explicit casts, matching CCCL's strict-cast conventions. The widening conversion OUT to ``double`` (``operator double()``) is always implicit and is not affected by this macro. Set ``0`` to restore the fully-implicit model (all conversions implicit) for easier migration of existing code. Note: explicit construction from ``double`` literals (e.g. ``fp32mp2(3.14159)``) remains ``constexpr`` (compile-time).
+``CCCL_FPMP_EXPLICIT_CASTS``               ``1``   When ``1`` (default), lossy/narrowing conversions INTO ``fpmp2`` (``double``/``fp64mp2``/``__float128`` and ``int32``/``uint32``/``int64``/``uint64``) require explicit casts, matching CCCL's strict-cast conventions. The widening conversion OUT to ``double`` (``operator double()``) is always implicit and is not affected by this macro. Set ``0`` to restore the fully-implicit model (all conversions implicit) for easier migration of existing code. Note: explicit construction from ``double`` literals (e.g. ``fp32mp2(3.14159)``) remains ``constexpr`` (compile-time).
 ``_CCCL_FPMP_FP128_ENABLE``                 Auto    Automatically computed from compiler version and CUDA capabilities. Can be explicitly set to ``0`` to disable ``__float128`` support (e.g., for older compilers or compatibility).
 ``_CCCL_FPMP_FP128_MATH_FALLBACK``          ``0``   When ``1``, ``fp64mp2`` math functions use quad-precision (``__float128``) for higher accuracy. Requires ``libquadmath`` linkage, slower compilation, and larger code. When ``0``, falls back to ``double`` precision—faster builds, smaller code, but reduced accuracy for transcendentals.
 ``CCCL_FPMP_LIB``                          ``0``   When ``1``, link against a precompiled FPMP library. Core arithmetic functions are declared as ``extern "C"`` symbols resolved at link time, reducing compile times and code duplication across translation units. Requires building the library separately (not provided in-tree; the CCCL FP SDK is header-only by default).
@@ -665,7 +665,7 @@ umbrella):
    ├── fpmp                       # Public umbrella header (core) — include via <cuda/fpmp>
    ├── fpmp_math                  # Public umbrella header (core + math) — include via <cuda/fpmp_math>
    └── __fp/                      # Internal implementation headers (do not include directly)
-       ├── fpmp.h               # Types, C++ class fpmp2_t, operators/conversions, core ops
+       ├── fpmp.h               # Types, C++ class fpmp2, operators/conversions, core ops
        ├── fpmp_common.h        # Platform/compiler macros, utilities, error-free transform building blocks
        ├── fpmp_impl.h          # Low-level C-style API (builtins, conversions, comparisons, atomics)
        ├── fpmp_lib.h           # Built-in function declarations for direct C-style usage
@@ -691,7 +691,7 @@ Header                        Description
 ============================= ===================================================================================================================================================================================================================================================================================================================================================================================================================
 ``<cuda/fpmp>``               Public umbrella header (core). Include this for the type and operations; it brings in ``cuda/__fp/fpmp.h`` and ``cuda/__fp/fpmp_limits.h``.
 ``<cuda/fpmp_math>``          Public umbrella header (core + math). Brings in ``cuda/__fp/fpmp.h`` and ``cuda/__fp/fpmp_math.h``.
-``cuda/__fp/fpmp.h``        Types, C++ class ``fpmp2_t`` with operators/conversions, and core ops.
+``cuda/__fp/fpmp.h``        Types, C++ class ``fpmp2`` with operators/conversions, and core ops.
 ``cuda/__fp/fpmp_common.h`` Platform/compiler macros, utilities, and shared building blocks for error-free transforms.
 ``cuda/__fp/fpmp_impl.h``   Low-level C-style API (builtins for arithmetic, conversions, comparisons; CUDA atomics).
 ``cuda/__fp/fpmp_lib.h``    Built-in function declarations for direct C-style usage (fp32mp2/fp64mp2 arithmetic, conversions, comparisons, math).
@@ -1001,7 +1001,7 @@ The return type matches the input type — no type conversion occurs.
 
 .. code:: c++
 
-   // Available for any fpmp2_t<FpType, met> type
+   // Available for any fpmp2<FpType, met> type
    template<fpmp2_accuracy m> T add(const T& x, const T& y);  // Addition
    template<fpmp2_accuracy m> T sub(const T& x, const T& y);  // Subtraction
    template<fpmp2_accuracy m> T mul(const T& x, const T& y);  // Multiplication

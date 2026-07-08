@@ -4,7 +4,7 @@
     Author:  Andrei Kolesov
     Date:    2026
 
-    This test verifies that fp64emu_t and fp64emu_unpacked_t types are
+    This test verifies that fpemu and fpemu_unpacked types are
     trivially copyable and that volatile reads/writes preserve values correctly.
     A compile-time static_assert checks trivial copyability, and a runtime check
     confirms that a value survives a round-trip through a volatile object.

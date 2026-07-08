@@ -20,9 +20,9 @@ Demonstrates emulated double-precision floating-point arithmetic:
 
 Features demonstrated:
 - Construction and assignment of `fp64emu` values
-- Using `fp64emu_accuracy::high` for addition (correctly rounded, full IEEE-754 range)
-- Using `fp64emu_accuracy::low` for multiplication (relaxed precision, higher throughput)
-- Default accuracy (`fp64emu_accuracy::def`, == high) for subtraction, division, sqrt, fma
+- Using `fpemu_accuracy::high` for addition (correctly rounded, full IEEE-754 range)
+- Using `fpemu_accuracy::low` for multiplication (relaxed precision, higher throughput)
+- Default accuracy (`fpemu_accuracy::def`, == high) for subtraction, division, sqrt, fma
 - Comparison operators
 - Compound assignment operators (+=, *=)
 - CPU/GPU host/device compatibility

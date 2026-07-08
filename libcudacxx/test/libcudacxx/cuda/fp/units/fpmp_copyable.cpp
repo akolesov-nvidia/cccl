@@ -4,7 +4,7 @@
     Author:  Andrei Kolesov
     Date:    2026
 
-    This test verifies that fpmp2_t types are trivially copyable and that
+    This test verifies that fpmp2 types are trivially copyable and that
     volatile reads/writes preserve values correctly. A compile-time static_assert
     checks trivial copyability, and a runtime check confirms that a value survives
     a round-trip through a volatile object.

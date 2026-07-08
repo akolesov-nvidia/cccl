@@ -150,8 +150,8 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_from_double (const double __x, 
-                                                         _FpType*      __res_hi, 
-                                                         _FpType*      __res_lo) noexcept 
+                                                 _FpType*     __res_hi, 
+                                                 _FpType*     __res_lo) noexcept 
     {
 #if _CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
@@ -351,7 +351,7 @@ namespace cuda::experimental
     //
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  double __fpmp2_to_double (const _FpType __x_hi_in,
-                                                         const _FpType __x_lo_in) noexcept
+                                                 const _FpType __x_lo_in) noexcept
     { 
 #if _CCCL_FPMP_USE_OPT_TO_DOUBLE == 1
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
@@ -415,7 +415,7 @@ namespace cuda::experimental
     // (hi, lo) -> float conversions (returns the sum as single FpType)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  _FpType __fpmp2_to_float (const _FpType __x_hi, 
-                                                        const _FpType __x_lo) noexcept  
+                                                 const _FpType __x_lo) noexcept  
     { 
         return __x_hi + __x_lo; 
     }
@@ -423,14 +423,14 @@ namespace cuda::experimental
     // (hi, lo) -> int conversions
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  int32_t __fpmp2_to_int (const _FpType __x_hi, 
-                                                       const _FpType __x_lo) noexcept  
+                                               const _FpType __x_lo) noexcept  
     { 
 
         _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
         // Check threshold BEFORE computing sum - for large values, addition loses precision
         // 2^24 for float, 2^53 for double
         _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
-                                                                0x1.0p53;  
+                                                                       0x1.0p53;  
         if (__abs_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
@@ -449,13 +449,13 @@ namespace cuda::experimental
     // (hi, lo) -> uint conversions
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  uint32_t __fpmp2_to_uint (const _FpType __x_hi, 
-                                                         const _FpType __x_lo) noexcept  
+                                                 const _FpType __x_lo) noexcept  
     { 
 
         // Check threshold BEFORE computing sum
         // 2^24 for float, 2^53 for double
         _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
-                                                                0x1.0p53;  
+                                                                       0x1.0p53;  
         if (__x_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
@@ -500,13 +500,13 @@ namespace cuda::experimental
     // (hi, lo) -> ull conversions
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  uint64_t __fpmp2_to_ull (const _FpType __x_hi, 
-                                                        const _FpType __x_lo) noexcept 
+                                                const _FpType __x_lo) noexcept 
     { 
 
         // Check threshold BEFORE computing sum
         // 2^24 for float, 2^53 for double
         _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 
-                                                                0x1.0p53;  
+                                                                       0x1.0p53;  
         if (__x_hi < __threshold)
         {
             // Small value: use round-toward-zero addition
@@ -532,9 +532,9 @@ namespace cuda::experimental
     // This is useful for fast mode to ensure that the result is accurate
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_renormalize (const _FpType __x_hi, 
-                                                        const _FpType __x_lo, 
-                                                        _FpType*      __res_hi, 
-                                                        _FpType*      __res_lo) noexcept
+                                                const _FpType __x_lo, 
+                                                _FpType*      __res_hi, 
+                                                _FpType*      __res_lo) noexcept
     {
 
         *__res_hi = __fpmp_fast_two_sum(__x_hi, __x_lo, __res_lo);
@@ -551,11 +551,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_low_add (const _FpType __x_hi, 
-                                                     const _FpType __x_lo, 
-                                                     const _FpType __y_hi, 
-                                                     const _FpType __y_lo, 
-                                                     _FpType*      __res_hi, 
-                                                     _FpType*      __res_lo) noexcept
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo, 
+                                            _FpType*      __res_hi, 
+                                            _FpType*      __res_lo) noexcept
     {
 
         _FpType __r_hi, __r_lo;
@@ -575,11 +575,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_add (const _FpType __x_hi, 
-                                                const _FpType __x_lo, 
-                                                const _FpType __y_hi, 
-                                                const _FpType __y_lo, 
-                                                _FpType*      __res_hi, 
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo, 
+                                        const _FpType __y_hi, 
+                                        const _FpType __y_lo, 
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
 
 
@@ -609,11 +609,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_fpan (const _FpType __a_hi, 
-                                                     const _FpType __a_lo, 
-                                                     const _FpType __b_hi, 
-                                                     const _FpType __b_lo, 
-                                                     _FpType*      __res_hi, 
-                                                     _FpType*      __res_lo) noexcept
+                                                         const _FpType __a_lo, 
+                                                         const _FpType __b_hi, 
+                                                         const _FpType __b_lo, 
+                                                         _FpType*      __res_hi, 
+                                                         _FpType*      __res_lo) noexcept
     {
 
         
@@ -662,11 +662,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_exp (const _FpType __a_hi, 
-                                                             const _FpType __a_lo, 
-                                                             const _FpType __b_hi, 
-                                                             const _FpType __b_lo, 
-                                                             _FpType*      __res_hi, 
-                                                             _FpType*      __res_lo) noexcept
+                                                        const _FpType __a_lo, 
+                                                        const _FpType __b_hi, 
+                                                        const _FpType __b_lo, 
+                                                        _FpType*      __res_hi, 
+                                                        _FpType*      __res_lo) noexcept
     {
 
         _FpType __t1, __t2, __t3, __t4, __t5, __e;
@@ -690,11 +690,11 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_high_add (const _FpType __a_hi, 
-                                                         const _FpType __a_lo, 
-                                                         const _FpType __b_hi, 
-                                                         const _FpType __b_lo, 
-                                                         _FpType*      __res_hi, 
-                                                         _FpType*      __res_lo) noexcept
+                                             const _FpType __a_lo, 
+                                             const _FpType __b_hi, 
+                                             const _FpType __b_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept
     {
 #if defined   _CCCL_FPMP_FPAN_METHOD
         __internal_nv_fpmp2_add_fpan (__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
@@ -714,11 +714,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_low_sub (const _FpType __x_hi, 
-                                                     const _FpType __x_lo, 
-                                                     const _FpType __y_hi, 
-                                                     const _FpType __y_lo, 
-                                                     _FpType*      __res_hi, 
-                                                     _FpType*      __res_lo) noexcept
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo, 
+                                            _FpType*      __res_hi, 
+                                            _FpType*      __res_lo) noexcept
     {
         __fpmp2_low_add(__x_hi, __x_lo, -__y_hi, -__y_lo, __res_hi, __res_lo);
     }
@@ -728,11 +728,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_sub (const _FpType __x_hi, 
-                                                const _FpType __x_lo, 
-                                                const _FpType __y_hi, 
-                                                const _FpType __y_lo, 
-                                                _FpType*      __res_hi, 
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo, 
+                                        const _FpType __y_hi, 
+                                        const _FpType __y_lo, 
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
         __fpmp2_add(__x_hi, __x_lo, -__y_hi, -__y_lo, __res_hi, __res_lo);
     }
@@ -744,11 +744,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_high_sub(const _FpType __x_hi, 
-                                                         const _FpType __x_lo, 
-                                                         const _FpType __y_hi, 
-                                                         const _FpType __y_lo, 
-                                                         _FpType*      __res_hi, 
-                                                         _FpType*      __res_lo) noexcept
+                                             const _FpType __x_lo, 
+                                             const _FpType __y_hi, 
+                                             const _FpType __y_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept
     {
         __fpmp2_high_add(__x_hi, __x_lo, -__y_hi, -__y_lo, __res_hi, __res_lo);
     }
@@ -775,8 +775,8 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_low_acc (const _FpType __c, 
-                                                     _FpType*      __acc_hi, 
-                                                     _FpType*      __acc_lo) noexcept
+                                            _FpType*      __acc_hi, 
+                                            _FpType*      __acc_lo) noexcept
     {
 
         _FpType __err;
@@ -793,8 +793,8 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_acc (const _FpType __c, 
-                                                _FpType*      __acc_hi, 
-                                                _FpType*      __acc_lo) noexcept
+                                        _FpType*      __acc_hi, 
+                                        _FpType*      __acc_lo) noexcept
     {
 
         _FpType __err;
@@ -812,8 +812,8 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_high_acc (const _FpType __c, 
-                                                         _FpType*      __acc_hi, 
-                                                         _FpType*      __acc_lo) noexcept
+                                             _FpType*      __acc_hi, 
+                                             _FpType*      __acc_lo) noexcept
     {
 
         _FpType __err;
@@ -842,11 +842,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_low_mul (const _FpType __x_hi, 
-                                                      const _FpType __x_lo, 
-                                                      const _FpType __y_hi, 
-                                                      const _FpType __y_lo, 
-                                                      _FpType*      __res_hi, 
-                                                      _FpType*      __res_lo) noexcept  
+                                             const _FpType __x_lo, 
+                                             const _FpType __y_hi, 
+                                             const _FpType __y_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept  
     { 
 
         _FpType __t_hi = __fpmp_mul_rn (__x_hi, __y_hi);
@@ -865,11 +865,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_mul (const _FpType __x_hi, 
-                                                const _FpType __x_lo, 
-                                                const _FpType __y_hi, 
-                                                const _FpType __y_lo, 
-                                                _FpType*      __res_hi, 
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo, 
+                                        const _FpType __y_hi, 
+                                        const _FpType __y_lo, 
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
 
         _FpType __p1, __p2, __c_hi, __c_lo, __res_hi_tmp, __res_lo_tmp;
@@ -921,11 +921,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_high_mul (const _FpType __x_hi, 
-                                                          const _FpType __x_lo, 
-                                                          const _FpType __y_hi, 
-                                                          const _FpType __y_lo, 
-                                                          _FpType*      __res_hi, 
-                                                          _FpType*      __res_lo) noexcept
+                                             const _FpType __x_lo, 
+                                             const _FpType __y_hi, 
+                                             const _FpType __y_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept
     {
 
         
@@ -998,11 +998,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_low_div (const _FpType __a_hi, 
-                                                     const _FpType __a_lo, 
-                                                     const _FpType __b_hi, 
-                                                     const _FpType __b_lo, 
-                                                     _FpType*      __res_hi, 
-                                                     _FpType*      __res_lo) noexcept
+                                            const _FpType __a_lo, 
+                                            const _FpType __b_hi, 
+                                            const _FpType __b_lo, 
+                                            _FpType*      __res_hi, 
+                                            _FpType*      __res_lo) noexcept
     {
 
         // Get an estimate from *this->hi:
@@ -1041,11 +1041,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_div (const _FpType __a_hi, 
-                                                const _FpType __a_lo, 
-                                                const _FpType __b_hi, 
-                                                const _FpType __b_lo, 
-                                                _FpType*      __res_hi, 
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __a_lo, 
+                                        const _FpType __b_hi, 
+                                        const _FpType __b_lo, 
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
 
         _FpType __t_hi, __t_lo;
@@ -1093,11 +1093,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_high_div (const _FpType __a_hi, 
-                                                         const _FpType __a_lo, 
-                                                         const _FpType __b_hi, 
-                                                         const _FpType __b_lo, 
-                                                         _FpType*      __res_hi, 
-                                                         _FpType*      __res_lo) noexcept
+                                             const _FpType __a_lo, 
+                                             const _FpType __b_hi, 
+                                             const _FpType __b_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept
     {
 
         
@@ -1202,9 +1202,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_rsqrt (const _FpType __a_hi, 
-                                                   const _FpType __a_lo, 
-                                                   _FpType*      __res_hi, 
-                                                   _FpType*      __res_lo) noexcept
+                                           const _FpType __a_lo, 
+                                           _FpType*      __res_hi, 
+                                           _FpType*      __res_lo) noexcept
     {
 
         _FpType __z_hi, __z_lo;
@@ -1240,9 +1240,9 @@ namespace cuda::experimental
     */    
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_sqrt (const _FpType __a_hi, 
-                                                  const _FpType __a_lo, 
-                                                  _FpType*      __res_hi, 
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __a_lo, 
+                                          _FpType*      __res_hi, 
+                                          _FpType*      __res_lo) noexcept
     { 
 
         _FpType __t_hi, __t_lo, __tmp_lo;
@@ -1278,13 +1278,13 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_low_fma (const _FpType __x_hi, 
-                                                      const _FpType __x_lo, 
-                                                      const _FpType __y_hi, 
-                                                      const _FpType __y_lo, 
-                                                      const _FpType __z_hi, 
-                                                      const _FpType __z_lo, 
-                                                      _FpType*      __res_hi, 
-                                                      _FpType*      __res_lo) noexcept
+                                             const _FpType __x_lo, 
+                                             const _FpType __y_hi, 
+                                             const _FpType __y_lo, 
+                                             const _FpType __z_hi, 
+                                             const _FpType __z_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept
     { 
 
         
@@ -1315,13 +1315,13 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_fma (const _FpType __x_hi, 
-                                                 const _FpType __x_lo, 
-                                                 const _FpType __y_hi, 
-                                                 const _FpType __y_lo, 
-                                                 const _FpType __z_hi, 
-                                                 const _FpType __z_lo, 
-                                                 _FpType*      __res_hi, 
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo, 
+                                         const _FpType __y_hi, 
+                                         const _FpType __y_lo, 
+                                         const _FpType __z_hi, 
+                                         const _FpType __z_lo, 
+                                         _FpType*      __res_hi, 
+                                         _FpType*      __res_lo) noexcept
     { 
 
         
@@ -1354,13 +1354,13 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_high_fma (const _FpType __x_hi, 
-                                                          const _FpType __x_lo, 
-                                                          const _FpType __y_hi, 
-                                                          const _FpType __y_lo, 
-                                                          const _FpType __z_hi, 
-                                                          const _FpType __z_lo, 
-                                                          _FpType*      __res_hi, 
-                                                          _FpType*      __res_lo) noexcept
+                                              const _FpType __x_lo, 
+                                              const _FpType __y_hi, 
+                                              const _FpType __y_lo, 
+                                              const _FpType __z_hi, 
+                                              const _FpType __z_lo, 
+                                              _FpType*      __res_hi, 
+                                              _FpType*      __res_lo) noexcept
     { 
         _FpType __r_hi = __fpmp_fma_rn(__x_hi, __y_hi, __z_hi);
         
@@ -1399,13 +1399,13 @@ namespace cuda::experimental
     // multiply-add with rounding (default: fast mul + default add)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_mad (const _FpType __x_hi, 
-                                                 const _FpType __x_lo, 
-                                                 const _FpType __y_hi, 
-                                                 const _FpType __y_lo, 
-                                                 const _FpType __z_hi, 
-                                                 const _FpType __z_lo, 
-                                                 _FpType*      __res_hi, 
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo, 
+                                         const _FpType __y_hi, 
+                                         const _FpType __y_lo, 
+                                         const _FpType __z_hi, 
+                                         const _FpType __z_lo, 
+                                         _FpType*      __res_hi, 
+                                         _FpType*      __res_lo) noexcept
     { 
         _FpType __t_hi, __t_lo;
         __fpmp2_low_mul(__x_hi, __x_lo, __y_hi, __y_lo, &__t_hi, &__t_lo);
@@ -1415,13 +1415,13 @@ namespace cuda::experimental
     // multiply-add fast (fast mul + fast add)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_low_mad (const _FpType __x_hi, 
-                                                      const _FpType __x_lo, 
-                                                      const _FpType __y_hi, 
-                                                      const _FpType __y_lo, 
-                                                      const _FpType __z_hi, 
-                                                      const _FpType __z_lo, 
-                                                      _FpType*      __res_hi, 
-                                                      _FpType*      __res_lo) noexcept
+                                             const _FpType __x_lo, 
+                                             const _FpType __y_hi, 
+                                             const _FpType __y_lo, 
+                                             const _FpType __z_hi, 
+                                             const _FpType __z_lo, 
+                                             _FpType*      __res_hi, 
+                                             _FpType*      __res_lo) noexcept
     { 
         _FpType __t_hi, __t_lo;
         __fpmp2_low_mul(__x_hi, __x_lo, __y_hi, __y_lo, &__t_hi, &__t_lo);
@@ -1431,13 +1431,13 @@ namespace cuda::experimental
     // multiply-add accurate (default mul + accurate add)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_high_mad (const _FpType __x_hi, 
-                                                          const _FpType __x_lo, 
-                                                          const _FpType __y_hi, 
-                                                          const _FpType __y_lo, 
-                                                          const _FpType __z_hi, 
-                                                          const _FpType __z_lo, 
-                                                          _FpType*      __res_hi, 
-                                                          _FpType*      __res_lo) noexcept
+                                              const _FpType __x_lo, 
+                                              const _FpType __y_hi, 
+                                              const _FpType __y_lo, 
+                                              const _FpType __z_hi, 
+                                              const _FpType __z_lo, 
+                                              _FpType*      __res_hi, 
+                                              _FpType*      __res_lo) noexcept
     { 
         _FpType __t_hi, __t_lo;
         __fpmp2_mul(__x_hi, __x_lo, __y_hi, __y_lo, &__t_hi, &__t_lo);
@@ -1452,9 +1452,9 @@ namespace cuda::experimental
     // negation
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_neg (const _FpType __x_hi, 
-                                                 const _FpType __x_lo, 
-                                                 _FpType*      __res_hi, 
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo, 
+                                         _FpType*      __res_hi, 
+                                         _FpType*      __res_lo) noexcept
     { 
         *__res_hi = -__x_hi;
         *__res_lo = -__x_lo;
@@ -1468,9 +1468,9 @@ namespace cuda::experimental
     // == comparison
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  bool __fpmp2_cmp_eq (const _FpType __x_hi, 
-                                                    const _FpType __x_lo, 
-                                                    const _FpType __y_hi, 
-                                                    const _FpType __y_lo) noexcept 
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo) noexcept 
     { 
         return __x_hi == __y_hi && __x_lo == __y_lo;
     }
@@ -1478,9 +1478,9 @@ namespace cuda::experimental
     // != comparison
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  bool __fpmp2_cmp_ne(const _FpType __x_hi, 
-                                                   const _FpType __x_lo, 
-                                                   const _FpType __y_hi, 
-                                                   const _FpType __y_lo) noexcept 
+                                           const _FpType __x_lo, 
+                                           const _FpType __y_hi, 
+                                           const _FpType __y_lo) noexcept 
     { 
         return __x_hi != __y_hi || __x_lo != __y_lo;
     }
@@ -1488,9 +1488,9 @@ namespace cuda::experimental
     // < comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  bool __fpmp2_cmp_lt (const _FpType __x_hi, 
-                                                    const _FpType __x_lo, 
-                                                    const _FpType __y_hi, 
-                                                    const _FpType __y_lo) noexcept 
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo) noexcept 
     { 
         return __x_hi < __y_hi || (__x_hi == __y_hi && __x_lo < __y_lo);
     }
@@ -1498,9 +1498,9 @@ namespace cuda::experimental
     // > comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  bool __fpmp2_cmp_gt (const _FpType __x_hi, 
-                                                    const _FpType __x_lo, 
-                                                    const _FpType __y_hi, 
-                                                    const _FpType __y_lo) noexcept 
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo) noexcept 
     { 
         return __x_hi > __y_hi || (__x_hi == __y_hi && __x_lo > __y_lo);
     }
@@ -1508,9 +1508,9 @@ namespace cuda::experimental
     // <= comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  bool __fpmp2_cmp_le (const _FpType __x_hi, 
-                                                    const _FpType __x_lo, 
-                                                    const _FpType __y_hi, 
-                                                    const _FpType __y_lo) noexcept 
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo) noexcept 
     { 
         return __x_hi < __y_hi || (__x_hi == __y_hi && __x_lo <= __y_lo);
     }
@@ -1518,9 +1518,9 @@ namespace cuda::experimental
     // >= comparison (assumes normalized inputs where |lo| < ulp(hi)/2)
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  bool __fpmp2_cmp_ge (const _FpType __x_hi, 
-                                                    const _FpType __x_lo, 
-                                                    const _FpType __y_hi, 
-                                                    const _FpType __y_lo) noexcept 
+                                            const _FpType __x_lo, 
+                                            const _FpType __y_hi, 
+                                            const _FpType __y_lo) noexcept 
     { 
         return __x_hi > __y_hi || (__x_hi == __y_hi && __x_lo >= __y_lo);
     }
@@ -1533,7 +1533,7 @@ namespace cuda::experimental
     // bit_cast to IEEE-754 format bits
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  uint64_t __fpmp2_bit_cast (const _FpType __x_hi, 
-                                                          const _FpType __x_lo) noexcept
+                                                  const _FpType __x_lo) noexcept
     { 
 
         double __d = __fpmp2_to_double(__x_hi, __x_lo);
@@ -1554,19 +1554,19 @@ namespace cuda::experimental
     // Primary template declarations (specialized for float and double below)
     template<typename _FpType>
     _CCCL_DEVICE_API inline void __fpmp2_atomicAdd (_FpType*      __address_hi, 
-                                                        _FpType*      __address_lo, 
-                                                        const _FpType __addition_hi, 
-                                                        const _FpType __addition_lo, 
-                                                        _FpType*      __old_hi, 
-                                                        _FpType*      __old_lo) noexcept;
+                                                    _FpType*      __address_lo, 
+                                                    const _FpType __addition_hi, 
+                                                    const _FpType __addition_lo, 
+                                                    _FpType*      __old_hi, 
+                                                    _FpType*      __old_lo) noexcept;
 
     template<typename _FpType>
     _CCCL_DEVICE_API inline void __fpmp2_atomicSub (_FpType*      __address_hi, 
-                                                        _FpType*      __address_lo, 
-                                                        const _FpType __val_hi, 
-                                                        const _FpType __val_lo, 
-                                                        _FpType*      __old_hi, 
-                                                        _FpType*      __old_lo) noexcept;
+                                                    _FpType*      __address_lo, 
+                                                    const _FpType __val_hi, 
+                                                    const _FpType __val_lo, 
+                                                    _FpType*      __old_hi, 
+                                                    _FpType*      __old_lo) noexcept;
 
     /*
     * --------------------------------------------------------------------
@@ -1577,12 +1577,12 @@ namespace cuda::experimental
     // Two floats = 64 bits fits in unsigned long long int
     // Returns the old value before the addition
     template<>
-    _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<float>       (float*       __address_hi, 
-                                                                     float*       __address_lo, 
-                                                                     const float  __addition_hi, 
-                                                                     const float  __addition_lo, 
-                                                                     float*       __old_hi, 
-                                                                     float*       __old_lo) noexcept
+    _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<float>  (float*       __address_hi, 
+                                                            float*       __address_lo, 
+                                                            const float  __addition_hi, 
+                                                            const float  __addition_lo, 
+                                                            float*       __old_hi, 
+                                                            float*       __old_lo) noexcept
     {
 
         
@@ -1628,12 +1628,12 @@ namespace cuda::experimental
 
     // atomicSub for float: Uses negation and atomicAdd
     template<>
-    _CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>       (float*       __address_hi, 
-                                                                     float*       __address_lo, 
-                                                                     const float  __val_hi, 
-                                                                     const float  __val_lo, 
-                                                                     float*       __old_hi, 
-                                                                     float*       __old_lo) noexcept
+    _CCCL_DEVICE_API inline void __fpmp2_atomicSub<float> (float*       __address_hi, 
+                                                           float*       __address_lo, 
+                                                           const float  __val_hi, 
+                                                           const float  __val_lo, 
+                                                           float*       __old_hi, 
+                                                           float*       __old_lo) noexcept
     {
         // Negate the value and call atomicAdd with the same method
         __fpmp2_atomicAdd<float>(__address_hi, __address_lo, -__val_hi, -__val_lo, __old_hi, __old_lo);
@@ -1648,12 +1648,12 @@ namespace cuda::experimental
     // Two doubles = 128 bits requires ulonglong2 and sm_90+ (Hopper architecture)
     // Returns the old value before the addition
     template<>
-    _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<double>       (double*       __address_hi, 
-                                                                      double*       __address_lo, 
-                                                                      const double  __addition_hi, 
-                                                                      const double  __addition_lo, 
-                                                                      double*       __old_hi, 
-                                                                      double*       __old_lo) noexcept
+    _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<double> (double*       __address_hi, 
+                                                            double*       __address_lo, 
+                                                            const double  __addition_hi, 
+                                                            const double  __addition_lo, 
+                                                            double*       __old_hi, 
+                                                            double*       __old_lo) noexcept
     {
       #if __CUDA_ARCH__ >= 900
 
@@ -1706,12 +1706,12 @@ namespace cuda::experimental
 
     // atomicSub for double: Uses negation and atomicAdd
     template<>
-    _CCCL_DEVICE_API inline void __fpmp2_atomicSub<double>       (double*       __address_hi, 
-                                                                      double*       __address_lo, 
-                                                                      const double  __val_hi, 
-                                                                      const double  __val_lo, 
-                                                                      double*       __old_hi, 
-                                                                      double*       __old_lo) noexcept
+    _CCCL_DEVICE_API inline void __fpmp2_atomicSub<double> (double*       __address_hi, 
+                                                            double*       __address_lo, 
+                                                            const double  __val_hi, 
+                                                            const double  __val_lo, 
+                                                            double*       __old_hi, 
+                                                            double*       __old_lo) noexcept
     {
         // Negate the value and call atomicAdd with the same method
         __fpmp2_atomicAdd<double>(__address_hi, __address_lo, -__val_hi, -__val_lo, __old_hi, __old_lo);
@@ -1724,8 +1724,8 @@ namespace cuda::experimental
   #if _CCCL_FPMP_FP128_ENABLE == 1
     template<typename _FpType = double>
     constexpr _CCCL_TRIVIAL_API  void __fpmp2_from_quad  (const __fpmp_fp128 __x, 
-                                                        _FpType*      __res_hi, 
-                                                        _FpType*      __res_lo) noexcept 
+                                                          _FpType*           __res_hi, 
+                                                          _FpType*           __res_lo) noexcept 
     {
         *__res_hi = static_cast<_FpType>(__x);
         *__res_lo = static_cast<_FpType>(__x - static_cast<__fpmp_fp128>(*__res_hi));
@@ -1733,7 +1733,7 @@ namespace cuda::experimental
 
     template<typename _FpType = double>
     _CCCL_TRIVIAL_API  __fpmp_fp128 __fpmp2_to_quad  (const _FpType __x_hi, 
-                                                            const _FpType __x_lo) noexcept 
+                                                      const _FpType __x_lo) noexcept 
     {
         return static_cast<__fpmp_fp128>(__x_hi) + static_cast<__fpmp_fp128>(__x_lo);
     }
@@ -2094,25 +2094,25 @@ template<> _CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>(float* __addres
 
 /*
  * ============================================================================
- * Freestanding Atomic Operations for fpmp2_t
+ * Freestanding Atomic Operations for fpmp2
  * ============================================================================
  * These are CUDA-style freestanding atomic functions that work with the
- * fpmp2_t class. They are placed outside the USE_LIB conditional to
+ * fpmp2 class. They are placed outside the USE_LIB conditional to
  * work in both inline and library modes.
  * ============================================================================
  */
 #ifdef __CUDACC__
 
 // Forward declaration of the class template (defined in fpmp.h)
-template <typename _FpType, fpmp2_accuracy _TypeAcc> class fpmp2_t;
+template <typename _FpType, fpmp2_accuracy _TypeAcc> class fpmp2;
 
-// atomicAdd: Atomic addition for fpmp2_t
+// atomicAdd: Atomic addition for fpmp2
 // Returns the old value before the addition
 template <typename _FpType, fpmp2_accuracy _TypeAcc>
-_CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicAdd(fpmp2_t<_FpType, _TypeAcc>* address, 
-                                                              const fpmp2_t<_FpType, _TypeAcc>& val) noexcept
+_CCCL_DEVICE_API inline fpmp2<_FpType, _TypeAcc> atomicAdd(fpmp2<_FpType, _TypeAcc>*       address, 
+                                                           const fpmp2<_FpType, _TypeAcc>& val) noexcept
 {
-    fpmp2_t<_FpType, _TypeAcc> result;
+    fpmp2<_FpType, _TypeAcc> result;
     // Class layout: alignas(2*alignof(FpType)) with mp2_hi at offset 0, mp2_lo at offset sizeof(FpType)
     _FpType* addr_hi = reinterpret_cast<_FpType*>(address);
     _FpType* addr_lo = addr_hi + 1;
@@ -2132,13 +2132,13 @@ _CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicAdd(fpmp2_t<_FpType, _T
     return result;
 }
 
-// atomicSub: Atomic subtraction for fpmp2_t
+// atomicSub: Atomic subtraction for fpmp2
 // Returns the old value before the subtraction
 template <typename _FpType, fpmp2_accuracy _TypeAcc>
-_CCCL_DEVICE_API inline fpmp2_t<_FpType, _TypeAcc> atomicSub(fpmp2_t<_FpType, _TypeAcc>* address, 
-                                                              const fpmp2_t<_FpType, _TypeAcc>& val) noexcept
+_CCCL_DEVICE_API inline fpmp2<_FpType, _TypeAcc> atomicSub(fpmp2<_FpType, _TypeAcc>*       address, 
+                                                           const fpmp2<_FpType, _TypeAcc>& val) noexcept
 {
-    fpmp2_t<_FpType, _TypeAcc> result;
+    fpmp2<_FpType, _TypeAcc> result;
     // Class layout: alignas(2*alignof(FpType)) with mp2_hi at offset 0, mp2_lo at offset sizeof(FpType)
     _FpType* addr_hi = reinterpret_cast<_FpType*>(address);
     _FpType* addr_lo = addr_hi + 1;

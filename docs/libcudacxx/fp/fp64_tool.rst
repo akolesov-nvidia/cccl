@@ -239,6 +239,6 @@ Type Alias
 
 .. code:: cpp
 
-   using fp64_tool = fp64_tool_t;
+   using fp64_tool = fp64_tool;
 
 Use ``fp64_tool`` as a drop-in replacement for ``double`` in your code.

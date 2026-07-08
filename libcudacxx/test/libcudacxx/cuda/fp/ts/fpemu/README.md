@@ -95,7 +95,7 @@ Build Configuration
 |-----------|-------------|---------|
 | `TARGET` | Target device | `device` |
 | `FUNC` | Function to test | - |
-| `TYPE` | Type of emulation functions | `fp64emu_t` |
+| `TYPE` | Type of emulation functions | `fpemu` |
 | `ROUNDING` | Rounding mode | `rn` |
 | `ACCURACY` | Accuracy level (high, mid, low; def==high) | `def` |
 | `ARCH` | CUDA architecture | `86` |

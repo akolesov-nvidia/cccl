@@ -7,8 +7,8 @@
     Companion to fpmp_accuracy.cpp.  Tests the mixed-type overloads of the
     accuracy-explicit free functions add<m>, sub<m>, mul<m>, div<m>, fma<m>,
     mad<m>: a single symmetric template per operation that accepts any
-    combination of fpmp2_t and built-in arithmetic operands as long
-    as at least one operand is fpmp2_t.  Example call sites:
+    combination of fpmp2 and built-in arithmetic operands as long
+    as at least one operand is fpmp2.  Example call sites:
 
         ffloat r1 = sub<fpmp2_accuracy::high>(a, 1.0f);   // ffloat - float
         ffloat r2 = sub<fpmp2_accuracy::high>(1.0f, a);   // float  - ffloat

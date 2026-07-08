@@ -107,7 +107,7 @@ static inline double get_clock_rate()
 
 // Multi-precision types come from <cuda/fpmp> (cuda::experimental, brought into
 // scope in ts.hpp), which is always included before this header:
-// fpmp2_t<FpType, fpmp2_accuracy>.
+// fpmp2<FpType, fpmp2_accuracy>.
 
 namespace ts
 {
@@ -140,14 +140,14 @@ namespace ts
     // Type trait to extract base type from multi-precision types
     template<typename T> struct fpmp2_base_type { using type = T; };
     template<typename FpType, cuda::experimental::fpmp2_accuracy met>
-    struct fpmp2_base_type<cuda::experimental::fpmp2_t<FpType, met>> { using type = FpType; };
+    struct fpmp2_base_type<cuda::experimental::fpmp2<FpType, met>> { using type = FpType; };
     template<typename T> using fpmp2_base_type_t = typename fpmp2_base_type<T>::type;
 
     // Type trait to extract method from multi-precision types.
     // Defaults to cuda::experimental::fpmp2_accuracy::def for scalar / non-fpmp2 types.
     template<typename T> struct fpmp2_method { static constexpr cuda::experimental::fpmp2_accuracy value = cuda::experimental::fpmp2_accuracy::def; };
     template<typename FpType, cuda::experimental::fpmp2_accuracy met>
-    struct fpmp2_method<cuda::experimental::fpmp2_t<FpType, met>> { static constexpr cuda::experimental::fpmp2_accuracy value = met; };
+    struct fpmp2_method<cuda::experimental::fpmp2<FpType, met>> { static constexpr cuda::experimental::fpmp2_accuracy value = met; };
     template<typename T> inline constexpr cuda::experimental::fpmp2_accuracy fpmp2_method_v = fpmp2_method<T>::value;
 
 // ============================================================================

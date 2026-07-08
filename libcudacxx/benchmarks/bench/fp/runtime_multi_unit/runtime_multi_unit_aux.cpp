@@ -39,7 +39,7 @@
 #define CCCL_FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
 #define CCCL_FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
 #include <cuda/fptool>
-using namespace cuda::experimental;  // fp64_tool_t and setters live here now
+using namespace cuda::experimental;  // fp64_tool and setters live here now
 
 //=============================================================================
 // CUDA Kernel: Add two double precision values (from auxiliary unit)
@@ -47,9 +47,9 @@ using namespace cuda::experimental;  // fp64_tool_t and setters live here now
 #if defined(__CUDACC__)
 __global__ void add_kernel_aux(double a, double b, double* result) 
 {
-    fp64_tool_t x = a;
-    fp64_tool_t y = b;
-    fp64_tool_t sum = x + y;
+    fp64_tool x = a;
+    fp64_tool y = b;
+    fp64_tool sum = x + y;
     *result = (double)sum;
 }
 #endif
@@ -81,8 +81,8 @@ double test_from_aux_unit(double a, double b)
     CUDA_CHECK(cudaFree(d_result));
     return result;
 #else
-    fp64_tool_t x = a;
-    fp64_tool_t y = b;
+    fp64_tool x = a;
+    fp64_tool y = b;
     return (double)(x + y);
 #endif
 }

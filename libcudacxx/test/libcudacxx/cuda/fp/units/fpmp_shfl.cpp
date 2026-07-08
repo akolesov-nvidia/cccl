@@ -4,7 +4,7 @@
     Author:  generated
     Date:    2026
 
-    Tests CUDA warp shuffle overloads for fpmp2_t:
+    Tests CUDA warp shuffle overloads for fpmp2:
       - __shfl_sync
       - __shfl_xor_sync
       - __shfl_down_sync

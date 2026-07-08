@@ -32,14 +32,14 @@
     #define STRINGIFY(x) #x
     #define ABC(x) STRINGIFY(x)
 
-    #define fp64emu_t_id           (0)
-    #define fp64emu_unpacked_t_id  (1)
+    #define fpemu_id           (0)
+    #define fpemu_unpacked_id  (1)
     #define EMU_TYPE GLUE2(__TYPE__,_id)
 
     #include <cuda/fpemu>
 
     // The CCCL FP SDK puts these directly in cuda::experimental:
-    // fp64emu_t<fp64emu_accuracy>, fp64emu_unpacked_t<...>, the fpbits64*
+    // fpemu<double, fpemu_accuracy>, fpemu_unpacked<double, ...>, the fpbits64*
     // layouts and the __fp64emu_* builtins. Pull the namespace in so the
     // existing (now unqualified) references resolve.
     using namespace cuda::experimental;
@@ -52,22 +52,22 @@
     // We can't use token pasting with ::, so we use a helper macro that expands the token
     // This uses token pasting to select the right helper macro based on __METHOD__ value
     // We need an extra level of indirection to force __METHOD__ to expand before pasting
-    #define METHOD_ENUM_HELPER_high fp64emu_accuracy::high
-    #define METHOD_ENUM_HELPER_mid  fp64emu_accuracy::mid
-    #define METHOD_ENUM_HELPER_low  fp64emu_accuracy::low
-    #define METHOD_ENUM_HELPER_def  fp64emu_accuracy::def
+    #define METHOD_ENUM_HELPER_high fpemu_accuracy::high
+    #define METHOD_ENUM_HELPER_mid  fpemu_accuracy::mid
+    #define METHOD_ENUM_HELPER_low  fpemu_accuracy::low
+    #define METHOD_ENUM_HELPER_def  fpemu_accuracy::def
     #define METHOD_ENUM_HELPER_INDIRECT(m) METHOD_ENUM_HELPER_##m
     #define METHOD_ENUM_HELPER(m) METHOD_ENUM_HELPER_INDIRECT(m)
     #define METHOD_ENUM METHOD_ENUM_HELPER(__METHOD__)
 
-    #if EMU_TYPE == fp64emu_unpacked_t_id
-        #define ARGTYPE_EMU fp64emu_unpacked_t<METHOD_ENUM>
-        #define RESTYPE_EMU fp64emu_unpacked_t<METHOD_ENUM>
+    #if EMU_TYPE == fpemu_unpacked_id
+        #define ARGTYPE_EMU fpemu_unpacked<double, METHOD_ENUM>
+        #define RESTYPE_EMU fpemu_unpacked<double, METHOD_ENUM>
         #define ARGTYPE_NATIVE double
         #define RESTYPE_NATIVE double
-    #else // fp64emu_t_id
-        #define ARGTYPE_EMU fp64emu_t<METHOD_ENUM>
-        #define RESTYPE_EMU fp64emu_t<METHOD_ENUM>
+    #else // fpemu_id
+        #define ARGTYPE_EMU fpemu<double, METHOD_ENUM>
+        #define RESTYPE_EMU fpemu<double, METHOD_ENUM>
         #define ARGTYPE_NATIVE double
         #define RESTYPE_NATIVE double
     #endif

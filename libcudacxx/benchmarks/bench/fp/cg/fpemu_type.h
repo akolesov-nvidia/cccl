@@ -10,13 +10,13 @@
   #define __METHOD__ def
 #endif
 
-using fp64emu_t = cuda::experimental::fp64emu_t<cuda::experimental::fp64emu_accuracy::__METHOD__>;
+using fpemu = cuda::experimental::fpemu<double, cuda::experimental::fpemu_accuracy::__METHOD__>;
 
 template<typename T>
 __host__ __device__ __inline__ T own_mad(T a, T b, T c)
 {
     #if MAD_ENABLED == 1
-    if constexpr (std::is_same_v<T, cuda::experimental::fp64emu_t<cuda::experimental::fp64emu_accuracy::def>>)
+    if constexpr (std::is_same_v<T, cuda::experimental::fpemu<double, cuda::experimental::fpemu_accuracy::def>>)
     {
         return mad(a, b, c);
     }
@@ -31,7 +31,7 @@ template<typename T>
 __host__ __device__ __inline__ T own_dot(T x1, T x2, T y1, T y2)
 {
     #if DOT_ENABLED == 1
-    if constexpr (std::is_same_v<T, cuda::experimental::fp64emu_t<cuda::experimental::fp64emu_accuracy::def>>)
+    if constexpr (std::is_same_v<T, cuda::experimental::fpemu<double, cuda::experimental::fpemu_accuracy::def>>)
     {
         return dot(x1, x2, y1, y2);
     }

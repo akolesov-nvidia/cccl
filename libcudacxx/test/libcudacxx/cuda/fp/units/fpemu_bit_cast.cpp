@@ -35,7 +35,7 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
     #define HOST_DEVICE
 #endif
 
-HOST_DEVICE void print_bits(fpbits64_t bits, const char* label)
+HOST_DEVICE void print_bits(fpbits64 bits, const char* label)
 {
     printf("%s: 0x%016" PRIx64 "\n", label, bits);
 }
@@ -50,7 +50,7 @@ TARGET_DEVICE void run_bit_cast_example()
         double val = 1.5;
         
         // Create unpacked value
-        fp64emu_unpacked_t<fp64emu_accuracy::def> x_unpacked(val);
+        fpemu_unpacked<double, fpemu_accuracy::def> x_unpacked(val);
         
         // Get IEEE-754 bit representation using C++20-style bit_cast
         uint64_t x_bits = bit_cast<uint64_t>(x_unpacked);
@@ -68,12 +68,12 @@ TARGET_DEVICE void run_bit_cast_example()
     {
         printf("Example 2: Arithmetic operation (2.0 * 3.0 + 1.0)\n");
         
-        fp64emu_unpacked_t<fp64emu_accuracy::def> x(2.0);
-        fp64emu_unpacked_t<fp64emu_accuracy::def> y(3.0);
-        fp64emu_unpacked_t<fp64emu_accuracy::def> z(1.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> x(2.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> y(3.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> z(1.0);
         
         // Perform operation
-        fp64emu_unpacked_t<fp64emu_accuracy::def> result = x * y + z;
+        fpemu_unpacked<double, fpemu_accuracy::def> result = x * y + z;
         
         // Get bit representation using C++20-style bit_cast
         uint64_t result_bits = bit_cast<uint64_t>(result);
@@ -90,22 +90,22 @@ TARGET_DEVICE void run_bit_cast_example()
         printf("Example 3: Special values\n");
         
         // Zero
-        fp64emu_unpacked_t<fp64emu_accuracy::def> zero(0.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> zero(0.0);
         uint64_t zero_bits = bit_cast<uint64_t>(zero);
         print_bits(zero_bits, "  Bits of +0.0");
         
         // Negative zero
-        fp64emu_unpacked_t<fp64emu_accuracy::def> neg_zero(-0.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> neg_zero(-0.0);
         uint64_t neg_zero_bits = bit_cast<uint64_t>(neg_zero);
         print_bits(neg_zero_bits, "  Bits of -0.0");
         
         // One
-        fp64emu_unpacked_t<fp64emu_accuracy::def> one(1.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> one(1.0);
         uint64_t one_bits = bit_cast<uint64_t>(one);
         print_bits(one_bits, "  Bits of 1.0");
         
         // Negative one
-        fp64emu_unpacked_t<fp64emu_accuracy::def> neg_one(-1.0);
+        fpemu_unpacked<double, fpemu_accuracy::def> neg_one(-1.0);
         uint64_t neg_one_bits = bit_cast<uint64_t>(neg_one);
         print_bits(neg_one_bits, "  Bits of -1.0");
         
@@ -118,17 +118,17 @@ TARGET_DEVICE void run_bit_cast_example()
         double val = 3.14159265358979323846;
         
         // Default accuracy (== high: correct rounding, full range)
-        fp64emu_unpacked_t<fp64emu_accuracy::def> def_val(val);
+        fpemu_unpacked<double, fpemu_accuracy::def> def_val(val);
         uint64_t def_bits = bit_cast<uint64_t>(def_val);
         print_bits(def_bits, "  def ");
         
         // High accuracy (correct rounding, full range)
-        fp64emu_unpacked_t<fp64emu_accuracy::high> accurate_val(val);
+        fpemu_unpacked<double, fpemu_accuracy::high> accurate_val(val);
         uint64_t accurate_bits = bit_cast<uint64_t>(accurate_val);
         print_bits(accurate_bits, "  high");
         
         // Low accuracy (normal range)
-        fp64emu_unpacked_t<fp64emu_accuracy::low> fast_val(val);
+        fpemu_unpacked<double, fpemu_accuracy::low> fast_val(val);
         uint64_t fast_bits = bit_cast<uint64_t>(fast_val);
         print_bits(fast_bits, "  low ");
         
@@ -141,7 +141,7 @@ TARGET_DEVICE void run_bit_cast_example()
         printf("Example 5: Bit manipulation\n");
         double val = 42.0;
         
-        fp64emu_unpacked_t<fp64emu_accuracy::def> x(val);
+        fpemu_unpacked<double, fpemu_accuracy::def> x(val);
         uint64_t bits = bit_cast<uint64_t>(x);
         
         print_bits(bits, "  Original bits");
@@ -169,7 +169,7 @@ int verify_bit_cast()
     // Check round-trip: double -> unpacked -> bit_cast<double> should preserve value
     double test_vals[] = {1.5, -2.0, 0.0, 42.0, 3.14159265358979323846};
     for (int i = 0; i < 5; i++) {
-        fp64emu_unpacked_t<fp64emu_accuracy::def> x(test_vals[i]);
+        fpemu_unpacked<double, fpemu_accuracy::def> x(test_vals[i]);
         double back = bit_cast<double>(x);
         if (back != test_vals[i]) {
             printf("FAIL: bit_cast round-trip for %.17g (got %.17g)\n", test_vals[i], back);
@@ -178,7 +178,7 @@ int verify_bit_cast()
     }
 
     // Check arithmetic result: 2*3+1 = 7
-    fp64emu_unpacked_t<fp64emu_accuracy::def> a(2.0), b(3.0), c(1.0);
+    fpemu_unpacked<double, fpemu_accuracy::def> a(2.0), b(3.0), c(1.0);
     double r = bit_cast<double>(a * b + c);
     if (fabs(r - 7.0) > 1e-10) {
         printf("FAIL: 2*3+1 = %.17g (expected 7.0)\n", r);
@@ -187,9 +187,9 @@ int verify_bit_cast()
 
     // Check accuracy levels give same result for simple conversion
     double pi = 3.14159265358979323846;
-    uint64_t b1 = bit_cast<uint64_t>(fp64emu_unpacked_t<fp64emu_accuracy::def>(pi));
-    uint64_t b2 = bit_cast<uint64_t>(fp64emu_unpacked_t<fp64emu_accuracy::high>(pi));
-    uint64_t b3 = bit_cast<uint64_t>(fp64emu_unpacked_t<fp64emu_accuracy::low>(pi));
+    uint64_t b1 = bit_cast<uint64_t>(fpemu_unpacked<double, fpemu_accuracy::def>(pi));
+    uint64_t b2 = bit_cast<uint64_t>(fpemu_unpacked<double, fpemu_accuracy::high>(pi));
+    uint64_t b3 = bit_cast<uint64_t>(fpemu_unpacked<double, fpemu_accuracy::low>(pi));
     if (b1 != b2 || b1 != b3) {
         printf("FAIL: accuracy levels give different bits for pi\n");
         errors++;
