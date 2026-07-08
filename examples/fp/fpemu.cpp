@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fpemu.cpp - FP64 Emulation Extended Precision Demo
     ======================================================================================================
@@ -54,23 +64,15 @@
     - fp64emu_high : High-accuracy emulation type (correctly rounded, full IEEE range)
     - fp64emu_low  : Low-accuracy emulation type (reduced precision, higher performance)
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <cmath>
+#include <cstdio>
+
+#include <cuda/std/cmath>
+#include <cuda/std/cstdlib>
 
 // FPEMU library header
 #include <cuda/fpemu>
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
-
-// Macros for host/device compatibility
-#if defined(__CUDACC__)
-    #define HOST_DEVICE __host__ __device__
-    #define KERNEL      __global__
-#else
-    #define HOST_DEVICE
-    #define KERNEL
-#endif
 
 #define VALUE1 1.234567890123456789
 #define VALUE2 9.876543210987654321
@@ -78,7 +80,7 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 #define VALUE4 5.0
 
 // Simple kernel/function to test fp64 emulation operations
-HOST_DEVICE void fpemu_operations(double* results)
+_CCCL_HOST_DEVICE void fpemu_operations(double* results)
 {
     // Default accuracy for general use
     fp64emu a = VALUE1;
@@ -129,9 +131,9 @@ HOST_DEVICE void fpemu_operations(double* results)
     results[10] = temp;
 } // fpemu_operations
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
 // CUDA kernel wrapper
-KERNEL void fpemu_kernel(double* results)
+__global__ void fpemu_kernel(double* results)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx == 0) {
@@ -159,8 +161,8 @@ void run_comparison_test()
     double ref_prod = a_d * b_d;
     double ref_diff = a_d - b_d;
     double ref_quot = a_d / b_d;
-    double ref_sqrt = std::sqrt(d_d);
-    double ref_fma  = std::fma(a_d, b_d, c_d);
+    double ref_sqrt = ::cuda::std::sqrt(d_d);
+    double ref_fma  = ::cuda::std::fma(a_d, b_d, c_d);
 
     printf("Input values:\n");
     printf("  a = %.17f\n", a_d);
@@ -172,7 +174,7 @@ void run_comparison_test()
     const int NUM_RESULTS = 11;
     double* results;
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     // CUDA path
     cudaMallocManaged(&results, NUM_RESULTS * sizeof(double));
 
@@ -204,12 +206,12 @@ void run_comparison_test()
     printf("Operation          | Double Reference   | Emulated Result    | Abs Error\n");
     printf("--------------------------------------------------------------------------------\n");
 
-    printf("a + b (high)       | %18.15f | %18.15f | %.2e\n", ref_sum,  results[0], fabs(results[0] - ref_sum));
-    printf("a * b (low)        | %18.15f | %18.15f | %.2e\n", ref_prod, results[1], fabs(results[1] - ref_prod));
-    printf("a - b (def)        | %18.15f | %18.15f | %.2e\n", ref_diff, results[2], fabs(results[2] - ref_diff));
-    printf("a / b (def)        | %18.15f | %18.15f | %.2e\n", ref_quot, results[3], fabs(results[3] - ref_quot));
-    printf("sqrt(d) (def)      | %18.15f | %18.15f | %.2e\n", ref_sqrt, results[4], fabs(results[4] - ref_sqrt));
-    printf("fma(a, b, c) (def) | %18.15f | %18.15f | %.2e\n", ref_fma,  results[5], fabs(results[5] - ref_fma));
+    printf("a + b (high)       | %18.15f | %18.15f | %.2e\n", ref_sum,  results[0], ::cuda::std::fabs(results[0] - ref_sum));
+    printf("a * b (low)        | %18.15f | %18.15f | %.2e\n", ref_prod, results[1], ::cuda::std::fabs(results[1] - ref_prod));
+    printf("a - b (def)        | %18.15f | %18.15f | %.2e\n", ref_diff, results[2], ::cuda::std::fabs(results[2] - ref_diff));
+    printf("a / b (def)        | %18.15f | %18.15f | %.2e\n", ref_quot, results[3], ::cuda::std::fabs(results[3] - ref_quot));
+    printf("sqrt(d) (def)      | %18.15f | %18.15f | %.2e\n", ref_sqrt, results[4], ::cuda::std::fabs(results[4] - ref_sqrt));
+    printf("fma(a, b, c) (def) | %18.15f | %18.15f | %.2e\n", ref_fma,  results[5], ::cuda::std::fabs(results[5] - ref_fma));
 
     printf("\nComparisons (1.0 = true, 0.0 = false):\n");
     printf("  a > b:  %.1f\n", results[6]);
@@ -226,7 +228,7 @@ void run_comparison_test()
     printf("================================================================================\n");
 
     // Cleanup
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaFree(results);
 #else
     free(results);
@@ -246,7 +248,7 @@ int main()
     printf("  Comparison operators\n");
     printf("  Compound assignments\n");
     printf("  Accuracy comparison with native double precision\n");
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     printf("  GPU/CUDA execution\n");
 #else
     printf("  CPU execution\n");

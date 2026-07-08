@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fp64_tool_runtime.cpp - FP64 Precision Emulation Tool Runtime Size Demo
     ======================================================================================================
@@ -32,14 +42,23 @@
 */
 
 #include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <cstdint>
+
+#include <cuda/std/cstdlib>
+
+//=============================================================================
+// Runtime size version (with CCCL_FP64_TOOL_RUNTIME_SIZE)
+//=============================================================================
+#define CCCL_FP64_TOOL_RUNTIME_SIZE
+#define CCCL_FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
+#define CCCL_FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
+#include <cuda/fptool>
+
+using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 //=============================================================================
 // Host/Device Compatibility Macros
 //=============================================================================
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     #include <cuda_runtime.h>
     
     #define CUDA_CHECK(call) \
@@ -56,19 +75,9 @@
 #endif
 
 //=============================================================================
-// Runtime size version (with CCCL_FP64_TOOL_RUNTIME_SIZE)
-//=============================================================================
-#define CCCL_FP64_TOOL_RUNTIME_SIZE
-#define CCCL_FP64_TOOL_MANTISSA_BITS 52  // Start with full precision
-#define CCCL_FP64_TOOL_EXPONENT_BITS 11  // Full exponent range
-#include <cuda/fptool>
-
-using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
-
-//=============================================================================
 // CUDA Kernel: Add two double precision values
 //=============================================================================
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
 __global__ void add_kernel(double a, double b, double* result) 
 {
     fp64_tool x = a;
@@ -103,7 +112,7 @@ int main(int argc, char** argv)
     double result_full = 0.0;
     double result_reduced = 0.0;
     
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     // CUDA path: allocate device memory, launch kernels, copy back
     
     // Test 1: With full mantissa (52 bits)

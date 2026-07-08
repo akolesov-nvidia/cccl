@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fp64_tool.cpp - FP64 Precision Emulation Tool - Minimal Example
     ======================================================================================================
@@ -27,7 +37,6 @@
 */
 
 #include <cstdio>
-#include <cmath>
 
 //=============================================================================
 // Step 1: Configure precision BEFORE including the header
@@ -49,22 +58,11 @@
 using namespace cuda::experimental;
 
 //=============================================================================
-// Host/Device compatibility
-//=============================================================================
-#if defined(__CUDACC__)
-    #define HOST_DEVICE __host__ __device__
-    #define KERNEL      __global__
-#else
-    #define HOST_DEVICE
-    #define KERNEL
-#endif
-
-//=============================================================================
 // A simple computation performed in both native double and fp64_tool
 //=============================================================================
 struct Result { double native; double reduced; };
 
-HOST_DEVICE void compute(Result* r)
+_CCCL_HOST_DEVICE void compute(Result* r)
 {
     // Step 2: Create variables — fp64_tool is a drop-in replacement for double
     double      a_native = 1.123456789012345;
@@ -85,8 +83,8 @@ HOST_DEVICE void compute(Result* r)
 //=============================================================================
 // CUDA kernel wrapper
 //=============================================================================
-#if defined(__CUDACC__)
-KERNEL void compute_kernel(Result* r)
+#if _CCCL_CUDA_COMPILATION()
+__global__ void compute_kernel(Result* r)
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
         compute(r);
@@ -100,7 +98,7 @@ int main()
 {
     Result* r;
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaMallocManaged(&r, sizeof(Result));
     compute_kernel<<<1, 1>>>(r);
     cudaDeviceSynchronize();
@@ -121,7 +119,7 @@ int main()
     printf("  a + b (native double): %.17f (%a)\n", r->native, r->native);
     printf("  a + b (reduced prec.): %.17f (%a)\n", r->reduced, r->reduced);
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaFree(r);
 #else
     delete r;

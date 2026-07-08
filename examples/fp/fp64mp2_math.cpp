@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fp64mp2_math.cpp - fp64mp2 Math Functions Demo
     ======================================================================================================
@@ -57,9 +67,10 @@
         make EXAMPLE=fp64mp2_math TARGET=host   # CPU (needs libquadmath for FP128 fallback)
         make run EXAMPLE=fp64mp2_math
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include <cstdio>
+
+#include <cuda/std/cstdint>
+#include <cuda/std/cstdlib>
 
 // FPMP library headers
 #include <cuda/fpmp_math>  // Multi-precision type, operations, and math functions
@@ -69,24 +80,16 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 
 using fptype_t = fp64mp2;
 
-#if defined(__CUDACC__)
-    #define HOST_DEVICE __host__ __device__
-    #define KERNEL      __global__
-#else
-    #define HOST_DEVICE
-    #define KERNEL
-#endif
-
 // Number of result slots
 #define NUM_RESULTS 32
 
-HOST_DEVICE void store_pair(double* out, int idx, const fptype_t& v)
+_CCCL_HOST_DEVICE void store_pair(double* out, int idx, const fptype_t& v)
 {
     out[2 * idx + 0] = v.hi();
     out[2 * idx + 1] = v.lo();
 }
 
-HOST_DEVICE void fp64mp2_math_demo(double* out)
+_CCCL_HOST_DEVICE void fp64mp2_math_demo(double* out)
 {
     // Inputs chosen to keep every function inside its meaningful domain
     fptype_t a (0.5);
@@ -142,8 +145,8 @@ HOST_DEVICE void fp64mp2_math_demo(double* out)
     store_pair(out, 22, max (b, c));
 } // fp64mp2_math_demo
 
-#if defined(__CUDACC__)
-KERNEL void fp64mp2_math_kernel(double* out)
+#if _CCCL_CUDA_COMPILATION()
+__global__ void fp64mp2_math_kernel(double* out)
 {
     if ((blockIdx.x * blockDim.x + threadIdx.x) == 0)
         fp64mp2_math_demo(out);
@@ -166,7 +169,7 @@ int main()
     double* out = nullptr;
     const size_t n_doubles = 2 * NUM_RESULTS;
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaMallocManaged(&out, n_doubles * sizeof(double));
     printf("Running on GPU...\n");
     fp64mp2_math_kernel<<<1, 1>>>(out);
@@ -216,7 +219,7 @@ int main()
     printf("  DEMO COMPLETED\n");
     printf("================================================================================\n\n");
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaFree(out);
 #else
     free(out);

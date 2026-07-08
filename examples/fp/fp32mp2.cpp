@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fp32mp2.cpp - Float-Float (Double-Float) Extended Precision Arithmetic Demo
     ======================================================================================================
@@ -56,9 +66,10 @@
     - _CCCL_FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math uses quad-precision (requires
       libquadmath). When 0, uses double fallback (faster builds, smaller code).
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <cmath>
+#include <cstdio>
+
+#include <cuda/std/cmath>
+#include <cuda/std/cstdlib>
 
 // FPMP library headers
 #include <cuda/fpmp>       // Core multi-precision type and operations (sqrt, rsqrt, fma)
@@ -69,22 +80,13 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 using fptype_t      = fp32mp2;
 using fptype_fast_t = fp32mp2_low;
 
-// Macros for host/device compatibility
-#if defined(__CUDACC__)
-    #define HOST_DEVICE __host__ __device__
-    #define KERNEL      __global__
-#else
-    #define HOST_DEVICE
-    #define KERNEL
-#endif
-
 #define VALUE1 1.234567890123456789
 #define VALUE2 9.876543210987654321
 #define VALUE3 2.3243546f
 #define VALUE4 5u
 
 // Simple kernel/function to test float-float operations
-HOST_DEVICE void float_float_operations(double* results) 
+_CCCL_HOST_DEVICE void float_float_operations(double* results) 
 {
     // Construction and basic arithmetic
     fptype_t a = fptype_t(VALUE1);  // explicit: double literal -> fp32mp2 (constexpr)
@@ -140,9 +142,9 @@ HOST_DEVICE void float_float_operations(double* results)
     results[13] = static_cast<double>(add<fpmp2_accuracy::high>(p, q));
 } // float_float_operations
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
 // CUDA kernel wrapper
-KERNEL void float_float_kernel(double* results) 
+__global__ void float_float_kernel(double* results) 
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx == 0) {
@@ -170,9 +172,9 @@ void run_comparison_test()
     double ref_diff  = a_d - b_d;
     double ref_prod  = a_d * b_d;
     double ref_quot  = a_d / b_d;
-    double ref_sqrt  = std::sqrt(d_d);
-    double ref_rsqrt = 1.0 / std::sqrt(d_d);
-    double ref_fma   = std::fma(a_d, b_d, c_d);
+    double ref_sqrt  = ::cuda::std::sqrt(d_d);
+    double ref_rsqrt = 1.0 / ::cuda::std::sqrt(d_d);
+    double ref_fma   = ::cuda::std::fma(a_d, b_d, c_d);
     double ref_prod_fast = a_d * c_d + b_d * d_d;
     double ref_add_acc = -2.7059461654979244e+033 + 2.7059454398538426e+033;
     
@@ -185,7 +187,7 @@ void run_comparison_test()
     // Allocate memory for results
     double* results;
     
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     // CUDA path
     cudaMallocManaged(&results, 14 * sizeof(double));
     
@@ -215,15 +217,15 @@ void run_comparison_test()
     printf("Operation          | Double Reference   | Float-Float Result | Abs Error\n");
     printf("--------------------------------------------------------------------------------\n");
     
-    printf("a + b              | %18.15f | %18.15f | %.2e\n", ref_sum,   results[0], fabs(results[0] - ref_sum));
-    printf("a - b              | %18.15f | %18.15f | %.2e\n", ref_diff,  results[1], fabs(results[1] - ref_diff));
-    printf("a * b              | %18.15f | %18.15f | %.2e\n", ref_prod,  results[2], fabs(results[2] - ref_prod));
-    printf("a / b              | %18.15f | %18.15f | %.2e\n", ref_quot,  results[3], fabs(results[3] - ref_quot));
-    printf("sqrt(x)            | %18.15f | %18.15f | %.2e\n", ref_sqrt,  results[4], fabs(results[4] - ref_sqrt));
-    printf("rsqrt(x)           | %18.15f | %18.15f | %.2e\n", ref_rsqrt, results[5], fabs(results[5] - ref_rsqrt));
-    printf("fma(a, b, c)       | %18.15f | %18.15f | %.2e\n", ref_fma,   results[6], fabs(results[6] - ref_fma));
-    printf("dot(a, b, c, d)    | %18.15f | %18.15f | %.2e\n", ref_prod_fast,  results[12], fabs(results[12] - ref_prod_fast));
-    printf("add<high>(p,q)     | %18.6e | %18.6e | %.2e\n", ref_add_acc, results[13], fabs(results[13] - ref_add_acc));
+    printf("a + b              | %18.15f | %18.15f | %.2e\n", ref_sum,   results[0], ::cuda::std::fabs(results[0] - ref_sum));
+    printf("a - b              | %18.15f | %18.15f | %.2e\n", ref_diff,  results[1], ::cuda::std::fabs(results[1] - ref_diff));
+    printf("a * b              | %18.15f | %18.15f | %.2e\n", ref_prod,  results[2], ::cuda::std::fabs(results[2] - ref_prod));
+    printf("a / b              | %18.15f | %18.15f | %.2e\n", ref_quot,  results[3], ::cuda::std::fabs(results[3] - ref_quot));
+    printf("sqrt(x)            | %18.15f | %18.15f | %.2e\n", ref_sqrt,  results[4], ::cuda::std::fabs(results[4] - ref_sqrt));
+    printf("rsqrt(x)           | %18.15f | %18.15f | %.2e\n", ref_rsqrt, results[5], ::cuda::std::fabs(results[5] - ref_rsqrt));
+    printf("fma(a, b, c)       | %18.15f | %18.15f | %.2e\n", ref_fma,   results[6], ::cuda::std::fabs(results[6] - ref_fma));
+    printf("dot(a, b, c, d)    | %18.15f | %18.15f | %.2e\n", ref_prod_fast,  results[12], ::cuda::std::fabs(results[12] - ref_prod_fast));
+    printf("add<high>(p,q)     | %18.6e | %18.6e | %.2e\n", ref_add_acc, results[13], ::cuda::std::fabs(results[13] - ref_add_acc));
     
     printf("\nComparisons (1.0 = true, 0.0 = false):\n");
     printf("  a > b:  %.1f\n", results[7]);
@@ -242,7 +244,7 @@ void run_comparison_test()
     printf("================================================================================\n");
     
     // Cleanup
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaFree(results);
 #else
     free(results);
@@ -261,7 +263,7 @@ int main()
     printf("  Comparison operators\n");
     printf("  Compound assignments\n");
     printf("  Accuracy comparison with double precision\n");
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     printf("  GPU/CUDA execution\n");
 #else
     printf("  CPU execution\n");

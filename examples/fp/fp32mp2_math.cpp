@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fp32mp2_math.cpp - Dedicated fp32mp2 Math Functions Demo
     ======================================================================================================
@@ -48,9 +58,10 @@
         make EXAMPLE=fp32mp2_math TARGET=host   # CPU
         make run EXAMPLE=fp32mp2_math
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include <cstdio>
+
+#include <cuda/std/cstdint>
+#include <cuda/std/cstdlib>
 
 // FPMP library headers
 #include <cuda/fpmp_math>  // Multi-precision type, operations, and math functions
@@ -59,26 +70,17 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 
 using fptype_t = fp32mp2;
 
-// Macros for host/device compatibility
-#if defined(__CUDACC__)
-    #define HOST_DEVICE __host__ __device__
-    #define KERNEL      __global__
-#else
-    #define HOST_DEVICE
-    #define KERNEL
-#endif
-
 // Number of (hi, lo) result pairs we will store back to the host.
 // Each math result is recorded as a pair of doubles (component-precision).
 #define NUM_RESULTS 32
 
-HOST_DEVICE void store_pair(double* out, int idx, const fptype_t& v)
+_CCCL_HOST_DEVICE void store_pair(double* out, int idx, const fptype_t& v)
 {
     out[2 * idx + 0] = static_cast<double>(v.hi());
     out[2 * idx + 1] = static_cast<double>(v.lo());
 }
 
-HOST_DEVICE void fp32mp2_math_demo(double* out)
+_CCCL_HOST_DEVICE void fp32mp2_math_demo(double* out)
 {
     // Inputs chosen to keep every function inside its meaningful domain
     fptype_t a (0.5);            // small magnitude, good for exp / sin / cos / tanh / erf
@@ -134,8 +136,8 @@ HOST_DEVICE void fp32mp2_math_demo(double* out)
     store_pair(out, 22, max (b, c));                   // max (2, 3.5) = 3.5
 } // fp32mp2_math_demo
 
-#if defined(__CUDACC__)
-KERNEL void fp32mp2_math_kernel(double* out)
+#if _CCCL_CUDA_COMPILATION()
+__global__ void fp32mp2_math_kernel(double* out)
 {
     if ((blockIdx.x * blockDim.x + threadIdx.x) == 0)
         fp32mp2_math_demo(out);
@@ -158,7 +160,7 @@ int main()
     double* out = nullptr;
     const size_t n_doubles = 2 * NUM_RESULTS;
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaMallocManaged(&out, n_doubles * sizeof(double));
     printf("Running on GPU...\n");
     fp32mp2_math_kernel<<<1, 1>>>(out);
@@ -208,7 +210,7 @@ int main()
     printf("  DEMO COMPLETED\n");
     printf("================================================================================\n\n");
 
-#if defined(__CUDACC__)
+#if _CCCL_CUDA_COMPILATION()
     cudaFree(out);
 #else
     free(out);

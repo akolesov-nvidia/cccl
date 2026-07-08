@@ -1,3 +1,13 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of CUDA Experimental in CUDA C++ Core Libraries,
+// under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
 /*
     fp32mp2_thread.cpp - Thread Cooperation Primitives Demo for fp32mp2
     ======================================================================================================
@@ -25,14 +35,15 @@
         make EXAMPLE=fp32mp2_thread TARGET=host   # CPU stub (prints skip message)
         make run EXAMPLE=fp32mp2_thread
 */
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+
+#include <cuda/std/cstdlib>
 
 #include <cuda/fpmp>
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if !defined(__CUDACC__)
+#if !_CCCL_CUDA_COMPILATION()
 
 int main()
 {
@@ -42,7 +53,7 @@ int main()
     return 0;
 }
 
-#else // __CUDACC__
+#else // _CCCL_CUDA_COMPILATION()
 
 #include <cuda_runtime.h>
 
@@ -160,4 +171,4 @@ int main()
     return 0;
 }
 
-#endif // __CUDACC__
+#endif // _CCCL_CUDA_COMPILATION()
