@@ -42,6 +42,9 @@
 
 # current directory
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# Dev-only library build (make/lib.mk + src/) lives in the sibling cccl-fpdev
+# repo; overridable (the cccl-fpdev root Makefile passes it explicitly).
+FPDEV_DIR ?= $(abspath $(THIS_DIR)/../../../../../../cccl-fpdev)
 
 # libquadmath availability — only x86 GCC distributions ship it.
 # Override with HAS_QUADMATH=1/0 to bypass auto-detection.
@@ -220,7 +223,7 @@ $(BUILD_DIR)/$(EXEC):
 endif
 
 $(LIB_NAME):
-	$(MAKE) --no-print-directory -f $(EFP_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) lib
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) lib
 
 # Help target
 help:

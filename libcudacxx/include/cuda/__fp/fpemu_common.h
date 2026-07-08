@@ -55,31 +55,11 @@ namespace cuda::experimental
  * Compilation mode macros
  *********************************************************************/
 
-// CCCL_FPEMU_LIB: Compilation mode control.
-//   1 = link against precompiled library (maps to _CCCL_FPEMU_USE_LIB)
-//   0 = header-only inline mode (default)
-// CCCL_FPEMU_INLINE is the inverse alias: CCCL_FPEMU_INLINE=1 is equivalent to CCCL_FPEMU_LIB=0.
-#ifndef CCCL_FPEMU_LIB
-    #ifdef CCCL_FPEMU_INLINE
-        #if CCCL_FPEMU_INLINE == 1
-            #define CCCL_FPEMU_LIB 0
-        #else
-            #define CCCL_FPEMU_LIB 1
-        #endif
-    #else
-        #define CCCL_FPEMU_LIB 0
-    #endif
-#endif
-#ifndef CCCL_FPEMU_INLINE
-    #if CCCL_FPEMU_LIB == 1
-        #define CCCL_FPEMU_INLINE 0
-    #else
-        #define CCCL_FPEMU_INLINE 1
-    #endif
-#endif
-#if CCCL_FPEMU_LIB == 1 && !defined(_CCCL_FPEMU_USE_LIB)
-    #define _CCCL_FPEMU_USE_LIB
-#endif
+// The public compile-mode knobs CCCL_FPEMU_LIB / CCCL_FPEMU_INLINE are defined
+// (and mapped to the internal _CCCL_FPEMU_USE_LIB switch) in the user-facing
+// entry point <cuda/__fp/fpemu.h>. Here we only apply the internal fallback when
+// nothing has been selected (e.g. the standalone libcufp build TU, which
+// includes this header directly and sets _CCCL_FPEMU_BUILD_LIB).
 
 // If neither inline nor lib is defined internally, default to inline
 #if !defined _CCCL_FPEMU_INLINE && !defined _CCCL_FPEMU_BUILD_LIB && !defined _CCCL_FPEMU_USE_LIB
@@ -187,25 +167,8 @@ typedef struct
     uint64_t mantissa;
 } fpbits64_unpacked;
 
-/**
-* @brief Accuracy level for floating-point emulation (public).
-*
-* Defined directly in cuda::experimental (no internal fpemu:: namespace) and named
-* fpemu_accuracy, so callers write e.g. fpemu<double, fpemu_accuracy::high>.
-* - high: Correctly rounded with full IEEE-754 range (infinities, NaNs, subnormals)
-* - mid:  High accuracy (1-2 ULP) with normal range
-* - low:  Low accuracy (up to half mantissa) with normal range
-* - def:  Default selector; equals high so the default is IEEE-correct.
-*/
-enum struct fpemu_accuracy
-{
-    unset = -1,
-    low   =  1,
-    mid   =  2,
-    high  =  3,
-    def   =  3,
-};
-
+// NOTE: the public fpemu_accuracy enum now lives in <cuda/__fp/fpemu.h>
+// (the user-facing entry point).
 
     /**
     * @brief Rounding modes for floating point operations

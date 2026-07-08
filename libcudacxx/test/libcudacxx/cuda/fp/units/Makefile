@@ -47,6 +47,16 @@ INCLUDES     := -I$(CCCL_INCLUDE)
 TARGET  ?= device
 OUT     ?= $(THIS_DIR)/_out
 
+# Linkage mode: `inline` (default, header-only) | `static` | `lto`.
+# static/lto build + link the precompiled library (libcufp) instead of inlining
+# every op. The library build itself lives in the dev-only cccl-fpdev repo
+# (make/lib.mk + src/), a sibling of the CCCL checkout by default; FPDEV_DIR can
+# be overridden (the cccl-fpdev root Makefile passes it explicitly).
+LINKAGE       ?= inline
+DEVICE_SUFFIX ?=
+HOST_SUFFIX   ?= _host
+FPDEV_DIR     ?= $(abspath $(CCCL_INCLUDE)/../../../cccl-fpdev)
+
 # Verbose mode: 0 (default, silent) | 1 (minimal) | 2 (full cmds) | 3 (very verbose).
 # Aliases: V, VERB. At mode >= 2 the .SILENT directive is dropped so the actual
 # g++/nvcc command lines are echoed.
@@ -95,11 +105,13 @@ endif
 
 # toolchain / flags
 ifeq ($(TARGET),host)
+    TARGET_SUFFIX := $(HOST_SUFFIX)
     CXX       := g++
     OBJFLAGS  := -std=c++17 -O2 -c
     LINKFLAGS :=
     LINKLIBS  := $(QUADMATH_LIB)
 else
+    TARGET_SUFFIX := $(DEVICE_SUFFIX)
     CXX       := nvcc
     OBJFLAGS  := -std=c++17 -arch=sm_$(ARCH) -O2 -x cu -dc -Xcompiler -Wall,-Wextra -Xcompiler -Wno-strict-aliasing
     LINKFLAGS := -rdc=true -arch=sm_$(ARCH)
@@ -108,6 +120,27 @@ endif
 
 OBJFLAGS  += $(UNIFIED_FLAGS) $(EXTRA_FLAGS)
 LINKFLAGS += $(EXTRA_FLAGS)
+
+# Library linkage: for static/lto compile in use-lib mode (extern-"C" ABI) and
+# link against libcufp built by cccl-fpdev/make/lib.mk. Device adds -dlto (lto)
+# or -rdc=true (static); host just links the .a. inline mode leaves LIB_NAME
+# empty so the header-only path is unchanged.
+ifneq (,$(filter $(LINKAGE),static lto))
+    LIB_BASE ?= cufp
+    LIB_NAME  = $(OUT)/lib/lib$(LIB_BASE)$(TARGET_SUFFIX).a
+    OBJFLAGS += -DCCCL_FPMP_LIB=1 -DCCCL_FPEMU_LIB=1
+    ifneq ($(TARGET),host)
+        ifneq (,$(filter $(LINKAGE),lto))
+            OBJFLAGS  += -dlto
+            LINKFLAGS += -dlto
+        else
+            OBJFLAGS  += -rdc=true
+            LINKFLAGS += -rdc=true
+        endif
+    endif
+else
+    LIB_NAME =
+endif
 
 # unit selection
 ALL_UNITS := $(sort $(basename $(notdir $(wildcard $(THIS_DIR)/*.cpp))))
@@ -150,12 +183,17 @@ rerun:
 $(OUT):
 	mkdir -p $(OUT)
 
-$(OBJ_FILES): $(OUT)/%.o: $(THIS_DIR)/%.cpp | $(OUT)
+# Build the library (only a real prerequisite when LINKAGE=static|lto; otherwise
+# LIB_NAME is empty and this rule is never referenced).
+$(LIB_NAME):
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) CCCL_ROOT=$(abspath $(CCCL_INCLUDE)/../..) lib
+
+$(OBJ_FILES): $(OUT)/%.o: $(THIS_DIR)/%.cpp $(LIB_NAME) | $(OUT)
 	$(CXX) $(OBJFLAGS) $(INCLUDES) $< -o $@
 	$(RULE_DONE)
 
-$(EXE_FILES): $(OUT)/%.exe: $(OUT)/%.o | $(OUT)
-	$(CXX) $(LINKFLAGS) $< -o $@ $(LINKLIBS)
+$(EXE_FILES): $(OUT)/%.exe: $(OUT)/%.o $(LIB_NAME) | $(OUT)
+	$(CXX) $(LINKFLAGS) $< -o $@ $(LIB_NAME) $(LINKLIBS)
 	$(RULE_DONE)
 
 $(LOG_FILES): $(OUT)/%.log: $(OUT)/%.exe | $(OUT)
@@ -170,7 +208,7 @@ clean:
 help:
 	@echo "CCCL FP SDK unit tests (local header-only build)"
 	@echo ""
-	@echo "Usage: make [TARGET=host|device] [UNIT=fpmp_api|fpemu_core|...] [ARCH=86] [OUT=...] [VERBOSE=0|1|2|3] (aliases: V, VERB) [PACKED_VIA_UNPACKED=y|n]"
+	@echo "Usage: make [TARGET=host|device] [LINKAGE=inline|static|lto] [UNIT=fpmp_api|fpemu_core|...] [ARCH=86] [OUT=...] [VERBOSE=0|1|2|3] (aliases: V, VERB) [PACKED_VIA_UNPACKED=y|n]"
 	@echo ""
 	@echo "Targets: all/build, run, rebuild, rerun, clean, help"
 	@echo ""
@@ -179,7 +217,8 @@ help:
 	@echo ""
 	@echo "Notes:"
 	@echo "  - Builds directly against CCCL headers: -I$(CCCL_INCLUDE)"
-	@echo "  - Header-only: no library build/install step."
+	@echo "  - LINKAGE=inline (default) is header-only. LINKAGE=static|lto build and"
+	@echo "    link libcufp via the cccl-fpdev repo (FPDEV_DIR=$(FPDEV_DIR))."
 	@echo "  - libquadmath auto-detect (x86 host): HAS_QUADMATH=$(HAS_QUADMATH). Override with HAS_QUADMATH=1/0."
 
 .PHONY: all build run rebuild rerun clean help

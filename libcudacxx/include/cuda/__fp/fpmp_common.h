@@ -108,82 +108,13 @@ namespace cuda::experimental
 // External configuration macros
 */
 
-/*
-// CCCL_FPMP_LIB: Compilation mode control.
-//   1 = link against precompiled library (maps to _CCCL_FPMP_USE_LIB)
-//   0 = header-only inline mode (default)
-// CCCL_FPMP_INLINE is the inverse alias: CCCL_FPMP_INLINE=1 is equivalent to CCCL_FPMP_LIB=0.
-*/
-#ifndef CCCL_FPMP_LIB
-    #ifdef CCCL_FPMP_INLINE
-        #if CCCL_FPMP_INLINE == 1
-            #define CCCL_FPMP_LIB 0
-        #else
-            #define CCCL_FPMP_LIB 1
-        #endif
-    #else
-        #define CCCL_FPMP_LIB 0
-    #endif
-#endif
-#ifndef CCCL_FPMP_INLINE
-    #if CCCL_FPMP_LIB == 1
-        #define CCCL_FPMP_INLINE 0
-    #else
-        #define CCCL_FPMP_INLINE 1
-    #endif
-#endif
-#if CCCL_FPMP_LIB == 1 && !defined(_CCCL_FPMP_USE_LIB)
-    #define _CCCL_FPMP_USE_LIB
-#endif
-
-// CCCL_FPMP_EXPLICIT_CASTS controls whether lossy/narrowing conversions INTO fpmp2
-// are explicit. It gates only the constructors:
-//   - double      -> fp32mp2   (narrowing)
-//   - fp64mp2     -> fp32mp2   (narrowing)
-//   - __float128  -> fp64mp2   (narrowing)
-//   - int32_t / uint32_t -> fpmp2
-//   - int64_t / uint64_t -> fpmp2
-// The conversion OUT to double (operator double()) is always implicit and is NOT
-// affected by this macro (it is a value-preserving widening conversion).
-//
-// Default is 1 (lossy casts explicit), matching CCCL's strict-cast conventions.
-// Existing users who rely on the fully-implicit model can restore it with
-// -DFPMP_EXPLICIT_CASTS=0 (makes the constructors above implicit again).
-#ifndef CCCL_FPMP_EXPLICIT_CASTS
-    #define CCCL_FPMP_EXPLICIT_CASTS 1
-#endif
-
-/*
-// CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP: Use integer bit manipulation for double -> fpmp2 conversion.
-// When 1: the conversion uses integer shifts/masks to split the double mantissa
-//   into two float components without FP64 arithmetic. This avoids the slow FP64 pipeline
-//   on GPUs with limited double-precision throughput (e.g., consumer GPUs with 1:64 ratio).
-// When 0 (default): uses the standard cast-based approach: hi = (float)x; lo = (float)(x - (double)hi).
-//
-// NOTE: The optimized path increases register usage due to additional integer operations.
-//   In large kernels with high register pressure, this may cause register spills to local
-//   memory, negating the performance benefit. Profile your specific kernel to verify.
-*/
-#ifndef CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-    #define CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP 0
-#endif
-
-/*
-// CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: Use integer bit manipulation for fpmp2 -> double conversion.
-// When 1: the conversion reconstructs the double bit pattern from the two float
-//   components using integer shifts/masks and a software double-add, without any FP64
-//   arithmetic.  This avoids the slow FP64 pipeline on GPUs with limited double-precision
-//   throughput (e.g., consumer GPUs with 1:64 ratio).
-// When 0 (default): uses the standard cast-based approach: (double)hi + (double)lo
-//   (2x F2D + 1x DADD = 3 FP64 operations).
-//
-// NOTE: The optimized path increases register usage due to additional integer operations.
-//   In large kernels with high register pressure, this may cause register spills to local
-//   memory, negating the performance benefit. Profile your specific kernel to verify.
-*/
-#ifndef CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
-    #define CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE 0
-#endif
+// The public knobs CCCL_FPMP_LIB / CCCL_FPMP_INLINE / CCCL_FPMP_EXPLICIT_CASTS /
+// CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP / CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE are
+// defined in the user-facing entry point <cuda/__fp/fpmp.h>, which also maps them
+// to the internal switches (_CCCL_FPMP_USE_LIB, _CCCL_FPMP_EXPLICIT,
+// _CCCL_FPMP_USE_OPT_FROM_DOUBLE, _CCCL_FPMP_USE_OPT_TO_DOUBLE) used below. The
+// standalone libcufp build TU includes this header directly and drives the mode
+// via _CCCL_FPMP_BUILD_LIB, so it does not need the public knobs.
 
 /*
 // Define if double precision based types (double-double) are enabled
@@ -364,18 +295,6 @@ namespace cuda::experimental
 #endif
 
 /*
-// Internal explicit cast macro
-// When CCCL_FPMP_EXPLICIT_CASTS is 1, the explicit cast is used
-// When CCCL_FPMP_EXPLICIT_CASTS is 0, the explicit cast is not used
-// The default is to not use explicit cast
-*/
-#if  CCCL_FPMP_EXPLICIT_CASTS == 1
-    #define _CCCL_FPMP_EXPLICIT explicit
-#else
-    #define _CCCL_FPMP_EXPLICIT 
-#endif
-
-/*
 // C++20 is_constant_evaluated() compatibility.
 // NVCC, GCC, and Clang provide __builtin_is_constant_evaluated() which works
 // in __host__ __device__ context without warnings.  std::is_constant_evaluated()
@@ -438,14 +357,6 @@ namespace cuda::experimental
 #ifndef _CCCL_FPMP_USE_INLINE_ASM_EX2_LG2
     #define _CCCL_FPMP_USE_INLINE_ASM_EX2_LG2 1
 #endif
-// Internal: map user-facing macros to internal names
-#ifndef _CCCL_FPMP_USE_OPT_FROM_DOUBLE
-    #define _CCCL_FPMP_USE_OPT_FROM_DOUBLE CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-#endif
-#ifndef _CCCL_FPMP_USE_OPT_TO_DOUBLE
-    #define _CCCL_FPMP_USE_OPT_TO_DOUBLE   CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
-#endif
-
 /*
 // Internal macro for accurate multiplication & division support
 // When _CCCL_FPMP_USE_ACCURATE_MUL is 1, the accurate multiplication is used
@@ -466,23 +377,8 @@ namespace cuda::experimental
 /*********************************************************************
  * Internal utilities
  *********************************************************************/
-/*
-// Accuracy level for fpmp arithmetic (public; defined directly in
-// cuda::experimental). Named fpmp2_accuracy, so
-// callers write e.g. fpmp2<float, fpmp2_accuracy::high>.
-// mid is the Dekker-based split and error accumulation technique
-// high is the Thall-based split and error accumulation technique
-// low is the fast arithmetic operation without re-normalizations
-// def is the default selector; equals mid.
-*/
-enum struct fpmp2_accuracy
-{
-    unset = -1,
-    low   =  1,
-    mid   =  2,
-    high  =  3,
-    def   =  2,
-};
+// NOTE: the public fpmp2_accuracy enum now lives in <cuda/__fp/fpmp.h>
+// (the user-facing entry point).
 
  
     /*

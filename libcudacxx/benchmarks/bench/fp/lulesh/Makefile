@@ -41,6 +41,9 @@
 
 # current directory
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# Dev-only library build (make/lib.mk + src/) lives in the sibling cccl-fpdev
+# repo; overridable (the cccl-fpdev root Makefile passes it explicitly).
+FPDEV_DIR ?= $(abspath $(THIS_DIR)/../../../../../../cccl-fpdev)
 
 # Custom ABI: ABI=x,y (forces LINKAGE=static)
 COMMA := ,
@@ -254,7 +257,7 @@ $(BUILD_DIR)/$(EXEC):
 endif
 
 $(LIB_NAME):
-	$(MAKE) --no-print-directory -f $(MFP_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) EXTRA_FLAGS="-fmad=$(FMAD_FLAG) $(EXTRA_FLAGS)" lib
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) EXTRA_FLAGS="-fmad=$(FMAD_FLAG) $(EXTRA_FLAGS)" lib
 
 # Help target
 help:

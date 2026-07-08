@@ -95,6 +95,9 @@ ASM ?= no
 
 # current directory
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# Dev-only library build (make/lib.mk + src/) lives in the sibling cccl-fpdev
+# repo; overridable (the cccl-fpdev root Makefile passes it explicitly).
+FPDEV_DIR ?= $(abspath $(THIS_DIR)/../../../../../../../../cccl-fpdev)
 
 # libquadmath availability — only x86 GCC distributions ship it.
 # Override with HAS_QUADMATH=1/0 to bypass auto-detection.
@@ -628,7 +631,7 @@ LIB_FP128_ARGS = _CCCL_FPMP_FP128_ENABLE=1 FPMP_NVVM_FP128_EXT="$(FPMP_NVVM_FP12
 endif
 
 $(LIB_NAME):
-	$(MAKE) --no-print-directory -f $(FPMP_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) $(LIB_FP128_ARGS) lib
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) $(LIB_FP128_ARGS) lib
 
 # Generate the log files with running the executable files
 logs: 

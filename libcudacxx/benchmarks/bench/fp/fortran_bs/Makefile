@@ -84,6 +84,9 @@
 ###########################################################################################
 
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# Dev-only library build (make/lib.mk + src/) lives in the sibling cccl-fpdev
+# repo; overridable (the cccl-fpdev root Makefile passes it explicitly).
+FPDEV_DIR ?= $(abspath $(THIS_DIR)/../../../../../../cccl-fpdev)
 MFP_DIR  := $(THIS_DIR)/../..
 OUT      ?= $(THIS_DIR)/_out
 
@@ -219,7 +222,7 @@ $(OUT):
 # ============================================================================
 
 $(DEV_LIB):
-	$(MAKE) --no-print-directory -f $(MFP_DIR)/make/lib.mk \
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk \
 		TARGET=device LINKAGE=lto ARCH=$(ARCH) OUT=$(OUT) \
 		EXTRA_FLAGS='$(LIB_EXTRA_FLAGS)' lib
 

@@ -81,6 +81,28 @@ endif
 
 # Current directory
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# Dev-only library build (make/lib.mk + src/) lives in the sibling cccl-fpdev
+# repo; overridable (the cccl-fpdev root Makefile passes it explicitly).
+FPDEV_DIR ?= $(abspath $(THIS_DIR)/../../../../../../cccl-fpdev)
+
+# libquadmath availability — only x86 GCC distributions ship it. d2ff itself
+# never touches __float128, but linking the precompiled libcufp (LINKAGE=static|
+# lto) pulls in its FP128 host fallback (expq/logq/powq/...), so the quad lib is
+# required on host when linking the library. Override with HAS_QUADMATH=1/0.
+HOST_ARCH := $(shell uname -m 2>/dev/null)
+ifndef HAS_QUADMATH
+    ifneq (,$(filter $(HOST_ARCH),x86_64 i386 i686 amd64))
+        HAS_QUADMATH := 1
+    else
+        HAS_QUADMATH := 0
+    endif
+endif
+ifeq ($(HAS_QUADMATH),1)
+    QUADMATH_LIB := -lquadmath
+else
+    QUADMATH_LIB :=
+endif
+
 # Custom ABI: ABI=x,y (forces LINKAGE=static)
 COMMA := ,
 ifdef ABI
@@ -156,6 +178,10 @@ ifneq (,$(filter $(LINKAGE), static lto))
           COMPILEFLAGS += -rdc=true
           LINKFLAGS += -rdc=true
         endif
+    endif
+    # The host library carries the FP128 quad fallback; link libquadmath.
+    ifneq (,$(filter $(T) $(TARGET), host))
+        LINKLIBS += $(QUADMATH_LIB)
     endif
 else
     LIB_NAME =
@@ -270,7 +296,7 @@ $(OUT):
 	$(Q)mkdir -p $(OUT)
 
 $(LIB_NAME):
-	$(MAKE) --no-print-directory -f $(MFP_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) lib
+	$(MAKE) --no-print-directory -f $(FPDEV_DIR)/make/lib.mk TARGET=$(TARGET) OUT=$(OUT) lib
 
 # Show kernel register usage and object sizes (GPU only, recompiles with --resource-usage)
 info:

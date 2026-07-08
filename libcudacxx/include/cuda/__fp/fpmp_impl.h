@@ -2092,73 +2092,9 @@ template<> _CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>(float* __addres
 
 #endif // _CCCL_FPMP_USE_LIB
 
-/*
- * ============================================================================
- * Freestanding Atomic Operations for fpmp2
- * ============================================================================
- * These are CUDA-style freestanding atomic functions that work with the
- * fpmp2 class. They are placed outside the USE_LIB conditional to
- * work in both inline and library modes.
- * ============================================================================
- */
-#ifdef __CUDACC__
-
-// Forward declaration of the class template (defined in fpmp.h)
-template <typename _FpType, fpmp2_accuracy _TypeAcc> class fpmp2;
-
-// atomicAdd: Atomic addition for fpmp2
-// Returns the old value before the addition
-template <typename _FpType, fpmp2_accuracy _TypeAcc>
-_CCCL_DEVICE_API inline fpmp2<_FpType, _TypeAcc> atomicAdd(fpmp2<_FpType, _TypeAcc>*       address, 
-                                                           const fpmp2<_FpType, _TypeAcc>& val) noexcept
-{
-    fpmp2<_FpType, _TypeAcc> result;
-    // Class layout: alignas(2*alignof(FpType)) with mp2_hi at offset 0, mp2_lo at offset sizeof(FpType)
-    _FpType* addr_hi = reinterpret_cast<_FpType*>(address);
-    _FpType* addr_lo = addr_hi + 1;
-    _FpType* __res_hi  = reinterpret_cast<_FpType*>(&result);
-    _FpType* __res_lo  = __res_hi + 1;
-  #if defined(_CCCL_FPMP_USE_LIB)
-    // In library mode, call the library function directly
-    if constexpr (::cuda::std::is_same_v<_FpType, float>) {
-        __fp32mp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
-    } 
-    else if constexpr (::cuda::std::is_same_v<_FpType, double>) {
-        __fp64mp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
-    }
-  #else
-    __fpmp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
-  #endif
-    return result;
-}
-
-// atomicSub: Atomic subtraction for fpmp2
-// Returns the old value before the subtraction
-template <typename _FpType, fpmp2_accuracy _TypeAcc>
-_CCCL_DEVICE_API inline fpmp2<_FpType, _TypeAcc> atomicSub(fpmp2<_FpType, _TypeAcc>*       address, 
-                                                           const fpmp2<_FpType, _TypeAcc>& val) noexcept
-{
-    fpmp2<_FpType, _TypeAcc> result;
-    // Class layout: alignas(2*alignof(FpType)) with mp2_hi at offset 0, mp2_lo at offset sizeof(FpType)
-    _FpType* addr_hi = reinterpret_cast<_FpType*>(address);
-    _FpType* addr_lo = addr_hi + 1;
-    _FpType* __res_hi  = reinterpret_cast<_FpType*>(&result);
-    _FpType* __res_lo  = __res_hi + 1;
-  #if defined(_CCCL_FPMP_USE_LIB)
-    // In library mode, call the library function directly
-    if constexpr (::cuda::std::is_same_v<_FpType, float>) {
-        __fp32mp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
-    } 
-    else if constexpr (::cuda::std::is_same_v<_FpType, double>) {
-        __fp64mp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
-    }
-  #else
-    __fpmp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
-  #endif
-    return result;
-}
-
-#endif // __CUDACC__
+// NOTE: the freestanding fpmp2 atomics (atomicAdd/atomicSub) and warp-shuffle
+// helpers live in <cuda/__fp/fpmp.h>, after the fpmp2 class definition, since
+// they are public class-dependent free functions rather than internal impl.
 
 } // namespace cuda::experimental
 
