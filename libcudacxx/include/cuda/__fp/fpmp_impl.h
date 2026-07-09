@@ -780,19 +780,19 @@ namespace cuda::experimental
 #include <cuda/std/__cccl/epilogue.h>
 
 // ---------------------------------------------------------------------------
-// Per-operation implementation headers (families). Included after the internal
-// macros, the fp128 vocabulary type, and the __fpmp_* primitives above so that
-// every family can rely on them. Each family header is self-contained and
-// handles both header-only (inline) and library (_CCCL_FPMP_USE_LIB) modes.
-// ---------------------------------------------------------------------------
-#include <cuda/__fp/fpmp_impl_cvt.h>
-#include <cuda/__fp/fpmp_impl_muladd.h>
-#include <cuda/__fp/fpmp_impl_divsqrt.h>
-#include <cuda/__fp/fpmp_impl_cmp.h>
-#include <cuda/__fp/fpmp_impl_atomic.h>
-
+// This header is the shared base for the per-operation implementation families
+// (fpmp_impl_{cvt,muladd,divsqrt,cmp,atomic}.h): the internal macros, the fp128
+// vocabulary type, and the __fpmp_* primitives above. It deliberately does NOT
+// include the family headers -- that would create a self-referential cycle
+// (family -> base -> family) that breaks standalone (internal_headers)
+// compilation. Instead each family includes this base plus the specific sibling
+// families it depends on, and the aggregators <cuda/__fp/fpmp.h> and
+// <cuda/__fp/fpmp_lib.h> pull in the full family set. (Mirrors the fpemu layout,
+// where fpemu.h aggregates the fpemu_impl_*.h families.)
+//
 // NOTE: the freestanding fpmp2 atomics (atomicAdd/atomicSub) and warp-shuffle
 // helpers live in <cuda/__fp/fpmp.h>, after the fpmp2 class definition, since
 // they are public class-dependent free functions rather than internal impl.
+// ---------------------------------------------------------------------------
 
 #endif // _CUDA___FP_FPMP_IMPL_H

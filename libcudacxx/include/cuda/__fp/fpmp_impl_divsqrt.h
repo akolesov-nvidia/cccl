@@ -32,6 +32,7 @@
 */
 
 #include <cuda/__fp/fpmp_impl.h>
+#include <cuda/__fp/fpmp_impl_muladd.h> // div/sqrt reuse __fpmp2_low_mul (muladd family)
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

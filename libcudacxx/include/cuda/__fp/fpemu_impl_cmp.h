@@ -269,43 +269,43 @@ namespace cuda::experimental
 // ============================================================================
 
     // Comparison operators
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator==(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator==(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
         return __fp64emu_cmp_eq(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator!=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator!=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
         return __fp64emu_cmp_ne(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator<(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator<(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
         return __fp64emu_cmp_lt(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator>(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator>(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
         return __fp64emu_cmp_gt(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator<=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator<=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
         return __fp64emu_cmp_le(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator>=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator>=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept {
         return __fp64emu_cmp_ge(__x.bits, __y.bits);
     }
 
 
     // Unpacked comparison operators
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator==(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator==(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
         return __fp64emu_unpacked_cmp_eq(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator!=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator!=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
         return __fp64emu_unpacked_cmp_ne(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator<(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator<(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
         return __fp64emu_unpacked_cmp_lt(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator>(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator>(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
         return __fp64emu_unpacked_cmp_gt(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator<=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator<=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
         return __fp64emu_unpacked_cmp_le(__x.bits, __y.bits);
     }
-    template<fpemu_accuracy _Acc>  _CCCL_API static inline bool operator>=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
+    template<fpemu_accuracy _Acc>  _CCCL_API inline bool operator>=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept {
         return __fp64emu_unpacked_cmp_ge(__x.bits, __y.bits);
     }
 

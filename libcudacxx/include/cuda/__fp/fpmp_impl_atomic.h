@@ -32,6 +32,7 @@
 */
 
 #include <cuda/__fp/fpmp_impl.h>
+#include <cuda/__fp/fpmp_impl_muladd.h> // dd atomics reuse __fpmp2_high_add (muladd family)
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

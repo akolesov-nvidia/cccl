@@ -176,6 +176,14 @@
 // plumbing, and the __fpmp_* helpers) lives in fpmp_impl.h.
 #include <cuda/__fp/fpmp_common.h>
 #include <cuda/__fp/fpmp_impl.h>
+// Per-operation implementation families (see fpmp_impl.h). Aggregated here (not
+// by the base) to avoid a family->base->family include cycle. Each family is
+// self-contained and pulls the siblings it needs (divsqrt/atomic -> muladd).
+#include <cuda/__fp/fpmp_impl_cvt.h>
+#include <cuda/__fp/fpmp_impl_muladd.h>
+#include <cuda/__fp/fpmp_impl_divsqrt.h>
+#include <cuda/__fp/fpmp_impl_cmp.h>
+#include <cuda/__fp/fpmp_impl_atomic.h>
 
 #include <cuda/std/__cccl/prologue.h>
 

@@ -389,7 +389,7 @@ namespace cuda::experimental
 // ============================================================================
 
     // Default API implementation
-    template<fpemu_accuracy _Acc> _CCCL_API static fpemu<double, _Acc> operator/ (const fpemu<double, _Acc>& __x, 
+    template<fpemu_accuracy _Acc> _CCCL_API fpemu<double, _Acc> operator/ (const fpemu<double, _Acc>& __x, 
                                                                                   const fpemu<double, _Acc>& __y) noexcept
     {
         if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_ddiv_rn(__x.bits, __y.bits)); }
@@ -422,7 +422,7 @@ namespace cuda::experimental
 
     // Operator/ for unpacked division
     template<fpemu_accuracy _Acc>
-    _CCCL_DEVICE_API static fpemu_unpacked<double, _Acc> operator/ (const fpemu_unpacked<double, _Acc>& __x, 
+    _CCCL_DEVICE_API fpemu_unpacked<double, _Acc> operator/ (const fpemu_unpacked<double, _Acc>& __x, 
                                                                     const fpemu_unpacked<double, _Acc>& __y) noexcept
     {
         if      constexpr (_Acc == fpemu_accuracy::high) { return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_ddiv(__x.bits, __y.bits)); }
