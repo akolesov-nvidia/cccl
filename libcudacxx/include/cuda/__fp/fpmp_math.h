@@ -4735,7 +4735,7 @@ namespace cuda::experimental
     _CCCL_FPMP_INTERNAL_CUSTOM_DECL void __fpmp2_boys_f0 (const _FpType __a_hi,
                                                            const _FpType __a_lo,
                                                            _FpType*      __res_hi,
-                                                           _FpType*      __res_lo)
+                                                           _FpType*      __res_lo) noexcept
     {
         using ffloat = fpmp2<_FpType, _CCCL_FPMP_METHOD>;
 
@@ -5447,7 +5447,7 @@ namespace cuda::experimental
     // Uses explicit fpmp2 construction/conversion to avoid NVCC name resolution issues.
     #define _CCCL_FPMP_MATH_PLACEHOLDER_1A(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) \
+    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
@@ -5457,7 +5457,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_2A(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, const _FpType __y_hi, const _FpType __y_lo, _FpType* __res_hi, _FpType* __res_lo) \
+    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, const _FpType __y_hi, const _FpType __y_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo))); \
@@ -5467,7 +5467,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) \
+    _CCCL_TRIVIAL_API int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
@@ -5475,7 +5475,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API long long int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) \
+    _CCCL_TRIVIAL_API long long int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
@@ -5483,7 +5483,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API long int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) \
+    _CCCL_TRIVIAL_API long int __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo))); \
@@ -5491,7 +5491,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_FP_INT(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) \
+    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n); \
@@ -5501,7 +5501,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_FP_LINT(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) \
+    _CCCL_TRIVIAL_API void __fpmp2_##name (const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n); \
@@ -5511,7 +5511,7 @@ namespace cuda::experimental
 
     #define _CCCL_FPMP_MATH_PLACEHOLDER_INT_FP(name) \
     template<typename _FpType = float> \
-    _CCCL_TRIVIAL_API void __fpmp2_##name (int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) \
+    _CCCL_TRIVIAL_API void __fpmp2_##name (int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     { \
         using mp2_t = fpmp2<_FpType>; \
         double __r = ::name(__n, static_cast<double>(mp2_t(__x_hi, __x_lo))); \

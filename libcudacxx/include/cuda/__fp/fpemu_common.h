@@ -190,6 +190,28 @@ enum struct __fpemu_rounding
     def   = _CCCL_FPEMU_DEFAULT_ROUNDING
 };
 
+/**
+* @brief Accuracy level for floating-point emulation (public).
+*
+* Named fpemu_accuracy, so callers write e.g. fpemu<double, fpemu_accuracy::high>.
+* - high: Correctly rounded with full IEEE-754 range (infinities, NaNs, subnormals)
+* - mid:  High accuracy (1-2 ULP) with normal range
+* - low:  Low accuracy (up to half mantissa) with normal range
+* - def:  Default selector; equals high so the default is IEEE-correct.
+*
+* Defined here (rather than in <cuda/__fp/fpemu.h>) because the emulation cores
+* in fpemu_impl_utils.h / fpemu_impl_cvt.h use it as a template parameter and only
+* include this common header; keeping it here makes every FP header self-contained.
+*/
+enum struct fpemu_accuracy
+{
+    unset = -1,
+    low   =  1,
+    mid   =  2,
+    high  =  3,
+    def   =  3,
+};
+
 } // namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>

@@ -99,23 +99,11 @@
 namespace cuda::experimental
 {
 
-    /**
-    * @brief Accuracy level for floating-point emulation (public).
-    *
-    * Named fpemu_accuracy, so callers write e.g. fpemu<double, fpemu_accuracy::high>.
-    * - high: Correctly rounded with full IEEE-754 range (infinities, NaNs, subnormals)
-    * - mid:  High accuracy (1-2 ULP) with normal range
-    * - low:  Low accuracy (up to half mantissa) with normal range
-    * - def:  Default selector; equals high so the default is IEEE-correct.
-    */
-    enum struct fpemu_accuracy
-    {
-        unset = -1,
-        low   =  1,
-        mid   =  2,
-        high  =  3,
-        def   =  3,
-    };
+    // The public accuracy selector fpemu_accuracy is defined in
+    // <cuda/__fp/fpemu_common.h>: the emulation cores (fpemu_impl_utils.h /
+    // fpemu_impl_cvt.h) take it as a template parameter and only include that
+    // common header, so it must live there to keep every FP header self-contained.
+    // It remains part of the public API surface reachable via <cuda/fpemu>.
 
     /**
     * @brief Tag type for constructing an fpemu directly from raw __fpbits64 bits.

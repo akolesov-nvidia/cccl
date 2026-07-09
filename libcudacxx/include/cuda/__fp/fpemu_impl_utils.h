@@ -43,6 +43,8 @@
 
 #include <cuda/std/__bit/bit_cast.h>
 
+#include <cuda/__fp/fpemu_common.h>
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

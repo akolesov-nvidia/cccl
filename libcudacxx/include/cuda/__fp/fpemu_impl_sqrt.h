@@ -46,8 +46,12 @@ namespace cuda::experimental
 {
 
 #if !(defined (__CUDA_ARCH__))
-extern "C" double sqrt(double __x);
-extern "C" float  sqrtf(float __x);   // host seed for the reciprocal-sqrt builtin
+// Host seeds: the libm symbols. Declared noexcept to match the standard
+// <math.h> prototypes (glibc marks them __THROW); otherwise the extern-"C"
+// redeclarations conflict with ::sqrt/::sqrtf when <cmath> is also in the TU
+// (-Werror).
+extern "C" double sqrt(double __x) noexcept;
+extern "C" float  sqrtf(float __x) noexcept;   // host seed for the reciprocal-sqrt builtin
 #endif
 
 

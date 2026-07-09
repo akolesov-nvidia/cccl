@@ -44,7 +44,10 @@ namespace cuda::experimental
 {
 
 #if !(defined (__CUDA_ARCH__))
-extern "C" double fma(double __x, double __y, double __z);
+// Host seed: the libm symbol. Declared noexcept to match the standard <math.h>
+// prototype (glibc marks it __THROW); otherwise the extern-"C" redeclaration
+// conflicts with ::fma when <cmath> is also in the TU (-Werror).
+extern "C" double fma(double __x, double __y, double __z) noexcept;
 #endif
 
 
