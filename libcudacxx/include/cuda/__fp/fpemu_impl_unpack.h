@@ -45,13 +45,12 @@
  * here. The packed (legacy non-unified) add/mul/fma kernels do their own inlined
  * lean unpack/pack and do not use these routines.
  *
- * They depend only on the primitives/constants in fpemu_impl_utils.h
+ * They depend only on the primitives/constants in fpemu_impl.h
  * (bit_cast, __round, __fp64_ovfl_sat, __internal_clzll, the FP64_* masks,
  * EXTRA_BITS, BIAS, ...).
  */
 
-#include <cuda/__fp/fpemu_common.h>
-#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl.h>
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental

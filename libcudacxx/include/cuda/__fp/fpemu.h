@@ -63,36 +63,12 @@
 #include <cuda/std/__type_traits/is_integer.h>
 #include <cuda/std/__type_traits/is_same.h>
 
-// ---------------------------------------------------------------------------
-// User-facing configuration (public compile-mode knobs)
-// ---------------------------------------------------------------------------
-// CCCL_FPEMU_LIB: Compilation mode control.
-//   1 = link against precompiled library (maps to _CCCL_FPEMU_USE_LIB)
-//   0 = header-only inline mode (default)
-// CCCL_FPEMU_INLINE is the inverse alias: CCCL_FPEMU_INLINE=1 is equivalent to CCCL_FPEMU_LIB=0.
-#ifndef CCCL_FPEMU_LIB
-    #ifdef CCCL_FPEMU_INLINE
-        #if CCCL_FPEMU_INLINE == 1
-            #define CCCL_FPEMU_LIB 0
-        #else
-            #define CCCL_FPEMU_LIB 1
-        #endif
-    #else
-        #define CCCL_FPEMU_LIB 0
-    #endif
-#endif
-#ifndef CCCL_FPEMU_INLINE
-    #if CCCL_FPEMU_LIB == 1
-        #define CCCL_FPEMU_INLINE 0
-    #else
-        #define CCCL_FPEMU_INLINE 1
-    #endif
-#endif
-#if CCCL_FPEMU_LIB == 1 && !defined(_CCCL_FPEMU_USE_LIB)
-    #define _CCCL_FPEMU_USE_LIB
-#endif
-
+// Public API surface (fpemu_accuracy selector + CCCL_FPEMU_LIB / CCCL_FPEMU_INLINE
+// compile-mode knobs) lives in fpemu_common.h; all library-internal machinery
+// (vocabulary types, decorator/ABI/declaration macros, helper functions) lives in
+// fpemu_impl.h. The class below stores raw __fpbits64 bits, so it needs both.
 #include <cuda/__fp/fpemu_common.h>
+#include <cuda/__fp/fpemu_impl.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -100,10 +76,10 @@ namespace cuda::experimental
 {
 
     // The public accuracy selector fpemu_accuracy is defined in
-    // <cuda/__fp/fpemu_common.h>: the emulation cores (fpemu_impl_utils.h /
-    // fpemu_impl_cvt.h) take it as a template parameter and only include that
-    // common header, so it must live there to keep every FP header self-contained.
-    // It remains part of the public API surface reachable via <cuda/fpemu>.
+    // <cuda/__fp/fpemu_common.h> (the public API header); the internal vocabulary
+    // types (__fpbits64 / __fpbits64_unpacked) and helpers come from
+    // <cuda/__fp/fpemu_impl.h>. Both are included above so the class can store raw
+    // bits while keeping every FP header self-contained.
 
     /**
     * @brief Tag type for constructing an fpemu directly from raw __fpbits64 bits.

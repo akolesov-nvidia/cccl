@@ -41,8 +41,7 @@
  #define _CCCL_FP64EMU_USE_OPT_DOT_UNPACKED  1
  #define _CCCL_FP64EMU_USE_OPT_CMUL_UNPACKED 1
 
-#include <cuda/__fp/fpemu_common.h>
-#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
 #include <cuda/__fp/fpemu_impl_mul.h>
 #include <cuda/__fp/fpemu_impl_add.h>

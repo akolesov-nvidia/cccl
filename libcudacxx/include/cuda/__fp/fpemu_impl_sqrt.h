@@ -37,8 +37,7 @@
  * floating point units.
  */
 
-#include <cuda/__fp/fpemu_common.h>
-#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
 #include <cuda/std/__cccl/prologue.h>
 

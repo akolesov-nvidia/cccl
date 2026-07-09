@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDA___FP_FPEMU_IMPL_UTILS_H
-#define _CUDA___FP_FPEMU_IMPL_UTILS_H
+#ifndef _CUDA___FP_FPEMU_IMPL_H
+#define _CUDA___FP_FPEMU_IMPL_H
 
 #include <cuda/std/detail/__config>
 
@@ -21,15 +21,22 @@
 #  pragma system_header
 #endif // no system header
 /**
- * @file fpemu_impl_utils.h
- * @brief Common utility functions and definitions for FPEMU library
+ * @file fpemu_impl.h
+ * @brief Internal implementation vocabulary and utilities for the FPEMU library
  *
- * This header provides common utility functions and definitions used throughout
- * the FPEMU library. It defines:
+ * This is the internal base header for the FPEMU emulation cores. It gathers all
+ * library-internal (non-public) machinery in one place so that <cuda/__fp/fpemu.h>
+ * and the per-operation cores (fpemu_impl_<op>.h) depend on a single impl header,
+ * while <cuda/__fp/fpemu_common.h> is reserved for the public API surface
+ * (the fpemu_accuracy selector and the CCCL_FPEMU_LIB / CCCL_FPEMU_INLINE knobs).
  *
- * - Compile-time assertion macros for type checking
- * - Bit casting utilities for type punning
- * - Platform-independent memory operations
+ * It defines:
+ * - Internal compilation-mode / decorator macros (inline vs library, host/device,
+ *   the extern-"C" ABI decorator, and the builtin declaration macro)
+ * - Internal vocabulary types (__fpbits64, __fpbits64_unpacked) and the internal
+ *   __fpemu_rounding enum
+ * - Compile-time assertion macros, bit-casting utilities, and platform-independent
+ *   helper functions used by the emulation cores
  *
  * The utilities are designed to work across both host and device code through
  * appropriate decorators and provide consistent behavior across different
@@ -50,10 +57,144 @@
 namespace cuda::experimental
 {
 
+/*********************************************************************
+ * Compilation mode macros (internal)
+ *********************************************************************/
+
+// The public compile-mode knobs CCCL_FPEMU_LIB / CCCL_FPEMU_INLINE are defined
+// (and mapped to the internal _CCCL_FPEMU_USE_LIB switch) in the public header
+// <cuda/__fp/fpemu_common.h>. Here we only apply the internal fallback when
+// nothing has been selected (e.g. the standalone libcufp build TU, which sets
+// _CCCL_FPEMU_BUILD_LIB).
+
+// If neither inline nor lib is defined internally, default to inline
+#if !defined _CCCL_FPEMU_INLINE && !defined _CCCL_FPEMU_BUILD_LIB && !defined _CCCL_FPEMU_USE_LIB
+    #define _CCCL_FPEMU_INLINE
+#endif
+
+// If neither host nor device is defined, default to device
+#if defined __CUDACC__
+    #undef  _CCCL_FPEMU_HOST
+    #undef  _CCCL_FPEMU_DEVICE
+    #define _CCCL_FPEMU_DEVICE
+#else
+    #undef  _CCCL_FPEMU_DEVICE
+    #undef  _CCCL_FPEMU_HOST
+    #define _CCCL_FPEMU_HOST
+#endif
+
+/*
+// Custom ABI for builtins in static library
+*/
+#if ((defined __CUDA_LIBDEVICE__) || (defined _CCCL_FPEMU_BUILD_LIB) || (defined _CCCL_FPEMU_USE_LIB)) && \
+     (defined(__CUDACC_VER_MAJOR__) && (__CUDACC_VER_MAJOR__ >= 13))
+  #ifndef _CCCL_FPEMU_ABI_PRESERVE_N_DATA
+    #define _CCCL_FPEMU_ABI_PRESERVE_N_DATA    -1
+  #endif
+  #ifndef _CCCL_FPEMU_ABI_PRESERVE_N_CONTROL
+    #define _CCCL_FPEMU_ABI_PRESERVE_N_CONTROL -1
+  #endif
+  #if (_CCCL_FPEMU_ABI_PRESERVE_N_DATA != -1) && (_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL != -1)
+    #define _CCCL_FPEMU_ABI_STR1(x) #x
+    #define _CCCL_FPEMU_ABI_STR(x) _CCCL_FPEMU_ABI_STR1(x)
+    #define _CCCL_FPEMU_ABI_PRAGMA_TEXT nv_abi preserve_n_data(_CCCL_FPEMU_ABI_PRESERVE_N_DATA) preserve_n_control(_CCCL_FPEMU_ABI_PRESERVE_N_CONTROL)
+    #define _CCCL_FPEMU_ABI _Pragma(_CCCL_FPEMU_ABI_STR(_CCCL_FPEMU_ABI_PRAGMA_TEXT))
+  #else
+    #define _CCCL_FPEMU_ABI
+  #endif
+#else
+  #define _CCCL_FPEMU_ABI
+#endif
+
+/*********************************************************************
+ * Declaration macros (internal)
+ *********************************************************************/
+
+// Header (inline) builds decorate functions at the call site with CCCL
+// visibility macros directly:
+//   _CCCL_API         — public entry points (host/device, hidden from ABI)
+//   _CCCL_TRIVIAL_API — force-inlined internal/impl helpers (hot paths)
+//   _CCCL_DEVICE_API  — device-only overloads
+// The only decorator that still needs a dedicated macro is the extern-"C"
+// ABI symbol used when building or linking the standalone libcufp library.
+#if defined __CUDA_LIBDEVICE__
+    #define _CCCL_FPEMU_BUILTIN_DECL   _CCCL_FPEMU_ABI extern "C" _CCCL_HOST_DEVICE
+#elif defined _CCCL_FPEMU_INLINE
+    #define _CCCL_FPEMU_BUILTIN_DECL   _CCCL_TRIVIAL_API
+#else // _CCCL_FPEMU_BUILD_LIB or _CCCL_FPEMU_USE_LIB
+    #define _CCCL_FPEMU_BUILTIN_DECL   _CCCL_FPEMU_ABI extern "C" _CCCL_HOST_DEVICE
+#endif
+
+/*********************************************************************
+ * Default configuration values (internal)
+ *********************************************************************/
+
+// Define the default values for the enums
+#ifndef _CCCL_FPEMU_DEFAULT_ROUNDING
+    #define _CCCL_FPEMU_DEFAULT_ROUNDING rn
+#endif
+
+// Route the PACKED API through the unpack -> *_unpacked core -> pack pipeline
+// instead of the legacy fused kernels. Set by the Makefile's PACKED_VIA_UNPACKED=y.
+// This is a TESTING knob (it lets the packed test harness exercise the unpacked
+// cores); default OFF keeps the packed API on its legacy implementations.
+#ifndef _CCCL_FPEMU_PACKED_VIA_UNPACKED
+    #define _CCCL_FPEMU_PACKED_VIA_UNPACKED 0
+#endif
+
 // Verify that either _CCCL_FPEMU_INLINE or _CCCL_FPEMU_BUILD_LIB/_CCCL_FPEMU_USE_LIB is defined
 #if !defined(_CCCL_FPEMU_INLINE) && !defined(_CCCL_FPEMU_BUILD_LIB) && !defined(_CCCL_FPEMU_USE_LIB)
     #error "ERROR: either _CCCL_FPEMU_INLINE or _CCCL_FPEMU_BUILD_LIB/_CCCL_FPEMU_USE_LIB must be defined"
 #endif
+
+/*********************************************************************
+ * Internal vocabulary types and enums
+ *********************************************************************/
+
+/**
+* @brief Bit representation of a double-precision floating point number
+*
+* @internal Library-internal type. It is the raw-bits vocabulary of the emulation
+* builtins (and the extern-"C" library ABI); it is NOT part of the public C++ API.
+* C++ users operate on the fpemu class (double in, overloaded ops, double out) and
+* never handle __fpbits64 directly. If the builtins are ever exposed to compilers,
+* a public alias can be introduced then.
+*
+* Holds the IEEE-754 binary encoding of a double (sign, exponent and mantissa bits).
+*/
+typedef uint64_t __fpbits64;
+
+/**
+* @brief Unpacked representation of a double-precision floating point number
+*
+* @internal Library-internal type (see __fpbits64). Represents a double in unpacked
+* form (separate sign, exponent, mantissa) for the *_unpacked builtins; not public.
+*/
+typedef struct 
+{
+    uint32_t sign;
+    uint32_t exponent;
+    uint64_t mantissa;
+} __fpbits64_unpacked;
+
+/**
+* @brief Rounding modes for floating point operations (internal)
+*
+* Enumeration of supported rounding modes:
+* - rn: Round to nearest (ties to even) - default IEEE-754 rounding
+* - rz: Round toward zero (truncation)
+* - ru: Round toward positive infinity 
+* - rd: Round toward negative infinity
+*/
+enum struct __fpemu_rounding
+{
+    unset = -1,
+    rn    =  0,
+    rz    =  1,
+    ru    =  2,
+    rd    =  3,
+    def   = _CCCL_FPEMU_DEFAULT_ROUNDING
+};
 
 /*
  * Packed-via-unpacked TEST mode (_CCCL_FPEMU_PACKED_VIA_UNPACKED) is configured in

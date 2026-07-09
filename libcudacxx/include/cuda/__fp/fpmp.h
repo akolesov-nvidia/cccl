@@ -169,73 +169,11 @@
 */
 
 
-// ---------------------------------------------------------------------------
-// User-facing configuration (public knobs)
-// ---------------------------------------------------------------------------
-// CCCL_FPMP_LIB: Compilation mode control.
-//   1 = link against precompiled library (maps to _CCCL_FPMP_USE_LIB)
-//   0 = header-only inline mode (default)
-// CCCL_FPMP_INLINE is the inverse alias: CCCL_FPMP_INLINE=1 is equivalent to CCCL_FPMP_LIB=0.
-#ifndef CCCL_FPMP_LIB
-    #ifdef CCCL_FPMP_INLINE
-        #if CCCL_FPMP_INLINE == 1
-            #define CCCL_FPMP_LIB 0
-        #else
-            #define CCCL_FPMP_LIB 1
-        #endif
-    #else
-        #define CCCL_FPMP_LIB 0
-    #endif
-#endif
-#ifndef CCCL_FPMP_INLINE
-    #if CCCL_FPMP_LIB == 1
-        #define CCCL_FPMP_INLINE 0
-    #else
-        #define CCCL_FPMP_INLINE 1
-    #endif
-#endif
-#if CCCL_FPMP_LIB == 1 && !defined(_CCCL_FPMP_USE_LIB)
-    #define _CCCL_FPMP_USE_LIB
-#endif
-
-// CCCL_FPMP_EXPLICIT_CASTS controls whether lossy/narrowing conversions INTO fpmp2
-// are explicit. It gates only the constructors:
-//   - double      -> fp32mp2   (narrowing)
-//   - fp64mp2     -> fp32mp2   (narrowing)
-//   - __float128  -> fp64mp2   (narrowing)
-//   - int32_t / uint32_t -> fpmp2
-//   - int64_t / uint64_t -> fpmp2
-// The conversion OUT to double (operator double()) is always implicit and is NOT
-// affected by this macro (it is a value-preserving widening conversion).
-//
-// Default is 1 (lossy casts explicit), matching CCCL's strict-cast conventions.
-#ifndef CCCL_FPMP_EXPLICIT_CASTS
-    #define CCCL_FPMP_EXPLICIT_CASTS 1
-#endif
-#if  CCCL_FPMP_EXPLICIT_CASTS == 1
-    #define _CCCL_FPMP_EXPLICIT explicit
-#else
-    #define _CCCL_FPMP_EXPLICIT 
-#endif
-
-// CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP / CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: use integer
-// bit manipulation instead of FP64 arithmetic for the double<->fpmp2 conversions.
-// This avoids the slow FP64 pipeline on GPUs with limited double-precision throughput
-// (e.g. consumer GPUs with a 1:64 ratio) at the cost of extra integer/register pressure.
-// Both default to 0 (standard cast-based conversions).
-#ifndef CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-    #define CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP 0
-#endif
-#ifndef CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
-    #define CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE 0
-#endif
-#ifndef _CCCL_FPMP_USE_OPT_FROM_DOUBLE
-    #define _CCCL_FPMP_USE_OPT_FROM_DOUBLE CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-#endif
-#ifndef _CCCL_FPMP_USE_OPT_TO_DOUBLE
-    #define _CCCL_FPMP_USE_OPT_TO_DOUBLE   CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
-#endif
-
+// The public API surface (the fpmp2_accuracy selector and the CCCL_FPMP_LIB /
+// CCCL_FPMP_INLINE / CCCL_FPMP_EXPLICIT_CASTS / CCCL_FPMP_OPTIMIZED_* knobs, plus
+// their mapping to the internal switches) lives in fpmp_common.h; all
+// library-internal machinery (decorator/ABI/declaration macros, the fp128
+// plumbing, and the __fpmp_* helpers) lives in fpmp_impl.h.
 #include <cuda/__fp/fpmp_common.h>
 #include <cuda/__fp/fpmp_impl.h>
 
@@ -244,23 +182,9 @@
 namespace cuda::experimental
 {
 
-/*
-// Accuracy level for fpmp arithmetic (public). Named fpmp2_accuracy, so
-// callers write e.g. fpmp2<float, fpmp2_accuracy::high>.
-// mid is the Dekker-based split and error accumulation technique
-// high is the Thall-based split and error accumulation technique
-// low is the fast arithmetic operation without re-normalizations
-// def is the default selector; equals mid.
-*/
-enum struct fpmp2_accuracy
-{
-    unset = -1,
-    low   =  1,
-    mid   =  2,
-    high  =  3,
-    def   =  2,
-};
-
+// The public fpmp2_accuracy selector is defined in <cuda/__fp/fpmp_common.h>
+// (included above) so both this class and the arithmetic cores in fpmp_impl.h can
+// see it while every FP header stays self-contained.
 
 /*********************************************************************
  * Multi-precision 32-bit floating-point emulation type (double-float)

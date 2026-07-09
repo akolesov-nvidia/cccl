@@ -37,8 +37,7 @@
  * floating point units.    
  */
 
-#include <cuda/__fp/fpemu_common.h>
-#include <cuda/__fp/fpemu_impl_utils.h>
+#include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
 #include <cuda/std/__cccl/prologue.h>
 
@@ -60,7 +59,7 @@ namespace cuda::experimental
     // ========================================================================
 
     // Right shift keeping a sticky (jam) bit: __internal_fp64emu_shr_jam64,
-    // shared with the divide/sqrt cores (see fpemu_impl_utils.h).
+    // shared with the divide/sqrt cores (see fpemu_impl.h).
 
     /// @brief Round a 64-bit fixed-point significand (12 fractional bits) to int32 (CUDA saturation).
     template<__fpemu_rounding _Rm>
