@@ -1,28 +1,28 @@
-/*
-    limits.cpp - Unit Test for cuda::std::numeric_limits<fpmp2> specialization
-    ======================================================================================================
-    Author:  Andrei Kolesov
-    Date:    2026
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
-    This test validates the cuda::std::numeric_limits<> specialization for the multi-precision
-    double-word types fp32mp2 (double-float) and fp64mp2 (double-double).
+//===----------------------------------------------------------------------===//
+//
+//  Unit test: cuda::std::numeric_limits<fpmp2> specialization.
+//
+//  Validates the numeric_limits<> specialization for the double-word types
+//  fp32mp2 (double-float) and fp64mp2 (double-double). Compile-time static_asserts
+//  cover every reported characteristic (integer traits and the exact power-of-two
+//  hi/lo components of min()/max()/lowest()/epsilon(), plus cv-qualified and
+//  accuracy-variant forwarding). The _CCCL_HOST_DEVICE run_test() then exercises
+//  the value members at runtime on the host and, under CUDA, on the device.
+//
+//===----------------------------------------------------------------------===//
 
-    Test Approach:
-    -------------------------------------------------------------------------
-    1. Compile-time (static_assert) checks of every reported characteristic:
-       - the integer traits (digits, digits10, max_digits10, exponents, radix, flags),
-       - the exact (hi, lo) components of min()/max()/lowest()/epsilon(), which are all powers of two,
-       - cv-qualified forwarding and the low/high accuracy variants.
-       These run for both host (g++) and device (nvcc) builds.
-    2. A small host/device kernel that exercises the value members at runtime:
-       (1 + epsilon) != 1, infinity() > max(), quiet_NaN() != quiet_NaN(), lowest() < 0.
+#include <cstdio>
 
-    Conventions follow docs/libcudacxx/fp/fpmp_spec.rst: a normalized non-overlapping double-word
-    carries 2*p - 2 contiguous mantissa bits (fp32mp2 -> 46, fp64mp2 -> 104).
-*/
+#ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
+#  include <c2h/catch2_test_helper.h> // must be included in every C2H file
+#endif
 
-#include <stdio.h>
 #include <cuda/fpmp>
+
+#include "fp_test_targets.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
@@ -96,100 +96,51 @@ static constexpr fp64mp2 kMax64 = nl<fp64mp2>::max();
 static_assert(kEps32.hi() > 0.0f && kMax64.hi() > 0.0, "constexpr value members");
 
 //==========================================================================================
-// Runtime checks (host call or device kernel)
+// Runtime checks (host + device)
 //==========================================================================================
 
-#if __CUDACC__
-    #define MALLOC(x, s) cudaMallocManaged(&x, s)
-    #define FREE(x) cudaFree(x)
-    #define RUN_CHECKS(r) run_checks<<<1, 1>>>(r)
-    #define DEVICE_SYNCHRONIZE() cudaDeviceSynchronize()
-    #define TARGET_DEVICE __global__
-#else
-    #define MALLOC(x, s) x = (int*) malloc(s)
-    #define FREE(x) free(x)
-    #define RUN_CHECKS(r) run_checks(r)
-    #define DEVICE_SYNCHRONIZE()
-    #define TARGET_DEVICE
-#endif
-
-enum
+// (1 + epsilon) != 1, infinity() > max(), quiet_NaN() != quiet_NaN(), lowest() < 0.
+_CCCL_HOST_DEVICE bool run_test()
 {
-    CHK_EPS32 = 0, // (1 + epsilon) != 1 for fp32mp2
-    CHK_EPS64,     // (1 + epsilon) != 1 for fp64mp2
-    CHK_INF32,     // infinity() > max() for fp32mp2
-    CHK_NAN64,     // quiet_NaN() != quiet_NaN() for fp64mp2
-    CHK_LOWEST,    // lowest() < 0 for fp64mp2
-    NCHK
-};
+  bool ok = true;
 
-TARGET_DEVICE void run_checks(int* r)
-{
-    const fp32mp2 one32 = fp32mp2(1.0f);
-    r[CHK_EPS32] = ((one32 + nl<fp32mp2>::epsilon()) != one32) ? 1 : 0;
+  const fp32mp2 one32(1.0f);
+  ok = ok && ((one32 + nl<fp32mp2>::epsilon()) != one32);
 
-    const fp64mp2 one64 = fp64mp2(1.0);
-    r[CHK_EPS64] = ((one64 + nl<fp64mp2>::epsilon()) != one64) ? 1 : 0;
+  const fp64mp2 one64(1.0);
+  ok = ok && ((one64 + nl<fp64mp2>::epsilon()) != one64);
 
-    const double inf32 = (double) nl<fp32mp2>::infinity();
-    r[CHK_INF32] = (inf32 > (double) nl<fp32mp2>::max()) ? 1 : 0;
+  ok = ok && ((double) nl<fp32mp2>::infinity() > (double) nl<fp32mp2>::max());
 
-    const double nan64 = (double) nl<fp64mp2>::quiet_NaN();
-    r[CHK_NAN64] = (nan64 != nan64) ? 1 : 0; // NaN compares unequal to itself
+  const double nan64 = (double) nl<fp64mp2>::quiet_NaN();
+  ok                 = ok && (nan64 != nan64); // NaN compares unequal to itself
 
-    r[CHK_LOWEST] = ((double) nl<fp64mp2>::lowest() < 0.0) ? 1 : 0;
+  ok = ok && ((double) nl<fp64mp2>::lowest() < 0.0);
+
+  return ok;
 }
 
-int main()
+#if _CCCL_CUDA_COMPILATION()
+__global__ void run_test_kernel(bool* out)
 {
-    printf("  ** numeric_limits<> specialization for fp32mp2 / fp64mp2\n\n");
+  *out = run_test();
+}
+#endif // _CCCL_CUDA_COMPILATION()
 
-    printf("  fp32mp2: digits=%d digits10=%d max_digits10=%d min_exp=%d max_exp=%d\n",
-           nl<fp32mp2>::digits, nl<fp32mp2>::digits10, nl<fp32mp2>::max_digits10,
-           nl<fp32mp2>::min_exponent, nl<fp32mp2>::max_exponent);
-    printf("           min=%.6e max=%.6e epsilon=%.6e\n",
-           (double) nl<fp32mp2>::min(), (double) nl<fp32mp2>::max(), (double) nl<fp32mp2>::epsilon());
-    printf("  fp64mp2: digits=%d digits10=%d max_digits10=%d min_exp=%d max_exp=%d\n",
-           nl<fp64mp2>::digits, nl<fp64mp2>::digits10, nl<fp64mp2>::max_digits10,
-           nl<fp64mp2>::min_exponent, nl<fp64mp2>::max_exponent);
-    printf("           min=%.6e max=%.6e epsilon=%.6e\n\n",
-           (double) nl<fp64mp2>::min(), (double) nl<fp64mp2>::max(), (double) nl<fp64mp2>::epsilon());
+C2H_TEST("fpmp numeric_limits specialization", "[fpmp]")
+{
+  fp_ran_on_host();
+  REQUIRE(run_test());
 
-    int* r;
-    MALLOC(r, NCHK * sizeof(int));
-    for (int i = 0; i < NCHK; ++i)
-    {
-        r[i] = 0;
-    }
-
-    RUN_CHECKS(r);
-    DEVICE_SYNCHRONIZE();
-
-    static const char* names[NCHK] = {
-        "(1 + eps) != 1  [fp32mp2]",
-        "(1 + eps) != 1  [fp64mp2]",
-        "infinity() > max() [fp32mp2]",
-        "quiet_NaN() != quiet_NaN() [fp64mp2]",
-        "lowest() < 0    [fp64mp2]",
-    };
-
-    int fails = 0;
-    for (int i = 0; i < NCHK; ++i)
-    {
-        if (r[i])
-        {
-            printf("  PASS: %s\n", names[i]);
-        }
-        else
-        {
-            printf("  ERROR: %s\n", names[i]);
-            ++fails;
-        }
-    }
-
-    FREE(r);
-
-    printf("\n  %s (compile-time checks passed; %d/%d runtime checks passed)\n",
-           fails ? "FAILED" : "ALL PASS", NCHK - fails, NCHK);
-    return fails ? 1 : 0;
+#if _CCCL_CUDA_COMPILATION()
+  fp_ran_on_device();
+  bool* d_ok = nullptr;
+  REQUIRE_CUDART(cudaMallocManaged(&d_ok, sizeof(bool)));
+  *d_ok = false;
+  run_test_kernel<<<1, 1>>>(d_ok);
+  REQUIRE_CUDART(cudaGetLastError());
+  REQUIRE_CUDART(cudaDeviceSynchronize());
+  REQUIRE(*d_ok);
+  REQUIRE_CUDART(cudaFree(d_ok));
+#endif // _CCCL_CUDA_COMPILATION()
 }
