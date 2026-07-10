@@ -30,15 +30,15 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 
 #if _CCCL_CUDA_COMPILATION()
 
-#  define CUDA_CHECK(call)                                                             \
-    do                                                                                 \
-    {                                                                                  \
-      cudaError_t err = (call);                                                        \
-      if (err != cudaSuccess)                                                          \
-      {                                                                                \
+#  define CUDA_CHECK(call)                                                                           \
+    do                                                                                               \
+    {                                                                                                \
+      cudaError_t err = (call);                                                                      \
+      if (err != cudaSuccess)                                                                        \
+      {                                                                                              \
         ::fprintf(stderr, "CUDA error at %s:%d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
-        return false;                                                                  \
-      }                                                                                \
+        return false;                                                                                \
+      }                                                                                              \
     } while (0)
 
 // Result structures stored in managed memory.
@@ -64,14 +64,14 @@ struct ResultLong
 };
 
 // One-argument kernels: f(x) -> fpmp2
-#  define DEFINE_KERNEL_1A(name)                    \
-    template <typename MP2>                         \
+#  define DEFINE_KERNEL_1A(name)                          \
+    template <typename MP2>                               \
     __global__ void kernel_##name(double x_in, Result* r) \
-    {                                               \
-      MP2 x       = MP2(x_in);                      \
-      MP2 res     = name(x);                        \
-      r->fpmp_val = static_cast<double>(res);       \
-      r->ref_val  = ::name(x_in);                   \
+    {                                                     \
+      MP2 x       = MP2(x_in);                            \
+      MP2 res     = name(x);                              \
+      r->fpmp_val = static_cast<double>(res);             \
+      r->ref_val  = ::name(x_in);                         \
     }
 
 DEFINE_KERNEL_1A(exp)
@@ -122,43 +122,43 @@ DEFINE_KERNEL_1A(erfinv)
 DEFINE_KERNEL_1A(erfcx)
 
 // Three-argument kernels: f(a,b,c) -> fpmp2
-#  define DEFINE_KERNEL_3A(name)                                          \
-    template <typename MP2>                                               \
+#  define DEFINE_KERNEL_3A(name)                                                    \
+    template <typename MP2>                                                         \
     __global__ void kernel_##name(double a_in, double b_in, double c_in, Result* r) \
-    {                                                                     \
-      MP2 a = MP2(a_in), b = MP2(b_in), c = MP2(c_in);                    \
-      MP2 res     = name(a, b, c);                                        \
-      r->fpmp_val = static_cast<double>(res);                            \
-      r->ref_val  = ::name(a_in, b_in, c_in);                            \
+    {                                                                               \
+      MP2 a = MP2(a_in), b = MP2(b_in), c = MP2(c_in);                              \
+      MP2 res     = name(a, b, c);                                                  \
+      r->fpmp_val = static_cast<double>(res);                                       \
+      r->ref_val  = ::name(a_in, b_in, c_in);                                       \
     }
 
 DEFINE_KERNEL_3A(norm3d)
 DEFINE_KERNEL_3A(rnorm3d)
 
 // Four-argument kernels: f(a,b,c,d) -> fpmp2
-#  define DEFINE_KERNEL_4A(name)                                                     \
-    template <typename MP2>                                                          \
+#  define DEFINE_KERNEL_4A(name)                                                                 \
+    template <typename MP2>                                                                      \
     __global__ void kernel_##name(double a_in, double b_in, double c_in, double d_in, Result* r) \
-    {                                                                                \
-      MP2 a = MP2(a_in), b = MP2(b_in), c = MP2(c_in), d = MP2(d_in);                \
-      MP2 res     = name(a, b, c, d);                                                \
-      r->fpmp_val = static_cast<double>(res);                                        \
-      r->ref_val  = ::name(a_in, b_in, c_in, d_in);                                  \
+    {                                                                                            \
+      MP2 a = MP2(a_in), b = MP2(b_in), c = MP2(c_in), d = MP2(d_in);                            \
+      MP2 res     = name(a, b, c, d);                                                            \
+      r->fpmp_val = static_cast<double>(res);                                                    \
+      r->ref_val  = ::name(a_in, b_in, c_in, d_in);                                              \
     }
 
 DEFINE_KERNEL_4A(norm4d)
 DEFINE_KERNEL_4A(rnorm4d)
 
 // Two-argument kernels: f(x,y) -> fpmp2
-#  define DEFINE_KERNEL_2A(name)                                \
-    template <typename MP2>                                     \
+#  define DEFINE_KERNEL_2A(name)                                       \
+    template <typename MP2>                                            \
     __global__ void kernel_##name(double x_in, double y_in, Result* r) \
-    {                                                           \
-      MP2 x       = MP2(x_in);                                  \
-      MP2 y       = MP2(y_in);                                  \
-      MP2 res     = name(x, y);                                 \
-      r->fpmp_val = static_cast<double>(res);                  \
-      r->ref_val  = ::name(x_in, y_in);                        \
+    {                                                                  \
+      MP2 x       = MP2(x_in);                                         \
+      MP2 y       = MP2(y_in);                                         \
+      MP2 res     = name(x, y);                                        \
+      r->fpmp_val = static_cast<double>(res);                          \
+      r->ref_val  = ::name(x_in, y_in);                                \
     }
 
 DEFINE_KERNEL_2A(pow)
@@ -418,7 +418,8 @@ static bool check(const char* label, double fpmp_val, double ref_val, double tol
   }
   else
   {
-    ::printf("  FAIL  %-38s  fpmp=%.12e  ref=%.12e  (diff=%.3e)\n", label, fpmp_val, ref_val, ::fabs(fpmp_val - ref_val));
+    ::printf(
+      "  FAIL  %-38s  fpmp=%.12e  ref=%.12e  (diff=%.3e)\n", label, fpmp_val, ref_val, ::fabs(fpmp_val - ref_val));
   }
   return ok;
 }
@@ -460,40 +461,40 @@ static bool run_tests(const char* type_name, double tol)
   bool ok = true;
   ::printf("\n  ====== %s sanity test ======\n", type_name);
 
-#  define RUN_1A(name, xv)                                              \
-    kernel_##name<MP2><<<1, 1>>>(xv, r1);                               \
-    CUDA_CHECK(cudaDeviceSynchronize());                                \
-    {                                                                   \
-      char lbl[80];                                                     \
-      ::snprintf(lbl, sizeof(lbl), #name "(%.6g)", xv);                 \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;            \
+#  define RUN_1A(name, xv)                                   \
+    kernel_##name<MP2><<<1, 1>>>(xv, r1);                    \
+    CUDA_CHECK(cudaDeviceSynchronize());                     \
+    {                                                        \
+      char lbl[80];                                          \
+      ::snprintf(lbl, sizeof(lbl), #name "(%.6g)", xv);      \
+      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok; \
     }
 
-#  define RUN_2A(name, xv, yv)                                          \
-    kernel_##name<MP2><<<1, 1>>>(xv, yv, r1);                           \
-    CUDA_CHECK(cudaDeviceSynchronize());                                \
-    {                                                                   \
-      char lbl[80];                                                     \
-      ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g)", xv, yv);       \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;           \
+#  define RUN_2A(name, xv, yv)                                    \
+    kernel_##name<MP2><<<1, 1>>>(xv, yv, r1);                     \
+    CUDA_CHECK(cudaDeviceSynchronize());                          \
+    {                                                             \
+      char lbl[80];                                               \
+      ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g)", xv, yv); \
+      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;      \
     }
 
-#  define RUN_3A(name, av, bv, cv)                                      \
-    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, r1);                       \
-    CUDA_CHECK(cudaDeviceSynchronize());                                \
-    {                                                                   \
-      char lbl[80];                                                     \
+#  define RUN_3A(name, av, bv, cv)                                          \
+    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, r1);                           \
+    CUDA_CHECK(cudaDeviceSynchronize());                                    \
+    {                                                                       \
+      char lbl[80];                                                         \
       ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g, %.6g)", av, bv, cv); \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;           \
+      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;                \
     }
 
-#  define RUN_4A(name, av, bv, cv, dv)                                  \
-    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, dv, r1);                   \
-    CUDA_CHECK(cudaDeviceSynchronize());                                \
-    {                                                                   \
-      char lbl[80];                                                     \
+#  define RUN_4A(name, av, bv, cv, dv)                                                \
+    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, dv, r1);                                 \
+    CUDA_CHECK(cudaDeviceSynchronize());                                              \
+    {                                                                                 \
+      char lbl[80];                                                                   \
       ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g, %.6g, %.6g)", av, bv, cv, dv); \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;           \
+      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;                          \
     }
 
   // Exponential / Logarithmic

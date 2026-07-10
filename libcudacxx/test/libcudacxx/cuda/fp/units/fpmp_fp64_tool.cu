@@ -98,8 +98,8 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
 
   // Small difference: (1 + 1e-10) - 1.
   {
-    double a = 1.0 + 1e-10;
-    double b = 1.0;
+    double a  = 1.0 + 1e-10;
+    double b  = 1.0;
     double na = a, nb = b;
     fp64_tool ra = a, rb = b;
     r->small_diff_n = (double) (na - nb);
@@ -199,7 +199,7 @@ _CCCL_HOST_DEVICE bool verify(const TestResults& r)
   const double sqrt2        = ::cuda::std::sqrt(2.0);
   const double newton_err_n = ::cuda::std::fabs(r.newton_n - sqrt2);
   const double newton_err_r = ::cuda::std::fabs(r.newton_r - sqrt2);
-  ok = ok && (newton_err_n < 1e-14) && (newton_err_r < 1e-5) && (newton_err_r > newton_err_n);
+  ok                        = ok && (newton_err_n < 1e-14) && (newton_err_r < 1e-5) && (newton_err_r > newton_err_n);
 
   // Bit patterns: reduced zeroes the low 29 bits, native keeps some.
   const ::cuda::std::uint64_t low_29_mask = (1ULL << 29) - 1;

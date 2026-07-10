@@ -90,10 +90,10 @@ _CCCL_HOST_DEVICE bool run_test()
   // Large cancellation: high accuracy must be at least as good as low.
   {
     fp32mp2_low ca(a), cb(b);
-    const double exact  = a + b;
-    const double efast  = ::cuda::std::fabs((double) add<fpmp2_accuracy::low>(ca, cb) - exact);
-    const double eacc   = ::cuda::std::fabs((double) add<fpmp2_accuracy::high>(ca, cb) - exact);
-    ok                  = ok && (eacc <= efast);
+    const double exact = a + b;
+    const double efast = ::cuda::std::fabs((double) add<fpmp2_accuracy::low>(ca, cb) - exact);
+    const double eacc  = ::cuda::std::fabs((double) add<fpmp2_accuracy::high>(ca, cb) - exact);
+    ok                 = ok && (eacc <= efast);
   }
 
   return ok;

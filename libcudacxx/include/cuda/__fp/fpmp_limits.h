@@ -53,14 +53,13 @@
 
 namespace cuda::experimental
 {
-
 // constexpr 2^__e for FpType (host/device, no <cmath>). __e is small in magnitude here and every
 // result used by the numeric_limits specialization is an exact power of two, so the repeated product
 // is exact.
 template <class _FpType>
 [[nodiscard]] _CCCL_API constexpr _FpType __fpmp_limits_exp2(int __e) noexcept
 {
-  _FpType __r = _FpType(1);
+  _FpType __r          = _FpType(1);
   const _FpType __base = (__e < 0) ? _FpType(0.5) : _FpType(2);
   const int __n        = (__e < 0) ? -__e : __e;
   for (int __i = 0; __i < __n; ++__i)
@@ -69,7 +68,6 @@ template <class _FpType>
   }
   return __r;
 }
-
 } // namespace cuda::experimental
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD
@@ -88,7 +86,7 @@ public:
 
   static constexpr bool is_signed = true;
   // A non-overlapping double-word carries 2*p - 2 contiguous mantissa bits.
-  static constexpr int digits       = 2 * __base::digits - 2;
+  static constexpr int digits = 2 * __base::digits - 2;
 
   // Both decimal-digit counts convert `digits` via log10(2), approximated by 30103/100000 (as CCCL's
   // float/double specializations do); the `l` suffix promotes to long so the product can't overflow int.
@@ -110,11 +108,13 @@ public:
   // Largest value: hi = FpType_max, plus the largest lo that keeps (hi, lo) non-overlapping.
   _CCCL_API static constexpr type max() noexcept
   {
-    return type(__base::max(), __base::max() * ::cuda::experimental::__fpmp_limits_exp2<_FpType>(-(__base::digits + 1)));
+    return type(__base::max(),
+                __base::max() * ::cuda::experimental::__fpmp_limits_exp2<_FpType>(-(__base::digits + 1)));
   }
   _CCCL_API static constexpr type lowest() noexcept
   {
-    return type(-__base::max(), -(__base::max() * ::cuda::experimental::__fpmp_limits_exp2<_FpType>(-(__base::digits + 1))));
+    return type(-__base::max(),
+                -(__base::max() * ::cuda::experimental::__fpmp_limits_exp2<_FpType>(-(__base::digits + 1))));
   }
 
   static constexpr bool is_integer = false;

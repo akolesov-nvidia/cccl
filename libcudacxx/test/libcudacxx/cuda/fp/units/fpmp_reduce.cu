@@ -13,8 +13,8 @@
 //===----------------------------------------------------------------------===//
 
 #include <cmath>
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 #include <vector>
 
 #ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
@@ -29,21 +29,21 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 
 #if _CCCL_CUDA_COMPILATION()
 #  include <cooperative_groups.h>
+
 #  include <cooperative_groups/reduce.h>
 
 template <int subwarp_size, typename mp_type>
 __global__ void test_reduce_kernel(unsigned int seed, mp_type* res)
 {
-  namespace cg         = cooperative_groups;
-  auto this_block      = cg::this_thread_block();
-  auto subwarp         = cg::tiled_partition<subwarp_size>(this_block);
-  const auto thread_id = this_block.thread_rank();
+  namespace cg            = cooperative_groups;
+  auto this_block         = cg::this_thread_block();
+  auto subwarp            = cg::tiled_partition<subwarp_size>(this_block);
+  const auto thread_id    = this_block.thread_rank();
   const mp_type to_reduce = seed + thread_id;
 
-  mp_type result =
-    cg::reduce(subwarp, to_reduce, [](const mp_type& a, const mp_type& b) -> mp_type {
-      return a + b;
-    });
+  mp_type result = cg::reduce(subwarp, to_reduce, [](const mp_type& a, const mp_type& b) -> mp_type {
+    return a + b;
+  });
   if (subwarp.thread_rank() == 0)
   {
     res[thread_id / subwarp_size] = result;
@@ -53,7 +53,7 @@ __global__ void test_reduce_kernel(unsigned int seed, mp_type* res)
 template <int subwarp_size, typename mp_type>
 static bool test_reduce(int num_threads)
 {
-  const int num_subwarps = (num_threads + subwarp_size - 1) / subwarp_size;
+  const int num_subwarps  = (num_threads + subwarp_size - 1) / subwarp_size;
   const unsigned int seed = 10;
 
   mp_type* d_res = nullptr;

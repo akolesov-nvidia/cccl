@@ -33,343 +33,501 @@
 
 #include <cuda/__fp/fpmp_impl.h>
 #include <cuda/__fp/fpmp_impl_muladd.h> // div/sqrt reuse __fpmp2_low_mul (muladd family)
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
 {
-
 #if !(defined _CCCL_FPMP_USE_LIB)
-    /*
-    * --------------------------------------------------------------------
-    * Division operations
-    * --------------------------------------------------------------------
-    */
-    template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_low_div (const _FpType __a_hi, 
-                                            const _FpType __a_lo, 
-                                            const _FpType __b_hi, 
-                                            const _FpType __b_lo, 
-                                            _FpType*      __res_hi, 
-                                            _FpType*      __res_lo) noexcept
-    {
+/*
+ * --------------------------------------------------------------------
+ * Division operations
+ * --------------------------------------------------------------------
+ */
+template <typename _FpType = float>
+_CCCL_TRIVIAL_API void __fpmp2_low_div(
+  const _FpType __a_hi,
+  const _FpType __a_lo,
+  const _FpType __b_hi,
+  const _FpType __b_lo,
+  _FpType* __res_hi,
+  _FpType* __res_lo) noexcept
+{
+  // Get an estimate from *this->hi:
+  _FpType __recip_hi = __fpmp_rcp_rn(__b_hi);
 
-        // Get an estimate from *this->hi:
-        _FpType __recip_hi = __fpmp_rcp_rn(__b_hi);
+  // Do a Newton-Rhapson iteration:
+  // This line can break for some uninvestigated reason,
+  // Use the one below:
+  // recip_hi = recip_hi*(2.0 - (x.get_hi())*recip_hi);
+  _FpType __two = static_cast<_FpType>(2.0);
+  __recip_hi    = __fpmp_fma_rn(-__b_hi * __recip_hi, __recip_hi, __two * __recip_hi);
 
-        // Do a Newton-Rhapson iteration:
-        // This line can break for some uninvestigated reason,
-        // Use the one below:
-        //recip_hi = recip_hi*(2.0 - (x.get_hi())*recip_hi);
-        _FpType __two = static_cast<_FpType>(2.0);
-        __recip_hi = __fpmp_fma_rn(-__b_hi*__recip_hi, __recip_hi, __two*__recip_hi);
+  _FpType __recip2_hi = __recip_hi * __recip_hi;
+  _FpType __recip2_lo = __fpmp_fma_rn(__recip_hi, __recip_hi, -__recip2_hi);
 
-        _FpType __recip2_hi = __recip_hi*__recip_hi;
-        _FpType __recip2_lo = __fpmp_fma_rn(__recip_hi, __recip_hi, -__recip2_hi);
+  // recip^2 * this->(hi/lo), Dekker multiplication:
+  _FpType __mul_hi = __recip2_hi * (__b_hi);
+  _FpType __mul_lo = __fpmp_fma_rn(__recip2_hi, (__b_hi), -__mul_hi);
+  __mul_lo += (__recip2_hi * (__b_lo) + __recip2_lo * (__b_hi));
 
-        // recip^2 * this->(hi/lo), Dekker multiplication:
-        _FpType __mul_hi = __recip2_hi*(__b_hi);
-        _FpType __mul_lo = __fpmp_fma_rn(__recip2_hi, (__b_hi), -__mul_hi);
-        __mul_lo       += (__recip2_hi*(__b_lo) + __recip2_lo*(__b_hi));
+  // Our answer is now 2*recip_hi + mul_hi + mul_lo
+  _FpType __final_recip_hi = __two * __recip_hi - __mul_hi;
+  _FpType __final_recip_lo = __two * __recip_hi - __fpmp_add_rn(__final_recip_hi, __mul_hi);
+  __final_recip_lo -= __mul_lo;
 
-        // Our answer is now 2*recip_hi + mul_hi + mul_lo
-        _FpType __final_recip_hi = __two*__recip_hi - __mul_hi;
-        _FpType __final_recip_lo = __two*__recip_hi - __fpmp_add_rn(__final_recip_hi, __mul_hi);
-        __final_recip_lo       -= __mul_lo;
+  // Multiply the reciprocal by the numerator
+  __fpmp2_low_mul(__a_hi, __a_lo, __final_recip_hi, __final_recip_lo, __res_hi, __res_lo);
+} // __fpmp2_low_div
 
-        // Multiply the reciprocal by the numerator
-        __fpmp2_low_mul(__a_hi, __a_lo, __final_recip_hi, __final_recip_lo, __res_hi, __res_lo);
-    } // __fpmp2_low_div
+/* Compute high-accuracy quotient, using Newton-
+Raphson iteration. Derived from: T. Nagai, H. Yoshida, H. Kuroda, Y. Kanada.
+Fast Quadruple Precision Arithmetic Library on Parallel Computer SR11000/J2.
+In Proceedings of the 8th International Conference on Computational Science,
+ICCS '08, Part I, pp. 446-455.
+*/
+template <typename _FpType = float>
+_CCCL_TRIVIAL_API void __fpmp2_div(
+  const _FpType __a_hi,
+  const _FpType __a_lo,
+  const _FpType __b_hi,
+  const _FpType __b_lo,
+  _FpType* __res_hi,
+  _FpType* __res_lo) noexcept
+{
+  _FpType __t_hi, __t_lo;
+  _FpType __e, __r;
+  __r    = __fpmp_rcp_rn(__b_hi);
+  __t_hi = __fpmp_mul_rn(__a_hi, __r);
+  __e    = __fpmp_fma_rn(__b_hi, -__t_hi, __a_hi);
+  __t_hi = __fpmp_fma_rn(__r, __e, __t_hi);
+  __t_lo = __fpmp_fma_rn(__b_hi, -__t_hi, __a_hi);
+  __t_lo = __fpmp_add_rn(__a_lo, __t_lo);
+  __t_lo = __fpmp_fma_rn(__b_lo, -__t_hi, __t_lo);
+  __e    = __fpmp_mul_rn(__r, __t_lo);
+  __t_lo = __fpmp_fma_rn(__b_hi, -__e, __t_lo);
+  __t_lo = __fpmp_fma_rn(__r, __t_lo, __e);
+  __e    = __fpmp_add_rn(__t_hi, __t_lo);
 
+  *__res_lo = __fpmp_add_rn(__t_hi - __e, __t_lo);
+  *__res_hi = __e;
+} // __fpmp2_div
 
-    /* Compute high-accuracy quotient, using Newton-
-    Raphson iteration. Derived from: T. Nagai, H. Yoshida, H. Kuroda, Y. Kanada.
-    Fast Quadruple Precision Arithmetic Library on Parallel Computer SR11000/J2.
-    In Proceedings of the 8th International Conference on Computational Science,
-    ICCS '08, Part I, pp. 446-455.
-    */
-    template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_div (const _FpType __a_hi, 
-                                        const _FpType __a_lo, 
-                                        const _FpType __b_hi, 
-                                        const _FpType __b_lo, 
-                                        _FpType*      __res_hi, 
-                                        _FpType*      __res_lo) noexcept
-    {
+#  if _CCCL_FPMP_USE_ACCURATE_DIV == 1
+/*
+ * --------------------------------------------------------------------
+ * Accurate Division with Conditional Scaling
+ * --------------------------------------------------------------------
+ * This implementation handles division when operands are near the
+ * denormal range by using branch-free conditional scaling.
+ *
+ * For division a/b:
+ *   - If 'a' is small (near denormal), intermediate computations may
+ *     lose precision due to denormal arithmetic
+ *   - If 'b' is small, the reciprocal computation is affected
+ *   - The result exponent is approximately exp(a) - exp(b)
+ *
+ * Strategy:
+ *   1. Check if either operand is in the "danger zone" (small exponent)
+ *   2. Scale the small operand up before division
+ *   3. Perform division using the Nagai et al. algorithm
+ *   4. Scale the result back
+ *
+ * Reference:
+ *   Nagai, Yoshida, Kuroda, Kanada (2008). Fast Quadruple Precision
+ *   Arithmetic Library on Parallel Computer SR11000/J2.
+ *   Conditional scaling adapted from QD library techniques.
+ */
+template <typename _FpType = float>
+_CCCL_TRIVIAL_API void __fpmp2_high_div(
+  const _FpType __a_hi,
+  const _FpType __a_lo,
+  const _FpType __b_hi,
+  const _FpType __b_lo,
+  _FpType* __res_hi,
+  _FpType* __res_lo) noexcept
+{
+  // Type-specific constants for conditional scaling
+  using UintType = ::cuda::std::conditional_t<::cuda::std::is_same_v<_FpType, float>, uint32_t, uint64_t>;
 
-        _FpType __t_hi, __t_lo;
-        _FpType __e, __r;
-        __r          = __fpmp_rcp_rn(__b_hi);
-        __t_hi       = __fpmp_mul_rn (__a_hi, __r);
-        __e          = __fpmp_fma_rn (__b_hi, -__t_hi, __a_hi);
-        __t_hi       = __fpmp_fma_rn (__r, __e, __t_hi);
-        __t_lo       = __fpmp_fma_rn (__b_hi, -__t_hi, __a_hi);
-        __t_lo       = __fpmp_add_rn (__a_lo, __t_lo);
-        __t_lo       = __fpmp_fma_rn (__b_lo, -__t_hi, __t_lo);
-        __e          = __fpmp_mul_rn (__r, __t_lo);
-        __t_lo       = __fpmp_fma_rn (__b_hi, -__e, __t_lo);
-        __t_lo       = __fpmp_fma_rn (__r, __t_lo, __e);
-        __e          = __fpmp_add_rn (__t_hi, __t_lo);
+  constexpr int __exp_bits      = ::cuda::std::is_same_v<_FpType, float> ? 8 : 11;
+  constexpr int __mant_bits     = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
+  constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
 
-        *__res_lo    = __fpmp_add_rn (__t_hi - __e, __t_lo);
-        *__res_hi    = __e;
-    } // __fpmp2_div
+  // Threshold for scaling: exponent < threshold means we should scale up
+  // For float: if exp < 32 (value < 2^-95), scale up by 2^64
+  // For double: if exp < 64 (value < 2^-959), scale up by 2^512
+  constexpr int __exp_threshold_low = ::cuda::std::is_same_v<_FpType, float> ? 32 : 64;
 
-#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-    /*
-    * --------------------------------------------------------------------
-    * Accurate Division with Conditional Scaling
-    * --------------------------------------------------------------------
-    * This implementation handles division when operands are near the 
-    * denormal range by using branch-free conditional scaling.
-    *
-    * For division a/b:
-    *   - If 'a' is small (near denormal), intermediate computations may
-    *     lose precision due to denormal arithmetic
-    *   - If 'b' is small, the reciprocal computation is affected
-    *   - The result exponent is approximately exp(a) - exp(b)
-    *
-    * Strategy:
-    *   1. Check if either operand is in the "danger zone" (small exponent)
-    *   2. Scale the small operand up before division
-    *   3. Perform division using the Nagai et al. algorithm
-    *   4. Scale the result back
-    *
-    * Reference:
-    *   Nagai, Yoshida, Kuroda, Kanada (2008). Fast Quadruple Precision
-    *   Arithmetic Library on Parallel Computer SR11000/J2.
-    *   Conditional scaling adapted from QD library techniques.
-    */
-    template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_high_div (const _FpType __a_hi, 
-                                             const _FpType __a_lo, 
-                                             const _FpType __b_hi, 
-                                             const _FpType __b_lo, 
-                                             _FpType*      __res_hi, 
-                                             _FpType*      __res_lo) noexcept
-    {
+  // Scale factors
+  constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
+  constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
 
-        
-        // Type-specific constants for conditional scaling
-        using UintType = ::cuda::std::conditional_t<::cuda::std::is_same_v<_FpType, float>, uint32_t, uint64_t>;
-        
-        constexpr int __exp_bits   = ::cuda::std::is_same_v<_FpType, float> ? 8 : 11;
-        constexpr int __mant_bits  = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
-        constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
-        
-        // Threshold for scaling: exponent < threshold means we should scale up
-        // For float: if exp < 32 (value < 2^-95), scale up by 2^64
-        // For double: if exp < 64 (value < 2^-959), scale up by 2^512
-        constexpr int __exp_threshold_low = ::cuda::std::is_same_v<_FpType, float> ? 32 : 64;
-        
-        // Scale factors
-        constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f)  : _FpType(0x1.0p512);
-        constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
-        
-        // Extract exponents
-        UintType __a_bits = __fpmp_internal_bit_cast<UintType>(__a_hi);
-        UintType __b_bits = __fpmp_internal_bit_cast<UintType>(__b_hi);
-        int __a_exp = static_cast<int>((__a_bits & __exp_mask) >> __mant_bits);
-        int __b_exp = static_cast<int>((__b_bits & __exp_mask) >> __mant_bits);
-        
-        // Branch-free: create mask for whether 'a' needs scaling
-        // needs_scale_a = -1 if a_exp < exp_threshold_low, 0 otherwise
-        int __needs_scale_a = (__a_exp - __exp_threshold_low) >> 31;
-        
-        // Branch-free: create mask for whether 'b' needs scaling
-        // needs_scale_b = -1 if b_exp < exp_threshold_low, 0 otherwise
-        int __needs_scale_b = (__b_exp - __exp_threshold_low) >> 31;
-        
-        // Select scale factors for 'a' (branch-free)
-        UintType __scale_up_bits = __fpmp_internal_bit_cast<UintType>(__scale_up);
-        UintType __one_bits      = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
-        UintType __scale_a_bits  = (__scale_up_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
-        _FpType __scale_a         = __fpmp_internal_bit_cast<_FpType>(__scale_a_bits);
-        
-        // Select scale factors for 'b' (branch-free)
-        UintType __scale_b_bits  = (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
-        _FpType __scale_b         = __fpmp_internal_bit_cast<_FpType>(__scale_b_bits);
-        
-        // Scale operands
-        _FpType __sa_hi = __fpmp_mul_rn(__a_hi, __scale_a);
-        _FpType __sa_lo = __fpmp_mul_rn(__a_lo, __scale_a);
-        _FpType __sb_hi = __fpmp_mul_rn(__b_hi, __scale_b);
-        _FpType __sb_lo = __fpmp_mul_rn(__b_lo, __scale_b);
-        
-        // Perform division on scaled operands using Nagai et al. algorithm
-        _FpType __t_hi, __t_lo;
-        _FpType __e, __r;
-        __r          = __fpmp_rcp_rn(__sb_hi);
-        __t_hi       = __fpmp_mul_rn (__sa_hi, __r);
-        __e          = __fpmp_fma_rn (__sb_hi, -__t_hi, __sa_hi);
-        __t_hi       = __fpmp_fma_rn (__r, __e, __t_hi);
-        __t_lo       = __fpmp_fma_rn (__sb_hi, -__t_hi, __sa_hi);
-        __t_lo       = __fpmp_add_rn (__sa_lo, __t_lo);
-        __t_lo       = __fpmp_fma_rn (__sb_lo, -__t_hi, __t_lo);
-        __e          = __fpmp_mul_rn (__r, __t_lo);
-        __t_lo       = __fpmp_fma_rn (__sb_hi, -__e, __t_lo);
-        __t_lo       = __fpmp_fma_rn (__r, __t_lo, __e);
-        __e          = __fpmp_add_rn (__t_hi, __t_lo);
-        
-        _FpType __r_hi = __e;
-        _FpType __r_lo = __fpmp_add_rn (__t_hi - __e, __t_lo);
-        
-        // Compute result scale factor: inv_scale = scale_b / scale_a
-        // If a was scaled up, result should be scaled down
-        // If b was scaled up, result should be scaled up (since we divided by larger b)
-        UintType __scale_down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
-        
-        // For 'a' scaling: if we scaled a up, scale result down
-        UintType __inv_scale_a_bits = (__scale_down_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
-        _FpType __inv_scale_a        = __fpmp_internal_bit_cast<_FpType>(__inv_scale_a_bits);
-        
-        // For 'b' scaling: if we scaled b up, scale result up (compensate)
-        UintType __comp_scale_b_bits = (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
-        _FpType __comp_scale_b        = __fpmp_internal_bit_cast<_FpType>(__comp_scale_b_bits);
-        
-        // Combined scale factor
-        _FpType __final_scale = __fpmp_mul_rn(__inv_scale_a, __comp_scale_b);
-        
-        // Scale result back
-        __r_hi = __fpmp_mul_rn(__r_hi, __final_scale);
-        __r_lo = __fpmp_mul_rn(__r_lo, __final_scale);
-        
-        // Final normalization to ensure (hi, lo) invariant after scaling
-        *__res_hi = __fpmp_fast_two_sum(__r_hi, __r_lo, __res_lo);
-    } // __fpmp2_high_div
-#endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+  // Extract exponents
+  UintType __a_bits = __fpmp_internal_bit_cast<UintType>(__a_hi);
+  UintType __b_bits = __fpmp_internal_bit_cast<UintType>(__b_hi);
+  int __a_exp       = static_cast<int>((__a_bits & __exp_mask) >> __mant_bits);
+  int __b_exp       = static_cast<int>((__b_bits & __exp_mask) >> __mant_bits);
 
-    /*
-    * --------------------------------------------------------------------
-    * Square root & reciprocal square root operations
-    * --------------------------------------------------------------------
-    */
-    /*
-    iteration based on equation 4 from a paper by Alan Karp and Peter Markstein,
-    High Precision Division and Square Root, ACM TOMS, vol. 23, no. 4, December
-    1997, pp. 561-589.
-    */
-    template<typename _FpType = float>
-    _CCCL_TRIVIAL_API  void __fpmp2_rsqrt (const _FpType __a_hi, 
-                                           const _FpType __a_lo, 
-                                           _FpType*      __res_hi, 
-                                           _FpType*      __res_lo) noexcept
-    {
+  // Branch-free: create mask for whether 'a' needs scaling
+  // needs_scale_a = -1 if a_exp < exp_threshold_low, 0 otherwise
+  int __needs_scale_a = (__a_exp - __exp_threshold_low) >> 31;
 
-        _FpType __z_hi, __z_lo;
-        _FpType __r, __s, __e;
-        _FpType __one = static_cast<_FpType>(1.0);
-        _FpType __half = static_cast<_FpType>(0.5);
-        __r    = __fpmp_rsqrt_rn(__a_hi);
-        __e    = __fpmp_mul_rn (__a_hi, __r);
-        __s    = __fpmp_fma_rn (__e, -__r, __one);
-        __e    = __fpmp_fma_rn (__a_hi, __r, -__e);
-        __s    = __fpmp_fma_rn (__e, -__r, __s);
-        __e    = __fpmp_mul_rn (__a_lo, __r);
-        __s    = __fpmp_fma_rn (__e, -__r, __s);
-        __e    = __fpmp_mul_rn (__half, __r);
-        __z_hi = __fpmp_mul_rn (__e, __s);
-        __z_lo = __fpmp_fma_rn (__e, __s, -__z_hi);
-        __s    = __fpmp_add_rn (__r, __z_hi);
-        __r    = __fpmp_add_rn (__r, -__s);
-        __r    = __fpmp_add_rn (__r, __z_hi);
-        __r    = __fpmp_add_rn (__r, __z_lo);
-        __e    = __fpmp_add_rn (__s, __r);
-        __z_lo = __fpmp_add_rn (__s - __e, __r);
-        __z_hi = __e;
+  // Branch-free: create mask for whether 'b' needs scaling
+  // needs_scale_b = -1 if b_exp < exp_threshold_low, 0 otherwise
+  int __needs_scale_b = (__b_exp - __exp_threshold_low) >> 31;
 
-        *__res_hi = __z_hi;
-        *__res_lo = __z_lo;
-    } // __fpmp2_rsqrt
+  // Select scale factors for 'a' (branch-free)
+  UintType __scale_up_bits = __fpmp_internal_bit_cast<UintType>(__scale_up);
+  UintType __one_bits      = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
+  UintType __scale_a_bits  = (__scale_up_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
+  _FpType __scale_a        = __fpmp_internal_bit_cast<_FpType>(__scale_a_bits);
 
-    /* Compute high-accuracy square root. Newton-Raphson
-    iteration based on equation 4 from a paper by Alan Karp and Peter Markstein,
-    High Precision Division and Square Root, ACM TOMS, vol. 23, no. 4, December
-    1997, pp. 561-589.
-    */    
-    template<typename _FpType = float>
-    _CCCL_TRIVIAL_API  void __fpmp2_sqrt (const _FpType __a_hi, 
-                                          const _FpType __a_lo, 
-                                          _FpType*      __res_hi, 
-                                          _FpType*      __res_lo) noexcept
-    { 
+  // Select scale factors for 'b' (branch-free)
+  UintType __scale_b_bits = (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
+  _FpType __scale_b       = __fpmp_internal_bit_cast<_FpType>(__scale_b_bits);
 
-        _FpType __t_hi, __t_lo, __tmp_lo;
-        _FpType __e, __y, __s, __r;
-        _FpType __zero = static_cast<_FpType>(0.0);
-        _FpType __half = static_cast<_FpType>(0.5);
-        __r = __fpmp_rsqrt_rn(__a_hi);
-        if (__a_hi == __zero) __r = __zero;
-        __y           = __fpmp_mul_rn (__a_hi, __r);
-        __s           = __fpmp_fma_rn (__y, -__y, __a_hi);
-        __r           = __fpmp_mul_rn (__half, __r);
-        __e           = __fpmp_add_rn (__s, __a_lo);
-        __tmp_lo      = __fpmp_add_rn (__s - __e, __a_lo);
-        __t_hi        = __fpmp_mul_rn (__r, __e);
-        __t_lo        = __fpmp_fma_rn (__r, __e, -__t_hi);
-        __t_lo        = __fpmp_fma_rn (__r, __tmp_lo, __t_lo);
-        __r           = __fpmp_add_rn (__y, __t_hi);
-        __s           = __fpmp_add_rn (__y - __r, __t_hi);
-        __s           = __fpmp_add_rn (__s, __t_lo);
-        __e           = __fpmp_add_rn (__r, __s);
+  // Scale operands
+  _FpType __sa_hi = __fpmp_mul_rn(__a_hi, __scale_a);
+  _FpType __sa_lo = __fpmp_mul_rn(__a_lo, __scale_a);
+  _FpType __sb_hi = __fpmp_mul_rn(__b_hi, __scale_b);
+  _FpType __sb_lo = __fpmp_mul_rn(__b_lo, __scale_b);
 
-        *__res_lo    = __fpmp_add_rn (__r - __e, __s);
-        *__res_hi    = __e;
-    } // __fpmp2_sqrt
+  // Perform division on scaled operands using Nagai et al. algorithm
+  _FpType __t_hi, __t_lo;
+  _FpType __e, __r;
+  __r    = __fpmp_rcp_rn(__sb_hi);
+  __t_hi = __fpmp_mul_rn(__sa_hi, __r);
+  __e    = __fpmp_fma_rn(__sb_hi, -__t_hi, __sa_hi);
+  __t_hi = __fpmp_fma_rn(__r, __e, __t_hi);
+  __t_lo = __fpmp_fma_rn(__sb_hi, -__t_hi, __sa_hi);
+  __t_lo = __fpmp_add_rn(__sa_lo, __t_lo);
+  __t_lo = __fpmp_fma_rn(__sb_lo, -__t_hi, __t_lo);
+  __e    = __fpmp_mul_rn(__r, __t_lo);
+  __t_lo = __fpmp_fma_rn(__sb_hi, -__e, __t_lo);
+  __t_lo = __fpmp_fma_rn(__r, __t_lo, __e);
+  __e    = __fpmp_add_rn(__t_hi, __t_lo);
+
+  _FpType __r_hi = __e;
+  _FpType __r_lo = __fpmp_add_rn(__t_hi - __e, __t_lo);
+
+  // Compute result scale factor: inv_scale = scale_b / scale_a
+  // If a was scaled up, result should be scaled down
+  // If b was scaled up, result should be scaled up (since we divided by larger b)
+  UintType __scale_down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
+
+  // For 'a' scaling: if we scaled a up, scale result down
+  UintType __inv_scale_a_bits =
+    (__scale_down_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
+  _FpType __inv_scale_a = __fpmp_internal_bit_cast<_FpType>(__inv_scale_a_bits);
+
+  // For 'b' scaling: if we scaled b up, scale result up (compensate)
+  UintType __comp_scale_b_bits =
+    (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
+  _FpType __comp_scale_b = __fpmp_internal_bit_cast<_FpType>(__comp_scale_b_bits);
+
+  // Combined scale factor
+  _FpType __final_scale = __fpmp_mul_rn(__inv_scale_a, __comp_scale_b);
+
+  // Scale result back
+  __r_hi = __fpmp_mul_rn(__r_hi, __final_scale);
+  __r_lo = __fpmp_mul_rn(__r_lo, __final_scale);
+
+  // Final normalization to ensure (hi, lo) invariant after scaling
+  *__res_hi = __fpmp_fast_two_sum(__r_hi, __r_lo, __res_lo);
+} // __fpmp2_high_div
+#  endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+
+/*
+ * --------------------------------------------------------------------
+ * Square root & reciprocal square root operations
+ * --------------------------------------------------------------------
+ */
+/*
+iteration based on equation 4 from a paper by Alan Karp and Peter Markstein,
+High Precision Division and Square Root, ACM TOMS, vol. 23, no. 4, December
+1997, pp. 561-589.
+*/
+template <typename _FpType = float>
+_CCCL_TRIVIAL_API void
+__fpmp2_rsqrt(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+{
+  _FpType __z_hi, __z_lo;
+  _FpType __r, __s, __e;
+  _FpType __one  = static_cast<_FpType>(1.0);
+  _FpType __half = static_cast<_FpType>(0.5);
+  __r            = __fpmp_rsqrt_rn(__a_hi);
+  __e            = __fpmp_mul_rn(__a_hi, __r);
+  __s            = __fpmp_fma_rn(__e, -__r, __one);
+  __e            = __fpmp_fma_rn(__a_hi, __r, -__e);
+  __s            = __fpmp_fma_rn(__e, -__r, __s);
+  __e            = __fpmp_mul_rn(__a_lo, __r);
+  __s            = __fpmp_fma_rn(__e, -__r, __s);
+  __e            = __fpmp_mul_rn(__half, __r);
+  __z_hi         = __fpmp_mul_rn(__e, __s);
+  __z_lo         = __fpmp_fma_rn(__e, __s, -__z_hi);
+  __s            = __fpmp_add_rn(__r, __z_hi);
+  __r            = __fpmp_add_rn(__r, -__s);
+  __r            = __fpmp_add_rn(__r, __z_hi);
+  __r            = __fpmp_add_rn(__r, __z_lo);
+  __e            = __fpmp_add_rn(__s, __r);
+  __z_lo         = __fpmp_add_rn(__s - __e, __r);
+  __z_hi         = __e;
+
+  *__res_hi = __z_hi;
+  *__res_lo = __z_lo;
+} // __fpmp2_rsqrt
+
+/* Compute high-accuracy square root. Newton-Raphson
+iteration based on equation 4 from a paper by Alan Karp and Peter Markstein,
+High Precision Division and Square Root, ACM TOMS, vol. 23, no. 4, December
+1997, pp. 561-589.
+*/
+template <typename _FpType = float>
+_CCCL_TRIVIAL_API void
+__fpmp2_sqrt(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+{
+  _FpType __t_hi, __t_lo, __tmp_lo;
+  _FpType __e, __y, __s, __r;
+  _FpType __zero = static_cast<_FpType>(0.0);
+  _FpType __half = static_cast<_FpType>(0.5);
+  __r            = __fpmp_rsqrt_rn(__a_hi);
+  if (__a_hi == __zero)
+  {
+    __r = __zero;
+  }
+  __y      = __fpmp_mul_rn(__a_hi, __r);
+  __s      = __fpmp_fma_rn(__y, -__y, __a_hi);
+  __r      = __fpmp_mul_rn(__half, __r);
+  __e      = __fpmp_add_rn(__s, __a_lo);
+  __tmp_lo = __fpmp_add_rn(__s - __e, __a_lo);
+  __t_hi   = __fpmp_mul_rn(__r, __e);
+  __t_lo   = __fpmp_fma_rn(__r, __e, -__t_hi);
+  __t_lo   = __fpmp_fma_rn(__r, __tmp_lo, __t_lo);
+  __r      = __fpmp_add_rn(__y, __t_hi);
+  __s      = __fpmp_add_rn(__y - __r, __t_hi);
+  __s      = __fpmp_add_rn(__s, __t_lo);
+  __e      = __fpmp_add_rn(__r, __s);
+
+  *__res_lo = __fpmp_add_rn(__r - __e, __s);
+  *__res_hi = __e;
+} // __fpmp2_sqrt
 
 #else // _CCCL_FPMP_USE_LIB
 
-    // -- fp32 (single precision) built-in declarations --
-_CCCL_FPMP_BUILTIN_DECL void     __fp32mp2_div(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept;
-_CCCL_FPMP_BUILTIN_DECL void     __fp32mp2_mid_div(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept;
-_CCCL_FPMP_BUILTIN_DECL void     __fp32mp2_low_div(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept;
-#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-_CCCL_FPMP_BUILTIN_DECL void     __fp32mp2_high_div(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept;
-#endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
-_CCCL_FPMP_BUILTIN_DECL void     __fp32mp2_sqrt(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept;
-_CCCL_FPMP_BUILTIN_DECL void     __fp32mp2_rsqrt(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept;
+// -- fp32 (single precision) built-in declarations --
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_div(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_mid_div(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_low_div(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept;
+#  if _CCCL_FPMP_USE_ACCURATE_DIV == 1
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_high_div(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept;
+#  endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+_CCCL_FPMP_BUILTIN_DECL void
+__fp32mp2_sqrt(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void
+__fp32mp2_rsqrt(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept;
 
-    // -- fp64 (double precision) built-in declarations --
-    _CCCL_FPMP_BUILTIN_DECL void     __fp64mp2_div(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept;
-    _CCCL_FPMP_BUILTIN_DECL void     __fp64mp2_mid_div(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept;
-    _CCCL_FPMP_BUILTIN_DECL void     __fp64mp2_low_div(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept;
-#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-    _CCCL_FPMP_BUILTIN_DECL void     __fp64mp2_high_div(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept;
-#endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
-    _CCCL_FPMP_BUILTIN_DECL void     __fp64mp2_sqrt(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept;
-    _CCCL_FPMP_BUILTIN_DECL void     __fp64mp2_rsqrt(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept;
+// -- fp64 (double precision) built-in declarations --
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_div(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_mid_div(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_low_div(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept;
+#  if _CCCL_FPMP_USE_ACCURATE_DIV == 1
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_high_div(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept;
+#  endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+_CCCL_FPMP_BUILTIN_DECL void
+__fp64mp2_sqrt(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void
+__fp64mp2_rsqrt(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept;
 
-    // -- type-generic template declarations (dispatch to fp32/fp64) --
-template<typename _Tp> _CCCL_API inline void     __fpmp2_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
-template<typename _Tp> _CCCL_API inline void     __fpmp2_mid_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
-template<typename _Tp> _CCCL_API inline void     __fpmp2_low_div(const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
-#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-template<typename T> _CCCL_API inline void     __fpmp2_high_div(const T __a_hi, const T __a_lo, const T __b_hi, const T __b_lo, T* __res_hi, T* __res_lo) noexcept;
-#endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
-template<typename _Tp> _CCCL_API inline void     __fpmp2_sqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
-template<typename _Tp> _CCCL_API inline void     __fpmp2_rsqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+// -- type-generic template declarations (dispatch to fp32/fp64) --
+template <typename _Tp>
+_CCCL_API inline void __fpmp2_div(
+  const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+template <typename _Tp>
+_CCCL_API inline void __fpmp2_mid_div(
+  const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+template <typename _Tp>
+_CCCL_API inline void __fpmp2_low_div(
+  const _Tp __a_hi, const _Tp __a_lo, const _Tp __b_hi, const _Tp __b_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+#  if _CCCL_FPMP_USE_ACCURATE_DIV == 1
+template <typename T>
+_CCCL_API inline void
+__fpmp2_high_div(const T __a_hi, const T __a_lo, const T __b_hi, const T __b_lo, T* __res_hi, T* __res_lo) noexcept;
+#  endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+template <typename _Tp>
+_CCCL_API inline void __fpmp2_sqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+template <typename _Tp>
+_CCCL_API inline void __fpmp2_rsqrt(const _Tp __a_hi, const _Tp __a_lo, _Tp* __res_hi, _Tp* __res_lo) noexcept;
 
-    // -- fp32 template specializations --
-template<> _CCCL_API inline void     __fpmp2_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept { __fp32mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-template<> _CCCL_API inline void     __fpmp2_mid_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept { __fp32mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-template<> _CCCL_API inline void     __fpmp2_low_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept { __fp32mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-template<> _CCCL_API inline void     __fpmp2_high_div<float>(const float __a_hi, const float __a_lo, const float __b_hi, const float __b_lo, float* __res_hi, float* __res_lo) noexcept { __fp32mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-#endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
-template<> _CCCL_API inline void     __fpmp2_sqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept { __fp32mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
-template<> _CCCL_API inline void     __fpmp2_rsqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept { __fp32mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
+// -- fp32 template specializations --
+template <>
+_CCCL_API inline void __fpmp2_div<float>(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept
+{
+  __fp32mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+template <>
+_CCCL_API inline void __fpmp2_mid_div<float>(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept
+{
+  __fp32mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+template <>
+_CCCL_API inline void __fpmp2_low_div<float>(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept
+{
+  __fp32mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+#  if _CCCL_FPMP_USE_ACCURATE_DIV == 1
+template <>
+_CCCL_API inline void __fpmp2_high_div<float>(
+  const float __a_hi,
+  const float __a_lo,
+  const float __b_hi,
+  const float __b_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept
+{
+  __fp32mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+#  endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+template <>
+_CCCL_API inline void
+__fpmp2_sqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept
+{
+  __fp32mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo);
+}
+template <>
+_CCCL_API inline void
+__fpmp2_rsqrt<float>(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept
+{
+  __fp32mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo);
+}
 
-    // -- fp64 template specializations --
-    template<> _CCCL_API inline void     __fpmp2_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept { __fp64mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-    template<> _CCCL_API inline void     __fpmp2_mid_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept { __fp64mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-    template<> _CCCL_API inline void     __fpmp2_low_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept { __fp64mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-#if _CCCL_FPMP_USE_ACCURATE_DIV == 1
-    template<> _CCCL_API inline void     __fpmp2_high_div<double>(const double __a_hi, const double __a_lo, const double __b_hi, const double __b_lo, double* __res_hi, double* __res_lo) noexcept { __fp64mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo); }
-#endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
-    template<> _CCCL_API inline void     __fpmp2_sqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept { __fp64mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
-    template<> _CCCL_API inline void     __fpmp2_rsqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept { __fp64mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo); }
+// -- fp64 template specializations --
+template <>
+_CCCL_API inline void __fpmp2_div<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  __fp64mp2_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+template <>
+_CCCL_API inline void __fpmp2_mid_div<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  __fp64mp2_mid_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+template <>
+_CCCL_API inline void __fpmp2_low_div<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  __fp64mp2_low_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+#  if _CCCL_FPMP_USE_ACCURATE_DIV == 1
+template <>
+_CCCL_API inline void __fpmp2_high_div<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  __fp64mp2_high_div(__a_hi, __a_lo, __b_hi, __b_lo, __res_hi, __res_lo);
+}
+#  endif // _CCCL_FPMP_USE_ACCURATE_DIV == 1
+template <>
+_CCCL_API inline void
+__fpmp2_sqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  __fp64mp2_sqrt(__a_hi, __a_lo, __res_hi, __res_lo);
+}
+template <>
+_CCCL_API inline void
+__fpmp2_rsqrt<double>(const double __a_hi, const double __a_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  __fp64mp2_rsqrt(__a_hi, __a_lo, __res_hi, __res_lo);
+}
 
 #endif // _CCCL_FPMP_USE_LIB
-
 } // namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>

@@ -56,7 +56,8 @@ static_assert(std::is_convertible<fp32mp2_high, fp32mp2_high>::value, "");
 // CCCL_FPMP_EXPLICIT_CASTS knob.
 static_assert(std::is_convertible<fp32mp2, fp64mp2>::value, "fp32mp2 -> fp64mp2 must be implicit (lossless upconvert)");
 #if CCCL_FPMP_EXPLICIT_CASTS == 1
-static_assert(!std::is_convertible<fp64mp2, fp32mp2>::value, "fp64mp2 -> fp32mp2 must be explicit under EXPLICIT_CASTS=1");
+static_assert(!std::is_convertible<fp64mp2, fp32mp2>::value,
+              "fp64mp2 -> fp32mp2 must be explicit under EXPLICIT_CASTS=1");
 #else
 static_assert(std::is_convertible<fp64mp2, fp32mp2>::value,
               "fp64mp2 -> fp32mp2 implicit by default (matches double -> fp32mp2)");
@@ -141,7 +142,7 @@ _CCCL_HOST_DEVICE bool run_test()
     fp32mp2_low d;
     d = fp32mp2_low(src); // explicit assign (functional)
     fp32mp2_low e;
-    e = static_cast<fp32mp2_low>(src); // explicit assign (static_cast)
+    e  = static_cast<fp32mp2_low>(src); // explicit assign (static_cast)
     ok = ok && (a.hi() == src.hi() && a.lo() == src.lo()) && (b.hi() == src.hi() && b.lo() == src.lo())
       && (c.hi() == src.hi() && c.lo() == src.lo()) && (d.hi() == src.hi() && d.lo() == src.lo())
       && (e.hi() == src.hi() && e.lo() == src.lo());

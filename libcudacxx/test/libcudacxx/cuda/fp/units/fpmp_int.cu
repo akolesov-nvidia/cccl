@@ -79,9 +79,9 @@ _CCCL_HOST_DEVICE bool run_test()
     const long long vals[] = {0, 1, -1, 42, -42, 65535, -65536, 1048576, -1048576};
     for (long long v : vals)
     {
-      const short s     = static_cast<short>(v % 30000);
-      const int i       = static_cast<int>(v);
-      const long l      = static_cast<long>(v);
+      const short s      = static_cast<short>(v % 30000);
+      const int i        = static_cast<int>(v);
+      const long l       = static_cast<long>(v);
       const long long l2 = v;
 
       ok = ok && static_cast<short>(ffloat(s)) == s && static_cast<int>(ffloat(i)) == i
@@ -90,8 +90,8 @@ _CCCL_HOST_DEVICE bool run_test()
 
       if (v >= 0)
       {
-        const unsigned int ui       = static_cast<unsigned int>(v);
-        const unsigned long ul      = static_cast<unsigned long>(v);
+        const unsigned int ui        = static_cast<unsigned int>(v);
+        const unsigned long ul       = static_cast<unsigned long>(v);
         const unsigned long long ull = static_cast<unsigned long long>(v);
         ok = ok && static_cast<unsigned int>(ffloat(ui)) == ui && static_cast<unsigned long>(ffloat(ul)) == ul
           && static_cast<unsigned long long>(ffloat(ull)) == ull;
@@ -101,8 +101,8 @@ _CCCL_HOST_DEVICE bool run_test()
 
   // Truncation toward zero.
   {
-    const double vals[]     = {2.7, 2.3, -2.7, -2.3, 0.9, -0.9};
-    const int32_t expect[]  = {2, 2, -2, -2, 0, 0};
+    const double vals[]    = {2.7, 2.3, -2.7, -2.3, 0.9, -0.9};
+    const int32_t expect[] = {2, 2, -2, -2, 0, 0};
     for (int i = 0; i < 6; ++i)
     {
       ffloat x(vals[i]);

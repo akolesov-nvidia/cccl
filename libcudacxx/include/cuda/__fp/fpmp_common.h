@@ -51,25 +51,25 @@
 //   0 = header-only inline mode (default)
 // CCCL_FPMP_INLINE is the inverse alias: CCCL_FPMP_INLINE=1 is equivalent to CCCL_FPMP_LIB=0.
 #ifndef CCCL_FPMP_LIB
-    #ifdef CCCL_FPMP_INLINE
-        #if CCCL_FPMP_INLINE == 1
-            #define CCCL_FPMP_LIB 0
-        #else
-            #define CCCL_FPMP_LIB 1
-        #endif
-    #else
-        #define CCCL_FPMP_LIB 0
-    #endif
+#  ifdef CCCL_FPMP_INLINE
+#    if CCCL_FPMP_INLINE == 1
+#      define CCCL_FPMP_LIB 0
+#    else
+#      define CCCL_FPMP_LIB 1
+#    endif
+#  else
+#    define CCCL_FPMP_LIB 0
+#  endif
 #endif
 #ifndef CCCL_FPMP_INLINE
-    #if CCCL_FPMP_LIB == 1
-        #define CCCL_FPMP_INLINE 0
-    #else
-        #define CCCL_FPMP_INLINE 1
-    #endif
+#  if CCCL_FPMP_LIB == 1
+#    define CCCL_FPMP_INLINE 0
+#  else
+#    define CCCL_FPMP_INLINE 1
+#  endif
 #endif
 #if CCCL_FPMP_LIB == 1 && !defined(_CCCL_FPMP_USE_LIB)
-    #define _CCCL_FPMP_USE_LIB
+#  define _CCCL_FPMP_USE_LIB
 #endif
 
 // CCCL_FPMP_EXPLICIT_CASTS controls whether lossy/narrowing conversions INTO fpmp2
@@ -84,12 +84,12 @@
 //
 // Default is 1 (lossy casts explicit), matching CCCL's strict-cast conventions.
 #ifndef CCCL_FPMP_EXPLICIT_CASTS
-    #define CCCL_FPMP_EXPLICIT_CASTS 1
+#  define CCCL_FPMP_EXPLICIT_CASTS 1
 #endif
-#if  CCCL_FPMP_EXPLICIT_CASTS == 1
-    #define _CCCL_FPMP_EXPLICIT explicit
+#if CCCL_FPMP_EXPLICIT_CASTS == 1
+#  define _CCCL_FPMP_EXPLICIT explicit
 #else
-    #define _CCCL_FPMP_EXPLICIT 
+#  define _CCCL_FPMP_EXPLICIT
 #endif
 
 // CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP / CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: use integer
@@ -98,23 +98,22 @@
 // (e.g. consumer GPUs with a 1:64 ratio) at the cost of extra integer/register pressure.
 // Both default to 0 (standard cast-based conversions).
 #ifndef CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-    #define CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP 0
+#  define CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP 0
 #endif
 #ifndef CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
-    #define CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE 0
+#  define CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE 0
 #endif
 #ifndef _CCCL_FPMP_USE_OPT_FROM_DOUBLE
-    #define _CCCL_FPMP_USE_OPT_FROM_DOUBLE CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
+#  define _CCCL_FPMP_USE_OPT_FROM_DOUBLE CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
 #endif
 #ifndef _CCCL_FPMP_USE_OPT_TO_DOUBLE
-    #define _CCCL_FPMP_USE_OPT_TO_DOUBLE   CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
+#  define _CCCL_FPMP_USE_OPT_TO_DOUBLE CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
 #endif
 
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
 {
-
 /*
 // Accuracy level for fpmp arithmetic (public). Named fpmp2_accuracy, so
 // callers write e.g. fpmp2<float, fpmp2_accuracy::high>.
@@ -125,13 +124,12 @@ namespace cuda::experimental
 */
 enum struct fpmp2_accuracy
 {
-    unset = -1,
-    low   =  1,
-    mid   =  2,
-    high  =  3,
-    def   =  2,
+  unset = -1,
+  low   = 1,
+  mid   = 2,
+  high  = 3,
+  def   = 2,
 };
-
 } // namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>

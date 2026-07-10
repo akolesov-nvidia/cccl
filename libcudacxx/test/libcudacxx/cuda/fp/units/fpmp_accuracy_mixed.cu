@@ -37,8 +37,9 @@ static_assert(std::is_same<decltype(sub<fpmp2_accuracy::low>(1.0f, std::declval<
               "sub(float, mp2_low) must return mp2_low");
 static_assert(std::is_same<decltype(mul<fpmp2_accuracy::high>(std::declval<fp32mp2_high>(), 2)), fp32mp2_high>::value,
               "mul(mp2_high, int) must return mp2_high");
-static_assert(std::is_same<decltype(fma<fpmp2_accuracy::low>(1.0f, std::declval<fp32mp2_low>(), 2.0f)), fp32mp2_low>::value,
-              "fma(float, mp2_low, float) must return mp2_low");
+static_assert(
+  std::is_same<decltype(fma<fpmp2_accuracy::low>(1.0f, std::declval<fp32mp2_low>(), 2.0f)), fp32mp2_low>::value,
+  "fma(float, mp2_low, float) must return mp2_low");
 static_assert(std::is_same<decltype(mad<fpmp2_accuracy::def>(1.0f, 2.0f, std::declval<fp32mp2>())), fp32mp2>::value,
               "mad(float, float, mp2_def) must return mp2_def");
 
