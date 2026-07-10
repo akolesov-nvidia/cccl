@@ -183,8 +183,8 @@ namespace cuda::experimental
     // int -> (hi, lo) conversions
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_from_int (const int32_t __i, 
-                                                      _FpType*       __res_hi, 
-                                                      _FpType*       __res_lo) noexcept   
+                                              _FpType*      __res_hi, 
+                                              _FpType*      __res_lo) noexcept   
     {
 
         *__res_hi = __fpmp_int2fp_rz<_FpType>(__i);
@@ -224,8 +224,8 @@ namespace cuda::experimental
     // so the residual i - hi is always non-negative.
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API  void __fpmp2_from_ull (const uint64_t __i, 
-                                                      _FpType*        __res_hi, 
-                                                      _FpType*        __res_lo) noexcept 
+                                              _FpType*       __res_hi, 
+                                              _FpType*       __res_lo) noexcept 
     {
 
         *__res_hi = __fpmp_ull2fp_rz<_FpType>(__i);
@@ -325,20 +325,20 @@ namespace cuda::experimental
             // M = (hi's 53-bit mantissa with implicit 1, at bit 52)
             //     + (signed lo contribution at the same scale).
             // Range: [2^52 - 2^28, 2^53 - 2^29 + 2^28]. Always positive.
-            int64_t __M = (int64_t)(((uint64_t)(0x800000U | __fmant_a)) << 29)
+            int64_t __m = (int64_t)(((uint64_t)(0x800000U | __fmant_a)) << 29)
                       + (int64_t)__r;
 
             // Subtraction can borrow at most one bit (|r| << 2^52), so the
             // implicit-1 lands at bit 52 (no shift) or bit 51 (shift up by 1).
             // Single conditional shift, no __clzll on the critical path.
-            uint64_t __Mu         = (uint64_t)__M;
-            uint64_t __need_shift = ((__Mu >> 52) & 1ULL) ^ 1ULL;
-            __Mu <<= __need_shift;
+            uint64_t __mu         = (uint64_t)__m;
+            uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
+            __mu <<= __need_shift;
 
             return __fpmp_internal_bit_cast<double>(
                 ((uint64_t)__sign_a << 63)
               | ((uint64_t)(__fexp_a + 896U - (uint32_t)__need_shift) << 52)
-              | (__Mu & 0x000FFFFFFFFFFFFFULL));
+              | (__mu & 0x000FFFFFFFFFFFFFULL));
         }
         else
         {

@@ -431,24 +431,24 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64& __v) noexcept
          * [62:52] - 11-bit exponent (bias 1023)
          * [51:0]  - 52-bit mantissa (implicit leading 1)
          */
-        constexpr uint64_t __EXP_MASK = 0x7FFULL << 52;    // Bits 52-62
-        constexpr int64_t __ORIGINAL_BIAS = 1023;          // FP64 exponent bias
-        _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __NEW_BIAS = (1LL << (__exponent_bits - 1)) - 1;
+        constexpr uint64_t __exp_mask = 0x7FFULL << 52;    // Bits 52-62
+        constexpr int64_t __original_bias = 1023;          // FP64 exponent bias
+        _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __new_bias = (1LL << (__exponent_bits - 1)) - 1;
         _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __max_encoded = (1LL << __exponent_bits) - 2;
 
         uint64_t __bits = __v;
-        uint64_t __exp_bits = (__bits & __EXP_MASK) >> 52;
-        int64_t __unbiased_exp = (int64_t)__exp_bits - __ORIGINAL_BIAS;
-        int64_t __new_exp_bits = __unbiased_exp + __NEW_BIAS;
+        uint64_t __exp_bits = (__bits & __exp_mask) >> 52;
+        int64_t __unbiased_exp = (int64_t)__exp_bits - __original_bias;
+        int64_t __new_exp_bits = __unbiased_exp + __new_bias;
 
         /* Check for overflow/underflow in reduced exponent range */
         #if !defined(CCCL_FP64_TOOL_NO_OVERFLOW)
         if (__new_exp_bits > __max_encoded) 
         {
             /* Overflow: clamp to FP64 infinity (preserve sign) */
-            constexpr uint64_t __SIGN_MASK = 1ULL << 63;
-            constexpr uint64_t __FP64_INF_EXP = 0x7FFULL << 52;  /* FP64 infinity exponent */
-            __v = (__bits & __SIGN_MASK) | __FP64_INF_EXP;
+            constexpr uint64_t __sign_mask = 1ULL << 63;
+            constexpr uint64_t __fp64_inf_exp = 0x7FFULL << 52;  /* FP64 infinity exponent */
+            __v = (__bits & __sign_mask) | __fp64_inf_exp;
             return;  /* INF doesn't need mantissa reduction */
         }
         #endif
@@ -457,8 +457,8 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64& __v) noexcept
         if (__new_exp_bits < 1) 
         {
             /* Underflow: flush to signed zero */
-            constexpr uint64_t __SIGN_MASK = 1ULL << 63;
-            __v = __bits & __SIGN_MASK;
+            constexpr uint64_t __sign_mask = 1ULL << 63;
+            __v = __bits & __sign_mask;
             return;  /* Zero doesn't need mantissa reduction */
         }
         #endif

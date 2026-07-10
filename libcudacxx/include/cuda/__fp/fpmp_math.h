@@ -198,7 +198,7 @@
       (x<=0, +-inf, NaN) are handled inside __fpmp2_log.
 
     exp2(x), exp10(x) for fp32mp2:
-      Dedicated implementations following libdevice's "single base-2
+      Dedicated implementations following "single base-2
       split" strategy (`__internal_accurate_expf_1p93ulp` paired with
       MUFU.EX2 on the reduced argument).  Pseudocode:
         t      = x * log2(base)        [exp2: t = x; exp10: t = x * log2 10]
@@ -273,8 +273,8 @@
       the three multiplications with the lo limb cleared.
 
     fmod(x, y), remainder(x, y) for fp32mp2:
-      Integer-mantissa long division in the style of libdevice's
-      __nv_fmod.  Each operand is decomposed into a 64-bit mantissa M
+      Integer-mantissa long division __nv_fmod.  
+      Each operand is decomposed into a 64-bit mantissa M
       and a binary exponent E (value = M * 2^E, M normalized to
       [2^52, 2^53)), then  Mx * 2^(Ex-Ey) mod My  is evaluated with
       exact uint64 arithmetic, chunking the left shift by 10 bits so the
@@ -603,15 +603,15 @@ namespace cuda::experimental
                 _FpType __pi = __fpmp_fma_rn(__xh, __acc, -__pval);
 
                 // two_sum: S + sg == P + ckh  (exact, no magnitude assumption)
-                _FpType __S  = __fpmp_add_rn(__pval, __ckh);
-                _FpType __bb = __fpmp_sub_rn(__S, __pval);
-                _FpType __t  = __fpmp_sub_rn(__S, __bb);
+                _FpType __s  = __fpmp_add_rn(__pval, __ckh);
+                _FpType __bb = __fpmp_sub_rn(__s, __pval);
+                _FpType __t  = __fpmp_sub_rn(__s, __bb);
                 _FpType __u  = __fpmp_sub_rn(__pval, __t);
                 _FpType __v  = __fpmp_sub_rn(__ckh, __bb);
                 _FpType __sg = __fpmp_add_rn(__u, __v);
 
                 __err = __fpmp_fma_rn(__xh, __err, __fpmp_add_rn(__pi, __sg));
-                __acc = __S;
+                __acc = __s;
             }
         }
 
@@ -722,9 +722,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_exp (const _FpType __x_hi, 
-                                                const _FpType __x_lo, 
-                                                _FpType*      __res_hi, 
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo, 
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
         using ffloat = fp32mp2_low;
      
@@ -852,9 +852,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_log (const _FpType __x_hi,
-                                                const _FpType __x_lo,
-                                                _FpType*      __res_hi,
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo,
+                                        _FpType*      __res_hi,
+                                        _FpType*      __res_lo) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -996,9 +996,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_log1p (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_log1p is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1036,8 +1036,8 @@ namespace cuda::experimental
          * for x = -1 / x < -1 still applies (covered by the |x|<1/16
          * threshold trivially: any x in this range is well above -1). */
         const float __abs_hi = (__x_hi < 0.0f) ? -__x_hi : __x_hi;
-        constexpr float __LOG1P_BRANCH_POINT = 0.0625f;  /* 1/16 = 2^-4 */
-        if (__abs_hi < __LOG1P_BRANCH_POINT)
+        constexpr float __log1p_branch_point = 0.0625f;  /* 1/16 = 2^-4 */
+        if (__abs_hi < __log1p_branch_point)
         {
             /* T(x) = sum_{k>=0} (-1)^k * x^k / (k+2),
              *   T[0] = -1/2, T[1] = +1/3, ..., T[11] = +1/13.
@@ -1063,8 +1063,8 @@ namespace cuda::experimental
 
             ffloat __x      (__x_hi, __x_lo);
             ffloat __x2     = __x * __x;
-            ffloat __T      = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 4>(__x, __log1p_poly_c);
-            ffloat __result = renormalize(__x + __x2 * __T);
+            ffloat __t      = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 4>(__x, __log1p_poly_c);
+            ffloat __result = renormalize(__x + __x2 * __t);
             *__res_hi = __result.hi();
             *__res_lo = __result.lo();
             return;
@@ -1129,9 +1129,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_log2 (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_log2 is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1173,9 +1173,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_log10 (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_log10 is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1209,8 +1209,7 @@ namespace cuda::experimental
     *
     *     2^r = exp(r * ln 2) = Sum_{k>=0}  a_k * r^k,   a_k = (ln 2)^k / k!
     *
-    * This is the software analogue of libdevice's MUFU.EX2 instruction:
-    * the polynomial argument is the *base-2* reduced argument, so no
+    * The polynomial argument is the *base-2* reduced argument, so no
     * intermediate r * ln(2) multiplication sits between the reduction
     * and the polynomial.  Compared to evaluating exp(r * ln 2) via the
     * natural-log Taylor inside __fpmp2_exp, this kernel saves:
@@ -1283,8 +1282,8 @@ namespace cuda::experimental
     *
     *     10^r = exp(r * ln 10) = Sum_{k>=0}  b_k * r^k,   b_k = (ln 10)^k / k!
     *
-    * This is the natural companion to __fp32mp2_exp2_kernel for the
-    * libdevice-style "exp10(x) = 2^n * 10^(x - n*log10(2))" reduction.
+    * This is the natural companion to __fp32mp2_exp2_kernel  
+    * "exp10(x) = 2^n * 10^(x - n*log10(2))" reduction.
     * Because |r| <= log10(2)/2 ~= 0.151 (vs. 0.5 for the base-2 kernel),
     * the Horner chain accumulates noticeably less rounding noise even
     * though the b_k coefficients are larger (peak ratio |b_k r^k|
@@ -1343,9 +1342,7 @@ namespace cuda::experimental
     * Computes  result = p * 2^n  in fp32mp2 for any integer n that
     * keeps the final result in the fp32 representable range.  The 2^n
     * factor is split into two halves (2^(n/2) * 2^(n - n/2)) so neither
-    * intermediate multiplier overflows or denormalizes; this matches
-    * libdevice's `__internal_fast_ldexpf` and the existing scaling
-    * trick used by __fp32mp2_erfc.
+    * intermediate multiplier overflows or denormalizes
     * --------------------------------------------------------------------
     */
     _CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int __n) noexcept
@@ -1406,10 +1403,10 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_ldexp(const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  int          __n,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         int           __n,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         if constexpr (::cuda::std::is_same_v<_FpType, float>)
         {
@@ -1469,10 +1466,10 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_scalbn(const _FpType __x_hi,
-                                                   const _FpType __x_lo,
-                                                   int          __n,
-                                                   _FpType*      __res_hi,
-                                                   _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          int           __n,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         __fpmp2_ldexp<_FpType>(__x_hi, __x_lo, __n, __res_hi, __res_lo);
     }
@@ -1481,9 +1478,7 @@ namespace cuda::experimental
     * --------------------------------------------------------------------
     * fmod / remainder (fp32mp2) - dedicated implementations
     * --------------------------------------------------------------------
-    * Mirrors libdevice's integer-mantissa long-division idea (see
-    * __nv_fmod / __internal_fmodf_kernel in device_functions_impl.c):
-    * decompose each operand into a 64-bit integer mantissa M and a
+    * Decompose each operand into a 64-bit integer mantissa M and a
     * binary exponent E with  value = M * 2^E,  then reduce
     *   Mx * 2^(Ex-Ey)  (mod My)
     * with exact 64-bit integer arithmetic, chunking the left shift so
@@ -1530,56 +1525,56 @@ namespace cuda::experimental
      * result is far smaller than the inputs.  Capturing 53 bits keeps the value
      * exactly (equivalent to the fp64 fallback's double round-trip). */
     _CCCL_TRIVIAL_API void __fp32mp2_modf_decompose(float __hi, float __lo,
-                                                            unsigned long long* __M, int* __E) noexcept
+                                                    unsigned long long* __m, int* __e) noexcept
     {
         const uint32_t __hb = __fpmp_internal_bit_cast<uint32_t>(__hi);
-        int __Eh;
+        int __eh;
         if ((__hb & 0x7F800000u) == 0u)
         {
             /* denormal hi (hi > 0): value = mant * 2^-149 */
             const uint32_t __mant = __hb & 0x007FFFFFu;
             const float    __fm   = static_cast<float>(__mant);
             const uint32_t __fmb  = __fpmp_internal_bit_cast<uint32_t>(__fm);
-            __Eh = static_cast<int>((__fmb >> 23) & 0xFFu) - 127 - 149;
+            __eh = static_cast<int>((__fmb >> 23) & 0xFFu) - 127 - 149;
         }
         else
         {
-            __Eh = static_cast<int>((__hb >> 23) & 0xFFu) - 127;
+            __eh = static_cast<int>((__hb >> 23) & 0xFFu) - 127;
         }
 
-        const int   __s   = 52 - __Eh;
+        const int   __s   = 52 - __eh;
         const float __shi = __fp32mp2_scale2_scalar(__hi, __s);   /* integer in [2^52, 2^53) */
         const float __slo = __fp32mp2_scale2_scalar(__lo, __s);   /* |slo| <= 2^28           */
 
-        long long __m = static_cast<long long>(static_cast<unsigned long long>(__shi))
+        long long __mant = static_cast<long long>(static_cast<unsigned long long>(__shi))
                     + static_cast<long long>(__fpmp_fp2int_rn(__slo));
-        int __e = __Eh - 52;
+        int __exp = __eh - 52;
 
         /* lo > 0 may push m just past 2^53; bring it back. */
-        if ((static_cast<unsigned long long>(__m) >> 53) != 0ULL)
+        if ((static_cast<unsigned long long>(__mant) >> 53) != 0ULL)
         {
-            __m >>= 1;
-            __e  += 1;
+            __mant >>= 1;
+            __exp  += 1;
         }
         /* Off-by-one fix: when hi is an exact power of two and lo < 0 the
          * true value sits just below 2^Eh, so m lands just under 2^52.
          * One left shift renormalizes it back into [2^52, 2^53). */
-        if (__m != 0 && (static_cast<unsigned long long>(__m) >> 52) == 0ULL)
+        if (__mant != 0 && (static_cast<unsigned long long>(__mant) >> 52) == 0ULL)
         {
-            __m <<= 1;
-            __e  -= 1;
+            __mant <<= 1;
+            __exp  -= 1;
         }
 
-        *__M = static_cast<unsigned long long>(__m);
-        *__E = __e;
+        *__m = static_cast<unsigned long long>(__mant);
+        *__e = __exp;
     }
 
     /* Build a renormalized fp32mp2 from  (neg ? -1 : 1) * mag * 2^E.
      * mag may carry up to 53 significant bits; it is first rounded
      * (round-half-to-even) down to the 48 bits an fp32mp2 can hold, then split
      * into two <= 24-bit halves so each casts to float exactly. */
-    _CCCL_TRIVIAL_API void __fp32mp2_modf_reconstruct(unsigned long long __mag, int __E, bool __neg,
-                                                              float* __res_hi, float* __res_lo) noexcept
+    _CCCL_TRIVIAL_API void __fp32mp2_modf_reconstruct(unsigned long long __mag, int __e, bool __neg,
+                                                      float* __res_hi, float* __res_lo) noexcept
     {
         if (__mag == 0ULL)
         {
@@ -1598,14 +1593,14 @@ namespace cuda::experimental
             unsigned long long       __q    = __mag >> __extra;
             if (__frac > __half || (__frac == __half && (__q & 1ULL) != 0ULL)) { ++__q; }
             __mag = __q;
-            __E  += __extra;
-            if ((__mag >> 48) != 0ULL) { __mag >>= 1; ++__E; }   /* rounding carried out */
+            __e  += __extra;
+            if ((__mag >> 48) != 0ULL) { __mag >>= 1; ++__e; }   /* rounding carried out */
         }
 
         const unsigned __hipart = static_cast<unsigned>(__mag >> 24);           /* < 2^24 */
         const unsigned __lopart = static_cast<unsigned>(__mag & 0xFFFFFFULL);   /* < 2^24 */
-        float __rhi = __fp32mp2_scale2_scalar(static_cast<float>(__hipart), __E + 24);
-        float __rlo = __fp32mp2_scale2_scalar(static_cast<float>(__lopart), __E);
+        float __rhi = __fp32mp2_scale2_scalar(static_cast<float>(__hipart), __e + 24);
+        float __rlo = __fp32mp2_scale2_scalar(static_cast<float>(__lopart), __e);
         if (__neg) { __rhi = -__rhi; __rlo = -__rlo; }
 
         float __lo;
@@ -1620,35 +1615,35 @@ namespace cuda::experimental
      * exponent Ey, and the low bits of the integer quotient
      * floor(ax/ay) in quo. */
     _CCCL_TRIVIAL_API void __fp32mp2_fmod_kernel(float __ax_hi, float __ax_lo,
-                                                         float __ay_hi, float __ay_lo,
-                                                         unsigned long long* __ia_out,
-                                                         unsigned long long* __My_out,
-                                                         int*                __Ey_out,
-                                                         unsigned long long* __quo_out) noexcept
+                                                 float __ay_hi, float __ay_lo,
+                                                 unsigned long long*  __ia_out,
+                                                 unsigned long long*  __My_out,
+                                                 int*                 __Ey_out,
+                                                 unsigned long long*  __quo_out) noexcept
     {
-        unsigned long long __Mx, __My;
-        int __Ex, __Ey;
+        unsigned long long __Mx, __my;
+        int __Ex, __ey;
         __fp32mp2_modf_decompose(__ax_hi, __ax_lo, &__Mx, &__Ex);
-        __fp32mp2_modf_decompose(__ay_hi, __ay_lo, &__My, &__Ey);
+        __fp32mp2_modf_decompose(__ay_hi, __ay_lo, &__my, &__ey);
 
-        int __D = __Ex - __Ey;                 /* >= 0 since ax > ay and both M in [2^52,2^53) */
-        if (__D < 0) __D = 0;                /* defensive */
+        int __d = __Ex - __ey;                 /* >= 0 since ax > ay and both M in [2^52,2^53) */
+        if (__d < 0) __d = 0;                /* defensive */
 
-        unsigned long long __quo = __Mx / __My;
-        unsigned long long __ia  = __Mx % __My;
-        int __remaining = __D;
+        unsigned long long __quo = __Mx / __my;
+        unsigned long long __ia  = __Mx % __my;
+        int __remaining = __d;
         while (__remaining > 0)
         {
             const int                __s   = (__remaining < 11) ? __remaining : 11;
             const unsigned long long __num = __ia << __s;          /* ia < My < 2^53, so num < 2^64 */
-            __quo = (__quo << __s) + (__num / __My);                   /* low bits of quotient (parity only) */
-            __ia  = __num % __My;
+            __quo = (__quo << __s) + (__num / __my);                   /* low bits of quotient (parity only) */
+            __ia  = __num % __my;
             __remaining -= __s;
         }
 
         *__ia_out = __ia;
-        *__My_out = __My;
-        *__Ey_out = __Ey;
+        *__My_out = __my;
+        *__Ey_out = __ey;
         *__quo_out = __quo;
     }
 
@@ -1657,8 +1652,8 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_fmod(const _FpType __x_hi, const _FpType __x_lo,
-                                                const _FpType __y_hi, const _FpType __y_lo,
-                                                _FpType* __res_hi, _FpType* __res_lo) noexcept
+                                        const _FpType __y_hi, const _FpType __y_lo,
+                                        _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_fmod is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1694,10 +1689,10 @@ namespace cuda::experimental
         if (__c < 0)  { *__res_hi = __x_hi; *__res_lo = __x_lo; return; }                 /* |x| < |y| -> x   */
         if (__c == 0) { *__res_hi = (__x_hi < 0.0f) ? -0.0f : 0.0f; *__res_lo = 0.0f; return; }
 
-        unsigned long long __ia, __My, __quo;
-        int __Ey;
-        __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__My, &__Ey, &__quo);
-        __fp32mp2_modf_reconstruct(__ia, __Ey, (__x_hi < 0.0f), __res_hi, __res_lo);
+        unsigned long long __ia, __my, __quo;
+        int __ey;
+        __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
+        __fp32mp2_modf_reconstruct(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
     }
 
     /*
@@ -1706,8 +1701,8 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_remainder(const _FpType __x_hi, const _FpType __x_lo,
-                                                     const _FpType __y_hi, const _FpType __y_lo,
-                                                     _FpType* __res_hi, _FpType* __res_lo) noexcept
+                                             const _FpType __y_hi, const _FpType __y_lo,
+                                             _FpType* __res_hi, _FpType* __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_remainder is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1766,27 +1761,26 @@ namespace cuda::experimental
         }
 
         /* |x| > |y|: full integer reduction, then round-to-nearest-even. */
-        unsigned long long __ia, __My, __quo;
-        int __Ey;
-        __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__My, &__Ey, &__quo);
+        unsigned long long __ia, __my, __quo;
+        int __ey;
+        __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
 
         const unsigned long long __two_ia = __ia << 1;
-        const bool __round_up = (__two_ia > __My) || ((__two_ia == __My) && ((__quo & 1ULL) != 0ULL));
+        const bool __round_up = (__two_ia > __my) || ((__two_ia == __my) && ((__quo & 1ULL) != 0ULL));
 
         unsigned long long __mag;
         bool __neg_xframe;
-        if (__round_up) { __mag = __My - __ia; __neg_xframe = true;  }   /* r = (|x| mod |y|) - |y| < 0 */
+        if (__round_up) { __mag = __my - __ia; __neg_xframe = true;  }   /* r = (|x| mod |y|) - |y| < 0 */
         else          { __mag = __ia;      __neg_xframe = false; }
 
-        __fp32mp2_modf_reconstruct(__mag, __Ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
+        __fp32mp2_modf_reconstruct(__mag, __ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
     }
 
     /*
     * --------------------------------------------------------------------
     * Base-2 exponential exp2(x) (fp32mp2) - dedicated implementation
     * --------------------------------------------------------------------
-    * Strategy mirrors libdevice's `__internal_accurate_expf_1p93ulp`:
-    * do a single integer/fractional split in *base-2* units so the
+    * Do a single integer/fractional split in *base-2* units so the
     * integer power 2^n drops out exactly and the polynomial only sees a
     * small reduced argument.
     *
@@ -1822,9 +1816,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_exp2 (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_exp2 is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1878,10 +1872,9 @@ namespace cuda::experimental
     * Base-10 exponential exp10(x) (fp32mp2) - dedicated implementation
     * --------------------------------------------------------------------
     * Strategy:  base-2 integer split + base-10 fractional kernel, with
-    *            Cody-Waite reduction for the residual.  Mirrors the
-    *            libdevice idiom for 10^x (split log10(2) into 3 fp32
+    *            Cody-Waite reduction for the residual. Split log10(2) into 3 fp32
     *            pieces and accumulate via two_mult_fma + two_sum in a
-    *            higher-precision afloat accumulator) so that the
+    *            higher-precision afloat accumulator, so that the
     *            residual r' avoids the catastrophic-cancellation
     *            precision floor of the naive ff "compute t = x * log2 10,
     *            then r = t - n" path.
@@ -1915,9 +1908,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_exp10 (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_exp10 is fp32mp2 only; fp64mp2 has its own specialization");
@@ -1953,9 +1946,9 @@ namespace cuda::experimental
          * (Cody-Waite); the sum C1 + C2 + C3 reproduces log10(2)
          * exactly in double.  Layout mirrors the trig pi/2 split that
          * already lives in this file. */
-        constexpr float __C1 = 0x1.344136p-2f;   /* +0.30103001 */
-        constexpr float __C2 = -0x1.ec10c0p-27f; /* -1.432e-08 */
-        constexpr float __C3 = -0x1.000000p-54f; /*  ~-5.5e-17 */
+        constexpr float __c1 = 0x1.344136p-2f;   /* +0.30103001 */
+        constexpr float __c2 = -0x1.ec10c0p-27f; /* -1.432e-08 */
+        constexpr float __c3 = -0x1.000000p-54f; /*  ~-5.5e-17 */
 
         /* Step 1: coarse integer n = round(x * log2 10).
          * Uses an ordinary ff multiplication -- we only need the integer
@@ -1974,7 +1967,7 @@ namespace cuda::experimental
 
         /* n_f * C1 = ph + pl  (exact pair) */
         float __pl;
-        const float __ph = __fpmp_two_mult_fma(__n_f, __C1, &__pl);
+        const float __ph = __fpmp_two_mult_fma(__n_f, __c1, &__pl);
 
         /* x_hi - ph = s + e  (exact pair) */
         float __e;
@@ -1985,14 +1978,14 @@ namespace cuda::experimental
         __r_acc = __r_acc + afloat(__x_lo);
 
         /* n_f * C2 = nC2_hi + nC2_lo  (exact pair) */
-        float __nC2_lo;
-        const float __nC2_hi = __fpmp_two_mult_fma(__n_f, __C2, &__nC2_lo);
-        __r_acc = __r_acc - afloat(__nC2_hi, __nC2_lo);
+        float __n_c2_lo;
+        const float __n_c2_hi = __fpmp_two_mult_fma(__n_f, __c2, &__n_c2_lo);
+        __r_acc = __r_acc - afloat(__n_c2_hi, __n_c2_lo);
 
         /* n_f * C3 is tiny (~10^-14 at the largest n we hit);
          * single-precision product is below the polynomial noise
          * floor but cheap to include for completeness. */
-        __r_acc = __r_acc + afloat(__fpmp_mul_rn(__n_f, -__C3));
+        __r_acc = __r_acc + afloat(__fpmp_mul_rn(__n_f, -__c3));
 
         /* Step 3: 10^r' via the dedicated base-10 Taylor kernel.
          * Hand off the accurate accumulator as fast ffloat -- the
@@ -2044,9 +2037,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_expm1 (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_expm1 is fp32mp2 only; fp64mp2 has its own specialization");
@@ -2079,8 +2072,8 @@ namespace cuda::experimental
         }
 
         const float __abs_hi = (__x_hi < 0.0f) ? -__x_hi : __x_hi;
-        constexpr float __EXPM1_BRANCH_POINT = 0.5f;
-        if (__abs_hi < __EXPM1_BRANCH_POINT)
+        constexpr float __expm1_branch_point = 0.5f;
+        if (__abs_hi < __expm1_branch_point)
         {
             /* P(x) = sum_{k>=0} x^k / (k+2)!,
              *   P[0] = 1/2!, P[1] = 1/3!, ..., P[11] = 1/13!.
@@ -2148,23 +2141,13 @@ namespace cuda::experimental
     * (log, mul, exp) are dedicated fp32mp2 - no fp64 operations in the
     * main path.
     *
-    * Structurally identical to libdevice's __nv_pow (special-case order
-    * and IEEE 754-2008 corner-case semantics), but drops libdevice's
-    * hi/lo bookkeeping around the exp call: libdevice has to fma-track
-    * (t_hi, t_lo) around `b * log(a)` because its `__nv_exp` only takes
-    * a single double and the lost low part has to be re-injected via
-    * `tmp = fma(tmp, prod.x, tmp)`.  Our dedicated `__fpmp2_exp`
-    * consumes the full fp32mp2 pair natively, so the correction is
-    * implicit and the main path is just three calls (log, mul, exp).
-    *
     * Integer-b detection:
     *   b is integer iff b.lo == 0 AND truncf(b.hi) == b.hi.
     *   b is odd integer iff b is integer AND |b.hi| < 2^24 AND
     *   ((int32_t)b.hi & 1) != 0.  Above 2^24 every float-representable
     *   b.hi is automatically even (the LSB has weight >= 2).
     *
-    * No b-clamping is needed (libdevice clamps |b| >= 2^126 to prevent
-    * intermediate fma overflow).  For fp32mp2, |log(a)| <= ~88 for any
+    * No b-clamping is needed. For fp32mp2, |log(a)| <= ~88 for any
     * finite a > 0, so `b * loga` overflows to +-Inf only when the true
     * result truly overflows fp32 - and the dedicated `__fpmp2_exp`
     * handles +-Inf input via its existing saturation paths.
@@ -2172,11 +2155,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_pow (const _FpType __a_hi,
-                                                const _FpType __a_lo,
-                                                const _FpType __b_hi,
-                                                const _FpType __b_lo,
-                                                _FpType*      __res_hi,
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __a_lo,
+                                        const _FpType __b_hi,
+                                        const _FpType __b_lo,
+                                        _FpType*      __res_hi,
+                                        _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_pow is fp32mp2 only; fp64mp2 has its own specialization");
@@ -2280,9 +2263,7 @@ namespace cuda::experimental
     /*
     * --------------------------------------------------------------------
     * Cube root cbrt(x) (fp32mp2) - dedicated implementation
-    * --------------------------------------------------------------------
-    * Algorithm (adapted from libdevice's double-precision __nv_cbrt):
-    *
+    * --------------------------------------------------------------------    *
     *   1. Special cases: pass +-0, +-Inf, NaN through unchanged
     *      (cbrt(x) == x for these inputs).
     *   2. Operate on |x|; cbrt is odd, sign is restored at the end.
@@ -2315,9 +2296,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_cbrt (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -2330,10 +2311,6 @@ namespace cuda::experimental
         const uint32_t __absbits = __xbits & 0x7FFFFFFFu;
         const uint32_t __signbit = __xbits & 0x80000000u;
 
-        /* Special inputs: +-0, +-Inf, NaN.  cbrt(x) returns x for these,
-         * matching libdevice's behaviour (the libdevice routine fixes
-         * them up via cmpsel against (a + a) at the end; an explicit
-         * early-out is cleaner here). */
         if (__absbits == 0u || __absbits >= 0x7F800000u)
         {
             *__res_hi = __x_hi;
@@ -2366,9 +2343,9 @@ namespace cuda::experimental
          * (The mantissa is untouched; only the biased exponent shifts.)
          * Use multiplication by 2^23 instead of left-shift to avoid UB
          * when (3 * nexpo) is negative. */
-        constexpr int     __EXP_SHIFT = 1 << 23;
+        constexpr int     __exp_shift = 1 << 23;
         const     int     __delta_exp = 3 * __nexpo;
-        const     int     __new_bits  = static_cast<int>(__scaled_absbits) - __delta_exp * __EXP_SHIFT;
+        const     int     __new_bits  = static_cast<int>(__scaled_absbits) - __delta_exp * __exp_shift;
         const     float   __r_hi      = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
 
         /* r_lo: scale by the same power of two via float multiply.  Split
@@ -2379,8 +2356,8 @@ namespace cuda::experimental
          * [62, 190]); the product stays exact for all valid inputs. */
         const int __half_pow  = -__delta_exp / 2;
         const int __rest_pow  = -__delta_exp - __half_pow;
-        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __EXP_SHIFT));
-        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __EXP_SHIFT));
+        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __exp_shift));
+        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __exp_shift));
         const float __r_lo    = (__ax_lo * __scale_a) * __scale_b;
 
         /* Initial cbrt approximation via the SFU lg2/ex2 pair (~23 bits). */
@@ -2415,7 +2392,7 @@ namespace cuda::experimental
          * scale factor a normal float for all valid float inputs
          * (biased exponent is always in [77, 170]). */
         const int   __back_shift = __nexpo - __denorm_div3;
-        const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __EXP_SHIFT));
+        const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __exp_shift));
         float __t_hi_back = __t_new.hi() * __scale_back;
         float __t_lo_back = __t_new.lo() * __scale_back;
 
@@ -2434,8 +2411,6 @@ namespace cuda::experimental
     * --------------------------------------------------------------------
     * Reciprocal cube root rcbrt(x) = 1/cbrt(x) (fp32mp2) - dedicated impl
     * --------------------------------------------------------------------
-    * Algorithm (adapted from libdevice's double-precision __nv_rcbrt):
-    *
     *   1. Special cases:
     *        cbrt(+-0)   = +-Inf  (result inherits the sign of x)
     *        cbrt(+-Inf) = +-0
@@ -2472,9 +2447,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_rcbrt (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -2528,9 +2503,9 @@ namespace cuda::experimental
         /* r_hi = ax_hi * 2^(-3*nexpo): exact, by exponent-field subtraction.
          * Use multiplication by 2^23 instead of left-shift to avoid UB
          * when (3 * nexpo) is negative. */
-        constexpr int     __EXP_SHIFT = 1 << 23;
+        constexpr int     __exp_shift = 1 << 23;
         const     int     __delta_exp = 3 * __nexpo;
-        const     int     __new_bits  = static_cast<int>(__scaled_absbits) - __delta_exp * __EXP_SHIFT;
+        const     int     __new_bits  = static_cast<int>(__scaled_absbits) - __delta_exp * __exp_shift;
         const     float   __r_hi      = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
 
         /* r_lo: scale by 2^(-3*nexpo) via float multiply.  Split into two
@@ -2538,8 +2513,8 @@ namespace cuda::experimental
          * [62, 190] for all valid float inputs. */
         const int __half_pow  = -__delta_exp / 2;
         const int __rest_pow  = -__delta_exp - __half_pow;
-        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __EXP_SHIFT));
-        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __EXP_SHIFT));
+        const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __exp_shift));
+        const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __exp_shift));
         const float __r_lo    = (__ax_lo * __scale_a) * __scale_b;
 
         /* Initial 1/cbrt approximation via the SFU lg2/ex2 pair (~23 bits). */
@@ -2572,7 +2547,7 @@ namespace cuda::experimental
          * float multiply.  back_shift stays in [-43, +49] for all valid
          * float inputs, so the biased exponent is always in [84, 176]. */
         const int   __back_shift = -__nexpo + __denorm_div3;
-        const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __EXP_SHIFT));
+        const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __exp_shift));
         float __t_hi_back = __t_new.hi() * __scale_back;
         float __t_lo_back = __t_new.lo() * __scale_back;
 
@@ -2734,12 +2709,12 @@ namespace cuda::experimental
          * pi/4 = 0x0.C90FDAA2_2168C234...
          * The *2 (pi/4 -> pi/2) is in biased_exp = 127 - lz.
          */
-        constexpr uint32_t __PIO4_HI32 = 0xC90FDAA2U;
-        constexpr uint32_t __PIO4_LO32 = 0x2168C234U;
+        constexpr uint32_t __pio4_hi32 = 0xC90FDAA2U;
+        constexpr uint32_t __pio4_lo32 = 0x2168C234U;
 
-        uint64_t __p_hh = (uint64_t)__hi * __PIO4_HI32;
-        uint64_t __p_hl = (uint64_t)__hi * __PIO4_LO32;
-        uint64_t __p_lh = (uint64_t)__lo * __PIO4_HI32;
+        uint64_t __p_hh = (uint64_t)__hi * __pio4_hi32;
+        uint64_t __p_hl = (uint64_t)__hi * __pio4_lo32;
+        uint64_t __p_lh = (uint64_t)__lo * __pio4_hi32;
 
         uint64_t __combined = __p_hh + (__p_hl >> 32) + (__p_lh >> 32);
         uint32_t __rhi = (uint32_t)(__combined >> 32);
@@ -2834,7 +2809,7 @@ namespace cuda::experimental
         {
             /* -- Fast path: Cody-Waite for |x_hi| < 2^20 --
              *
-             * pi/2 split into 3 float pieces (~70 bits) from libdevice.
+             * pi/2 split into 3 float pieces (~70 bits)
              * C1 has 2 trailing zero mantissa bits, making n*C1 exact
              * for |n| < 2^12 via two_mult_fma, and accurate for larger n.
              *
@@ -2844,16 +2819,16 @@ namespace cuda::experimental
              * to preserve ~46 bits when s is near zero (catastrophic
              * cancellation near multiples of pi).
              */
-            constexpr _FpType __C1 = _FpType(1.5707962512969971e+000);
-            constexpr _FpType __C2 = _FpType(7.5497894158615964e-008);
-            constexpr _FpType __C3 = _FpType(5.3903029534742384e-015);
+            constexpr _FpType __c1 = _FpType(1.5707962512969971e+000);
+            constexpr _FpType __c2 = _FpType(7.5497894158615964e-008);
+            constexpr _FpType __c3 = _FpType(5.3903029534742384e-015);
 
             int __n = __fpmp_fp2int_rn(__x_hi * _FpType(0x1.45f306p-1f));
             _FpType __n_f = __fpmp_int2fp_rn<_FpType>(__n);
 
             /* Exact product n*C1 = ph + pl */
             _FpType __pl;
-            _FpType __ph = __fpmp_two_mult_fma(__n_f, __C1, &__pl);
+            _FpType __ph = __fpmp_two_mult_fma(__n_f, __c1, &__pl);
 
             /* Exact subtraction x_hi - ph = s + e */
             _FpType __e;
@@ -2867,12 +2842,12 @@ namespace cuda::experimental
             __result = __result + afloat(__x_lo);
 
             /* Exact product n*C2 = nC2_hi + nC2_lo via two_mult_fma */
-            _FpType __nC2_lo;
-            _FpType __nC2_hi = __fpmp_two_mult_fma(__n_f, __C2, &__nC2_lo);
-            __result = __result - afloat(__nC2_hi, __nC2_lo);
+            _FpType __n_c2_lo;
+            _FpType __n_c2_hi = __fpmp_two_mult_fma(__n_f, __c2, &__n_c2_lo);
+            __result = __result - afloat(__n_c2_hi, __n_c2_lo);
 
             /* n*C3 is tiny (~10^-11), single-precision product suffices */
-            __result = __result + afloat(__fpmp_mul_rn(__n_f, -__C3));
+            __result = __result + afloat(__fpmp_mul_rn(__n_f, -__c3));
 
             *__quadrant = __n;
             *__r_hi = __result.hi();
@@ -3045,7 +3020,7 @@ namespace cuda::experimental
     /*
     * sincos for fp32mp2: compute sin(x) and cos(x) simultaneously.
     * Shared argument reduction, separate sin/cos kernels on [-pi/4, pi/4],
-    * quadrant-based swap and sign adjustment (matching libdevice structure).
+    * quadrant-based swap and sign adjustment.
     *
     * When _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1, arguments with |x| >= 2^20
     * fall back to system fp64 sin/cos (avoids the Payne-Hanek code).
@@ -3133,9 +3108,6 @@ namespace cuda::experimental
     }
 
     /*
-    * tan for fp32mp2: dedicated implementation modeled after libdevice
-    * __nv_tan, but composed entirely from fp32mp2 primitives.
-    *
     * Algorithm (no FP64 dependency on the hot path):
     *   1. Reduce x to r in [-pi/4, pi/4] via the shared
     *      __internal_fpmp2_trig_reduction; this also returns the quadrant
@@ -3149,13 +3121,12 @@ namespace cuda::experimental
     *      here because tan(x + pi) = tan(x) absorbs the q == 2,3 sign
     *      flips that sincos performs on its sin/cos outputs.
     *
-    * Cost relative to libdevice __nv_tan: one shared reduction + one
-    * sin kernel + one cos kernel + one fp32mp2 division.  Reusing the
+    * One shared reduction + one + sin kernel + one cos kernel + one fp32mp2 division.  Reusing the
     * already-tuned sin/cos kernels inherits their ~46-bit accuracy
     * envelope without having to fit a separate tan polynomial.
     *
     * Singularities at x === pi/2 (mod pi) produce +-inf through the q-odd
-    * branch when sin(r) underflows to zero (matches the IEEE / libdevice
+    * branch when sin(r) underflows to zero (matches the IEEE
     * convention; signed-infinity direction follows the rounded reduced
     * argument).  Inf / NaN inputs propagate to NaN through the reduction.
     *
@@ -3165,9 +3136,10 @@ namespace cuda::experimental
     * reducer for extreme arguments.
     */
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_tan(
-        const _FpType __x_hi, const _FpType __x_lo,
-        _FpType* __res_hi, _FpType* __res_lo) noexcept
+    _CCCL_TRIVIAL_API void __fpmp2_tan( const _FpType __x_hi, 
+                                        const _FpType __x_lo,
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
 #if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
         _FpType __abs_hi = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
@@ -3212,10 +3184,7 @@ namespace cuda::experimental
     * ============================================================================
     *
     * All four functions are built on two shared polynomial kernels evaluated
-    * in fp32mp2 arithmetic.  Coefficients are the libdevice fp64 minimax fits
-    * (see `__internal_atan_kernel`, `__internal_asin_kernel`,
-    *  acos-large-branch poly in device_functions_impl.c); their truncation
-    * noise is at fp64 ulp, well below the fp32mp2 ulp.  We evaluate them in
+    * in fp32mp2 arithmetic.  We evaluate them in
     * pure fp32mp2 Horner (M = 0): a coefficient as small as 2*10^-5
     * (atan c_18) still carries ~5*10^-13 of float-rounding noise when stored
     * as `float`, which is two decimals above the fp32mp2 ulp at the
@@ -3258,7 +3227,7 @@ namespace cuda::experimental
     {
         using ffloat = fp32mp2_low;
 
-        /* 19-coefficient libdevice fp64 minimax fit; ascending degree.
+        /* 19-coefficient minimax; ascending degree.
          * Polynomial P(a^2) such that atan(a) = a*(1 + a^2*P(a^2)). */
         constexpr ffloat __atan_c[19] = {
             ffloat(-3.3333333333331860e-01), /* c0  */
@@ -3297,7 +3266,7 @@ namespace cuda::experimental
 
         ffloat __y_fast(__y.hi(), __y.lo());
 
-        /* 13-coefficient libdevice fp64 minimax fit; ascending degree.
+        /* 13-coefficient minimax; ascending degree.
          * Polynomial P(y) such that asin(z)/z - 1 ~= z^2*P(z^2) for small z,
          * and pi/2 - asin(|x|) = 2*sqrty*(1 + y*P(y)) for y = (1-|x|)/2. */
         constexpr ffloat __asin_c[13] = {
@@ -3324,7 +3293,7 @@ namespace cuda::experimental
     /* ---- (kernel 3) acos large-branch polynomial P(y); used by acos only ----
      *
      * Companion to `__internal_fpmp2_asin_poly` for the |x| >= 0.575 branch
-     * of acos.  Evaluates the 13-coefficient libdevice fp64 minimax fit
+     * of acos.  Evaluates the 13-coefficient minimax
      * P(y) such that, for y = 1 - |x|, acos(|x|) = sqrt(2y)*(1 + y*P(y)).
      * Same fp32mp2_low internal evaluation as the asin kernel -- no
      * per-op renormalisation, single conversion in/out around the call. */
@@ -3394,10 +3363,12 @@ namespace cuda::experimental
 
     /* ---- atan2(y, x) ---- */
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_atan2(
-        const _FpType __y_hi, const _FpType __y_lo,
-        const _FpType __x_hi, const _FpType __x_lo,
-        _FpType* __res_hi, _FpType* __res_lo) noexcept
+    _CCCL_TRIVIAL_API void __fpmp2_atan2( const _FpType __y_hi, 
+                                          const _FpType __y_lo,
+                                          const _FpType __x_hi, 
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi, 
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_atan2 is fp32mp2 only; "
@@ -3454,7 +3425,7 @@ namespace cuda::experimental
          * `hi` is zero and route the sign decisions through that. */
         constexpr ffloat __PI    (3.141592653589793);
         constexpr ffloat __PIO2  (1.5707963267948966);
-        constexpr ffloat __PIO4  (0.7853981633974483);
+        constexpr ffloat __pio4  (0.7853981633974483);
         constexpr ffloat __PI3O4 (2.356194490192345);   /* 3pi/4 */
 
         /* Effective (collapsed) sign of y, used whenever y_hi == 0.  When
@@ -3476,7 +3447,7 @@ namespace cuda::experimental
             __r = __x_eff_neg ? __PI : ffloat(_FpType(0));
         } else if (__x_is_inf && __y_is_inf) {
             /* Both infinite: 45deg / 135deg depending on x sign. */
-            __r = __x_is_neg ? __PI3O4 : __PIO4;
+            __r = __x_is_neg ? __PI3O4 : __pio4;
         } else if (__y_is_inf) {
             /* |y| = inf, |x| finite:  result = +-pi/2 (sign from y). */
             __r = __PIO2;
@@ -3518,9 +3489,10 @@ namespace cuda::experimental
 
     /* ---- asin(x) ---- */
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_asin(
-        const _FpType __x_hi, const _FpType __x_lo,
-        _FpType* __res_hi, _FpType* __res_lo) noexcept
+    _CCCL_TRIVIAL_API void __fpmp2_asin( const _FpType __x_hi, 
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi, 
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_asin is fp32mp2 only; "
@@ -3532,13 +3504,13 @@ namespace cuda::experimental
         ffloat __x(__x_hi, __x_lo);
         ffloat __absx = __is_neg ? -__x : __x;
 
-        /* Crossover at |x| ~= 0.575 (libdevice fp64 choice; threshold is
+        /* Crossover at |x| ~= 0.575 (threshold is
          * the boundary above which the small-branch polynomial loses
          * conditioning and the large-branch sqrt reconstruction wins). */
-        constexpr _FpType __BRANCH = _FpType(0.575f);
+        constexpr _FpType __branch = _FpType(0.575f);
 
         ffloat __r;
-        if (__absx.hi() < __BRANCH) {
+        if (__absx.hi() < __branch) {
             /* Small branch: asin(|x|) = |x| + |x|*(|x|^2*P(|x|^2)) */
             ffloat __a2 = __absx * __absx;
             ffloat __p;
@@ -3568,9 +3540,10 @@ namespace cuda::experimental
 
     /* ---- acos(x) ---- */
     template<typename _FpType = float>
-    _CCCL_TRIVIAL_API void __fpmp2_acos(
-        const _FpType __x_hi, const _FpType __x_lo,
-        _FpType* __res_hi, _FpType* __res_lo) noexcept
+    _CCCL_TRIVIAL_API void __fpmp2_acos( const _FpType __x_hi, 
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi, 
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_acos is fp32mp2 only; "
@@ -3582,12 +3555,12 @@ namespace cuda::experimental
         ffloat __x(__x_hi, __x_lo);
         ffloat __absx = __is_neg ? -__x : __x;
 
-        constexpr _FpType __BRANCH = _FpType(0.575f);
+        constexpr _FpType __branch = _FpType(0.575f);
         constexpr ffloat __PI  (3.141592653589793);
         constexpr ffloat __PIO2(1.5707963267948966);
 
         ffloat __r;
-        if (__absx.hi() < __BRANCH) {
+        if (__absx.hi() < __branch) {
             /* Small branch: reuse asin polynomial.
              *   acos(x) = pi/2 - asin(x)   (sign of x already in asin) */
             ffloat __a2 = __absx * __absx;
@@ -3597,7 +3570,7 @@ namespace cuda::experimental
             __r = __is_neg ? renormalize(__PIO2 + __asin_abs)
                        : renormalize(__PIO2 - __asin_abs);
         } else {
-            /* Large branch (libdevice fp64 fit, 13 coefficients):
+            /* Large branch:
              *   y = 1 - |x|;   acos(|x|) = sqrt(2y)*(1 + y*P(y))
              *   x < 0  ->  acos(x) = pi - acos(|x|)
              * Polynomial P(y) is evaluated by `__internal_fpmp2_acos_poly`
@@ -3623,8 +3596,6 @@ namespace cuda::experimental
     * --------------------------------------------------------------------
     * Hyperbolic tangent tanh(x) (fp32mp2) - dedicated implementation
     * --------------------------------------------------------------------
-    * Adapted from libdevice's __nv_tanh, which itself uses an
-    * odd-sigmoid skeleton structurally identical to our dedicated erf:
     *
     *   1. Saturation branch: |x| >= TANH_SAT  -> result = sign(x).
     *      Threshold chosen so that 1 - tanh(|x|) < 0.5 ulp at fp32mp2
@@ -3636,20 +3607,15 @@ namespace cuda::experimental
     *   2. Large-|x| branch (|x| >= 0.6554117):
     *        tanh(|x|) = 1 - 2/(exp(2|x|) + 1)
     *      Reuses the existing dedicated __fpmp2_exp<float>; the
-    *      branch point is the libdevice-optimal crossover (chosen so
+    *      branch point is the optimal crossover (chosen so
     *      that the polynomial side stays within its 1.5-ulp envelope
     *      while keeping the exp-side argument bounded away from cancel-
     *      lation in exp(2x) - 1).
     *
     *   3. Small-|x| branch (|x| < 0.6554117): degree-22 minimax
-    *      polynomial in x^2 (the same 11 coefficients libdevice fits
-    *      for double-precision tanh, evaluated here in fp32mp2):
+    *      polynomial in x^2:
     *        tanh(x) = x + x * x^2 * Q(x^2)
     *      with Q(x^2) = d1 + d2*x^2 + ... + d11*x^20.
-    *      The libdevice fit hits ~1.5 ulp at double precision, leaving
-    *      ~16 ulp of headroom relative to the fp32mp2 target (~2^-48),
-    *      so high-degree coefficient rounding fits in float without
-    *      affecting accuracy (M-split below).
     *
     *   4. Apply sign(x) at the end. Both branches are computed on |x|
     *      using fp32mp2_low and the result is negated when x < 0,
@@ -3657,27 +3623,27 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_tanh (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_tanh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using ffloat = fp32mp2_low;
 
-        /* libdevice-optimal crossover between polynomial and exp paths. */
-        constexpr float __BRANCH_POINT = 0.6554117f;
+        /* optimal crossover between polynomial and exp paths. */
+        constexpr float __branch_point = 0.6554117f;
         /* tanh(|x|) >= 1 - 0.5 ulp_fp32mp2 for |x| >= 17.33; use 17.5. */
-        constexpr float __TANH_SAT     = 17.5f;
+        constexpr float __tanh_sat     = 17.5f;
 
         const bool   __is_neg = __x_hi < 0.f;
         const float  __abs_hi = __is_neg ? -__x_hi : __x_hi;
 
         /* ---- (1) saturation ------------------------------------------- */
-        if (!(__abs_hi < __TANH_SAT))  /* also catches NaN -> falls through to poly */
+        if (!(__abs_hi < __tanh_sat))  /* also catches NaN -> falls through to poly */
         {
-            if (__abs_hi >= __TANH_SAT) {
+            if (__abs_hi >= __tanh_sat) {
                 *__res_hi = __is_neg ? -1.f : 1.f;
                 *__res_lo = 0.f;
                 return;
@@ -3689,12 +3655,12 @@ namespace cuda::experimental
         }
 
         ffloat __x   (__x_hi, __x_lo);
-        ffloat __absA = __is_neg ? -__x : __x;
+        ffloat __abs_a = __is_neg ? -__x : __x;
 
-        if (__abs_hi >= __BRANCH_POINT)
+        if (__abs_hi >= __branch_point)
         {
             /* ---- (2) large-|x| branch: 1 - 2/(exp(2|x|)+1) ------------ */
-            ffloat __two_abs = __absA + __absA;   /* exactly 2|x|: addition of equals */
+            ffloat __two_abs = __abs_a + __abs_a;   /* exactly 2|x|: addition of equals */
             float  __u_hi, __u_lo;
             __fpmp2_exp<float>(__two_abs.hi(), __two_abs.lo(), &__u_hi, &__u_lo);
             ffloat __denom  = ffloat(__u_hi, __u_lo) + ffloat(1.f);
@@ -3718,9 +3684,6 @@ namespace cuda::experimental
          *     |d_n * x^{2n+1} * 2^-24| <= 5e-16 (well below 0.5 ulp),
          *     so the high-degree Horner steps run in float for free.
          *
-         * The 11 coefficients are the same libdevice minimax fit cited
-         * by __nv_tanh; truncation noise of that polynomial is ~1.5 ulp
-         * at double precision, ~16 ulp of headroom vs. the fp32mp2 target.
          */
         constexpr ffloat __tanh_c[11] = {
             /* 9 low-degree ff entries (full double precision) */
@@ -3794,16 +3757,16 @@ namespace cuda::experimental
      * loses < 1 bit of precision to cancellation -- well within fp32mp2 ulp. */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_sinh (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_sinh is fp32mp2 only; fp64mp2 has its own specialization");
 
         using ffloat = fp32mp2_low;
 
-        constexpr float __BRANCH_POINT = 0.6554117f;
+        constexpr float __branch_point = 0.6554117f;
 
         const bool   __is_neg = __x_hi < 0.f;
         const float  __abs_hi = __is_neg ? -__x_hi : __x_hi;
@@ -3818,13 +3781,13 @@ namespace cuda::experimental
         }
 
         ffloat __x   (__x_hi, __x_lo);
-        ffloat __absA = __is_neg ? -__x : __x;
+        ffloat __abs_a = __is_neg ? -__x : __x;
 
-        if (__abs_hi >= __BRANCH_POINT)
+        if (__abs_hi >= __branch_point)
         {
             /* ---- large-|x| branch:  sinh(|x|) = (e - 1/e) / 2 ---------- */
             float __u_hi, __u_lo;
-            __fpmp2_exp<float>(__absA.hi(), __absA.lo(), &__u_hi, &__u_lo);
+            __fpmp2_exp<float>(__abs_a.hi(), __abs_a.lo(), &__u_hi, &__u_lo);
             ffloat __e(__u_hi, __u_lo);
             ffloat __half_e     = __e * ffloat(0.5f);
             ffloat __half_inv_e = ffloat(0.5f) / __e;
@@ -3887,9 +3850,9 @@ namespace cuda::experimental
      * polynomial branch is needed for small |x|. */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_cosh (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_cosh is fp32mp2 only; fp64mp2 has its own specialization");
@@ -3907,10 +3870,10 @@ namespace cuda::experimental
 
         const bool  __is_neg = __x_hi < 0.f;
         ffloat      __x      (__x_hi, __x_lo);
-        ffloat      __absA   = __is_neg ? -__x : __x;
+        ffloat      __abs_a   = __is_neg ? -__x : __x;
 
         float __u_hi, __u_lo;
-        __fpmp2_exp<float>(__absA.hi(), __absA.lo(), &__u_hi, &__u_lo);
+        __fpmp2_exp<float>(__abs_a.hi(), __abs_a.lo(), &__u_hi, &__u_lo);
         ffloat __e(__u_hi, __u_lo);
 
         /* cosh(|x|) = 0.5*e + 0.5/e  (both terms positive; no cancellation). */
@@ -3945,9 +3908,7 @@ namespace cuda::experimental
      *
      * For acosh, x^2-1 is computed as (x-1)*(x+1) -- both factors are
      * well-conditioned (x-1 >= 0, x+1 >= 2), so the product carries the
-     * full fp32mp2 precision of the difference even at x ~= 1, matching
-     * what libdevice's double-precision __nv_acosh achieves with a
-     * single fma(x,x,-1) primitive.
+     * full fp32mp2 precision of the difference even at x ~= 1,
      *
      * For atanh, the log1p form
      *      0.5 * log1p(2|x|/(1-|x|))
@@ -3970,9 +3931,9 @@ namespace cuda::experimental
      */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_asinh (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_asinh is fp32mp2 only; fp64mp2 has its own specialization");
@@ -4009,7 +3970,7 @@ namespace cuda::experimental
         }
 
         ffloat __x   (__x_hi, __x_lo);
-        ffloat __absA = __is_neg ? -__x : __x;
+        ffloat __abs_a = __is_neg ? -__x : __x;
 
         /* Crossover threshold: above 2^25 we switch to the asymptotic
          * form
@@ -4026,14 +3987,14 @@ namespace cuda::experimental
          * lo errors don't shrink with the result.  Empirically, the
          * else branch loses ~10 bits at |x| ~ 2^60; the asymptotic form
          * is exact to fp32mp2 ulp throughout [2^25, FLT_MAX]. */
-        constexpr float __LARGE_ASINH = 0x1.0p+25f;
+        constexpr float __large_asinh = 0x1.0p+25f;
 
         ffloat __result;
-        if (__abs_hi > __LARGE_ASINH)
+        if (__abs_hi > __large_asinh)
         {
             constexpr ffloat __ln2(0x1.62e42fefa39efp-1);
             float __l_hi, __l_lo;
-            __fpmp2_log<float>(__absA.hi(), __absA.lo(), &__l_hi, &__l_lo);
+            __fpmp2_log<float>(__abs_a.hi(), __abs_a.lo(), &__l_hi, &__l_lo);
             __result = renormalize(ffloat(__l_hi, __l_lo) + __ln2);
         }
         else
@@ -4048,13 +4009,13 @@ namespace cuda::experimental
              * Use accurate add for x^2+1: when |x| is small the +1
              * dominates and we want the lo to carry x^2 to full
              * fp32mp2 precision -- the same reasoning as in log1p. */
-            ffloat __a2     = __absA * __absA;
+            ffloat __a2     = __abs_a * __abs_a;
             ffloat __a2p1   = add<fpmp2_accuracy::high>(__a2, 1.0f);
             float  __s_hi, __s_lo;
             __fpmp2_sqrt<float>(__a2p1.hi(), __a2p1.lo(), &__s_hi, &__s_lo);
             ffloat __s      = ffloat(__s_hi, __s_lo);
             ffloat __denom  = add<fpmp2_accuracy::high>(__s, 1.0f);
-            ffloat __t      = renormalize(__absA + __a2 / __denom);
+            ffloat __t      = renormalize(__abs_a + __a2 / __denom);
 
             float __r_hi, __r_lo;
             __fpmp2_log1p<float>(__t.hi(), __t.lo(), &__r_hi, &__r_lo);
@@ -4068,9 +4029,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_acosh (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_acosh is fp32mp2 only; fp64mp2 has its own specialization");
@@ -4125,10 +4086,10 @@ namespace cuda::experimental
          * errors don't shrink through the subsequent log compression,
          * so accuracy degrades to ~36 bits near |x| ~ 2^60.  Switching
          * this early restores fp32mp2 ulp throughout [2^25, FLT_MAX]. */
-        constexpr float __LARGE_ACOSH = 0x1.0p+25f;
+        constexpr float __large_acosh = 0x1.0p+25f;
 
         ffloat __result;
-        if (__x_hi > __LARGE_ACOSH)
+        if (__x_hi > __large_acosh)
         {
             /* Asymptotic form: acosh(x) ~= log(2x) = log(x) + ln(2).
              * O(1/x^2) correction is below fp32mp2 ulp at crossover. */
@@ -4150,11 +4111,8 @@ namespace cuda::experimental
              * product carries the full fp32mp2 precision of the
              * difference -- which is exactly what sqrt() needs to deliver
              * the bits that drive the log1p argument near the branch
-             * point.  The libdevice double-precision __nv_acosh uses
-             * `fma(a,a,-1)` to achieve the same effect via a single
-             * correctly-rounded primitive, but our fp32mp2 fast_t mul
-             * does not give full mathematical precision in `x*x`, so
-             * the (x-1)(x+1) factorization is the cleanest equivalent. */
+             * point 
+             */
             ffloat __xm1   = sub<fpmp2_accuracy::high>(__x, 1.0f);
             ffloat __xp1   = add<fpmp2_accuracy::high>(__x, 1.0f);
             ffloat __x2m1  = __xm1 * __xp1;
@@ -4174,9 +4132,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_atanh (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         static_assert(::cuda::std::is_same_v<_FpType, float>,
                       "dedicated __fpmp2_atanh is fp32mp2 only; fp64mp2 has its own specialization");
@@ -4220,7 +4178,7 @@ namespace cuda::experimental
         }
 
         ffloat __x    (__x_hi, __x_lo);
-        ffloat __absA = __is_neg ? -__x : __x;
+        ffloat __abs_a = __is_neg ? -__x : __x;
 
         /* Small-|x| polynomial branch.
          *
@@ -4240,8 +4198,8 @@ namespace cuda::experimental
          * of the typical work range) so most threads stay on the log1p
          * path, limiting warp divergence; at |x| = 0.25 the y^11 term is
          * 0.04 * 0.0625^11 ~= 5*10^-16, below fp32mp2 ulp at atanh(0.25). */
-        constexpr float __ATANH_BRANCH_POINT = 0.25f;
-        if (__abs_hi < __ATANH_BRANCH_POINT)
+        constexpr float __atanh_branch_point = 0.25f;
+        if (__abs_hi < __atanh_branch_point)
         {
             /* P(y) = sum_{k>=0} y^k / (2k+3), packed in ascending degree.
              *   atanh_poly_c[0] = 1/3 (constant of P),
@@ -4283,8 +4241,8 @@ namespace cuda::experimental
          *
          * Use accurate sub for 1 - |x| to capture full precision when
          * |x| is close to 1. */
-        ffloat __one_minus = sub<fpmp2_accuracy::high>(ffloat(1.0f), __absA);
-        ffloat __two_abs   = __absA + __absA;
+        ffloat __one_minus = sub<fpmp2_accuracy::high>(ffloat(1.0f), __abs_a);
+        ffloat __two_abs   = __abs_a + __abs_a;
         ffloat __t         = __two_abs / __one_minus;
 
         float __l_hi, __l_lo;
@@ -4330,9 +4288,9 @@ namespace cuda::experimental
     #endif
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_erf(const _FpType __x_hi,
-                                               const _FpType __x_lo,
-                                               _FpType*      __res_hi,
-                                               _FpType*      __res_lo) noexcept
+                                       const _FpType __x_lo,
+                                       _FpType*      __res_hi,
+                                       _FpType*      __res_lo) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -4362,12 +4320,12 @@ namespace cuda::experimental
         };
 
         constexpr ffloat __L2E   (1.4426950408889634);
-        constexpr ffloat __LN2_HI(0.6931471805599453);
+        constexpr ffloat __ln2_hi(0.6931471805599453);
 
         ffloat __x     = renormalize(ffloat(__x_hi, __x_lo));
         bool __is_neg  = __x.hi() < 0.f;
         uint32_t __xhi = __fpmp_internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
-        ffloat __absA  = __is_neg ? -__x : __x;
+        ffloat __abs_a  = __is_neg ? -__x : __x;
 
         /* |x| >= saturation_bound (~5.92) or Inf -> erf = +-1 */
         if (__xhi >= 0x40bd7da4U && __xhi <= 0x7f800000U) 
@@ -4389,7 +4347,7 @@ namespace cuda::experimental
          * SASS for ~+20% throughput / ~-8% latency on coherent
          * workloads.
          */
-        constexpr float __X_STAR = 2.1134011f;
+        constexpr float __x_star = 2.1134011f;
 
         constexpr ffloat __dc_left[18] = {
             ffloat( 1.2837916709551273e-01),  // [ 0] constant
@@ -4433,10 +4391,10 @@ namespace cuda::experimental
         };
 
         ffloat __poly;
-        if (__absA.hi() < __X_STAR)
-            __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__absA, __dc_left);
+        if (__abs_a.hi() < __x_star)
+            __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__abs_a, __dc_left);
         else
-            __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__absA, __dc_right);
+            __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__abs_a, __dc_right);
 #else // _CCCL_FPMP_USE_FAST_ERF == 0
         /* Default: uniform degree-23 Remez polynomial over [0, 5.92],
          * evaluated with full compensated Horner (P(0) = d1).
@@ -4473,18 +4431,18 @@ namespace cuda::experimental
             d9,  d10, d11, d12, d13, d14, d15, d16,
             d17, d18, d19, d20, d21, d22, d23, d24
         };
-        ffloat __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__absA, dc);
+        ffloat __poly = __fpmp_poly_eval<__fpmp_poly_method::horner_comp>(__abs_a, dc);
 #endif // _CCCL_FPMP_USE_FAST_ERF == 0
 
         /* arg = |x| * P(|x|) + |x| (replaces polyHi/polyLo splitting) */
-        ffloat __arg = renormalize(__poly * __absA + __absA);
+        ffloat __arg = renormalize(__poly * __abs_a + __abs_a);
 
         /* Compute -expm1(-arg): argument reduction */
         ffloat __neg_arg     = -__arg;
         float  __neg_arg_l2e = (__neg_arg * __L2E).hi();
         int    __n           = __fpmp_fp2int_rn(__neg_arg_l2e);
         ffloat __fn          = __fpmp_int2fp_rn<float>(__n);
-        ffloat __r           = __neg_arg - __fn * __LN2_HI;
+        ffloat __r           = __neg_arg - __fn * __ln2_hi;
 
         /* Evaluate u(r) = m2 + m3*r + ... + m11*r^9 via the mixed-precision
          * dispatcher (4 high-order float coeffs m8..m11, 6 low-order ff
@@ -4542,9 +4500,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_erfc(const _FpType __x_hi, 
-                                                const _FpType __x_lo, 
-                                                _FpType*      __res_hi, 
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo, 
+                                        _FpType*      __res_hi, 
+                                        _FpType*      __res_lo) noexcept
     {
         /*
         * erfc(x) = erfcx(|x|) * exp(-x^2); erfcx = (1+2*x)*exp(x^2)*erfc(x) 
@@ -4607,7 +4565,7 @@ namespace cuda::experimental
         };
 
         constexpr ffloat __L2E   (1.4426950408889634e+0);
-        constexpr ffloat __LN2_HI(6.9314718055994529e-1);
+        constexpr ffloat __ln2_hi(6.9314718055994529e-1);
         constexpr ffloat __LN2_LO(2.3190468138462996e-17);            
 
         ffloat __x     = renormalize(ffloat(__x_hi, __x_lo));
@@ -4651,7 +4609,7 @@ namespace cuda::experimental
         float __prod_hi = (__xx * __L2E).hi();
         int __i         = __fpmp_fp2int_rn(__prod_hi);
         ffloat __t_rint = __fpmp_int2fp_rn<float>(__i);
-        ffloat __z = renormalize(__xx - __t_rint * __LN2_HI - __t_rint * __LN2_LO);
+        ffloat __z = renormalize(__xx - __t_rint * __ln2_hi - __t_rint * __LN2_LO);
 
         // exp polynomial: 5 high-order terms in float, remaining 7 in ff
         ffloat __t = __fpmp_poly_eval<__fpmp_poly_method::horner_mixed, 5>(__z, __exp_c);
@@ -4733,9 +4691,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_FPMP_INTERNAL_CUSTOM_DECL void __fpmp2_boys_f0 (const _FpType __a_hi,
-                                                           const _FpType __a_lo,
-                                                           _FpType*      __res_hi,
-                                                           _FpType*      __res_lo) noexcept
+                                                          const _FpType __a_lo,
+                                                          _FpType*      __res_hi,
+                                                          _FpType*      __res_lo) noexcept
     {
         using ffloat = fpmp2<_FpType, _CCCL_FPMP_METHOD>;
 
@@ -4893,9 +4851,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_normcdfinv(const _FpType __x_hi,
-                                                      const _FpType __x_lo,
-                                                      _FpType*      __res_hi,
-                                                      _FpType*      __res_lo) noexcept
+                                              const _FpType __x_lo,
+                                              _FpType*      __res_hi,
+                                              _FpType*      __res_lo) noexcept
     {
         using ffloat = fp32mp2_low;
 
@@ -5086,7 +5044,9 @@ namespace cuda::experimental
     *   uint64_t version: p = (x + 0.5) / 2^48  (top 48 bits of 64)
     * ============================================================================
     */
-    _CCCL_TRIVIAL_API void __fpmp2_icdf(uint32_t __x, float* __res_hi, float* __res_lo) noexcept
+    _CCCL_TRIVIAL_API void __fpmp2_icdf(uint32_t __x, 
+                                        float*   __res_hi, 
+                                        float*   __res_lo) noexcept
     {
         float __sign = 1.0f;
         if (__x > 0x80000000u) {
@@ -5162,9 +5122,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_fabs (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         *__res_hi = ::fabs(__x_hi);
         *__res_lo = (__x_hi < _FpType(0)) ? -__x_lo : __x_lo;
@@ -5178,11 +5138,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_fmax (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 const _FpType __y_hi,
-                                                 const _FpType __y_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         const _FpType __y_hi,
+                                         const _FpType __y_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         const bool __x_is_nan = __fpmp_internal_isnan(__x_hi);
         const bool __y_is_nan = __fpmp_internal_isnan(__y_hi);
@@ -5198,11 +5158,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_fmin (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 const _FpType __y_hi,
-                                                 const _FpType __y_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         const _FpType __y_hi,
+                                         const _FpType __y_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         const bool __x_is_nan = __fpmp_internal_isnan(__x_hi);
         const bool __y_is_nan = __fpmp_internal_isnan(__y_hi);
@@ -5220,11 +5180,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_max (const _FpType __x_hi,
-                                                const _FpType __x_lo,
-                                                const _FpType __y_hi,
-                                                const _FpType __y_lo,
-                                                _FpType*      __res_hi,
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo,
+                                        const _FpType __y_hi,
+                                        const _FpType __y_lo,
+                                        _FpType*      __res_hi,
+                                        _FpType*      __res_lo) noexcept
     {
         const bool __x_less = (__x_hi < __y_hi) || (__x_hi == __y_hi && __x_lo < __y_lo);
         if (__x_less) { *__res_hi = __y_hi; *__res_lo = __y_lo; }
@@ -5238,11 +5198,11 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_min (const _FpType __x_hi,
-                                                const _FpType __x_lo,
-                                                const _FpType __y_hi,
-                                                const _FpType __y_lo,
-                                                _FpType*      __res_hi,
-                                                _FpType*      __res_lo) noexcept
+                                        const _FpType __x_lo,
+                                        const _FpType __y_hi,
+                                        const _FpType __y_lo,
+                                        _FpType*      __res_hi,
+                                        _FpType*      __res_lo) noexcept
     {
         const bool __y_less = (__y_hi < __x_hi) || (__y_hi == __x_hi && __y_lo < __x_lo);
         if (__y_less) { *__res_hi = __y_hi; *__res_lo = __y_lo; }
@@ -5267,9 +5227,9 @@ namespace cuda::experimental
     */
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_floor (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         // NaN check
         if ((__x_hi != __x_hi) || (__x_lo != __x_lo)) 
@@ -5305,9 +5265,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_ceil (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         // NaN check
         if ((__x_hi != __x_hi) || (__x_lo != __x_lo)) 
@@ -5343,9 +5303,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_round (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         // NaN check
         if ((__x_hi != __x_hi) || (__x_lo != __x_lo)) 
@@ -5366,9 +5326,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_trunc (const _FpType __x_hi,
-                                                  const _FpType __x_lo,
-                                                  _FpType*      __res_hi,
-                                                  _FpType*      __res_lo) noexcept
+                                          const _FpType __x_lo,
+                                          _FpType*      __res_hi,
+                                          _FpType*      __res_lo) noexcept
     {
         // NaN check
         if ((__x_hi != __x_hi) || (__x_lo != __x_lo)) 
@@ -5529,8 +5489,7 @@ namespace cuda::experimental
     _CCCL_FPMP_MATH_PLACEHOLDER_1A(logb)
     _CCCL_FPMP_MATH_PLACEHOLDER_1A(lgamma)
     _CCCL_FPMP_MATH_PLACEHOLDER_1A(tgamma)
-    /* fmod, remainder: dedicated fp32mp2 implementations (integer
-     * mantissa long-division, libdevice-style) live in the dedicated
+    /* fmod, remainder: dedicated fp32mp2 implementations live in the dedicated
      * math section above.  fp64mp2 paths stay on the explicit double
      * specializations further below. */
     _CCCL_FPMP_MATH_PLACEHOLDER_2A(hypot)
@@ -5553,9 +5512,9 @@ namespace cuda::experimental
     // Rounding functions rint, nearbyint
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_rint (const _FpType __x_hi,
-                                                 const _FpType __x_lo,
-                                                 _FpType*      __res_hi,
-                                                 _FpType*      __res_lo) noexcept
+                                         const _FpType __x_lo,
+                                         _FpType*      __res_hi,
+                                         _FpType*      __res_lo) noexcept
     {
         using mp2_t = fpmp2<_FpType>;
         const double __r = ::rint(static_cast<double>(mp2_t(__x_hi, __x_lo)));
@@ -5566,9 +5525,9 @@ namespace cuda::experimental
 
     template<typename _FpType = float>
     _CCCL_TRIVIAL_API void __fpmp2_nearbyint (const _FpType __x_hi,
-                                                      const _FpType __x_lo,
-                                                      _FpType*      __res_hi,
-                                                      _FpType*      __res_lo) noexcept
+                                              const _FpType __x_lo,
+                                              _FpType*      __res_hi,
+                                              _FpType*      __res_lo) noexcept
     {
         using mp2_t = fpmp2<_FpType>;
         const double __r = ::nearbyint(static_cast<double>(mp2_t(__x_hi, __x_lo)));
