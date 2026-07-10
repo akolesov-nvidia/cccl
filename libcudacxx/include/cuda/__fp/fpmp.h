@@ -1147,4 +1147,3 @@ using fp64mp2_high = fpmp2<double, fpmp2_accuracy::high>;
 #include <cuda/std/__cccl/epilogue.h>
 
 #endif // _CUDA___FP_FPMP_H
-
