@@ -42,6 +42,28 @@ using ffloat = fp32mp2;
 
 constexpr int LUT_SIZE = 16;
 
+// Compile-time guard (mirrors the cuda_multi_fp float-float property): a double
+// literal MUST decompose into (hi, lo) entirely at compile time. If fpmp2(double)
+// ever stops being constexpr, or the split changes, these fail to COMPILE - so a
+// regression can never silently reach runtime.
+namespace
+{
+constexpr ffloat _ct_lut[] = {LUT_LIST(LUT_FF)};
+constexpr double _ct_ref[] = {LUT_LIST(LUT_ID)};
+
+// hi() is the nearest float; lo() is the exact residual - both evaluated by the
+// constexpr ctor + constexpr accessors, i.e. purely at compile time.
+static_assert(_ct_lut[0].hi() == (float) _ct_ref[0], "fp32mp2(double) hi must be a compile-time float cast (small)");
+static_assert(_ct_lut[0].lo() == (float) (_ct_ref[0] - (double) (float) _ct_ref[0]),
+              "fp32mp2(double) lo must be a compile-time residual (small)");
+static_assert(_ct_lut[8].hi() == (float) _ct_ref[8], "fp32mp2(double) hi must be a compile-time float cast (large)");
+static_assert(_ct_lut[8].lo() == (float) (_ct_ref[8] - (double) (float) _ct_ref[8]),
+              "fp32mp2(double) lo must be a compile-time residual (large)");
+// An exactly representable literal yields a zero residual at compile time.
+static_assert(ffloat{1.5}.hi() == 1.5f && ffloat{1.5}.lo() == 0.0f,
+              "exact double literal must decompose to (hi, lo == 0) at compile time");
+} // namespace
+
 // Multiply pairs of LUT entries and verify against the double reference; also
 // check the round-trip precision of every stored entry.
 _CCCL_HOST_DEVICE bool run_test()

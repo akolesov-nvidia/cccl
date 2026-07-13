@@ -141,7 +141,7 @@ public:
   // Constructors and assignment operators
   */
   // Basic constructors
-  _CCCL_API fpemu() noexcept
+  _CCCL_API constexpr fpemu() noexcept
       : bits{0u}
   {}
   _CCCL_API fpemu(__fpbits64_construct_tag, const __fpbits64& __f) noexcept
@@ -767,7 +767,7 @@ public:
   // Constructors and assignment operators
   */
   // Basic constructors
-  _CCCL_API fpemu_unpacked() noexcept
+  _CCCL_API constexpr fpemu_unpacked() noexcept
       : bits{0u, 0, 0}
   {}
   _CCCL_API fpemu_unpacked(__fpbits64_construct_tag, const __fpbits64_unpacked& __f) noexcept

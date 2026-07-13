@@ -576,7 +576,7 @@ public:
   //=========================================================================
 
   //! @brief Default constructor: initializes to zero
-  _CCCL_API fp64_tool() noexcept
+  _CCCL_API constexpr fp64_tool() noexcept
       : bits{0u}
   {}
 
@@ -584,7 +584,7 @@ public:
   //! @param raw The raw IEEE 754 bit pattern
   //!
   //! Example: fp64_tool(fpbits64_raw, 0x3FF0000000000000ULL) creates 1.0
-  _CCCL_API fp64_tool(fpbits64_raw_tag, fpbits64 __raw) noexcept
+  _CCCL_API constexpr fp64_tool(fpbits64_raw_tag, fpbits64 __raw) noexcept
       : bits(__raw)
   {}
 
