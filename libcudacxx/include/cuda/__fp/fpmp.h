@@ -278,8 +278,8 @@ public:
   // constexpr so constant `fpmp2` arrays can live in constexpr
   // context
   _CCCL_API constexpr fpmp2(_FpType __hi, _FpType __lo) noexcept
-      : mp2_hi(__hi)
-      , mp2_lo(__lo)
+      : mp2_hi{__hi}
+      , mp2_lo{__lo}
   {}
 
   /*
@@ -359,8 +359,8 @@ public:
   _CCCL_TEMPLATE(fpmp2_accuracy _TypeAcc2)
   _CCCL_REQUIRES((_TypeAcc2 != _TypeAcc))
   _CCCL_API constexpr explicit fpmp2(const fpmp2<_FpType, _TypeAcc2>& __other) noexcept
-      : mp2_hi(__other.hi())
-      , mp2_lo(__other.lo())
+      : mp2_hi{__other.hi()}
+      , mp2_lo{__other.lo()}
   {}
 
   /*
@@ -453,8 +453,8 @@ public:
   // constexpr so float/double constants flow into constexpr coefficient
   // tables without forcing callers to materialise the (hi, lo) pair.
   _CCCL_API constexpr fpmp2(_FpType __f) noexcept
-      : mp2_hi(__f)
-      , mp2_lo((_FpType) 0)
+      : mp2_hi{__f}
+      , mp2_lo{(_FpType) 0}
   {}
 
   /*
@@ -480,8 +480,8 @@ public:
   }
 #else
   _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2(double __d) noexcept
-      : mp2_hi((_FpType) __d)
-      , mp2_lo((_FpType) (__d - (double) (_FpType) __d))
+      : mp2_hi{(_FpType) __d}
+      , mp2_lo{(_FpType) (__d - (double) (_FpType) __d)}
   {}
 #endif
 
@@ -507,8 +507,8 @@ public:
     }
   }
 #  else
-      : mp2_hi((_FpType) __d)
-      , mp2_lo((_FpType) (__d - (__fpmp_fp128) (_FpType) __d))
+      : mp2_hi{(_FpType) __d}
+      , mp2_lo{(_FpType) (__d - (__fpmp_fp128) (_FpType) __d)}
   {
   }
 #  endif

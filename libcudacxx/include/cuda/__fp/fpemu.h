@@ -145,7 +145,7 @@ public:
       : bits{0u}
   {}
   _CCCL_API fpemu(__fpbits64_construct_tag, const __fpbits64& __f) noexcept
-      : bits(__f)
+      : bits{__f}
   {}
   /*
   // Defaulted copy constructor (trivially copyable)
@@ -163,7 +163,7 @@ public:
   */
   template <typename _Dummy = void>
   _CCCL_API fpemu(const volatile fpemu& __other) noexcept
-      : bits(__other.bits)
+      : bits{__other.bits}
   {}
 
   // Defaulted copy assignment operator (trivially copyable)
@@ -771,7 +771,7 @@ public:
       : bits{0u, 0, 0}
   {}
   _CCCL_API fpemu_unpacked(__fpbits64_construct_tag, const __fpbits64_unpacked& __f) noexcept
-      : bits(__f)
+      : bits{__f}
   {}
   /*
   // Defaulted copy constructor (trivially copyable)

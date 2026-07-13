@@ -585,27 +585,27 @@ public:
   //!
   //! Example: fp64_tool(fpbits64_raw, 0x3FF0000000000000ULL) creates 1.0
   _CCCL_API constexpr fp64_tool(fpbits64_raw_tag, fpbits64 __raw) noexcept
-      : bits(__raw)
+      : bits{__raw}
   {}
 
   //! @brief Copy constructor
   _CCCL_API fp64_tool(const fp64_tool& __o) noexcept
-      : bits(__o.bits)
+      : bits{__o.bits}
   {}
 
   //! @brief Copy constructor from volatile (for atomic operations)
   _CCCL_API fp64_tool(const volatile fp64_tool& __o) noexcept
-      : bits(__o.bits)
+      : bits{__o.bits}
   {}
 
   //! @brief Construct from double (implicit conversion)
   _CCCL_API fp64_tool(double __d) noexcept
-      : bits(_CCCL_FP64_TOOL_BIT_CAST(fpbits64, __d))
+      : bits{_CCCL_FP64_TOOL_BIT_CAST(fpbits64, __d)}
   {}
 
   //! @brief Construct from float (implicit conversion with promotion)
   _CCCL_API fp64_tool(float __f) noexcept
-      : bits(_CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__f)))
+      : bits{_CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__f))}
   {}
 
   //! @brief Construct from any standard integer type (int / long / long long + unsigned).
@@ -614,7 +614,7 @@ public:
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API fp64_tool(_Tp __i) noexcept
-      : bits(_CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__i)))
+      : bits{_CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__i))}
   {}
 
   //=========================================================================
