@@ -141,10 +141,10 @@ public:
   // Constructors and assignment operators
   */
   // Basic constructors
-  _CCCL_API inline fpemu() noexcept
+  _CCCL_API fpemu() noexcept
       : bits{0u}
   {}
-  _CCCL_API inline fpemu(__fpbits64_construct_tag, const __fpbits64& __f) noexcept
+  _CCCL_API fpemu(__fpbits64_construct_tag, const __fpbits64& __f) noexcept
       : bits(__f)
   {}
   /*
@@ -162,7 +162,7 @@ public:
   // preserving trivial copyability while retaining volatile access support.
   */
   template <typename _Dummy = void>
-  _CCCL_API inline fpemu(const volatile fpemu& __other) noexcept
+  _CCCL_API fpemu(const volatile fpemu& __other) noexcept
       : bits(__other.bits)
   {}
 
@@ -175,7 +175,7 @@ public:
   // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
   */
   template <typename _Dummy = void>
-  _CCCL_API inline void operator=(const fpemu& __other) volatile noexcept
+  _CCCL_API void operator=(const fpemu& __other) volatile noexcept
   {
     bits = __other.bits;
   }
@@ -185,7 +185,7 @@ public:
   // Template so it is NOT a copy assignment operator per the C++ standard
   */
   template <typename _Dummy = void>
-  _CCCL_API inline fpemu& operator=(const volatile fpemu& __other) noexcept
+  _CCCL_API fpemu& operator=(const volatile fpemu& __other) noexcept
   {
     bits = __other.bits;
     return *this;
@@ -196,8 +196,8 @@ public:
   */
   // ==== Conversions from other types to fpemu:
   // Implicit conversions from floating-point types
-  _CCCL_API inline fpemu(float __f) noexcept;
-  _CCCL_API inline fpemu(double __d) noexcept;
+  _CCCL_API fpemu(float __f) noexcept;
+  _CCCL_API fpemu(double __d) noexcept;
   // Construction from any standard integer type (int / long / long long + unsigned).
   // 32-bit and narrower are lossless in double and stay implicit; 64-bit may lose
   // precision and are explicit (as the prior fixed-width API required). Dispatch is
@@ -206,7 +206,7 @@ public:
   // bool / character types are excluded by __cccl_is_integer_v.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
-  _CCCL_API inline fpemu(_Tp __i) noexcept
+  _CCCL_API fpemu(_Tp __i) noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -219,7 +219,7 @@ public:
   }
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) > sizeof(int32_t)))
-  _CCCL_API explicit inline fpemu(_Tp __i) noexcept
+  _CCCL_API explicit fpemu(_Tp __i) noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -232,22 +232,22 @@ public:
   }
   // Type conversion to fpemu with other accuracy and range
   template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API inline operator fpemu<double, _Acc>() const noexcept;
+  _CCCL_API operator fpemu<double, _Acc>() const noexcept;
   // Type conversion from fpemu to fpemu_unpacked (explicit to avoid overload ambiguity)
   template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API explicit inline operator fpemu_unpacked<double, _Acc>() const noexcept;
+  _CCCL_API explicit operator fpemu_unpacked<double, _Acc>() const noexcept;
 
   // ==== Conversion from fpemu to other types:
   // Implicit conversion to double
-  _CCCL_API inline operator double() const noexcept;
+  _CCCL_API operator double() const noexcept;
   // Explicit conversions to other types
-  _CCCL_API explicit inline operator float() const noexcept;
+  _CCCL_API explicit operator float() const noexcept;
   // Explicit conversion to any standard integer type (int / long / long long + unsigned).
   // Dispatches by width and signedness to the accuracy-correct integer builtins (via the
   // private out-of-line helpers below); excludes bool / character types.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API inline explicit operator _Tp() const noexcept
+  _CCCL_API explicit operator _Tp() const noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -276,14 +276,14 @@ public:
 private:
   // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
   // builtins are visible). Kept non-template so the definitions stay out-of-line.
-  _CCCL_API inline void __set_from_int(int32_t __i) noexcept;
-  _CCCL_API inline void __set_from_uint(uint32_t __i) noexcept;
-  _CCCL_API inline void __set_from_ll(int64_t __i) noexcept;
-  _CCCL_API inline void __set_from_ull(uint64_t __i) noexcept;
-  _CCCL_API inline int32_t __to_int() const noexcept;
-  _CCCL_API inline uint32_t __to_uint() const noexcept;
-  _CCCL_API inline int64_t __to_ll() const noexcept;
-  _CCCL_API inline uint64_t __to_ull() const noexcept;
+  _CCCL_API void __set_from_int(int32_t __i) noexcept;
+  _CCCL_API void __set_from_uint(uint32_t __i) noexcept;
+  _CCCL_API void __set_from_ll(int64_t __i) noexcept;
+  _CCCL_API void __set_from_ull(uint64_t __i) noexcept;
+  _CCCL_API int32_t __to_int() const noexcept;
+  _CCCL_API uint32_t __to_uint() const noexcept;
+  _CCCL_API int64_t __to_ll() const noexcept;
+  _CCCL_API uint64_t __to_ull() const noexcept;
 
 public:
   /*
@@ -291,54 +291,54 @@ public:
   */
   // double to float
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline float __double2float(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend float __double2float(fpemu<double, _Acc> __x) noexcept;
   // double to integer
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int32_t __double2int_rn(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int32_t __double2int_rn(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int32_t __double2int_rz(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int32_t __double2int_rz(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int32_t __double2int_ru(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int32_t __double2int_ru(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int32_t __double2int_rd(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int32_t __double2int_rd(fpemu<double, _Acc> __x) noexcept;
   // double to unsigned integer
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint32_t __double2uint_rn(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint32_t __double2uint_rn(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint32_t __double2uint_rz(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint32_t __double2uint_rz(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint32_t __double2uint_ru(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint32_t __double2uint_ru(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint32_t __double2uint_rd(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint32_t __double2uint_rd(fpemu<double, _Acc> __x) noexcept;
   // double to signed integer
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int64_t __double2ll_rn(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int64_t __double2ll_rn(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int64_t __double2ll_rz(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int64_t __double2ll_rz(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int64_t __double2ll_ru(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int64_t __double2ll_ru(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int64_t __double2ll_rd(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend int64_t __double2ll_rd(fpemu<double, _Acc> __x) noexcept;
   // double to unsigned integer
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint64_t __double2ull_rn(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint64_t __double2ull_rn(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint64_t __double2ull_rz(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint64_t __double2ull_rz(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint64_t __double2ull_ru(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint64_t __double2ull_ru(fpemu<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint64_t __double2ull_rd(fpemu<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint64_t __double2ull_rd(fpemu<double, _Acc> __x) noexcept;
   // other types to double
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu<double, _Acc> __int2double(int32_t __x) noexcept;
+  _CCCL_API friend fpemu<double, _Acc> __int2double(int32_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu<double, _Acc> __uint2double(uint32_t __x) noexcept;
+  _CCCL_API friend fpemu<double, _Acc> __uint2double(uint32_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu<double, _Acc> __ll2double(int64_t __x) noexcept;
+  _CCCL_API friend fpemu<double, _Acc> __ll2double(int64_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu<double, _Acc> __ull2double(uint64_t __x) noexcept;
+  _CCCL_API friend fpemu<double, _Acc> __ull2double(uint64_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu<double, _Acc> __float2double(float __x) noexcept;
+  _CCCL_API friend fpemu<double, _Acc> __float2double(float __x) noexcept;
 
   /*
   // Arithmetic operations:
@@ -767,10 +767,10 @@ public:
   // Constructors and assignment operators
   */
   // Basic constructors
-  _CCCL_API inline fpemu_unpacked() noexcept
+  _CCCL_API fpemu_unpacked() noexcept
       : bits{0u, 0, 0}
   {}
-  _CCCL_API inline fpemu_unpacked(__fpbits64_construct_tag, const __fpbits64_unpacked& __f) noexcept
+  _CCCL_API fpemu_unpacked(__fpbits64_construct_tag, const __fpbits64_unpacked& __f) noexcept
       : bits(__f)
   {}
   /*
@@ -788,7 +788,7 @@ public:
   // preserving trivial copyability while retaining volatile access support.
   */
   template <typename _Dummy = void>
-  _CCCL_API inline fpemu_unpacked(const volatile fpemu_unpacked& __other) noexcept
+  _CCCL_API fpemu_unpacked(const volatile fpemu_unpacked& __other) noexcept
   {
     bits.sign     = __other.bits.sign;
     bits.exponent = __other.bits.exponent;
@@ -804,7 +804,7 @@ public:
   // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
   */
   template <typename _Dummy = void>
-  _CCCL_API inline void operator=(const fpemu_unpacked& __other) volatile noexcept
+  _CCCL_API void operator=(const fpemu_unpacked& __other) volatile noexcept
   {
     bits.sign     = __other.bits.sign;
     bits.exponent = __other.bits.exponent;
@@ -816,7 +816,7 @@ public:
   // Template so it is NOT a copy assignment operator per the C++ standard
   */
   template <typename _Dummy = void>
-  _CCCL_API inline fpemu_unpacked& operator=(const volatile fpemu_unpacked& __other) noexcept
+  _CCCL_API fpemu_unpacked& operator=(const volatile fpemu_unpacked& __other) noexcept
   {
     bits.sign     = __other.bits.sign;
     bits.exponent = __other.bits.exponent;
@@ -829,13 +829,13 @@ public:
   // ==== Conversions from other types to fpemu_unpacked:
 #if defined __CUDACC__
   // Implicit conversions from floating-point types
-  _CCCL_API inline fpemu_unpacked(float f) noexcept;
-  _CCCL_API inline fpemu_unpacked(double d) noexcept;
+  _CCCL_API fpemu_unpacked(float f) noexcept;
+  _CCCL_API fpemu_unpacked(double d) noexcept;
 #  define _CCCL_FPEMU_UNP_NARROW_EXPLICIT
 #else
   // Explicit conversions from floating-point types (to avoid ambiguity with packed type)
-  _CCCL_API explicit inline fpemu_unpacked(float __f) noexcept;
-  _CCCL_API explicit inline fpemu_unpacked(double __d) noexcept;
+  _CCCL_API explicit fpemu_unpacked(float __f) noexcept;
+  _CCCL_API explicit fpemu_unpacked(double __d) noexcept;
 #  define _CCCL_FPEMU_UNP_NARROW_EXPLICIT explicit
 #endif
   // Construction from any standard integer type (int / long / long long + unsigned).
@@ -846,7 +846,7 @@ public:
   // private out-of-line helpers below); bool / character types are excluded.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
-  _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT inline fpemu_unpacked(_Tp __i) noexcept
+  _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(_Tp __i) noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -859,7 +859,7 @@ public:
   }
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) > sizeof(int32_t)))
-  _CCCL_API explicit inline fpemu_unpacked(_Tp __i) noexcept
+  _CCCL_API explicit fpemu_unpacked(_Tp __i) noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -873,22 +873,22 @@ public:
 #undef _CCCL_FPEMU_UNP_NARROW_EXPLICIT
   // Type conversion to fpemu_unpacked with other accuracy and range
   template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API inline operator fpemu_unpacked<double, _Acc>() const noexcept;
+  _CCCL_API operator fpemu_unpacked<double, _Acc>() const noexcept;
   // Type conversion from fpemu_unpacked to fpemu (explicit to avoid overload ambiguity)
   template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API explicit inline operator fpemu<double, _Acc>() const noexcept;
+  _CCCL_API explicit operator fpemu<double, _Acc>() const noexcept;
 
   // ==== Conversion from fpemu_unpacked to other types:
   // Implicit conversion to double
-  _CCCL_API inline operator double() const noexcept;
+  _CCCL_API operator double() const noexcept;
   // Explicit conversions to other types
-  _CCCL_API explicit inline operator float() const noexcept;
+  _CCCL_API explicit operator float() const noexcept;
   // Explicit conversion to any standard integer type (int / long / long long + unsigned).
   // Dispatches by width and signedness to the accuracy-correct integer builtins (via the
   // private out-of-line helpers below); excludes bool / character types.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API inline explicit operator _Tp() const noexcept
+  _CCCL_API explicit operator _Tp() const noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -917,40 +917,40 @@ public:
 private:
   // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
   // builtins are visible). Kept non-template so the definitions stay out-of-line.
-  _CCCL_API inline void __set_from_int(int32_t __i) noexcept;
-  _CCCL_API inline void __set_from_uint(uint32_t __i) noexcept;
-  _CCCL_API inline void __set_from_ll(int64_t __i) noexcept;
-  _CCCL_API inline void __set_from_ull(uint64_t __i) noexcept;
-  _CCCL_API inline int32_t __to_int() const noexcept;
-  _CCCL_API inline uint32_t __to_uint() const noexcept;
-  _CCCL_API inline int64_t __to_ll() const noexcept;
-  _CCCL_API inline uint64_t __to_ull() const noexcept;
+  _CCCL_API void __set_from_int(int32_t __i) noexcept;
+  _CCCL_API void __set_from_uint(uint32_t __i) noexcept;
+  _CCCL_API void __set_from_ll(int64_t __i) noexcept;
+  _CCCL_API void __set_from_ull(uint64_t __i) noexcept;
+  _CCCL_API int32_t __to_int() const noexcept;
+  _CCCL_API uint32_t __to_uint() const noexcept;
+  _CCCL_API int64_t __to_ll() const noexcept;
+  _CCCL_API uint64_t __to_ull() const noexcept;
 
 public:
   /*
   //  CUDA builtins functions for conversions
   */
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline float __double2float(fpemu_unpacked<double, _Acc> __x) noexcept;
+  _CCCL_API friend float __double2float(fpemu_unpacked<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int32_t __double2int_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
+  _CCCL_API friend int32_t __double2int_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint32_t __double2uint_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint32_t __double2uint_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline int64_t __double2ll_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
+  _CCCL_API friend int64_t __double2ll_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline uint64_t __double2ull_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
+  _CCCL_API friend uint64_t __double2ull_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
 
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu_unpacked<double, _Acc> __float2double(float __x) noexcept;
+  _CCCL_API friend fpemu_unpacked<double, _Acc> __float2double(float __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu_unpacked<double, _Acc> __int2double(int32_t __x) noexcept;
+  _CCCL_API friend fpemu_unpacked<double, _Acc> __int2double(int32_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu_unpacked<double, _Acc> __uint2double(uint32_t __x) noexcept;
+  _CCCL_API friend fpemu_unpacked<double, _Acc> __uint2double(uint32_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu_unpacked<double, _Acc> __ll2double(int64_t __x) noexcept;
+  _CCCL_API friend fpemu_unpacked<double, _Acc> __ll2double(int64_t __x) noexcept;
   template <fpemu_accuracy _Acc>
-  _CCCL_API friend inline fpemu_unpacked<double, _Acc> __ull2double(uint64_t __x) noexcept;
+  _CCCL_API friend fpemu_unpacked<double, _Acc> __ull2double(uint64_t __x) noexcept;
 
   /*
   // Arithmetic operations:
@@ -1231,7 +1231,7 @@ public:
 
   // C++20-style bit_cast for unpacked floating-point types
   template <typename _To, fpemu_accuracy _Acc>
-  _CCCL_API friend inline _To bit_cast(const fpemu_unpacked<double, _Acc>& __from) noexcept;
+  _CCCL_API friend _To bit_cast(const fpemu_unpacked<double, _Acc>& __from) noexcept;
 
 }; // class fpemu_unpacked
 

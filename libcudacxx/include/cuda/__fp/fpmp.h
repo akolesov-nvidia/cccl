@@ -297,7 +297,7 @@ public:
   // preserving trivial copyability while retaining volatile access support.
   */
   template <typename _Dummy = void>
-  _CCCL_API inline fpmp2(const volatile fpmp2& __other) noexcept
+  _CCCL_API fpmp2(const volatile fpmp2& __other) noexcept
   {
     mp2_hi = __other.mp2_hi;
     mp2_lo = __other.mp2_lo;
@@ -312,7 +312,7 @@ public:
   // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
   */
   template <typename _Dummy = void>
-  _CCCL_API inline void operator=(const fpmp2& __other) volatile noexcept
+  _CCCL_API void operator=(const fpmp2& __other) volatile noexcept
   {
     mp2_hi = __other.mp2_hi;
     mp2_lo = __other.mp2_lo;
@@ -323,7 +323,7 @@ public:
   // Template so it is NOT a copy assignment operator per the C++ standard
   */
   template <typename _Dummy = void>
-  _CCCL_API inline fpmp2& operator=(const volatile fpmp2& __other) noexcept
+  _CCCL_API fpmp2& operator=(const volatile fpmp2& __other) noexcept
   {
     mp2_hi = __other.mp2_hi;
     mp2_lo = __other.mp2_lo;
@@ -388,7 +388,7 @@ public:
   */
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
   _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
-  _CCCL_API inline fpmp2(const fpmp2<float, _TypeAcc2>& __src) noexcept
+  _CCCL_API fpmp2(const fpmp2<float, _TypeAcc2>& __src) noexcept
   {
     const double __d_hi_in = static_cast<double>(__src.hi());
     const double __d_lo_in = static_cast<double>(__src.lo());
@@ -398,7 +398,7 @@ public:
 
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
   _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
-  _CCCL_API inline fpmp2& operator=(const fpmp2<float, _TypeAcc2>& __src) noexcept
+  _CCCL_API fpmp2& operator=(const fpmp2<float, _TypeAcc2>& __src) noexcept
   {
     const double __d_hi_in = static_cast<double>(__src.hi());
     const double __d_lo_in = static_cast<double>(__src.lo());
@@ -426,7 +426,7 @@ public:
   */
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
   _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
-  _CCCL_API inline _CCCL_FPMP_EXPLICIT fpmp2(const fpmp2<double, _TypeAcc2>& __src) noexcept
+  _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(const fpmp2<double, _TypeAcc2>& __src) noexcept
   {
     float __a_hi, __a_lo, __b_hi, __b_lo;
     __fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
@@ -436,7 +436,7 @@ public:
 
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
   _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
-  _CCCL_API inline fpmp2& operator=(const fpmp2<double, _TypeAcc2>& __src) noexcept
+  _CCCL_API fpmp2& operator=(const fpmp2<double, _TypeAcc2>& __src) noexcept
   {
     float __a_hi, __a_lo, __b_hi, __b_lo;
     __fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
@@ -513,7 +513,7 @@ public:
   }
 #  endif
   // Explicit conversion to __fpmp_fp128
-  _CCCL_API inline explicit operator __fpmp_fp128() const noexcept
+  _CCCL_API explicit operator __fpmp_fp128() const noexcept
   {
     return __fpmp2_to_quad(mp2_hi, mp2_lo);
   }
@@ -525,7 +525,7 @@ public:
   // bool / character types are excluded by __cccl_is_integer_v.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API inline _CCCL_FPMP_EXPLICIT fpmp2(_Tp __i) noexcept
+  _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(_Tp __i) noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -559,22 +559,22 @@ public:
   // conversions use a direct (hi,lo) copy, and mixed fpmp/scalar operators promote
   // the scalar up to fpmp. It only takes effect when an fpmp value is fed into a
   // double-typed sink.
-  _CCCL_API inline operator double() const noexcept
+  _CCCL_API operator double() const noexcept
   {
     return __fpmp2_to_double(mp2_hi, mp2_lo);
   }
-  _CCCL_API inline operator double() const volatile noexcept
+  _CCCL_API operator double() const volatile noexcept
   {
     return __fpmp2_to_double(mp2_hi, mp2_lo);
   }
 
   // Explicit conversions to other types
   // Conversion to float
-  _CCCL_API inline explicit operator float() const noexcept
+  _CCCL_API explicit operator float() const noexcept
   {
     return __fpmp2_to_float(mp2_hi, mp2_lo);
   }
-  _CCCL_API inline explicit operator float() const volatile noexcept
+  _CCCL_API explicit operator float() const volatile noexcept
   {
     return __fpmp2_to_float(mp2_hi, mp2_lo);
   }
@@ -584,7 +584,7 @@ public:
   // bool / character types. Provided for both const and const volatile objects.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API inline explicit operator _Tp() const noexcept
+  _CCCL_API explicit operator _Tp() const noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -611,7 +611,7 @@ public:
   }
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API inline explicit operator _Tp() const volatile noexcept
+  _CCCL_API explicit operator _Tp() const volatile noexcept
   {
     if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
     {
@@ -638,7 +638,7 @@ public:
   }
 
   // (renormalize)
-  _CCCL_API friend inline fpmp2 renormalize(const fpmp2& __x) noexcept
+  _CCCL_API friend fpmp2 renormalize(const fpmp2& __x) noexcept
   {
     fpmp2 __res;
     __fpmp2_renormalize(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
@@ -649,7 +649,7 @@ public:
   // Arithmetic operations:
   */
   // (+)
-  _CCCL_API friend inline fpmp2 operator+(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend fpmp2 operator+(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     fpmp2 __res;
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
@@ -668,7 +668,7 @@ public:
   }
 
   // (-)
-  _CCCL_API friend inline fpmp2 operator-(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend fpmp2 operator-(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     fpmp2 __res;
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
@@ -687,7 +687,7 @@ public:
   }
 
   // (*)
-  _CCCL_API friend inline fpmp2 operator*(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend fpmp2 operator*(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     fpmp2 __res;
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
@@ -708,7 +708,7 @@ public:
   }
 
   // (/)
-  _CCCL_API friend inline fpmp2 operator/(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend fpmp2 operator/(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     fpmp2 __res;
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
@@ -729,7 +729,7 @@ public:
   }
 
   // (sqrt)
-  _CCCL_API friend inline fpmp2 sqrt(const fpmp2& __x) noexcept
+  _CCCL_API friend fpmp2 sqrt(const fpmp2& __x) noexcept
   {
     fpmp2 __res;
     __fpmp2_sqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
@@ -737,7 +737,7 @@ public:
   }
 
   // (rsqrt)
-  _CCCL_API friend inline fpmp2 rsqrt(const fpmp2& __x) noexcept
+  _CCCL_API friend fpmp2 rsqrt(const fpmp2& __x) noexcept
   {
     fpmp2 __res;
     __fpmp2_rsqrt(__x.mp2_hi, __x.mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
@@ -745,7 +745,7 @@ public:
   }
 
   // (fma)
-  _CCCL_API friend inline fpmp2 fma(const fpmp2& __x, const fpmp2& __y, const fpmp2& __z) noexcept
+  _CCCL_API friend fpmp2 fma(const fpmp2& __x, const fpmp2& __y, const fpmp2& __z) noexcept
   {
     fpmp2 __res;
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
@@ -766,7 +766,7 @@ public:
   }
 
   // (mad)
-  _CCCL_API friend inline fpmp2 mad(const fpmp2& __x, const fpmp2& __y, const fpmp2& __z) noexcept
+  _CCCL_API friend fpmp2 mad(const fpmp2& __x, const fpmp2& __y, const fpmp2& __z) noexcept
   {
     fpmp2 __res;
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
@@ -791,7 +791,7 @@ public:
   // Uses specialized __fpmp2_acc functions which are more efficient than
   // full mp2+mp2 addition (saves ~6 operations by avoiding low-part 2Sum).
   */
-  _CCCL_API inline fpmp2& operator+=(const _FpType __c) noexcept
+  _CCCL_API fpmp2& operator+=(const _FpType __c) noexcept
   {
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
     {
@@ -807,7 +807,7 @@ public:
     }
     return *this;
   }
-  _CCCL_API inline fpmp2& operator-=(const _FpType __c) noexcept
+  _CCCL_API fpmp2& operator-=(const _FpType __c) noexcept
   {
     if constexpr (_TypeAcc == fpmp2_accuracy::low)
     {
@@ -825,7 +825,7 @@ public:
   }
 
   // (neg)
-  _CCCL_API inline fpmp2 operator-() const noexcept
+  _CCCL_API fpmp2 operator-() const noexcept
   {
     fpmp2 __res;
     __fpmp2_neg(mp2_hi, mp2_lo, &__res.mp2_hi, &__res.mp2_lo);
@@ -836,32 +836,32 @@ public:
   // Comparison operators:
   */
   // equality (==)
-  _CCCL_API friend inline bool operator==(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend bool operator==(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     return __fpmp2_cmp_eq(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo);
   }
   // inequality (!=)
-  _CCCL_API friend inline bool operator!=(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend bool operator!=(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     return __fpmp2_cmp_ne(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo);
   }
   // less than (<)
-  _CCCL_API friend inline bool operator<(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend bool operator<(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     return __fpmp2_cmp_lt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo);
   }
   // greater than (>)
-  _CCCL_API friend inline bool operator>(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend bool operator>(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     return __fpmp2_cmp_gt(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo);
   }
   // less than or equal to (<=)
-  _CCCL_API friend inline bool operator<=(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend bool operator<=(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     return __fpmp2_cmp_le(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo);
   }
   // greater than or equal to (>=)
-  _CCCL_API friend inline bool operator>=(const fpmp2& __x, const fpmp2& __y) noexcept
+  _CCCL_API friend bool operator>=(const fpmp2& __x, const fpmp2& __y) noexcept
   {
     return __fpmp2_cmp_ge(__x.mp2_hi, __x.mp2_lo, __y.mp2_hi, __y.mp2_lo);
   }
@@ -871,52 +871,52 @@ public:
   // Bit-cast to 64-bit integer (IEEE-754 format)
   */
   template <typename _To>
-  _CCCL_API friend inline _To bit_cast(const fpmp2& __from) noexcept
+  _CCCL_API friend _To bit_cast(const fpmp2& __from) noexcept
   {
     return static_cast<_To>(__fpmp2_bit_cast(__from.mp2_hi, __from.mp2_lo));
   }
 
   // Prefix increment/decrement
-  _CCCL_API inline fpmp2& operator++() noexcept
+  _CCCL_API fpmp2& operator++() noexcept
   {
     *this = *this + fpmp2(1.0f);
     return *this;
   }
-  _CCCL_API inline fpmp2& operator--() noexcept
+  _CCCL_API fpmp2& operator--() noexcept
   {
     *this = *this - fpmp2(1.0f);
     return *this;
   }
   // Postfix increment/decrement
-  _CCCL_API inline fpmp2 operator++(int) noexcept
+  _CCCL_API fpmp2 operator++(int) noexcept
   {
     fpmp2 __temp(*this);
     *this = *this + fpmp2(1.0f);
     return __temp;
   }
-  _CCCL_API inline fpmp2 operator--(int) noexcept
+  _CCCL_API fpmp2 operator--(int) noexcept
   {
     fpmp2 __temp(*this);
     *this = *this - fpmp2(1.0f);
     return __temp;
   }
   // Compound assignment operators (multi-precision operand)
-  _CCCL_API inline fpmp2& operator+=(const fpmp2& __other) noexcept
+  _CCCL_API fpmp2& operator+=(const fpmp2& __other) noexcept
   {
     *this = *this + __other;
     return *this;
   }
-  _CCCL_API inline fpmp2& operator-=(const fpmp2& __other) noexcept
+  _CCCL_API fpmp2& operator-=(const fpmp2& __other) noexcept
   {
     *this = *this - __other;
     return *this;
   }
-  _CCCL_API inline fpmp2& operator*=(const fpmp2& __other) noexcept
+  _CCCL_API fpmp2& operator*=(const fpmp2& __other) noexcept
   {
     *this = *this * __other;
     return *this;
   }
-  _CCCL_API inline fpmp2& operator/=(const fpmp2& __other) noexcept
+  _CCCL_API fpmp2& operator/=(const fpmp2& __other) noexcept
   {
     *this = *this / __other;
     return *this;
@@ -930,7 +930,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline fpmp2 operator*(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend fpmp2 operator*(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) * fpmp2(__y);
   }
@@ -938,7 +938,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline fpmp2 operator/(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend fpmp2 operator/(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) / fpmp2(__y);
   }
@@ -946,7 +946,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline fpmp2 operator+(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend fpmp2 operator+(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) + fpmp2(__y);
   }
@@ -954,7 +954,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline fpmp2 operator-(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend fpmp2 operator-(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) - fpmp2(__y);
   }
@@ -963,7 +963,7 @@ public:
   _CCCL_REQUIRES(
     ((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2> || ::cuda::std::is_same_v<_T3, fpmp2>)
      && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend inline fpmp2 fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
+  _CCCL_API friend fpmp2 fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
   {
     return fma(fpmp2(__x), fpmp2(__y), fpmp2(__z));
   }
@@ -972,7 +972,7 @@ public:
   _CCCL_REQUIRES(
     ((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2> || ::cuda::std::is_same_v<_T3, fpmp2>)
      && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend inline fpmp2 mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
+  _CCCL_API friend fpmp2 mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
   {
     return mad(fpmp2(__x), fpmp2(__y), fpmp2(__z));
   }
@@ -981,7 +981,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline bool operator==(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend bool operator==(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) == fpmp2(__y);
   }
@@ -989,7 +989,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline bool operator!=(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend bool operator!=(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) != fpmp2(__y);
   }
@@ -997,7 +997,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline bool operator<(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend bool operator<(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) < fpmp2(__y);
   }
@@ -1005,7 +1005,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline bool operator>(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend bool operator>(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) > fpmp2(__y);
   }
@@ -1013,7 +1013,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline bool operator<=(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend bool operator<=(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) <= fpmp2(__y);
   }
@@ -1021,7 +1021,7 @@ public:
   _CCCL_TEMPLATE(typename _T1, typename _T2)
   _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpmp2> || ::cuda::std::is_same_v<_T2, fpmp2>)
                   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend inline bool operator>=(const _T1& __x, const _T2& __y) noexcept
+  _CCCL_API friend bool operator>=(const _T1& __x, const _T2& __y) noexcept
   {
     return fpmp2(__x) >= fpmp2(__y);
   }
