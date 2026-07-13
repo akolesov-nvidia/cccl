@@ -21,21 +21,19 @@
 #  pragma system_header
 #endif // no system header
 
-/**
- * @file fpemu_impl_others.h
- * @brief Implementation of MAD, DOT, and CMUL operations for FPEMU floating point emulation library
- *
- * This header provides the implementation of other operations for the FPEMU library.
- * It includes:
- *   - MAD (Multiply-Add with intermediate rounding) functions for different accuracy and range configurations
- *   - DOT (dot product) functions
- *   - CMUL (complex multiply) functions
- *   - Special case handling for NaN, inf, zero, etc
- *
- * The implementation is designed to work across both host and device code
- * through appropriate decorators and provide bit-exact results matching hardware
- * floating point units.
- */
+//! @file fpemu_impl_others.h
+//! @brief Implementation of MAD, DOT, and CMUL operations for FPEMU floating point emulation library
+//!
+//! This header provides the implementation of other operations for the FPEMU library.
+//! It includes:
+//!   - MAD (Multiply-Add with intermediate rounding) functions for different accuracy and range configurations
+//!   - DOT (dot product) functions
+//!   - CMUL (complex multiply) functions
+//!   - Special case handling for NaN, inf, zero, etc
+//!
+//! The implementation is designed to work across both host and device code
+//! through appropriate decorators and provide bit-exact results matching hardware
+//! floating point units.
 
 #define _CCCL_FP64EMU_USE_OPT_MAD_UNPACKED  1
 #define _CCCL_FP64EMU_USE_OPT_DOT_UNPACKED  1

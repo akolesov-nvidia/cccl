@@ -21,21 +21,19 @@
 #  pragma system_header
 #endif // no system header
 
-/**
- * @file fpemu_dadd_impl.hpp
- * @brief Implementation of double-precision addition operations for FPEMU floating point emulation library
- *
- * This header provides the implementation of double-precision addition operations for the FPEMU library.
- * It includes:
- *
- * - Addition functions for fpemu
- * - Addition operators for fpemu
- * - Addition functions to other types
- *
- * The addition functions are designed to work across both host and device code
- * through appropriate decorators and provide bit-exact results matching hardware
- * floating point units.
- */
+//! @file fpemu_dadd_impl.hpp
+//! @brief Implementation of double-precision addition operations for FPEMU floating point emulation library
+//!
+//! This header provides the implementation of double-precision addition operations for the FPEMU library.
+//! It includes:
+//!
+//! - Addition functions for fpemu
+//! - Addition operators for fpemu
+//! - Addition functions to other types
+//!
+//! The addition functions are designed to work across both host and device code
+//! through appropriate decorators and provide bit-exact results matching hardware
+//! floating point units.
 
 #define _CCCL_FP64EMU_DADD_FTZ              0
 #define _CCCL_FP64EMU_DADD_OUTPUT_INF       0
@@ -50,23 +48,21 @@
 
 namespace cuda::experimental
 {
-/**
- * @brief Unpacked double-precision addition for FPEMU
- *
- * This function performs double-precision addition on two unpacked FPEMU floating-point numbers.
- * It takes two __fpbits64_unpacked structures as input, representing the unpacked sign, exponent,
- * and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
- * accuracy, range, and engine template parameters.
- *
- * The function handles normalization, exponent alignment, sign management, and special cases such as
- * denormals and zeroes, producing an unpacked result in __fpbits64_unpacked form.
- *
- * @tparam rm    Rounding mode (rounding)
- * @tparam _Acc  Accuracy level (fpemu_accuracy)
- * @param x      First operand (unpacked)
- * @param y      Second operand (unpacked)
- * @return       Result of addition in unpacked form (__fpbits64_unpacked)
- */
+//! @brief Unpacked double-precision addition for FPEMU
+//!
+//! This function performs double-precision addition on two unpacked FPEMU floating-point numbers.
+//! It takes two __fpbits64_unpacked structures as input, representing the unpacked sign, exponent,
+//! and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
+//! accuracy, range, and engine template parameters.
+//!
+//! The function handles normalization, exponent alignment, sign management, and special cases such as
+//! denormals and zeroes, producing an unpacked result in __fpbits64_unpacked form.
+//!
+//! @tparam rm    Rounding mode (rounding)
+//! @tparam _Acc  Accuracy level (fpemu_accuracy)
+//! @param x      First operand (unpacked)
+//! @param y      Second operand (unpacked)
+//! @return       Result of addition in unpacked form (__fpbits64_unpacked)
 template <__fpemu_rounding _Rm = __fpemu_rounding::def, fpemu_accuracy _Acc = fpemu_accuracy::def, bool _IsSub = false>
 _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_accurate(__fpbits64 __x, __fpbits64 __y) noexcept
 {
@@ -239,23 +235,21 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_accurate(__fpbits64 __x, __
   return __result;
 } // __internal_fp64emu_dadd_accurate
 
-/**
- * @brief Packed double-precision addition for FPEMU
- *
- * This function performs double-precision addition on two packed FPEMU floating-point numbers.
- * It takes two __fpbits64 structures as input, representing the packed sign, exponent,
- * and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
- * accuracy, range, and engine template parameters.
- *
- * The function handles normalization, exponent alignment, sign management, and special cases such as
- * denormals and zeroes, producing a packed result in __fpbits64 form.
- *
- * @tparam rm    Rounding mode (rounding)
- * @tparam _Acc  Accuracy level (fpemu_accuracy)
- * @param x      First operand (packed)
- * @param y      Second operand (packed)
- * @return       Result of addition in packed form (__fpbits64)
- */
+//! @brief Packed double-precision addition for FPEMU
+//!
+//! This function performs double-precision addition on two packed FPEMU floating-point numbers.
+//! It takes two __fpbits64 structures as input, representing the packed sign, exponent,
+//! and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
+//! accuracy, range, and engine template parameters.
+//!
+//! The function handles normalization, exponent alignment, sign management, and special cases such as
+//! denormals and zeroes, producing a packed result in __fpbits64 form.
+//!
+//! @tparam rm    Rounding mode (rounding)
+//! @tparam _Acc  Accuracy level (fpemu_accuracy)
+//! @param x      First operand (packed)
+//! @param y      Second operand (packed)
+//! @return       Result of addition in packed form (__fpbits64)
 template <__fpemu_rounding _Rm = __fpemu_rounding::def, fpemu_accuracy _Acc = fpemu_accuracy::def, bool _IsSub = false>
 _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_def(__fpbits64 __x, __fpbits64 __y) noexcept
 {
@@ -428,15 +422,13 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_def(__fpbits64 __x, __fpbit
   return __result;
 } // __internal_fp64emu_dadd_def
 
-/**
- * @brief Fast double-precision addition for FPEMU
- *
- * This function performs double-precision addition on two FPEMU floating-point numbers,
- * by single precision addition for the mantissa (fast mode).
- * It takes two __fpbits64 structures as input, representing the packed sign, exponent,
- * and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
- * accuracy, range, and engine template parameters.
- */
+//! @brief Fast double-precision addition for FPEMU
+//!
+//! This function performs double-precision addition on two FPEMU floating-point numbers,
+//! by single precision addition for the mantissa (fast mode).
+//! It takes two __fpbits64 structures as input, representing the packed sign, exponent,
+//! and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
+//! accuracy, range, and engine template parameters.
 template <__fpemu_rounding _Rm = __fpemu_rounding::def, fpemu_accuracy _Acc = fpemu_accuracy::def, bool _IsSub = false>
 _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_fast(__fpbits64 __x, __fpbits64 __y) noexcept
 {
@@ -554,27 +546,25 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_fast(__fpbits64 __x, __fpbi
   return __result;
 }
 
-/**
- * @brief Pure ADD core operating on the unpacked representation (unified).
- *
- * Consumes/produces __fpbits64_unpacked exactly as produced by the universal
- * __internal_fp64emu_unpack and consumed by __internal_fp64emu_pack
- * (normalized mantissa with the implicit bit set, inf/nan encoded in the
- * exponent band). is_sub negates b. The result is the pre-rounding
- * intermediate that pack rounds once.
- *
- * All three accuracy levels are the legacy kernels with their prologue/epilogue
- * replaced by the universal unpack/pack, then combined here. Because the
- * universal unpack/pack already do everything the legacy prologues/epilogues
- * did (extract, set implicit bit, shift to the EXTRA_BITS scale, normalize,
- * round, repack), the per-accuracy bodies collapse to just their distinct core
- * arithmetic:
- *   - high: integer add with sticky-jam alignment -> correctly
- *     rounded (rounding deferred to the universal pack);
- *   - mid: the same integer add with truncating alignment;
- *   - low: the fp32 add of the top 24 significand bits.
- * inf/nan and over/underflow all flow through the universal full-range pack.
- */
+//! @brief Pure ADD core operating on the unpacked representation (unified).
+//!
+//! Consumes/produces __fpbits64_unpacked exactly as produced by the universal
+//! __internal_fp64emu_unpack and consumed by __internal_fp64emu_pack
+//! (normalized mantissa with the implicit bit set, inf/nan encoded in the
+//! exponent band). is_sub negates b. The result is the pre-rounding
+//! intermediate that pack rounds once.
+//!
+//! All three accuracy levels are the legacy kernels with their prologue/epilogue
+//! replaced by the universal unpack/pack, then combined here. Because the
+//! universal unpack/pack already do everything the legacy prologues/epilogues
+//! did (extract, set implicit bit, shift to the EXTRA_BITS scale, normalize,
+//! round, repack), the per-accuracy bodies collapse to just their distinct core
+//! arithmetic:
+//!   - high: integer add with sticky-jam alignment -> correctly
+//!     rounded (rounding deferred to the universal pack);
+//!   - mid: the same integer add with truncating alignment;
+//!   - low: the fp32 add of the top 24 significand bits.
+//! inf/nan and over/underflow all flow through the universal full-range pack.
 template <fpemu_accuracy _Acc = fpemu_accuracy::def, bool _IsSub = false>
 _CCCL_TRIVIAL_API __fpbits64_unpacked
 __internal_fp64emu_dadd_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __b) noexcept
@@ -805,29 +795,27 @@ __internal_fp64emu_dadd_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __
   }
 } // __internal_fp64emu_dadd_unpacked
 
-/**
- * @brief Double-precision addition for FPEMU by native operations
- *
- * This function performs double-precision addition on two FPEMU floating-point numbers.
- * It takes two __fpbits64 structures as input, representing the packed sign, exponent,
- * and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
- * accuracy, range, and engine template parameters.
- *
- * The function handles normalization, exponent alignment, sign management, and special cases such as
- * This function performs double-precision addition on two FPEMU floating-point numbers.
- * It takes two __fpbits64 structures as input, representing the packed sign, exponent,
- * and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
- * accuracy, range, and engine template parameters.
- *
- * The function handles normalization, exponent alignment, sign management, and special cases such as
- * denormals and zeroes, producing a result in __fpbits64 form.
- *
- * @tparam rm    Rounding mode (rounding)
- * @tparam _Acc  Accuracy level (fpemu_accuracy)
- * @param x      First operand (packed)
- * @param y      Second operand (packed)
- * @return       Result of addition in packed form (__fpbits64)
- */
+//! @brief Double-precision addition for FPEMU by native operations
+//!
+//! This function performs double-precision addition on two FPEMU floating-point numbers.
+//! It takes two __fpbits64 structures as input, representing the packed sign, exponent,
+//! and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
+//! accuracy, range, and engine template parameters.
+//!
+//! The function handles normalization, exponent alignment, sign management, and special cases such as
+//! This function performs double-precision addition on two FPEMU floating-point numbers.
+//! It takes two __fpbits64 structures as input, representing the packed sign, exponent,
+//! and mantissa fields of the operands. The addition is performed according to the specified rounding mode,
+//! accuracy, range, and engine template parameters.
+//!
+//! The function handles normalization, exponent alignment, sign management, and special cases such as
+//! denormals and zeroes, producing a result in __fpbits64 form.
+//!
+//! @tparam rm    Rounding mode (rounding)
+//! @tparam _Acc  Accuracy level (fpemu_accuracy)
+//! @param x      First operand (packed)
+//! @param y      Second operand (packed)
+//! @return       Result of addition in packed form (__fpbits64)
 template <__fpemu_rounding _Rm = __fpemu_rounding::def, fpemu_accuracy _Acc = fpemu_accuracy::def, bool _IsSub = false>
 _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd(__fpbits64 __x, __fpbits64 __y) noexcept
 {

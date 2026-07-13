@@ -21,21 +21,19 @@
 #  pragma system_header
 #endif // no system header
 
-/**
- * @file fpemu_dsub_impl.hpp
- * @brief Implementation of double-precision subtraction operations for FPEMU floating point emulation library
- *
- * This header provides the implementation of double-precision subtraction operations for the FPEMU library.
- * It includes:
- *
- * - Subtraction functions for fpemu
- * - Subtraction operators for fpemu
- * - Subtraction functions to other types
- *
- * The subtraction functions are designed to work across both host and device code
- * through appropriate decorators and provide bit-exact results matching hardware
- * floating point units.
- */
+//! @file fpemu_dsub_impl.hpp
+//! @brief Implementation of double-precision subtraction operations for FPEMU floating point emulation library
+//!
+//! This header provides the implementation of double-precision subtraction operations for the FPEMU library.
+//! It includes:
+//!
+//! - Subtraction functions for fpemu
+//! - Subtraction operators for fpemu
+//! - Subtraction functions to other types
+//!
+//! The subtraction functions are designed to work across both host and device code
+//! through appropriate decorators and provide bit-exact results matching hardware
+//! floating point units.
 
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_add.h>
@@ -45,15 +43,13 @@
 
 namespace cuda::experimental
 {
-/**
- * @brief Subtract two __fpbits64_unpacked
- *
- * This function subtracts two __fpbits64_unpacked.
- *
- * @param a The first __fpbits64_unpacked
- * @param b The second __fpbits64_unpacked
- * @return The result of the subtraction
- */
+//! @brief Subtract two __fpbits64_unpacked
+//!
+//! This function subtracts two __fpbits64_unpacked.
+//!
+//! @param a The first __fpbits64_unpacked
+//! @param b The second __fpbits64_unpacked
+//! @return The result of the subtraction
 template <fpemu_accuracy _Acc = fpemu_accuracy::def>
 _CCCL_TRIVIAL_API __fpbits64_unpacked
 __internal_fp64emu_dsub_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __b) noexcept
@@ -61,15 +57,13 @@ __internal_fp64emu_dsub_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __
   return __internal_fp64emu_dadd_unpacked<_Acc, true>(__a, __b);
 }
 
-/**
- * @brief Subtract two __fpbits64
- *
- * This function subtracts two __fpbits64.
- *
- * @param x The first __fpbits64
- * @param y The second __fpbits64
- * @return The result of the subtraction
- */
+//! @brief Subtract two __fpbits64
+//!
+//! This function subtracts two __fpbits64.
+//!
+//! @param x The first __fpbits64
+//! @param y The second __fpbits64
+//! @return The result of the subtraction
 template <__fpemu_rounding _Rm = __fpemu_rounding::def, fpemu_accuracy _Acc = fpemu_accuracy::def>
 _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dsub(__fpbits64 __x, __fpbits64 __y) noexcept
 {

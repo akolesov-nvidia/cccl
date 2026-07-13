@@ -21,19 +21,17 @@
 #  pragma system_header
 #endif // no system header
 
-/**
- * @file fpemu_impl_fma.h
- * @brief Implementation of fused multiply-add operations (FMA & MAD) for FPEMU floating point emulation library
- *
- * This header provides the implementation of fused multiply-add operations for the FPEMU library.
- * It includes:
- *   - Fused multiply-add functions for different accuracy and range configurations
- *   - Special case handling for NaN, inf, zero, etc
- *
- * The implementation is designed to work across both host and device code
- * through appropriate decorators and provide bit-exact results matching hardware
- * floating point units.
- */
+//! @file fpemu_impl_fma.h
+//! @brief Implementation of fused multiply-add operations (FMA & MAD) for FPEMU floating point emulation library
+//!
+//! This header provides the implementation of fused multiply-add operations for the FPEMU library.
+//! It includes:
+//!   - Fused multiply-add functions for different accuracy and range configurations
+//!   - Special case handling for NaN, inf, zero, etc
+//!
+//! The implementation is designed to work across both host and device code
+//! through appropriate decorators and provide bit-exact results matching hardware
+//! floating point units.
 
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
@@ -49,20 +47,18 @@ namespace cuda::experimental
 extern "C" double fma(double __x, double __y, double __z) noexcept;
 #endif
 
-/**
- * @brief Pure FMA core operating on the unpacked representation.
- *
- * Consumes/produces __fpbits64_unpacked exactly as produced by the universal
- * __internal_fp64emu_unpack and consumed by __internal_fp64emu_pack.
- * Inputs carry a normalized mantissa (implicit bit set, denormals normalized)
- * with inf/nan encoded in the exponent band (around the 0x00007ff0 / 0x0007ff00
- * magics), so the floating-point class is read from the exponent rather than a
- * separate field. The returned value is the pre-rounding intermediate: a 64-bit
- * mantissa with a sticky LSB and an exponent that may be <= 0 (subnormal) or in
- * the inf/nan band. Final rounding, subnormal shifting and inf/saturate are the
- * job of pack. Templated on the rounding mode (sign-of-zero, rd handling) and
- * the method (product accuracy via __mul_128 and range-based special handling).
- */
+//! @brief Pure FMA core operating on the unpacked representation.
+//!
+//! Consumes/produces __fpbits64_unpacked exactly as produced by the universal
+//! __internal_fp64emu_unpack and consumed by __internal_fp64emu_pack.
+//! Inputs carry a normalized mantissa (implicit bit set, denormals normalized)
+//! with inf/nan encoded in the exponent band (around the 0x00007ff0 / 0x0007ff00
+//! magics), so the floating-point class is read from the exponent rather than a
+//! separate field. The returned value is the pre-rounding intermediate: a 64-bit
+//! mantissa with a sticky LSB and an exponent that may be <= 0 (subnormal) or in
+//! the inf/nan band. Final rounding, subnormal shifting and inf/saturate are the
+//! job of pack. Templated on the rounding mode (sign-of-zero, rd handling) and
+//! the method (product accuracy via __mul_128 and range-based special handling).
 template <fpemu_accuracy _Acc = fpemu_accuracy::def>
 _CCCL_TRIVIAL_API __fpbits64_unpacked
 __internal_fp64emu_fma_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __b, __fpbits64_unpacked __c) noexcept

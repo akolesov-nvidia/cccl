@@ -199,53 +199,51 @@ namespace cuda::experimental
 /*********************************************************************
  * Multi-precision 32-bit floating-point emulation type (double-float)
  *********************************************************************/
-/**
- * @brief Multi-precision 32-bit floating-point emulation type (double-float)
- *
- * The `fpmp2` class provides a flexible, efficient, and accurate software-emulated
- * floating-point type supporting extended precision beyond standard IEEE 754 single-precision (float).
- * It is designed for GPU and CPU usage with double-float precision (hi, lo components),
- * with templates to control the underlying accuracy level (via the `fpmp2_accuracy` parameter).
- *
- * ## Template Parameters
- * - `fpmp2_accuracy`: The arithmetic accuracy level. Usually one of:
- *     - `fpmp2_accuracy::low` (favor speed, possibly at minor cost in accuracy),
- *     - `fpmp2_accuracy::def`, `fpmp2_accuracy::mid`, `fpmp2_accuracy::high`
- *
- * ## Features and Operations
- * - **Arithmetic**: Supports standard operators (+, -, *, /), fused multiply-add (fma), square roots (rsqrt, sqrt).
- * - **Renormalization**: Supports renormalization of the result of the arithmetic operations (useful for fast mode).
- * - **Construction**: Can be constructed from float, double, int32_t, uint32_t, int64_t, uint64_t.
- * - **Conversion**: Provides explicit and implicit conversion to standard C++ scalar types.
- * - **Comparison**: Supports all common relational operators (==, !=, <, <=, >, >=)
- * - **Bit-casting**: Supports reinterpretation of the value as a 64-bit integer (IEEE-754 format)
- * - **GPU & Host Compatibility**: All operations and members are decorated for both device and host use.
- *
- * ## Internal Representation
- * The class internally stores its value in `val`, a structure `fp32m2_t`
- * encoding the high and low float components following the multi-precision scheme.
- *
- * **Example Usage**:
- * @code
- * fpmp2<> a = 1.0f;
- * fpmp2<> b = 2.0f;
- * auto c = a + b; // High-precision addition
- * float f = static_cast<float>(c); // Convert back to float
- * uint64_t bits = bit_cast<uint64_t>(c); // Bit-cast to 64-bit integer (IEEE-754 format)
- * @endcode
- *
- * ## Motivation
- * This class is intended for scenarios requiring higher precision than float offers,
- * for example in scientific computing, GPU linear algebra, or when porting algorithms requiring
- * quad/double-scalar emulation to platforms where native double/quad is slow or unavailable.
- *
- * ## Thread Safety
- * - Each instance manages its own state and is safe for concurrent use in different threads.
- *
- * ## Limitations
- * - Denormals, NaN, and Inf handling may differ from IEEE 754 strict standards, depending on accuracy level.
- * - Performance depends on template parameters and underlying hardware.
- */
+//! @brief Multi-precision 32-bit floating-point emulation type (double-float)
+//!
+//! The `fpmp2` class provides a flexible, efficient, and accurate software-emulated
+//! floating-point type supporting extended precision beyond standard IEEE 754 single-precision (float).
+//! It is designed for GPU and CPU usage with double-float precision (hi, lo components),
+//! with templates to control the underlying accuracy level (via the `fpmp2_accuracy` parameter).
+//!
+//! ## Template Parameters
+//! - `fpmp2_accuracy`: The arithmetic accuracy level. Usually one of:
+//!     - `fpmp2_accuracy::low` (favor speed, possibly at minor cost in accuracy),
+//!     - `fpmp2_accuracy::def`, `fpmp2_accuracy::mid`, `fpmp2_accuracy::high`
+//!
+//! ## Features and Operations
+//! - **Arithmetic**: Supports standard operators (+, -, *, /), fused multiply-add (fma), square roots (rsqrt, sqrt).
+//! - **Renormalization**: Supports renormalization of the result of the arithmetic operations (useful for fast mode).
+//! - **Construction**: Can be constructed from float, double, int32_t, uint32_t, int64_t, uint64_t.
+//! - **Conversion**: Provides explicit and implicit conversion to standard C++ scalar types.
+//! - **Comparison**: Supports all common relational operators (==, !=, <, <=, >, >=)
+//! - **Bit-casting**: Supports reinterpretation of the value as a 64-bit integer (IEEE-754 format)
+//! - **GPU & Host Compatibility**: All operations and members are decorated for both device and host use.
+//!
+//! ## Internal Representation
+//! The class internally stores its value in `val`, a structure `fp32m2_t`
+//! encoding the high and low float components following the multi-precision scheme.
+//!
+//! **Example Usage**:
+//! @code
+//! fpmp2<> a = 1.0f;
+//! fpmp2<> b = 2.0f;
+//! auto c = a + b; // High-precision addition
+//! float f = static_cast<float>(c); // Convert back to float
+//! uint64_t bits = bit_cast<uint64_t>(c); // Bit-cast to 64-bit integer (IEEE-754 format)
+//! @endcode
+//!
+//! ## Motivation
+//! This class is intended for scenarios requiring higher precision than float offers,
+//! for example in scientific computing, GPU linear algebra, or when porting algorithms requiring
+//! quad/double-scalar emulation to platforms where native double/quad is slow or unavailable.
+//!
+//! ## Thread Safety
+//! - Each instance manages its own state and is safe for concurrent use in different threads.
+//!
+//! ## Limitations
+//! - Denormals, NaN, and Inf handling may differ from IEEE 754 strict standards, depending on accuracy level.
+//! - Performance depends on template parameters and underlying hardware.
 
 // fpmp2 class template
 // met: arithmetic accuracy level

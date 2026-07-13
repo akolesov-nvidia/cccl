@@ -20,42 +20,40 @@
 #elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
 #  pragma system_header
 #endif // no system header
-/**
- * @file fpemu.h
- * @brief Main header file for the FPEMU floating point scalar emulation library
- *
- * This is the main header file that provides access to the complete FPEMU library.
- * It includes all the necessary headers for:
- *
- * - Core definitions, macros and enumerations (fpemu_common.h)
- * - Class templates (fpemu, fpemu_unpacked)
- * - Public API functions (operators, builtins, conversions)
- * - Implementation files for specific scalar operations:
- *   - Comparison operations (fpemu_impl_cmp.h)
- *   - Type conversions (fpemu_impl_cvt.h)
- *   - Fused multiply-add (fpemu_impl_fma.h)
- *   - Addition (fpemu_impl_add.h)
- *   - Subtraction (fpemu_impl_sub.h)
- *   - Multiplication (fpemu_impl_mul.h)
- *   - Division (fpemu_impl_div.h)
- *   - Square root (fpemu_impl_sqrt.h)
- *   - Other operations (fpemu_impl_others.h)
- *
- * The library provides IEEE-754 compliant emulated scalar floating point operations
- * with configurable rounding modes and computation methods.
- *
- * Accuracy levels (template parameter 'fpemu_accuracy'):
- *   - fpemu_accuracy::high — correctly rounded, full IEEE-754 range including
- *                        infinities, NaNs, and subnormals
- *   - fpemu_accuracy::mid  — up to 1-2 least significant mantissa bits of error,
- *                        limited INF, NaN and subnormal support
- *   - fpemu_accuracy::low  — up to half of the mantissa bits may be lost,
- *                        limited INF, NaN and subnormal support
- *   - fpemu_accuracy::def  — default selector; equals high (IEEE-correct)
- *
- * The API supports both host and device code through appropriate decorators and
- * can utilize different computational backends based on template parameters.
- */
+//! @file fpemu.h
+//! @brief Main header file for the FPEMU floating point scalar emulation library
+//!
+//! This is the main header file that provides access to the complete FPEMU library.
+//! It includes all the necessary headers for:
+//!
+//! - Core definitions, macros and enumerations (fpemu_common.h)
+//! - Class templates (fpemu, fpemu_unpacked)
+//! - Public API functions (operators, builtins, conversions)
+//! - Implementation files for specific scalar operations:
+//!   - Comparison operations (fpemu_impl_cmp.h)
+//!   - Type conversions (fpemu_impl_cvt.h)
+//!   - Fused multiply-add (fpemu_impl_fma.h)
+//!   - Addition (fpemu_impl_add.h)
+//!   - Subtraction (fpemu_impl_sub.h)
+//!   - Multiplication (fpemu_impl_mul.h)
+//!   - Division (fpemu_impl_div.h)
+//!   - Square root (fpemu_impl_sqrt.h)
+//!   - Other operations (fpemu_impl_others.h)
+//!
+//! The library provides IEEE-754 compliant emulated scalar floating point operations
+//! with configurable rounding modes and computation methods.
+//!
+//! Accuracy levels (template parameter 'fpemu_accuracy'):
+//!   - fpemu_accuracy::high — correctly rounded, full IEEE-754 range including
+//!                        infinities, NaNs, and subnormals
+//!   - fpemu_accuracy::mid  — up to 1-2 least significant mantissa bits of error,
+//!                        limited INF, NaN and subnormal support
+//!   - fpemu_accuracy::low  — up to half of the mantissa bits may be lost,
+//!                        limited INF, NaN and subnormal support
+//!   - fpemu_accuracy::def  — default selector; equals high (IEEE-correct)
+//!
+//! The API supports both host and device code through appropriate decorators and
+//! can utilize different computational backends based on template parameters.
 
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
@@ -80,19 +78,17 @@ namespace cuda::experimental
 // <cuda/__fp/fpemu_impl.h>. Both are included above so the class can store raw
 // bits while keeping every FP header self-contained.
 
-/**
- * @brief Tag type for constructing an fpemu directly from raw __fpbits64 bits.
- *
- * @internal Library-internal. This disambiguates the raw-bits constructor
- * `fpemu(__fpbits64_construct_tag, const __fpbits64&)` from the value-converting
- * constructors (fpemu(double), fpemu(integer), ...): since __fpbits64 is just
- * uint64_t, a plain bits constructor would collide with the integer-value
- * constructors. The builtin forwarders (fpemu_impl_*.h) use it to wrap a raw
- * __fp64emu_* result back into an fpemu without a conversion. Not public.
- *
- * Usage (internal):
- *   return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_double(x));
- */
+//! @brief Tag type for constructing an fpemu directly from raw __fpbits64 bits.
+//!
+//! @internal Library-internal. This disambiguates the raw-bits constructor
+//! `fpemu(__fpbits64_construct_tag, const __fpbits64&)` from the value-converting
+//! constructors (fpemu(double), fpemu(integer), ...): since __fpbits64 is just
+//! uint64_t, a plain bits constructor would collide with the integer-value
+//! constructors. The builtin forwarders (fpemu_impl_*.h) use it to wrap a raw
+//! __fp64emu_* result back into an fpemu without a conversion. Not public.
+//!
+//! Usage (internal):
+//!   return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_double(x));
 struct __fpbits64_construct_tag
 {
   explicit __fpbits64_construct_tag() = default;
@@ -106,30 +102,28 @@ _CCCL_GLOBAL_CONSTANT __fpbits64_construct_tag __fpbits64_construct{};
 template <typename _FpType, fpemu_accuracy _Met>
 class fpemu_unpacked;
 
-/**
- * @brief Primary emulated double-precision floating-point class template
- *
- * The fpemu class template represents a double-precision (64-bit)
- * floating-point number, emulated according to IEEE-754 semantics but with
- * configurable accuracy level.
- *
- * @tparam met Accuracy level (fpemu_accuracy::high, mid, low; def == high)
- *              - high: Correctly rounded with full IEEE-754 range
- *              - mid: 1-2 LSB error with normal range
- *              - low: Low accuracy with normal range
- *
- * This class provides:
- *   - Storage of the value as __fpbits64 (raw IEEE-754 format)
- *   - Construction from and conversion to standard C++ types (int, float, double)
- *   - Arithmetic operators and mathematical functions
- *   - Fine-grained control over rounding and accuracy level
- *   - Portable host/device compatibility (CUDA/HIP/etc)
- *
- * Usage:
- *   fpemu<double, fpemu_accuracy::high> x{1.5};
- *   fpemu<double> y = x + 2.0;
- *   double z = static_cast<double>(y);
- */
+//! @brief Primary emulated double-precision floating-point class template
+//!
+//! The fpemu class template represents a double-precision (64-bit)
+//! floating-point number, emulated according to IEEE-754 semantics but with
+//! configurable accuracy level.
+//!
+//! @tparam met Accuracy level (fpemu_accuracy::high, mid, low; def == high)
+//!              - high: Correctly rounded with full IEEE-754 range
+//!              - mid: 1-2 LSB error with normal range
+//!              - low: Low accuracy with normal range
+//!
+//! This class provides:
+//!   - Storage of the value as __fpbits64 (raw IEEE-754 format)
+//!   - Construction from and conversion to standard C++ types (int, float, double)
+//!   - Arithmetic operators and mathematical functions
+//!   - Fine-grained control over rounding and accuracy level
+//!   - Portable host/device compatibility (CUDA/HIP/etc)
+//!
+//! Usage:
+//!   fpemu<double, fpemu_accuracy::high> x{1.5};
+//!   fpemu<double> y = x + 2.0;
+//!   double z = static_cast<double>(y);
 template <typename _FpType = double, fpemu_accuracy _Met = fpemu_accuracy::def>
 class fpemu
 {
