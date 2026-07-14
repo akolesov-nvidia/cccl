@@ -10121,6 +10121,174 @@ _CCCL_API inline int signbit(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOE
  */
 } // namespace cuda::experimental
 
+// ============================================================================
+// cuda::std overloads for the standard <cmath> names.
+//
+// The emulated math lives in cuda::experimental, but a qualified
+// cuda::std::<fn>(x) call suppresses ADL, so without these overloads it would
+// silently narrow fpmp2 -> double (via the implicit conversion) and compute a
+// native-double result. These forward to the cuda::experimental implementations
+// (which unqualified / ADL calls already resolve to). Only names that cuda::std
+// actually declares are provided; the CUDA-only extensions (rsqrt, exp10,
+// rcbrt, sinpi, cospi, j0/j1/y0/y1, cyl_bessel_*, normcdf*, erf*inv, erfcx,
+// norm*/rnorm*/rhypot, ...) have no cuda::std counterpart and are omitted.
+// ============================================================================
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+#define _CCCL_FPMP_STD_UNARY(_Name)                                       \
+  template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc> \
+  _CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc> _Name(         \
+    const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept   \
+  {                                                                       \
+    return ::cuda::experimental::_Name(__x);                              \
+  }
+
+_CCCL_FPMP_STD_UNARY(exp)
+_CCCL_FPMP_STD_UNARY(exp2)
+_CCCL_FPMP_STD_UNARY(expm1)
+_CCCL_FPMP_STD_UNARY(log)
+_CCCL_FPMP_STD_UNARY(log2)
+_CCCL_FPMP_STD_UNARY(log10)
+_CCCL_FPMP_STD_UNARY(log1p)
+_CCCL_FPMP_STD_UNARY(logb)
+_CCCL_FPMP_STD_UNARY(cbrt)
+_CCCL_FPMP_STD_UNARY(sin)
+_CCCL_FPMP_STD_UNARY(cos)
+_CCCL_FPMP_STD_UNARY(tan)
+_CCCL_FPMP_STD_UNARY(asin)
+_CCCL_FPMP_STD_UNARY(acos)
+_CCCL_FPMP_STD_UNARY(atan)
+_CCCL_FPMP_STD_UNARY(sinh)
+_CCCL_FPMP_STD_UNARY(cosh)
+_CCCL_FPMP_STD_UNARY(tanh)
+_CCCL_FPMP_STD_UNARY(asinh)
+_CCCL_FPMP_STD_UNARY(acosh)
+_CCCL_FPMP_STD_UNARY(atanh)
+_CCCL_FPMP_STD_UNARY(erf)
+_CCCL_FPMP_STD_UNARY(erfc)
+_CCCL_FPMP_STD_UNARY(tgamma)
+_CCCL_FPMP_STD_UNARY(lgamma)
+_CCCL_FPMP_STD_UNARY(ceil)
+_CCCL_FPMP_STD_UNARY(floor)
+_CCCL_FPMP_STD_UNARY(trunc)
+_CCCL_FPMP_STD_UNARY(round)
+_CCCL_FPMP_STD_UNARY(rint)
+_CCCL_FPMP_STD_UNARY(nearbyint)
+_CCCL_FPMP_STD_UNARY(fabs)
+
+#undef _CCCL_FPMP_STD_UNARY
+
+#define _CCCL_FPMP_STD_BINARY(_Name)                                      \
+  template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc> \
+  _CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc> _Name(         \
+    const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x,            \
+    const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __y) noexcept   \
+  {                                                                       \
+    return ::cuda::experimental::_Name(__x, __y);                         \
+  }
+
+_CCCL_FPMP_STD_BINARY(pow)
+_CCCL_FPMP_STD_BINARY(atan2)
+_CCCL_FPMP_STD_BINARY(fmod)
+_CCCL_FPMP_STD_BINARY(remainder)
+_CCCL_FPMP_STD_BINARY(hypot)
+_CCCL_FPMP_STD_BINARY(fmax)
+_CCCL_FPMP_STD_BINARY(fmin)
+_CCCL_FPMP_STD_BINARY(copysign)
+_CCCL_FPMP_STD_BINARY(fdim)
+_CCCL_FPMP_STD_BINARY(nextafter)
+
+#undef _CCCL_FPMP_STD_BINARY
+
+#define _CCCL_FPMP_STD_UNARY_RET(_Ret, _Name)                                              \
+  template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>                  \
+  _CCCL_API _Ret _Name(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept \
+  {                                                                                        \
+    return ::cuda::experimental::_Name(__x);                                               \
+  }
+
+_CCCL_FPMP_STD_UNARY_RET(int, ilogb)
+_CCCL_FPMP_STD_UNARY_RET(long long int, llrint)
+_CCCL_FPMP_STD_UNARY_RET(long long int, llround)
+_CCCL_FPMP_STD_UNARY_RET(long int, lrint)
+_CCCL_FPMP_STD_UNARY_RET(long int, lround)
+
+#undef _CCCL_FPMP_STD_UNARY_RET
+
+// Functions with special signatures (extra scalar / out-pointer arguments).
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+ldexp(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x, int __n) noexcept
+{
+  return ::cuda::experimental::ldexp(__x, __n);
+}
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+scalbn(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x, int __n) noexcept
+{
+  return ::cuda::experimental::scalbn(__x, __n);
+}
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+scalbln(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x, long int __n) noexcept
+{
+  return ::cuda::experimental::scalbln(__x, __n);
+}
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+frexp(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x, int* __nptr) noexcept
+{
+  return ::cuda::experimental::frexp(__x, __nptr);
+}
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+modf(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x,
+     ::cuda::experimental::fpmp2<_FpType, _TypeAcc>* __iptr) noexcept
+{
+  return ::cuda::experimental::modf(__x, __iptr);
+}
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+remquo(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x,
+       const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __y,
+       int* __quo) noexcept
+{
+  return ::cuda::experimental::remquo(__x, __y, __quo);
+}
+
+// Classification functions. Only defined when no like-named function macro is
+// active (matches the cuda::experimental guards above).
+#ifndef isfinite
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API int isfinite(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{
+  return ::cuda::experimental::isfinite(__x);
+}
+#endif
+#ifndef isinf
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API int isinf(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{
+  return ::cuda::experimental::isinf(__x);
+}
+#endif
+#ifndef isnan
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API int isnan(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{
+  return ::cuda::experimental::isnan(__x);
+}
+#endif
+#ifndef signbit
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+_CCCL_API int signbit(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{
+  return ::cuda::experimental::signbit(__x);
+}
+#endif
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
 #include <cuda/std/__cccl/epilogue.h>
 
 #endif // _CUDA___FP_FPMP_MATH_H

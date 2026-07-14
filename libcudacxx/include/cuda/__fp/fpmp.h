@@ -1411,6 +1411,46 @@ using fp64mp2_mid  = fpmp2<double, fpmp2_accuracy::mid>;
 using fp64mp2_high = fpmp2<double, fpmp2_accuracy::high>;
 } // namespace cuda::experimental
 
+// ============================================================================
+// cuda::std overloads for sqrt / fma on the fpmp2 pair.
+//
+// A qualified cuda::std::sqrt / cuda::std::fma call suppresses ADL, so without
+// these overloads it would silently narrow fpmp2 -> double and compute a
+// native-double result. These forward to the cuda::experimental implementations
+// (which unqualified / ADL calls already resolve to). The exact-type overloads
+// cover pure fpmp2 arguments; the constrained fma overload handles mixed
+// fpmp2 + built-in arithmetic operands. (mad has no cuda::std counterpart.)
+// ============================================================================
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+[[nodiscard]] _CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+sqrt(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x) noexcept
+{
+  return ::cuda::experimental::sqrt(__x);
+}
+
+template <class _FpType, ::cuda::experimental::fpmp2_accuracy _TypeAcc>
+[[nodiscard]] _CCCL_API ::cuda::experimental::fpmp2<_FpType, _TypeAcc>
+fma(const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __x,
+    const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __y,
+    const ::cuda::experimental::fpmp2<_FpType, _TypeAcc>& __z) noexcept
+{
+  return ::cuda::experimental::fma(__x, __y, __z);
+}
+
+_CCCL_TEMPLATE(class _T1, class _T2, class _T3)
+_CCCL_REQUIRES(
+  ((::cuda::experimental::__fpmp_is_fpmp2<_T1>::value || ::cuda::experimental::__fpmp_is_fpmp2<_T2>::value
+    || ::cuda::experimental::__fpmp_is_fpmp2<_T3>::value)
+   && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
+[[nodiscard]] _CCCL_API auto fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
+{
+  return ::cuda::experimental::fma(__x, __y, __z);
+}
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
 #include <cuda/std/__cccl/epilogue.h>
 
 #endif // _CUDA___FP_FPMP_H
