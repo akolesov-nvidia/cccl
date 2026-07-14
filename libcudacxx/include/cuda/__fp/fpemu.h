@@ -56,6 +56,7 @@
 //! can utilize different computational backends based on template parameters.
 
 #include <cuda/std/__concepts/concept_macros.h>
+#include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
 #include <cuda/std/__type_traits/is_same.h>
@@ -133,10 +134,14 @@ public:
                 "cuda::experimental::fpemu currently supports only _FpType == double, possible future extension to "
                 "other types emulation");
 
-  // Internal representation of the floating-point value
-  // __fpbits64 is defined in fpemu_common.h
+private:
+  // Internal representation of the floating-point value (__fpbits64 is defined in
+  // fpemu_common.h). Private: fpemu<double> is trivially copyable and bit-identical
+  // to its 64-bit IEEE-754 representation, so use bit_cast to reinterpret it; no
+  // raw-bits accessor is provided.
   __fpbits64 bits;
 
+public:
   /*
   // Constructors and assignment operators
   */
@@ -287,60 +292,6 @@ private:
 
 public:
   /*
-  //  CUDA builtins functions for conversions
-  */
-  // double to float
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend float __double2float(fpemu<double, _Acc> __x) noexcept;
-  // double to integer
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int32_t __double2int_rn(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int32_t __double2int_rz(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int32_t __double2int_ru(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int32_t __double2int_rd(fpemu<double, _Acc> __x) noexcept;
-  // double to unsigned integer
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint32_t __double2uint_rn(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint32_t __double2uint_rz(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint32_t __double2uint_ru(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint32_t __double2uint_rd(fpemu<double, _Acc> __x) noexcept;
-  // double to signed integer
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int64_t __double2ll_rn(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int64_t __double2ll_rz(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int64_t __double2ll_ru(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int64_t __double2ll_rd(fpemu<double, _Acc> __x) noexcept;
-  // double to unsigned integer
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint64_t __double2ull_rn(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint64_t __double2ull_rz(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint64_t __double2ull_ru(fpemu<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint64_t __double2ull_rd(fpemu<double, _Acc> __x) noexcept;
-  // other types to double
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu<double, _Acc> __int2double(int32_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu<double, _Acc> __uint2double(uint32_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu<double, _Acc> __ll2double(int64_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu<double, _Acc> __ull2double(uint64_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu<double, _Acc> __float2double(float __x) noexcept;
-
-  /*
   // Arithmetic operations:
   */
   // === mul ===
@@ -355,38 +306,6 @@ public:
   {
     return fpemu(__x) * fpemu(__y);
   }
-  // dmul_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dmul_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dmul_rn(fpemu(__x), fpemu(__y));
-  }
-  // dmul_rz
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dmul_rz(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dmul_rz(fpemu(__x), fpemu(__y));
-  }
-  // dmul_ru
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dmul_ru(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dmul_ru(fpemu(__x), fpemu(__y));
-  }
-  // dmul_rd
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dmul_rd(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dmul_rd(fpemu(__x), fpemu(__y));
-  }
 
   // === div ===
   // (/)
@@ -399,38 +318,6 @@ public:
   _CCCL_API friend fpemu operator/(const _T1& __x, const _T2& __y) noexcept
   {
     return fpemu(__x) / fpemu(__y);
-  }
-  // ddiv_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __ddiv_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __ddiv_rn(fpemu(__x), fpemu(__y));
-  }
-  // ddiv_rz
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __ddiv_rz(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __ddiv_rz(fpemu(__x), fpemu(__y));
-  }
-  // ddiv_ru
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __ddiv_ru(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __ddiv_ru(fpemu(__x), fpemu(__y));
-  }
-  // ddiv_rd
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __ddiv_rd(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __ddiv_rd(fpemu(__x), fpemu(__y));
   }
 
   // === add ===
@@ -445,38 +332,6 @@ public:
   {
     return fpemu(__x) + fpemu(__y);
   }
-  // dadd_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dadd_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dadd_rn(fpemu(__x), fpemu(__y));
-  }
-  // dadd_rz
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dadd_rz(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dadd_rz(fpemu(__x), fpemu(__y));
-  }
-  // dadd_ru
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dadd_ru(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dadd_ru(fpemu(__x), fpemu(__y));
-  }
-  // dadd_rd
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dadd_rd(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dadd_rd(fpemu(__x), fpemu(__y));
-  }
 
   // === sub ===
   // (-)
@@ -489,165 +344,6 @@ public:
   _CCCL_API friend fpemu operator-(const _T1& __x, const _T2& __y) noexcept
   {
     return fpemu(__x) - fpemu(__y);
-  }
-  // dsub_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dsub_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dsub_rn(fpemu(__x), fpemu(__y));
-  }
-  // dsub_rz
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dsub_rz(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dsub_rz(fpemu(__x), fpemu(__y));
-  }
-  // dsub_ru
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dsub_ru(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dsub_ru(fpemu(__x), fpemu(__y));
-  }
-  // dsub_rd
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu __dsub_rd(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dsub_rd(fpemu(__x), fpemu(__y));
-  }
-
-  // === sqrt ===
-  // sqrt
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu sqrt(const _T1& __x) noexcept
-  {
-    return sqrt(fpemu(__x));
-  }
-  // dsqrt_rn
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu __dsqrt_rn(const _T1& __x) noexcept
-  {
-    return __dsqrt_rn(fpemu(__x));
-  }
-
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu __dsqrt_rz(const _T1& __x) noexcept
-  {
-    return __dsqrt_rz(fpemu(__x));
-  }
-  // dsqrt_ru
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu __dsqrt_ru(const _T1& __x) noexcept
-  {
-    return __dsqrt_ru(fpemu(__x));
-  }
-  // dsqrt_rd
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu __dsqrt_rd(const _T1& __x) noexcept
-  {
-    return __dsqrt_rd(fpemu(__x));
-  }
-
-  // === fma ===
-  // fma
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return fma(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-  // dfma_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu __fma_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __fma_rn(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-  // dfma_rz
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu __fma_rz(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __fma_rz(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-  // dfma_ru
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu __fma_ru(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __fma_ru(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-  // dfma_rd
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu __fma_rd(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __fma_rd(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-
-  // === mad ===
-  // mad
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return mad(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-  // dmad_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu> || ::cuda::std::is_same_v<_T3, fpemu>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu __mad_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __mad_rn(fpemu(__x), fpemu(__y), fpemu(__z));
-  }
-
-  // === dot ===
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>
-                   || ::cuda::std::is_same_v<_T3, fpemu> || ::cuda::std::is_same_v<_T4, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>
-                      || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>) ))
-  _CCCL_API friend fpemu dot(const _T1& __x1, const _T2& __y1, const _T3& __x2, const _T4& __y2) noexcept
-  {
-    return dot(fpemu(__x1), fpemu(__y1), fpemu(__x2), fpemu(__y2));
-  }
-
-  // === cmul ===
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu> || ::cuda::std::is_same_v<_T2, fpemu>
-                   || ::cuda::std::is_same_v<_T3, fpemu> || ::cuda::std::is_same_v<_T4, fpemu>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>
-                      || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>) ))
-  _CCCL_API friend void cmul(
-    const _T1& __x_re, const _T2& __x_im, const _T3& __y_re, const _T4& __y_im, fpemu& __r_re, fpemu& __r_im) noexcept
-  {
-    cmul(fpemu(__x_re), fpemu(__x_im), fpemu(__y_re), fpemu(__y_im), __r_re, __r_im);
   }
 
   // Prefix increment/decrement
@@ -1247,6 +943,32 @@ using fp64emu_unpacked      = fpemu_unpacked<double, fpemu_accuracy::def>;
 using fp64emu_unpacked_low  = fpemu_unpacked<double, fpemu_accuracy::low>;
 using fp64emu_unpacked_mid  = fpemu_unpacked<double, fpemu_accuracy::mid>;
 using fp64emu_unpacked_high = fpemu_unpacked<double, fpemu_accuracy::high>;
+
+// Trait machinery for the mixed-operand free-function builtins (fma, __dadd_rn, dot,
+// cmul, ...). __is_fpemu_v detects an fpemu specialization; __fpemu_pick_t selects the
+// fpemu type among a set of operands; __fpemu_mixed_v is the constraint "at least one
+// fpemu operand AND at least one arithmetic operand" (so pure fpemu-only calls bind to
+// the exact-match cores, and pure-arithmetic calls are left to the built-in types).
+template <class _Tp>
+inline constexpr bool __is_fpemu_v = false;
+template <class _FpType, fpemu_accuracy _Acc>
+inline constexpr bool __is_fpemu_v<fpemu<_FpType, _Acc>> = true;
+
+template <class... _Ts>
+inline constexpr bool __fpemu_mixed_v = (__is_fpemu_v<_Ts> || ...) && (::cuda::std::is_arithmetic_v<_Ts> || ...);
+
+template <class... _Ts>
+struct __fpemu_pick
+{
+  using type = void;
+};
+template <class _T0, class... _Ts>
+struct __fpemu_pick<_T0, _Ts...>
+{
+  using type = ::cuda::std::conditional_t<__is_fpemu_v<_T0>, _T0, typename __fpemu_pick<_Ts...>::type>;
+};
+template <class... _Ts>
+using __fpemu_pick_t = typename __fpemu_pick<_Ts...>::type;
 
 // Define this macro so that the API sections in _impl.hpp files are activated.
 // The _impl.hpp files are structured with implementation code under their own

@@ -3,16 +3,22 @@
 
 //===----------------------------------------------------------------------===//
 //
-//  Unit test: bit_cast on fp64emu_unpacked values.
+//  Unit test: bit_cast on emulated double values (packed fpemu and unpacked).
 //
-//  Verifies that bit_cast between the unpacked emulated double and its IEEE-754
-//  bit representation round-trips values exactly, produces the expected result of
-//  a simple arithmetic expression, and yields identical bits for a plain
-//  conversion across all accuracy levels. The same _CCCL_HOST_DEVICE run_test()
-//  runs on the host and, under CUDA, on the device.
+//  Verifies that:
+//    - the packed fpemu<double> round-trips through its 64-bit IEEE-754
+//      representation via ::cuda::std::bit_cast and is bit-identical to the
+//      native double (bits is private; bit_cast is the supported reinterpret),
+//    - bit_cast between the unpacked emulated double and its IEEE-754 bit
+//      representation round-trips values exactly, produces the expected result of
+//      a simple arithmetic expression, and yields identical bits for a plain
+//      conversion across all accuracy levels.
+//  The same _CCCL_HOST_DEVICE run_test() runs on the host and, under CUDA, on the
+//  device.
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda/std/bit>
 #include <cuda/std/cmath>
 #include <cuda/std/cstdint>
 
@@ -31,6 +37,19 @@ using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later
 _CCCL_HOST_DEVICE bool run_test()
 {
   bool ok = true;
+
+  // Packed fpemu<double>: reinterpret to/from the 64-bit IEEE-754 representation
+  // via the standard bit_cast (fpemu::bits is private, so this is the only way).
+  const double packed_vals[6] = {1.5, -2.0, 0.0, -0.0, 42.0, 3.14159265358979323846};
+  for (int i = 0; i < 6; i++)
+  {
+    const fpemu<double> p(packed_vals[i]);
+    const uint64_t pbits = ::cuda::std::bit_cast<uint64_t>(p);
+    // fpemu<double> is a faithful double, so its bits match the native double's.
+    ok = ok && (pbits == ::cuda::std::bit_cast<uint64_t>(packed_vals[i]));
+    // uint64_t -> fpemu<double> -> double round-trips the value exactly.
+    ok = ok && (static_cast<double>(::cuda::std::bit_cast<fpemu<double>>(pbits)) == packed_vals[i]);
+  }
 
   // Round-trip: double -> unpacked -> bit_cast<double> must preserve the value.
   const double test_vals[5] = {1.5, -2.0, 0.0, 42.0, 3.14159265358979323846};
@@ -61,7 +80,7 @@ __global__ void run_test_kernel(bool* out)
 }
 #endif // _CCCL_CUDA_COMPILATION()
 
-C2H_TEST("fpemu_unpacked bit_cast", "[fpemu]")
+C2H_TEST("fpemu bit_cast (packed and unpacked)", "[fpemu]")
 {
   fp_ran_on_host();
   REQUIRE(run_test());

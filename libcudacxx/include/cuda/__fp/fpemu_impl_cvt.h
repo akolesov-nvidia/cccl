@@ -1276,7 +1276,7 @@ _CCCL_API inline fpemu<_FpType, _Acc>::operator float() const noexcept
 template <fpemu_accuracy _Acc>
 _CCCL_API inline float __double2float(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_float(__x.bits);
+  return __fp64emu_to_float(__fpemu_bit_cast<__fpbits64>(__x));
 }
 // to int32_t
 template <typename _FpType, fpemu_accuracy _Acc>
@@ -1287,22 +1287,22 @@ _CCCL_API inline int32_t fpemu<_FpType, _Acc>::__to_int() const noexcept
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int32_t __double2int_rn(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_int_rn(__x.bits);
+  return __fp64emu_to_int_rn(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int32_t __double2int_rz(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_int_rz(__x.bits);
+  return __fp64emu_to_int_rz(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int32_t __double2int_ru(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_int_ru(__x.bits);
+  return __fp64emu_to_int_ru(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int32_t __double2int_rd(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_int_rd(__x.bits);
+  return __fp64emu_to_int_rd(__fpemu_bit_cast<__fpbits64>(__x));
 }
 // to uint32_t
 template <typename _FpType, fpemu_accuracy _Acc>
@@ -1313,22 +1313,22 @@ _CCCL_API inline uint32_t fpemu<_FpType, _Acc>::__to_uint() const noexcept
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint32_t __double2uint_rn(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_uint_rn(__x.bits);
+  return __fp64emu_to_uint_rn(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint32_t __double2uint_rz(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_uint_rz(__x.bits);
+  return __fp64emu_to_uint_rz(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint32_t __double2uint_ru(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_uint_ru(__x.bits);
+  return __fp64emu_to_uint_ru(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint32_t __double2uint_rd(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_uint_rd(__x.bits);
+  return __fp64emu_to_uint_rd(__fpemu_bit_cast<__fpbits64>(__x));
 }
 // to int64_t
 template <typename _FpType, fpemu_accuracy _Acc>
@@ -1339,22 +1339,22 @@ _CCCL_API inline int64_t fpemu<_FpType, _Acc>::__to_ll() const noexcept
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int64_t __double2ll_rn(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ll_rn(__x.bits);
+  return __fp64emu_to_ll_rn(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int64_t __double2ll_rz(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ll_rz(__x.bits);
+  return __fp64emu_to_ll_rz(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int64_t __double2ll_ru(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ll_ru(__x.bits);
+  return __fp64emu_to_ll_ru(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline int64_t __double2ll_rd(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ll_rd(__x.bits);
+  return __fp64emu_to_ll_rd(__fpemu_bit_cast<__fpbits64>(__x));
 }
 // to uint64_t
 template <typename _FpType, fpemu_accuracy _Acc>
@@ -1365,22 +1365,22 @@ _CCCL_API inline uint64_t fpemu<_FpType, _Acc>::__to_ull() const noexcept
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint64_t __double2ull_rn(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ull_rn(__x.bits);
+  return __fp64emu_to_ull_rn(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint64_t __double2ull_rz(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ull_rz(__x.bits);
+  return __fp64emu_to_ull_rz(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint64_t __double2ull_ru(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ull_ru(__x.bits);
+  return __fp64emu_to_ull_ru(__fpemu_bit_cast<__fpbits64>(__x));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline uint64_t __double2ull_rd(fpemu<double, _Acc> __x) noexcept
 {
-  return __fp64emu_to_ull_rd(__x.bits);
+  return __fp64emu_to_ull_rd(__fpemu_bit_cast<__fpbits64>(__x));
 }
 
 // Type conversion from fpemu_unpacked with other method

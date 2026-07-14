@@ -326,32 +326,32 @@ namespace cuda::experimental
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool operator==(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_cmp_eq(__x.bits, __y.bits);
+  return __fp64emu_cmp_eq(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool operator!=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_cmp_ne(__x.bits, __y.bits);
+  return __fp64emu_cmp_ne(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool operator<(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_cmp_lt(__x.bits, __y.bits);
+  return __fp64emu_cmp_lt(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool operator>(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_cmp_gt(__x.bits, __y.bits);
+  return __fp64emu_cmp_gt(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool operator<=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_cmp_le(__x.bits, __y.bits);
+  return __fp64emu_cmp_le(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool operator>=(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_cmp_ge(__x.bits, __y.bits);
+  return __fp64emu_cmp_ge(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y));
 }
 
 // Unpacked comparison operators

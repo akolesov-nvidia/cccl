@@ -423,15 +423,15 @@ _CCCL_API fpemu<double, _Acc> sqrt(const fpemu<double, _Acc>& __x) noexcept
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_dsqrt_rn(__x.bits));
+    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_dsqrt_rn(__fpemu_bit_cast<__fpbits64>(__x)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_dsqrt_rn(__x.bits));
+    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_dsqrt_rn(__fpemu_bit_cast<__fpbits64>(__x)));
   }
   else
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_dsqrt_rn(__x.bits));
+    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_dsqrt_rn(__fpemu_bit_cast<__fpbits64>(__x)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -439,31 +439,31 @@ _CCCL_API fpemu<double, _Acc> __dsqrt_rn(const fpemu<double, _Acc>& __x) noexcep
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_dsqrt_rn(__x.bits));
+    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_dsqrt_rn(__fpemu_bit_cast<__fpbits64>(__x)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_dsqrt_rn(__x.bits));
+    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_dsqrt_rn(__fpemu_bit_cast<__fpbits64>(__x)));
   }
   else
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_dsqrt_rn(__x.bits));
+    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_dsqrt_rn(__fpemu_bit_cast<__fpbits64>(__x)));
   }
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API fpemu<double, _Acc> __dsqrt_rz(const fpemu<double, _Acc>& __x) noexcept
 {
-  return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_dsqrt_rz(__x.bits));
+  return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_dsqrt_rz(__fpemu_bit_cast<__fpbits64>(__x)));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API fpemu<double, _Acc> __dsqrt_ru(const fpemu<double, _Acc>& __x) noexcept
 {
-  return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_dsqrt_ru(__x.bits));
+  return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_dsqrt_ru(__fpemu_bit_cast<__fpbits64>(__x)));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API fpemu<double, _Acc> __dsqrt_rd(const fpemu<double, _Acc>& __x) noexcept
 {
-  return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_dsqrt_rd(__x.bits));
+  return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_dsqrt_rd(__fpemu_bit_cast<__fpbits64>(__x)));
 }
 
 template <fpemu_accuracy _Acc>
