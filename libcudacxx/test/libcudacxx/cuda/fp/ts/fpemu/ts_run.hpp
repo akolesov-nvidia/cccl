@@ -10,6 +10,11 @@
 template<typename T> struct ts_is_unpacked { static constexpr bool value = false; };
 template<fpemu_accuracy m> struct ts_is_unpacked<fpemu_unpacked<double, m>> { static constexpr bool value = true; };
 
+// Same-size (16-byte) mirror of the unpacked representation. fpemu_unpacked keeps its
+// bits private and no longer offers a (size-changing) bit_cast overload, so reach the
+// raw mantissa through an equal-size ts::bit_cast reinterpret via this POD.
+struct ts_fpemu_unpacked_bits { uint32_t sign; uint32_t exponent; uint64_t mantissa; };
+
 // Function to mask the subnormal values
 template<typename T, bool ftz = false>
 __HOST_DECL__ __DEVICE_DECL__ T ftz_mask(T x)
@@ -85,7 +90,10 @@ __GLOBAL_DECL__ void timing_kernel(Tin *arg1, Tin *arg2, Tin *arg3, Tin *arg4, T
                 // data dependency, mirroring the two-bit dword XOR used below for
                 // packed/binary64 operands. sign/exponent are left untouched so the
                 // operand never drifts into a special (inf/nan-magic) exponent.
-                a1.bits.mantissa ^= (r1.bits.mantissa & UINT64_C(0x0000000100000001));
+                ts_fpemu_unpacked_bits a1_bits       = ts::bit_cast<ts_fpemu_unpacked_bits>(a1);
+                const ts_fpemu_unpacked_bits r1_bits = ts::bit_cast<ts_fpemu_unpacked_bits>(r1);
+                a1_bits.mantissa ^= (r1_bits.mantissa & UINT64_C(0x0000000100000001));
+                a1 = ts::bit_cast<Tin>(a1_bits);
             }
             else
             {

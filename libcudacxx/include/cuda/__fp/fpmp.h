@@ -520,34 +520,22 @@ public:
 #endif // _CCCL_FPMP_FP128_ENABLE == 1
 
   // Constructor from any standard integer type (int / long / long long + unsigned).
-  // Dispatches by width and signedness to the fixed-width builtins, so every
-  // integer type is handled unambiguously and portably (LP64 and LLP64).
+  // The value is canonicalized to the fixed-width builtin: the target width comes from
+  // __num_bits_v and the signedness-correct fixed-width type from __make_nbit_int_t, so
+  // the static_cast selects the matching overloaded setter (signed vs unsigned) below.
+  // Every integer type is thus handled unambiguously and portably (LP64 and LLP64).
   // bool / character types are excluded by __cccl_is_integer_v.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(_Tp __i) noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+    if constexpr (::cuda::std::__num_bits_v<_Tp> <= 32)
     {
-      if constexpr (sizeof(_Tp) <= sizeof(int32_t))
-      {
-        __fpmp2_from_int(static_cast<int32_t>(__i), &mp2_hi, &mp2_lo);
-      }
-      else
-      {
-        __fpmp2_from_ll(static_cast<int64_t>(__i), &mp2_hi, &mp2_lo);
-      }
+      __set_from_int32(static_cast<::cuda::std::__make_nbit_int_t<32, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
     else
     {
-      if constexpr (sizeof(_Tp) <= sizeof(uint32_t))
-      {
-        __fpmp2_from_uint(static_cast<uint32_t>(__i), &mp2_hi, &mp2_lo);
-      }
-      else
-      {
-        __fpmp2_from_ull(static_cast<uint64_t>(__i), &mp2_hi, &mp2_lo);
-      }
+      __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
 
@@ -940,6 +928,26 @@ public:
   }
 
 private:
+  // Signedness-overloaded integer setters: the width-canonical value produced by the
+  // integer constructor selects the matching signed/unsigned fixed-width builtin, so
+  // the constructor body needs no signedness branch.
+  _CCCL_API void __set_from_int32(int32_t __i) noexcept
+  {
+    __fpmp2_from_int(__i, &mp2_hi, &mp2_lo);
+  }
+  _CCCL_API void __set_from_int32(uint32_t __i) noexcept
+  {
+    __fpmp2_from_uint(__i, &mp2_hi, &mp2_lo);
+  }
+  _CCCL_API void __set_from_int64(int64_t __i) noexcept
+  {
+    __fpmp2_from_ll(__i, &mp2_hi, &mp2_lo);
+  }
+  _CCCL_API void __set_from_int64(uint64_t __i) noexcept
+  {
+    __fpmp2_from_ull(__i, &mp2_hi, &mp2_lo);
+  }
+
   /*
   // Internal storage - two floats (hi, lo) representing double-float precision
   */

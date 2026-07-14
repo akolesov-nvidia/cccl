@@ -60,6 +60,9 @@
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
 #include <cuda/std/__type_traits/is_same.h>
+#include <cuda/std/__type_traits/is_signed.h>
+#include <cuda/std/__type_traits/make_nbit_int.h>
+#include <cuda/std/__type_traits/num_bits.h>
 #include <cuda/std/cstdint>
 
 // Public API surface (fpemu_accuracy selector + CCCL_FPEMU_LIB / CCCL_FPEMU_INLINE
@@ -181,35 +184,23 @@ public:
   _CCCL_API fpemu(float __f) noexcept;
   _CCCL_API fpemu(double __d) noexcept;
   // Construction from any standard integer type (int / long / long long + unsigned).
-  // 32-bit and narrower are lossless in double and stay implicit; 64-bit may lose
-  // precision and are explicit (as the prior fixed-width API required). Dispatch is
-  // by width and signedness to the accuracy-correct integer builtins (via the private
-  // out-of-line helpers below), so every integer type is handled portably.
-  // bool / character types are excluded by __cccl_is_integer_v.
+  // The value is canonicalized to the accuracy-correct 32- or 64-bit builtin: the
+  // target width comes from __num_bits_v and the signedness-correct fixed-width type
+  // from __make_nbit_int_t, so the static_cast selects the matching overloaded setter
+  // (signed vs unsigned) below. All widths are implicit, mirroring the implicit
+  // float/double ctors and the IEEE-754 `long -> double` conversion (64-bit values may
+  // lose precision). bool / character types are excluded by __cccl_is_integer_v.
   _CCCL_TEMPLATE(class _Tp)
-  _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
+  _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API fpemu(_Tp __i) noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+    if constexpr (::cuda::std::__num_bits_v<_Tp> <= 32)
     {
-      __set_from_int(static_cast<int32_t>(__i));
+      __set_from_int32(static_cast<::cuda::std::__make_nbit_int_t<32, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
     else
     {
-      __set_from_uint(static_cast<uint32_t>(__i));
-    }
-  }
-  _CCCL_TEMPLATE(class _Tp)
-  _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) > sizeof(int32_t)))
-  _CCCL_API explicit fpemu(_Tp __i) noexcept
-  {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
-    {
-      __set_from_ll(static_cast<int64_t>(__i));
-    }
-    else
-    {
-      __set_from_ull(static_cast<uint64_t>(__i));
+      __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
   // Type conversion to fpemu with other accuracy and range
@@ -258,10 +249,10 @@ public:
 private:
   // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
   // builtins are visible). Kept non-template so the definitions stay out-of-line.
-  _CCCL_API void __set_from_int(int32_t __i) noexcept;
-  _CCCL_API void __set_from_uint(uint32_t __i) noexcept;
-  _CCCL_API void __set_from_ll(int64_t __i) noexcept;
-  _CCCL_API void __set_from_ull(uint64_t __i) noexcept;
+  _CCCL_API void __set_from_int32(int32_t __i) noexcept;
+  _CCCL_API void __set_from_int32(uint32_t __i) noexcept;
+  _CCCL_API void __set_from_int64(int64_t __i) noexcept;
+  _CCCL_API void __set_from_int64(uint64_t __i) noexcept;
   _CCCL_API int32_t __to_int() const noexcept;
   _CCCL_API uint32_t __to_uint() const noexcept;
   _CCCL_API int64_t __to_ll() const noexcept;
@@ -537,35 +528,23 @@ public:
 #  define _CCCL_FPEMU_UNP_NARROW_EXPLICIT explicit
 #endif
   // Construction from any standard integer type (int / long / long long + unsigned).
-  // 32-bit and narrower are lossless in double; 64-bit values may lose precision. The
-  // narrow-integer explicitness follows the surrounding float ctors (implicit on device,
-  // explicit on host) to avoid ambiguity with the packed type; 64-bit is always explicit.
-  // Dispatch is by width and signedness to the accuracy-correct integer builtins (via the
-  // private out-of-line helpers below); bool / character types are excluded.
+  // The value is canonicalized to the accuracy-correct 32- or 64-bit builtin: the target
+  // width comes from __num_bits_v and the signedness-correct fixed-width type from
+  // __make_nbit_int_t, so the static_cast selects the matching overloaded setter (signed
+  // vs unsigned) below. Explicitness follows the surrounding float/double ctors (implicit
+  // on device, explicit on host) to avoid ambiguity with the packed type; 64-bit values
+  // may lose precision. bool / character types are excluded by __cccl_is_integer_v.
   _CCCL_TEMPLATE(class _Tp)
-  _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) <= sizeof(int32_t)))
+  _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(_Tp __i) noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
+    if constexpr (::cuda::std::__num_bits_v<_Tp> <= 32)
     {
-      __set_from_int(static_cast<int32_t>(__i));
+      __set_from_int32(static_cast<::cuda::std::__make_nbit_int_t<32, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
     else
     {
-      __set_from_uint(static_cast<uint32_t>(__i));
-    }
-  }
-  _CCCL_TEMPLATE(class _Tp)
-  _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp> _CCCL_AND(sizeof(_Tp) > sizeof(int32_t)))
-  _CCCL_API explicit fpemu_unpacked(_Tp __i) noexcept
-  {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
-    {
-      __set_from_ll(static_cast<int64_t>(__i));
-    }
-    else
-    {
-      __set_from_ull(static_cast<uint64_t>(__i));
+      __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
 #undef _CCCL_FPEMU_UNP_NARROW_EXPLICIT
@@ -615,10 +594,10 @@ public:
 private:
   // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
   // builtins are visible). Kept non-template so the definitions stay out-of-line.
-  _CCCL_API void __set_from_int(int32_t __i) noexcept;
-  _CCCL_API void __set_from_uint(uint32_t __i) noexcept;
-  _CCCL_API void __set_from_ll(int64_t __i) noexcept;
-  _CCCL_API void __set_from_ull(uint64_t __i) noexcept;
+  _CCCL_API void __set_from_int32(int32_t __i) noexcept;
+  _CCCL_API void __set_from_int32(uint32_t __i) noexcept;
+  _CCCL_API void __set_from_int64(int64_t __i) noexcept;
+  _CCCL_API void __set_from_int64(uint64_t __i) noexcept;
   _CCCL_API int32_t __to_int() const noexcept;
   _CCCL_API uint32_t __to_uint() const noexcept;
   _CCCL_API int64_t __to_ll() const noexcept;
