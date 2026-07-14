@@ -522,19 +522,19 @@ _CCCL_API fpemu<double, _Acc> operator/(const fpemu<double, _Acc>& __x, const fp
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_high_ddiv_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_high_ddiv_rn(__x.bits, __y.bits));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_mid_ddiv_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_ddiv_rn(__x.bits, __y.bits));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_low_ddiv_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_ddiv_rn(__x.bits, __y.bits));
   }
   else
   {
-    return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_ddiv_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_ddiv_rn(__x.bits, __y.bits));
   }
 } // operator /
 
@@ -543,40 +543,37 @@ _CCCL_API fpemu<double, _Acc> __ddiv_rn(const fpemu<double, _Acc>& __x, const fp
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(
       __fp64emu_high_ddiv_rn(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(
       __fp64emu_low_ddiv_rn(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
   }
   else
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(
       __fp64emu_mid_ddiv_rn(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
   }
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API fpemu<double, _Acc> __ddiv_rz(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return fpemu<double, _Acc>(
-    __fpbits64_construct, __fp64emu_ddiv_rz(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
+  return __fpemu_bit_cast<fpemu<double, _Acc>>(
+    __fp64emu_ddiv_rz(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API fpemu<double, _Acc> __ddiv_ru(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return fpemu<double, _Acc>(
-    __fpbits64_construct, __fp64emu_ddiv_ru(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
+  return __fpemu_bit_cast<fpemu<double, _Acc>>(
+    __fp64emu_ddiv_ru(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API fpemu<double, _Acc> __ddiv_rd(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y) noexcept
 {
-  return fpemu<double, _Acc>(
-    __fpbits64_construct, __fp64emu_ddiv_rd(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
+  return __fpemu_bit_cast<fpemu<double, _Acc>>(
+    __fp64emu_ddiv_rd(__fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y)));
 }
 
 // Operator/ for unpacked division
@@ -586,19 +583,19 @@ operator/(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, 
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_ddiv(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_high_ddiv(__x.bits, __y.bits));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_ddiv(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_mid_ddiv(__x.bits, __y.bits));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_ddiv(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_low_ddiv(__x.bits, __y.bits));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_ddiv(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_ddiv(__x.bits, __y.bits));
   }
 } // operator/
 
@@ -608,24 +605,18 @@ __ddiv_rn(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, 
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_high_ddiv(
-        __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_high_ddiv(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_low_ddiv(
-        __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_low_ddiv(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_mid_ddiv(
-        __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_mid_ddiv(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y)));
   }
 }
 

@@ -353,24 +353,18 @@ fma(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const fpemu<
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_high_fma_rn(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_high_fma_rn(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_low_fma_rn(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_fma_rn(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_mid_fma_rn(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_fma_rn(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -379,24 +373,18 @@ __fma_rn(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const f
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_high_fma_rn(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_high_fma_rn(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_low_fma_rn(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_fma_rn(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_mid_fma_rn(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_fma_rn(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -405,31 +393,23 @@ __fma_rz(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const f
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_fma_rz(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_fma_rz(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_mid_fma_rz(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_fma_rz(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_low_fma_rz(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_fma_rz(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_fma_rz(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_fma_rz(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -438,31 +418,23 @@ __fma_ru(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const f
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_fma_ru(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_fma_ru(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_mid_fma_ru(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_fma_ru(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_low_fma_ru(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_fma_ru(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_fma_ru(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_fma_ru(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -471,31 +443,23 @@ __fma_rd(const fpemu<double, _Acc>& __x, const fpemu<double, _Acc>& __y, const f
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_fma_rd(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_fma_rd(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_mid_fma_rd(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_fma_rd(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_low_fma_rd(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_fma_rd(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
   else
   {
-    return fpemu<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_fma_rd(
-        __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_fma_rd(
+      __fpemu_bit_cast<__fpbits64>(__x), __fpemu_bit_cast<__fpbits64>(__y), __fpemu_bit_cast<__fpbits64>(__z)));
   }
 }
 
@@ -507,27 +471,24 @@ fma(const fpemu_unpacked<double, _Acc>& __x,
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_high_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
-                                  __fpemu_bit_cast<__fpbits64_unpacked>(__y),
-                                  __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_high_fma(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_low_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_low_fma(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_mid_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_mid_fma(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -538,27 +499,24 @@ __fma_rn(const fpemu_unpacked<double, _Acc>& __x,
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_high_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
-                                  __fpemu_bit_cast<__fpbits64_unpacked>(__y),
-                                  __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_high_fma(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_low_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_low_fma(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct,
-      __fp64emu_unpacked_mid_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
-                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_mid_fma(
+      __fpemu_bit_cast<__fpbits64_unpacked>(__x),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+      __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
 }
 

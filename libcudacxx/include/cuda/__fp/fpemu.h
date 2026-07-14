@@ -79,26 +79,6 @@ namespace cuda::experimental
 // <cuda/__fp/fpemu_impl.h>. Both are included above so the class can store raw
 // bits while keeping every FP header self-contained.
 
-//! @brief Tag type for constructing an fpemu directly from raw __fpbits64 bits.
-//!
-//! @internal Library-internal. This disambiguates the raw-bits constructor
-//! `fpemu(__fpbits64_construct_tag, const __fpbits64&)` from the value-converting
-//! constructors (fpemu(double), fpemu(integer), ...): since __fpbits64 is just
-//! uint64_t, a plain bits constructor would collide with the integer-value
-//! constructors. The builtin forwarders (fpemu_impl_*.h) use it to wrap a raw
-//! __fp64emu_* result back into an fpemu without a conversion. Not public.
-//!
-//! Usage (internal):
-//!   return fpemu<double, _Acc>(__fpbits64_construct, __fp64emu_from_double(x));
-struct __fpbits64_construct_tag
-{
-  explicit __fpbits64_construct_tag() = default;
-};
-
-// Global constant instance of __fpbits64_construct_tag for convenient usage
-// (host/device accessible)
-_CCCL_GLOBAL_CONSTANT __fpbits64_construct_tag __fpbits64_construct{};
-
 // Forward declaration of unpacked floating-point class
 template <typename _FpType, fpemu_accuracy _Met>
 class fpemu_unpacked;
@@ -148,9 +128,6 @@ public:
   // Basic constructors
   _CCCL_API constexpr fpemu() noexcept
       : bits{0u}
-  {}
-  _CCCL_API fpemu(__fpbits64_construct_tag, const __fpbits64& __f) noexcept
-      : bits{__f}
   {}
   /*
   // Defaulted copy constructor (trivially copyable)
@@ -493,9 +470,6 @@ public:
   // Basic constructors
   _CCCL_API constexpr fpemu_unpacked() noexcept
       : bits{0u, 0, 0}
-  {}
-  _CCCL_API fpemu_unpacked(__fpbits64_construct_tag, const __fpbits64_unpacked& __f) noexcept
-      : bits{__f}
   {}
   /*
   // Defaulted copy constructor (trivially copyable)
