@@ -203,6 +203,12 @@ public:
       __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
+#if _CCCL_HAS_INT128()
+  // 128-bit integers would silently truncate to 64 bits, so they are deleted until
+  // real 128-bit support is added (tracking issue: extended-precision fp <-> __int128).
+  _CCCL_API fpemu(__int128_t)  = delete;
+  _CCCL_API fpemu(__uint128_t) = delete;
+#endif // _CCCL_HAS_INT128()
   // Type conversion to fpemu with other accuracy and range
   template <fpemu_accuracy _Acc = _Met>
   _CCCL_API operator fpemu<double, _Acc>() const noexcept;
@@ -227,6 +233,11 @@ public:
       ::cuda::std::__make_nbit_int_t<(::cuda::std::__num_bits_v<_Tp> <= 32) ? 32 : 64, ::cuda::std::is_signed_v<_Tp>>;
     return static_cast<_Tp>(__to_integer(_Up{}));
   }
+#if _CCCL_HAS_INT128()
+  // See the deleted 128-bit constructors above: avoid silent 64-bit truncation.
+  _CCCL_API explicit operator __int128_t() const  = delete;
+  _CCCL_API explicit operator __uint128_t() const = delete;
+#endif // _CCCL_HAS_INT128()
 
 private:
   // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu
@@ -529,6 +540,13 @@ public:
       __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
+#if _CCCL_HAS_INT128()
+  // 128-bit integers would silently truncate to 64 bits, so they are deleted until
+  // real 128-bit support is added (tracking issue: extended-precision fp <-> __int128).
+  // Mirror the integer ctor's explicitness so copy-init overload sets are unchanged.
+  _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(__int128_t)  = delete;
+  _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(__uint128_t) = delete;
+#endif // _CCCL_HAS_INT128()
 #undef _CCCL_FPEMU_UNP_NARROW_EXPLICIT
   // Type conversion to fpemu_unpacked with other accuracy and range
   template <fpemu_accuracy _Acc = _Met>
@@ -554,6 +572,11 @@ public:
       ::cuda::std::__make_nbit_int_t<(::cuda::std::__num_bits_v<_Tp> <= 32) ? 32 : 64, ::cuda::std::is_signed_v<_Tp>>;
     return static_cast<_Tp>(__to_integer(_Up{}));
   }
+#if _CCCL_HAS_INT128()
+  // See the deleted 128-bit constructors above: avoid silent 64-bit truncation.
+  _CCCL_API explicit operator __int128_t() const  = delete;
+  _CCCL_API explicit operator __uint128_t() const = delete;
+#endif // _CCCL_HAS_INT128()
 
 private:
   // Accuracy-correct integer <-> value helpers (defined out-of-line where the fpemu

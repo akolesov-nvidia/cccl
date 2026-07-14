@@ -19,6 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <cuda/std/cstdint>
+#include <cuda/std/type_traits>
 
 #include <cstdio>
 
@@ -33,6 +34,18 @@
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 using ffloat = fp32mp2;
+
+#if _CCCL_HAS_INT128()
+// 128-bit integer construction and conversion are deliberately deleted: they would
+// silently truncate to 64 bits. Verify fp32mp2 neither constructs from nor converts
+// to __int128 while the standard integer widths remain usable.
+static_assert(!::cuda::std::is_constructible_v<ffloat, __int128_t>, "");
+static_assert(!::cuda::std::is_constructible_v<ffloat, __uint128_t>, "");
+static_assert(!::cuda::std::is_constructible_v<__int128_t, ffloat>, "");
+static_assert(!::cuda::std::is_constructible_v<__uint128_t, ffloat>, "");
+static_assert(::cuda::std::is_constructible_v<ffloat, int64_t>, "");
+static_assert(::cuda::std::is_constructible_v<int64_t, ffloat>, "");
+#endif // _CCCL_HAS_INT128()
 
 _CCCL_HOST_DEVICE bool run_test()
 {
