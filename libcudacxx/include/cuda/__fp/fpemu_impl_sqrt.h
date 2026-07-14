@@ -471,15 +471,18 @@ _CCCL_API fpemu_unpacked<double, _Acc> sqrt(const fpemu_unpacked<double, _Acc>& 
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_dsqrt(__x.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct, __fp64emu_unpacked_high_dsqrt(__fpemu_bit_cast<__fpbits64_unpacked>(__x)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_dsqrt(__x.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct, __fp64emu_unpacked_low_dsqrt(__fpemu_bit_cast<__fpbits64_unpacked>(__x)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_dsqrt(__x.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct, __fp64emu_unpacked_mid_dsqrt(__fpemu_bit_cast<__fpbits64_unpacked>(__x)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -487,18 +490,42 @@ _CCCL_API fpemu_unpacked<double, _Acc> __dsqrt_rn(const fpemu_unpacked<double, _
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_dsqrt(__x.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct, __fp64emu_unpacked_high_dsqrt(__fpemu_bit_cast<__fpbits64_unpacked>(__x)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_dsqrt(__x.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct, __fp64emu_unpacked_low_dsqrt(__fpemu_bit_cast<__fpbits64_unpacked>(__x)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_dsqrt(__x.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct, __fp64emu_unpacked_mid_dsqrt(__fpemu_bit_cast<__fpbits64_unpacked>(__x)));
   }
 }
 } // namespace cuda::experimental
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+// Overloads of sqrt for the emulated double types so the standard spelling
+// cuda::std::sqrt selects the emulated implementation instead of silently
+// narrowing fpemu -> double (a qualified call suppresses ADL). These forward to
+// cuda::experimental::sqrt, which unqualified/ADL calls already resolve to.
+template <::cuda::experimental::fpemu_accuracy _Acc>
+[[nodiscard]] _CCCL_API ::cuda::experimental::fpemu<double, _Acc>
+sqrt(const ::cuda::experimental::fpemu<double, _Acc>& __x) noexcept
+{
+  return ::cuda::experimental::sqrt(__x);
+}
+template <::cuda::experimental::fpemu_accuracy _Acc>
+[[nodiscard]] _CCCL_API ::cuda::experimental::fpemu_unpacked<double, _Acc>
+sqrt(const ::cuda::experimental::fpemu_unpacked<double, _Acc>& __x) noexcept
+{
+  return ::cuda::experimental::sqrt(__x);
+}
+
+_CCCL_END_NAMESPACE_CUDA_STD
 
 #include <cuda/std/__cccl/epilogue.h>
 #endif // _CUDA___FP_FPEMU_IMPL_SQRT_H

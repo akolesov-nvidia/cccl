@@ -615,15 +615,27 @@ mad(const fpemu_unpacked<double, _Acc>& __x,
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_mad(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_high_mad(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_mad(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_low_mad(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_mad(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_mid_mad(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -634,15 +646,27 @@ __mad_rn(const fpemu_unpacked<double, _Acc>& __x,
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_mad(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_high_mad(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_mad(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_low_mad(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_mad(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_mid_mad(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -655,17 +679,32 @@ dot(const fpemu_unpacked<double, _Acc>& __x1,
   if constexpr (_Acc == fpemu_accuracy::high)
   {
     return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct, __fp64emu_unpacked_high_dot(__x1.bits, __y1.bits, __x2.bits, __y2.bits));
+      __fpbits64_construct,
+      __fp64emu_unpacked_high_dot(
+        __fpemu_bit_cast<__fpbits64_unpacked>(__x1),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__y1),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__x2),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__y2)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
     return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct, __fp64emu_unpacked_low_dot(__x1.bits, __y1.bits, __x2.bits, __y2.bits));
+      __fpbits64_construct,
+      __fp64emu_unpacked_low_dot(
+        __fpemu_bit_cast<__fpbits64_unpacked>(__x1),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__y1),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__x2),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__y2)));
   }
   else
   {
     return fpemu_unpacked<double, _Acc>(
-      __fpbits64_construct, __fp64emu_unpacked_mid_dot(__x1.bits, __y1.bits, __x2.bits, __y2.bits));
+      __fpbits64_construct,
+      __fp64emu_unpacked_mid_dot(
+        __fpemu_bit_cast<__fpbits64_unpacked>(__x1),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__y1),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__x2),
+        __fpemu_bit_cast<__fpbits64_unpacked>(__y2)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -677,18 +716,28 @@ cmul(const fpemu_unpacked<double, _Acc>& __x_re,
      fpemu_unpacked<double, _Acc>& __r_re,
      fpemu_unpacked<double, _Acc>& __r_im) noexcept
 {
+  const __fpbits64_unpacked __xr = __fpemu_bit_cast<__fpbits64_unpacked>(__x_re);
+  const __fpbits64_unpacked __xi = __fpemu_bit_cast<__fpbits64_unpacked>(__x_im);
+  const __fpbits64_unpacked __yr = __fpemu_bit_cast<__fpbits64_unpacked>(__y_re);
+  const __fpbits64_unpacked __yi = __fpemu_bit_cast<__fpbits64_unpacked>(__y_im);
+  // The builtins write their results through non-const references, so compute into
+  // local raw-bits temporaries and construct the outputs from them (bits is private).
+  __fpbits64_unpacked __rr{};
+  __fpbits64_unpacked __ri{};
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    __fp64emu_unpacked_high_cmul(__x_re.bits, __x_im.bits, __y_re.bits, __y_im.bits, __r_re.bits, __r_im.bits);
+    __fp64emu_unpacked_high_cmul(__xr, __xi, __yr, __yi, __rr, __ri);
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    __fp64emu_unpacked_low_cmul(__x_re.bits, __x_im.bits, __y_re.bits, __y_im.bits, __r_re.bits, __r_im.bits);
+    __fp64emu_unpacked_low_cmul(__xr, __xi, __yr, __yi, __rr, __ri);
   }
   else
   {
-    __fp64emu_unpacked_mid_cmul(__x_re.bits, __x_im.bits, __y_re.bits, __y_im.bits, __r_re.bits, __r_im.bits);
+    __fp64emu_unpacked_mid_cmul(__xr, __xi, __yr, __yi, __rr, __ri);
   }
+  __r_re = fpemu_unpacked<double, _Acc>(__fpbits64_construct, __rr);
+  __r_im = fpemu_unpacked<double, _Acc>(__fpbits64_construct, __ri);
 }
 
 // Mixed-operand promoters (relocated from the class body; formerly hidden

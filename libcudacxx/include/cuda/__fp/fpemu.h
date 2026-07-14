@@ -447,6 +447,30 @@ public:
   }
 }; // class fpemu
 
+//! @brief Unpacked emulated double-precision floating-point class template
+//!
+//! The fpemu_unpacked class template represents a double-precision (64-bit)
+//! floating-point number in a decomposed (sign / exponent / mantissa) form,
+//! emulated according to IEEE-754 semantics but with configurable accuracy level.
+//! It trades the compact packed layout of fpemu for direct field access, which the
+//! emulation builtins use to avoid repeated pack/unpack work in chained operations.
+//!
+//! @tparam met Accuracy level (fpemu_accuracy::high, mid, low; def == high)
+//!              - high: Correctly rounded with full IEEE-754 range
+//!              - mid: 1-2 LSB error with normal range
+//!              - low: Low accuracy with normal range
+//!
+//! This class provides:
+//!   - Storage of the value as __fpbits64_unpacked (sign, exponent, mantissa)
+//!   - Construction from and conversion to standard C++ types (int, float, double)
+//!   - Arithmetic operators and mathematical functions
+//!   - Fine-grained control over rounding and accuracy level
+//!   - Portable host/device compatibility (CUDA/HIP/etc)
+//!
+//! Usage:
+//!   fpemu_unpacked<double, fpemu_accuracy::high> x{1.5};
+//!   fpemu_unpacked<double> y = x + 2.0;
+//!   double z = static_cast<double>(y);
 template <typename _FpType = double, fpemu_accuracy _Met = fpemu_accuracy::def>
 class fpemu_unpacked
 {
@@ -455,10 +479,14 @@ public:
   static_assert(::cuda::std::is_same_v<_FpType, double>,
                 "cuda::experimental::fpemu_unpacked currently supports only _FpType == double");
 
-  // Internal representation of the unpacked floating-point value
-  // __fpbits64_unpacked is defined in fpemu_common.h
+private:
+  // Internal representation of the unpacked floating-point value (__fpbits64_unpacked
+  // is defined in fpemu_common.h). Private: fpemu_unpacked<double> is trivially
+  // copyable and bit-identical to its __fpbits64_unpacked representation, so use
+  // bit_cast to reinterpret it; no raw-bits accessor is provided.
   __fpbits64_unpacked bits;
 
+public:
   /*
   // Constructors and assignment operators
   */
@@ -624,31 +652,6 @@ private:
 
 public:
   /*
-  //  CUDA builtins functions for conversions
-  */
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend float __double2float(fpemu_unpacked<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int32_t __double2int_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint32_t __double2uint_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend int64_t __double2ll_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend uint64_t __double2ull_rz(fpemu_unpacked<double, _Acc> __x) noexcept;
-
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu_unpacked<double, _Acc> __float2double(float __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu_unpacked<double, _Acc> __int2double(int32_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu_unpacked<double, _Acc> __uint2double(uint32_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu_unpacked<double, _Acc> __ll2double(int64_t __x) noexcept;
-  template <fpemu_accuracy _Acc>
-  _CCCL_API friend fpemu_unpacked<double, _Acc> __ull2double(uint64_t __x) noexcept;
-
-  /*
   // Arithmetic operations:
   */
   // === mul ===
@@ -677,14 +680,6 @@ public:
   {
     return fpemu_unpacked(__x) * fpemu_unpacked(__y);
   }
-  // dmul_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu_unpacked __dmul_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dmul_rn(fpemu_unpacked(__x), fpemu_unpacked(__y));
-  }
 
   // === div ===
   _CCCL_TEMPLATE(typename _T1, typename _T2)
@@ -693,14 +688,6 @@ public:
   _CCCL_API friend fpemu_unpacked operator/(const _T1& __x, const _T2& __y) noexcept
   {
     return fpemu_unpacked(__x) / fpemu_unpacked(__y);
-  }
-  // ddiv_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu_unpacked __ddiv_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __ddiv_rn(fpemu_unpacked(__x), fpemu_unpacked(__y));
   }
 
   // === add ===
@@ -711,14 +698,6 @@ public:
   {
     return fpemu_unpacked(__x) + fpemu_unpacked(__y);
   }
-  // dadd_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu_unpacked __dadd_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dadd_rn(fpemu_unpacked(__x), fpemu_unpacked(__y));
-  }
 
   // === sub ===
   _CCCL_TEMPLATE(typename _T1, typename _T2)
@@ -727,102 +706,6 @@ public:
   _CCCL_API friend fpemu_unpacked operator-(const _T1& __x, const _T2& __y) noexcept
   {
     return fpemu_unpacked(__x) - fpemu_unpacked(__y);
-  }
-  // dsub_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>) ))
-  _CCCL_API friend fpemu_unpacked __dsub_rn(const _T1& __x, const _T2& __y) noexcept
-  {
-    return __dsub_rn(fpemu_unpacked(__x), fpemu_unpacked(__y));
-  }
-
-  // === sqrt ===
-  // sqrt
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu_unpacked sqrt(const _T1& __x) noexcept
-  {
-    return sqrt(fpemu_unpacked(__x));
-  }
-  // dsqrt_rn
-  _CCCL_TEMPLATE(typename _T1)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked>) && (::cuda::std::is_arithmetic_v<_T1>) ))
-  _CCCL_API friend fpemu_unpacked __dsqrt_rn(const _T1& __x) noexcept
-  {
-    return __dsqrt_rn(fpemu_unpacked(__x));
-  }
-
-  // === fma ===
-  // fma
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>
-      || ::cuda::std::is_same_v<_T3, fpemu_unpacked>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu_unpacked fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return fma(fpemu_unpacked(__x), fpemu_unpacked(__y), fpemu_unpacked(__z));
-  }
-  // dfma_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>
-      || ::cuda::std::is_same_v<_T3, fpemu_unpacked>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu_unpacked __fma_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __fma_rn(fpemu_unpacked(__x), fpemu_unpacked(__y), fpemu_unpacked(__z));
-  }
-
-  // === mad ===
-  // mad
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>
-      || ::cuda::std::is_same_v<_T3, fpemu_unpacked>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu_unpacked mad(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return mad(fpemu_unpacked(__x), fpemu_unpacked(__y), fpemu_unpacked(__z));
-  }
-  // dmad_rn
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3)
-  _CCCL_REQUIRES(
-    ((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>
-      || ::cuda::std::is_same_v<_T3, fpemu_unpacked>)
-     && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2> || ::cuda::std::is_arithmetic_v<_T3>) ))
-  _CCCL_API friend fpemu_unpacked __mad_rn(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
-  {
-    return __mad_rn(fpemu_unpacked(__x), fpemu_unpacked(__y), fpemu_unpacked(__z));
-  }
-
-  // === dot ===
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>
-                   || ::cuda::std::is_same_v<_T3, fpemu_unpacked> || ::cuda::std::is_same_v<_T4, fpemu_unpacked>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>
-                      || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>) ))
-  _CCCL_API friend fpemu_unpacked dot(const _T1& __x1, const _T2& __y1, const _T3& __x2, const _T4& __y2) noexcept
-  {
-    return dot(fpemu_unpacked(__x1), fpemu_unpacked(__y1), fpemu_unpacked(__x2), fpemu_unpacked(__y2));
-  }
-
-  // === cmul ===
-  _CCCL_TEMPLATE(typename _T1, typename _T2, typename _T3, typename _T4)
-  _CCCL_REQUIRES(((::cuda::std::is_same_v<_T1, fpemu_unpacked> || ::cuda::std::is_same_v<_T2, fpemu_unpacked>
-                   || ::cuda::std::is_same_v<_T3, fpemu_unpacked> || ::cuda::std::is_same_v<_T4, fpemu_unpacked>)
-                  && (::cuda::std::is_arithmetic_v<_T1> || ::cuda::std::is_arithmetic_v<_T2>
-                      || ::cuda::std::is_arithmetic_v<_T3> || ::cuda::std::is_arithmetic_v<_T4>) ))
-  _CCCL_API friend void
-  cmul(const _T1& __x_re,
-       const _T2& __x_im,
-       const _T3& __y_re,
-       const _T4& __y_im,
-       fpemu_unpacked& __r_re,
-       fpemu_unpacked& __r_im) noexcept
-  {
-    cmul(fpemu_unpacked(__x_re), fpemu_unpacked(__x_im), fpemu_unpacked(__y_re), fpemu_unpacked(__y_im), __r_re, __r_im);
   }
 
   // Prefix increment/decrement
@@ -925,10 +808,6 @@ public:
     return fpemu_unpacked(__x) >= fpemu_unpacked(__y);
   }
 
-  // C++20-style bit_cast for unpacked floating-point types
-  template <typename _To, fpemu_accuracy _Acc>
-  _CCCL_API friend _To bit_cast(const fpemu_unpacked<double, _Acc>& __from) noexcept;
-
 }; // class fpemu_unpacked
 
 /*
@@ -945,14 +824,18 @@ using fp64emu_unpacked_mid  = fpemu_unpacked<double, fpemu_accuracy::mid>;
 using fp64emu_unpacked_high = fpemu_unpacked<double, fpemu_accuracy::high>;
 
 // Trait machinery for the mixed-operand free-function builtins (fma, __dadd_rn, dot,
-// cmul, ...). __is_fpemu_v detects an fpemu specialization; __fpemu_pick_t selects the
-// fpemu type among a set of operands; __fpemu_mixed_v is the constraint "at least one
-// fpemu operand AND at least one arithmetic operand" (so pure fpemu-only calls bind to
-// the exact-match cores, and pure-arithmetic calls are left to the built-in types).
+// cmul, ...) shared by the packed fpemu and unpacked fpemu_unpacked classes.
+// __is_fpemu_v detects an fpemu / fpemu_unpacked specialization; __fpemu_pick_t selects
+// the fpemu-family type among a set of operands; __fpemu_mixed_v is the constraint "at
+// least one fpemu-family operand AND at least one arithmetic operand" (so pure
+// fpemu-only calls bind to the exact-match cores, and pure-arithmetic calls are left to
+// the built-in types).
 template <class _Tp>
 inline constexpr bool __is_fpemu_v = false;
 template <class _FpType, fpemu_accuracy _Acc>
 inline constexpr bool __is_fpemu_v<fpemu<_FpType, _Acc>> = true;
+template <class _FpType, fpemu_accuracy _Acc>
+inline constexpr bool __is_fpemu_v<fpemu_unpacked<_FpType, _Acc>> = true;
 
 template <class... _Ts>
 inline constexpr bool __fpemu_mixed_v = (__is_fpemu_v<_Ts> || ...) && (::cuda::std::is_arithmetic_v<_Ts> || ...);

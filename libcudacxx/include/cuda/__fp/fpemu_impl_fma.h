@@ -507,15 +507,27 @@ fma(const fpemu_unpacked<double, _Acc>& __x,
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_fma(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_high_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_fma(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_low_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_fma(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_mid_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
 }
 template <fpemu_accuracy _Acc>
@@ -526,15 +538,27 @@ __fma_rn(const fpemu_unpacked<double, _Acc>& __x,
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_high_fma(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_high_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                  __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_low_fma(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_low_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
   else
   {
-    return fpemu_unpacked<double, _Acc>(__fpbits64_construct, __fp64emu_unpacked_mid_fma(__x.bits, __y.bits, __z.bits));
+    return fpemu_unpacked<double, _Acc>(
+      __fpbits64_construct,
+      __fp64emu_unpacked_mid_fma(__fpemu_bit_cast<__fpbits64_unpacked>(__x),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__y),
+                                 __fpemu_bit_cast<__fpbits64_unpacked>(__z)));
   }
 }
 
@@ -584,6 +608,41 @@ _CCCL_API __fpemu_pick_t<_T1, _T2, _T3> __fma_rd(const _T1& __x, const _T2& __y,
   return __fma_rd(_Fp(__x), _Fp(__y), _Fp(__z));
 }
 } // namespace cuda::experimental
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+// Overloads of fma for the emulated double types so the standard spelling
+// cuda::std::fma selects the emulated implementation. A qualified cuda::std::fma
+// call suppresses ADL, so without these it would silently narrow fpemu -> double
+// (via the implicit conversion) and compute a native-double fma. These forward to
+// cuda::experimental::fma, which unqualified/ADL calls already resolve to. The
+// exact-type overloads cover pure fpemu/fpemu/fpemu calls (which __fpemu_mixed_v
+// excludes), while the constrained overload handles mixed fpemu + arithmetic.
+template <::cuda::experimental::fpemu_accuracy _Acc>
+[[nodiscard]] _CCCL_API ::cuda::experimental::fpemu<double, _Acc>
+fma(const ::cuda::experimental::fpemu<double, _Acc>& __x,
+    const ::cuda::experimental::fpemu<double, _Acc>& __y,
+    const ::cuda::experimental::fpemu<double, _Acc>& __z) noexcept
+{
+  return ::cuda::experimental::fma(__x, __y, __z);
+}
+template <::cuda::experimental::fpemu_accuracy _Acc>
+[[nodiscard]] _CCCL_API ::cuda::experimental::fpemu_unpacked<double, _Acc>
+fma(const ::cuda::experimental::fpemu_unpacked<double, _Acc>& __x,
+    const ::cuda::experimental::fpemu_unpacked<double, _Acc>& __y,
+    const ::cuda::experimental::fpemu_unpacked<double, _Acc>& __z) noexcept
+{
+  return ::cuda::experimental::fma(__x, __y, __z);
+}
+_CCCL_TEMPLATE(class _T1, class _T2, class _T3)
+_CCCL_REQUIRES(::cuda::experimental::__fpemu_mixed_v<_T1, _T2, _T3>)
+[[nodiscard]] _CCCL_API ::cuda::experimental::__fpemu_pick_t<_T1, _T2, _T3>
+fma(const _T1& __x, const _T2& __y, const _T3& __z) noexcept
+{
+  return ::cuda::experimental::fma(__x, __y, __z);
+}
+
+_CCCL_END_NAMESPACE_CUDA_STD
 
 #include <cuda/std/__cccl/epilogue.h>
 #endif // _CCCL_FPEMU_FMA_API_MERGED

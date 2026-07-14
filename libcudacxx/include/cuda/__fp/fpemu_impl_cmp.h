@@ -359,37 +359,43 @@ template <fpemu_accuracy _Acc>
 _CCCL_API inline bool
 operator==(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_unpacked_cmp_eq(__x.bits, __y.bits);
+  return __fp64emu_unpacked_cmp_eq(
+    __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool
 operator!=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_unpacked_cmp_ne(__x.bits, __y.bits);
+  return __fp64emu_unpacked_cmp_ne(
+    __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool
 operator<(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_unpacked_cmp_lt(__x.bits, __y.bits);
+  return __fp64emu_unpacked_cmp_lt(
+    __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool
 operator>(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_unpacked_cmp_gt(__x.bits, __y.bits);
+  return __fp64emu_unpacked_cmp_gt(
+    __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool
 operator<=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_unpacked_cmp_le(__x.bits, __y.bits);
+  return __fp64emu_unpacked_cmp_le(
+    __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y));
 }
 template <fpemu_accuracy _Acc>
 _CCCL_API inline bool
 operator>=(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, _Acc>& __y) noexcept
 {
-  return __fp64emu_unpacked_cmp_ge(__x.bits, __y.bits);
+  return __fp64emu_unpacked_cmp_ge(
+    __fpemu_bit_cast<__fpbits64_unpacked>(__x), __fpemu_bit_cast<__fpbits64_unpacked>(__y));
 }
 } // namespace cuda::experimental
 
