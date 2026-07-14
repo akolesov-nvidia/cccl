@@ -568,61 +568,25 @@ public:
   }
 
   // Conversion to any standard integer type (int / long / long long + unsigned).
-  // Dispatches by width and signedness to the fixed-width builtins; excludes
-  // bool / character types. Provided for both const and const volatile objects.
+  // The target width comes from __num_bits_v and the signedness-correct fixed-width
+  // type from __make_nbit_int_t, selecting the matching overloaded __to_integer helper
+  // below; excludes bool / character types. Provided for both const and const volatile
+  // objects.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API explicit operator _Tp() const noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(int32_t))
-      {
-        return static_cast<_Tp>(__fpmp2_to_int(mp2_hi, mp2_lo));
-      }
-      else
-      {
-        return static_cast<_Tp>(__fpmp2_to_ll(mp2_hi, mp2_lo));
-      }
-    }
-    else
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(uint32_t))
-      {
-        return static_cast<_Tp>(__fpmp2_to_uint(mp2_hi, mp2_lo));
-      }
-      else
-      {
-        return static_cast<_Tp>(__fpmp2_to_ull(mp2_hi, mp2_lo));
-      }
-    }
+    using _Up =
+      ::cuda::std::__make_nbit_int_t<(::cuda::std::__num_bits_v<_Tp> <= 32) ? 32 : 64, ::cuda::std::is_signed_v<_Tp>>;
+    return static_cast<_Tp>(__to_integer(_Up{}, mp2_hi, mp2_lo));
   }
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API explicit operator _Tp() const volatile noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(int32_t))
-      {
-        return static_cast<_Tp>(__fpmp2_to_int(mp2_hi, mp2_lo));
-      }
-      else
-      {
-        return static_cast<_Tp>(__fpmp2_to_ll(mp2_hi, mp2_lo));
-      }
-    }
-    else
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(uint32_t))
-      {
-        return static_cast<_Tp>(__fpmp2_to_uint(mp2_hi, mp2_lo));
-      }
-      else
-      {
-        return static_cast<_Tp>(__fpmp2_to_ull(mp2_hi, mp2_lo));
-      }
-    }
+    using _Up =
+      ::cuda::std::__make_nbit_int_t<(::cuda::std::__num_bits_v<_Tp> <= 32) ? 32 : 64, ::cuda::std::is_signed_v<_Tp>>;
+    return static_cast<_Tp>(__to_integer(_Up{}, mp2_hi, mp2_lo));
   }
 
   // (renormalize)
@@ -946,6 +910,27 @@ private:
   _CCCL_API void __set_from_int64(uint64_t __i) noexcept
   {
     __fpmp2_from_ull(__i, &mp2_hi, &mp2_lo);
+  }
+
+  // Signedness-overloaded integer getters (mirror of the setters): the width-canonical
+  // type from the conversion operator selects the matching signed/unsigned builtin, so
+  // the operator body needs no signedness branch. Static + (hi, lo) by value so a single
+  // overload set serves both the const and const volatile conversion operators.
+  _CCCL_API static int32_t __to_integer(int32_t, _FpType __hi, _FpType __lo) noexcept
+  {
+    return __fpmp2_to_int(__hi, __lo);
+  }
+  _CCCL_API static uint32_t __to_integer(uint32_t, _FpType __hi, _FpType __lo) noexcept
+  {
+    return __fpmp2_to_uint(__hi, __lo);
+  }
+  _CCCL_API static int64_t __to_integer(int64_t, _FpType __hi, _FpType __lo) noexcept
+  {
+    return __fpmp2_to_ll(__hi, __lo);
+  }
+  _CCCL_API static uint64_t __to_integer(uint64_t, _FpType __hi, _FpType __lo) noexcept
+  {
+    return __fpmp2_to_ull(__hi, __lo);
   }
 
   /*

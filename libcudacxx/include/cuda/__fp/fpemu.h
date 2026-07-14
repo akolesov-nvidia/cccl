@@ -216,34 +216,16 @@ public:
   // Explicit conversions to other types
   _CCCL_API explicit operator float() const noexcept;
   // Explicit conversion to any standard integer type (int / long / long long + unsigned).
-  // Dispatches by width and signedness to the accuracy-correct integer builtins (via the
-  // private out-of-line helpers below); excludes bool / character types.
+  // The target width comes from __num_bits_v and the signedness-correct fixed-width type
+  // from __make_nbit_int_t, selecting the matching overloaded __to_integer helper below;
+  // excludes bool / character types.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API explicit operator _Tp() const noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(int32_t))
-      {
-        return static_cast<_Tp>(__to_int());
-      }
-      else
-      {
-        return static_cast<_Tp>(__to_ll());
-      }
-    }
-    else
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(uint32_t))
-      {
-        return static_cast<_Tp>(__to_uint());
-      }
-      else
-      {
-        return static_cast<_Tp>(__to_ull());
-      }
-    }
+    using _Up =
+      ::cuda::std::__make_nbit_int_t<(::cuda::std::__num_bits_v<_Tp> <= 32) ? 32 : 64, ::cuda::std::is_signed_v<_Tp>>;
+    return static_cast<_Tp>(__to_integer(_Up{}));
   }
 
 private:
@@ -253,10 +235,10 @@ private:
   _CCCL_API void __set_from_int32(uint32_t __i) noexcept;
   _CCCL_API void __set_from_int64(int64_t __i) noexcept;
   _CCCL_API void __set_from_int64(uint64_t __i) noexcept;
-  _CCCL_API int32_t __to_int() const noexcept;
-  _CCCL_API uint32_t __to_uint() const noexcept;
-  _CCCL_API int64_t __to_ll() const noexcept;
-  _CCCL_API uint64_t __to_ull() const noexcept;
+  _CCCL_API int32_t __to_integer(int32_t) const noexcept;
+  _CCCL_API uint32_t __to_integer(uint32_t) const noexcept;
+  _CCCL_API int64_t __to_integer(int64_t) const noexcept;
+  _CCCL_API uint64_t __to_integer(uint64_t) const noexcept;
 
 public:
   /*
@@ -561,34 +543,16 @@ public:
   // Explicit conversions to other types
   _CCCL_API explicit operator float() const noexcept;
   // Explicit conversion to any standard integer type (int / long / long long + unsigned).
-  // Dispatches by width and signedness to the accuracy-correct integer builtins (via the
-  // private out-of-line helpers below); excludes bool / character types.
+  // The target width comes from __num_bits_v and the signedness-correct fixed-width type
+  // from __make_nbit_int_t, selecting the matching overloaded __to_integer helper below;
+  // excludes bool / character types.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API explicit operator _Tp() const noexcept
   {
-    if constexpr (::cuda::std::__cccl_is_signed_integer_v<_Tp>)
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(int32_t))
-      {
-        return static_cast<_Tp>(__to_int());
-      }
-      else
-      {
-        return static_cast<_Tp>(__to_ll());
-      }
-    }
-    else
-    {
-      if constexpr (sizeof(_Tp) <= sizeof(uint32_t))
-      {
-        return static_cast<_Tp>(__to_uint());
-      }
-      else
-      {
-        return static_cast<_Tp>(__to_ull());
-      }
-    }
+    using _Up =
+      ::cuda::std::__make_nbit_int_t<(::cuda::std::__num_bits_v<_Tp> <= 32) ? 32 : 64, ::cuda::std::is_signed_v<_Tp>>;
+    return static_cast<_Tp>(__to_integer(_Up{}));
   }
 
 private:
@@ -598,10 +562,10 @@ private:
   _CCCL_API void __set_from_int32(uint32_t __i) noexcept;
   _CCCL_API void __set_from_int64(int64_t __i) noexcept;
   _CCCL_API void __set_from_int64(uint64_t __i) noexcept;
-  _CCCL_API int32_t __to_int() const noexcept;
-  _CCCL_API uint32_t __to_uint() const noexcept;
-  _CCCL_API int64_t __to_ll() const noexcept;
-  _CCCL_API uint64_t __to_ull() const noexcept;
+  _CCCL_API int32_t __to_integer(int32_t) const noexcept;
+  _CCCL_API uint32_t __to_integer(uint32_t) const noexcept;
+  _CCCL_API int64_t __to_integer(int64_t) const noexcept;
+  _CCCL_API uint64_t __to_integer(uint64_t) const noexcept;
 
 public:
   /*
