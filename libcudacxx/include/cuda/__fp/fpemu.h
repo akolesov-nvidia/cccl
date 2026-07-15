@@ -87,6 +87,21 @@ namespace cuda::experimental
 template <typename _FpType, fpemu_accuracy _Met>
 class fpemu_unpacked;
 
+// Underlying element types accepted by the emulated classes. Only double is
+// implemented, but C++23's _Float64 (the type behind std::float64_t) is a
+// *distinct* type from double even though it is bit-identical, so accept it too
+// where the implementation provides it. The standard feature-test macro
+// __STDCPP_FLOAT64_T__ both guards the _Float64 token and guarantees the type is
+// available (so no compiler version table is needed); where _Float64 is merely an
+// alias for double (pre-C++23 GCC/clang) the double term below already covers it.
+template <typename _Tp>
+inline constexpr bool __fpemu_is_supported_fp_v =
+  ::cuda::std::is_same_v<_Tp, double>
+#if defined(__STDCPP_FLOAT64_T__) && (__STDCPP_FLOAT64_T__ == 1)
+  || ::cuda::std::is_same_v<_Tp, _Float64>
+#endif // __STDCPP_FLOAT64_T__
+  ;
+
 //! @brief Primary emulated double-precision floating-point class template
 //!
 //! The fpemu class template represents a double-precision (64-bit)
@@ -113,10 +128,12 @@ template <typename _FpType = double, fpemu_accuracy _Met = fpemu_accuracy::def>
 class fpemu
 {
 public:
-  // Only double emulation is implemented today; the _FpType axis exists for future extension.
-  static_assert(::cuda::std::is_same_v<_FpType, double>,
-                "cuda::experimental::fpemu currently supports only _FpType == double, possible future extension to "
-                "other types emulation");
+  // Only double emulation is implemented today; the _FpType axis exists for future
+  // extension. _Float64 is accepted as a bit-identical alias for double (see
+  // __fpemu_is_supported_fp_v).
+  static_assert(__fpemu_is_supported_fp_v<_FpType>,
+                "cuda::experimental::fpemu currently supports only _FpType == double (or the bit-identical _Float64), "
+                "possible future extension to other types emulation");
 
 private:
   // Internal representation of the floating-point value (__fpbits64 is defined in
@@ -453,9 +470,12 @@ template <typename _FpType = double, fpemu_accuracy _Met = fpemu_accuracy::def>
 class fpemu_unpacked
 {
 public:
-  // Only double emulation is implemented today; the _FpType axis exists for future extension.
-  static_assert(::cuda::std::is_same_v<_FpType, double>,
-                "cuda::experimental::fpemu_unpacked currently supports only _FpType == double");
+  // Only double emulation is implemented today; the _FpType axis exists for future
+  // extension. _Float64 is accepted as a bit-identical alias for double (see
+  // __fpemu_is_supported_fp_v).
+  static_assert(__fpemu_is_supported_fp_v<_FpType>,
+                "cuda::experimental::fpemu_unpacked currently supports only _FpType == double (or the bit-identical "
+                "_Float64)");
 
 private:
   // Internal representation of the unpacked floating-point value (__fpbits64_unpacked
