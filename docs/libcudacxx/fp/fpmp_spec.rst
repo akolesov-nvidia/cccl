@@ -19,8 +19,71 @@ Type        Description                 Mantissa Bits Range
 ``fp64mp2`` Double-double (two doubles) ~104 bits     ±1.8e308
 =========== =========================== ============= ========
 
+Function Families
+-----------------
+
+The math functions are organized into families that mirror the CUDA C++
+mathematical standard library taxonomy (CUDA C++ Programming Guide,
+"Mathematical Functions"). Each family lives in a dedicated implementation
+header (``fpmp_math_impl_<family>.h``) that contains both the ``fp32mp2``
+implementation and the ``fp64mp2`` specialization for its functions. Shared
+kernels and constants live in ``fpmp_math_impl.h``. The public header
+``fpmp_math.h`` includes all family headers and provides the overloaded ``fpmp2``
+API wrappers (template declarations, ``float``/``double`` specializations, the
+freestanding API, and library-mode declarations). Basic arithmetic (``add``,
+``sub``, ``mul``, ``div``, ``fma``, ``mad``) and ``sqrt``/``rsqrt`` are part of
+the core ``fpmp.h`` header. Functions that CUDA lists as "non-standard" are
+folded into their natural standard family.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 26 52
+
+   * - Family
+     - Implementation header
+     - Functions
+   * - Common utilities
+     - ``fpmp_math_impl.h``
+     - error-free transforms, Horner/polynomial evaluation, ``fp32mp2``/``fp64mp2``
+       constants, argument reduction (Cody–Waite, Payne–Hanek), exponent
+       split/scale kernels
+   * - Exponential
+     - ``fpmp_math_impl_exp.h``
+     - ``exp``, ``exp2``, ``exp10``, ``expm1``, ``log``, ``log2``, ``log10``, ``log1p``
+   * - Power
+     - ``fpmp_math_impl_pow.h``
+     - ``pow``, ``cbrt``, ``rcbrt``, ``hypot``, ``rhypot``, ``norm3d``, ``norm4d``,
+       ``rnorm3d``, ``rnorm4d``
+   * - Trigonometric
+     - ``fpmp_math_impl_trig.h``
+     - ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``,
+       ``sincos``, ``sinpi``, ``cospi``, ``sincospi``
+   * - Hyperbolic
+     - ``fpmp_math_impl_hyperbolic.h``
+     - ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``
+   * - Error, gamma & special
+     - ``fpmp_math_impl_special.h``
+     - ``erf``, ``erfc``, ``erfinv``, ``erfcinv``, ``erfcx``, ``tgamma``,
+       ``lgamma``, ``normcdf``, ``normcdfinv``, ``boys_f0``, ``icdf``, ``j0``,
+       ``j1``, ``jn``, ``y0``, ``y1``, ``yn``, ``cyl_bessel_i0``, ``cyl_bessel_i1``
+   * - Nearest integer & remainder
+     - ``fpmp_math_impl_nearint.h``
+     - ``ceil``, ``floor``, ``trunc``, ``round``, ``nearbyint``, ``rint``,
+       ``lrint``, ``llrint``, ``lround``, ``llround``, ``fmod``, ``remainder``,
+       ``remquo``
+   * - Floating-point manipulation
+     - ``fpmp_math_impl_manip.h``
+     - ``frexp``, ``ldexp``, ``modf``, ``scalbn``, ``scalbln``, ``ilogb``,
+       ``logb``, ``nextafter``, ``copysign``, ``fabs``
+   * - Classification & comparison
+     - ``fpmp_math_impl_classify.h``
+     - ``isfinite``, ``isinf``, ``isnan``, ``signbit``, ``fmax``, ``fmin``,
+       ``max``, ``min``, ``fdim``
+
 Table of Contents
 -----------------
+
+`Function Families <#function-families>`__
 
 `Arithmetic Operations <#arithmetic-operations>`__
 
