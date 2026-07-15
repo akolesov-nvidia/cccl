@@ -1176,22 +1176,21 @@ namespace cuda::experimental
 // API (merged from fp64emu_cvt_api.hpp)
 // ============================================================================
 
-// Type conversion to fpemu with other method
-template <typename _FpType, fpemu_accuracy _AccSrc>
-template <fpemu_accuracy _AccDst>
-_CCCL_API inline fpemu<_FpType, _AccSrc>::operator fpemu<double, _AccDst>() const noexcept
-{
-  return __fpemu_bit_cast<fpemu<double, _AccDst>>(bits);
-}
+// Converting constructor from another accuracy (same packed representation, so a pure
+// reinterpretation). The source's private bits are read via bit_cast on the whole
+// (trivially copyable) object, keeping the `bits` member encapsulated.
+template <typename _FpType, fpemu_accuracy _Met>
+template <fpemu_accuracy _Acc2>
+_CCCL_API inline fpemu<_FpType, _Met>::fpemu(const fpemu<double, _Acc2>& __src) noexcept
+    : bits(__fpemu_bit_cast<__fpbits64>(__src))
+{}
 
-// Type conversion from fpemu to fpemu_unpacked
-template <typename _FpType, fpemu_accuracy _AccSrc>
-template <fpemu_accuracy _AccDst>
-_CCCL_API inline fpemu<_FpType, _AccSrc>::operator fpemu_unpacked<double, _AccDst>() const noexcept
-{
-  __fpbits64_unpacked __bits_unpacked = __fp64emu_unpack(bits);
-  return __fpemu_bit_cast<fpemu_unpacked<double, _AccDst>>(__bits_unpacked);
-}
+// Converting constructor from the unpacked representation (packs to the 64-bit form).
+template <typename _FpType, fpemu_accuracy _Met>
+template <fpemu_accuracy _Acc2>
+_CCCL_API inline fpemu<_FpType, _Met>::fpemu(const fpemu_unpacked<double, _Acc2>& __src) noexcept
+    : bits(__fp64emu_pack_rn(__fpemu_bit_cast<__fpbits64_unpacked>(__src)))
+{}
 
 /*
 // Type conversions from other types to fpemu
@@ -1383,22 +1382,21 @@ _CCCL_API inline uint64_t __double2ull_rd(fpemu<double, _Acc> __x) noexcept
   return __fp64emu_to_ull_rd(__fpemu_bit_cast<__fpbits64>(__x));
 }
 
-// Type conversion from fpemu_unpacked with other method
-template <typename _FpType, fpemu_accuracy _AccSrc>
-template <fpemu_accuracy _AccDst>
-_CCCL_API inline fpemu_unpacked<_FpType, _AccSrc>::operator fpemu_unpacked<double, _AccDst>() const noexcept
-{
-  return __fpemu_bit_cast<fpemu_unpacked<double, _AccDst>>(bits);
-}
+// Converting constructor from another accuracy (same unpacked representation, so a
+// pure reinterpretation). The source's private bits are read via bit_cast on the
+// whole (trivially copyable) object, keeping the `bits` member encapsulated.
+template <typename _FpType, fpemu_accuracy _Met>
+template <fpemu_accuracy _Acc2>
+_CCCL_API inline fpemu_unpacked<_FpType, _Met>::fpemu_unpacked(const fpemu_unpacked<double, _Acc2>& __src) noexcept
+    : bits(__fpemu_bit_cast<__fpbits64_unpacked>(__src))
+{}
 
-// Type conversion from fpemu_unpacked to fpemu
-template <typename _FpType, fpemu_accuracy _AccSrc>
-template <fpemu_accuracy _AccDst>
-_CCCL_API inline fpemu_unpacked<_FpType, _AccSrc>::operator fpemu<double, _AccDst>() const noexcept
-{
-  __fpbits64 __bits_packed = __fp64emu_pack_rn(bits);
-  return __fpemu_bit_cast<fpemu<double, _AccDst>>(__bits_packed);
-}
+// Converting constructor from the packed representation (unpacks the 64-bit form).
+template <typename _FpType, fpemu_accuracy _Met>
+template <fpemu_accuracy _Acc2>
+_CCCL_API inline fpemu_unpacked<_FpType, _Met>::fpemu_unpacked(const fpemu<double, _Acc2>& __src) noexcept
+    : bits(__fp64emu_unpack(__fpemu_bit_cast<__fpbits64>(__src)))
+{}
 
 /*
 // Type conversions from other types to fpemu_unpacked

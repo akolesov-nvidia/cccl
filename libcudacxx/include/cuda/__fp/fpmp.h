@@ -538,6 +538,14 @@ public:
       __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
+  // bool and character types are excluded from __cccl_is_integer_v, but `1.0 + true`
+  // and `1.0 + 'a'` are valid for double, so mirror that behavior: widen the value to
+  // int32 and reuse the int32 constructor path (no dedicated char/bool handling).
+  _CCCL_TEMPLATE(class _Tp)
+  _CCCL_REQUIRES(::cuda::std::is_integral_v<_Tp> _CCCL_AND(!::cuda::std::__cccl_is_integer_v<_Tp>))
+  _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(_Tp __i) noexcept
+      : fpmp2(static_cast<int32_t>(__i))
+  {}
 #if _CCCL_HAS_INT128()
   // 128-bit integers would silently truncate to 64 bits, so they are deleted until
   // real 128-bit support is added (tracking issue: extended-precision fp <-> __int128).

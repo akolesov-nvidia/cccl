@@ -59,6 +59,7 @@
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
+#include <cuda/std/__type_traits/is_integral.h>
 #include <cuda/std/__type_traits/is_same.h>
 #include <cuda/std/__type_traits/is_signed.h>
 #include <cuda/std/__type_traits/make_nbit_int.h>
@@ -203,18 +204,34 @@ public:
       __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
+  // bool and character types are excluded from __cccl_is_integer_v, but `1.0 + true`
+  // and `1.0 + 'a'` are valid for double, so mirror that behavior: widen the value to
+  // int32 and reuse the int32 constructor path (no dedicated char/bool handling).
+  _CCCL_TEMPLATE(class _Tp)
+  _CCCL_REQUIRES(::cuda::std::is_integral_v<_Tp> _CCCL_AND(!::cuda::std::__cccl_is_integer_v<_Tp>))
+  _CCCL_API fpemu(_Tp __i) noexcept
+      : fpemu(static_cast<int32_t>(__i))
+  {}
 #if _CCCL_HAS_INT128()
   // 128-bit integers would silently truncate to 64 bits, so they are deleted until
   // real 128-bit support is added (tracking issue: extended-precision fp <-> __int128).
   _CCCL_API fpemu(__int128_t)  = delete;
   _CCCL_API fpemu(__uint128_t) = delete;
 #endif // _CCCL_HAS_INT128()
-  // Type conversion to fpemu with other accuracy and range
-  template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API operator fpemu<double, _Acc>() const noexcept;
-  // Type conversion from fpemu to fpemu_unpacked (explicit to avoid overload ambiguity)
-  template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API explicit operator fpemu_unpacked<double, _Acc>() const noexcept;
+#if _CCCL_HAS_FLOAT128()
+  // __float128 -> double would silently lose precision (and today makes construction
+  // ambiguous with the float/double ctors), so it is deleted for parity with the
+  // 128-bit integer ctors until real extended-precision support exists.
+  _CCCL_API fpemu(__float128) = delete;
+#endif // _CCCL_HAS_FLOAT128()
+  // Converting constructor from another accuracy (same packed representation, so a
+  // pure reinterpretation). Explicit: an accuracy change must be opted into via
+  // direct-init / static_cast, mirroring fpmp2 and the IEEE-754 narrowing ctors.
+  template <fpemu_accuracy _Acc2>
+  _CCCL_API explicit fpemu(const fpemu<double, _Acc2>& __src) noexcept;
+  // Converting constructor from the unpacked representation (packs to the 64-bit form).
+  template <fpemu_accuracy _Acc2>
+  _CCCL_API explicit fpemu(const fpemu_unpacked<double, _Acc2>& __src) noexcept;
 
   // ==== Conversion from fpemu to other types:
   // Implicit conversion to double
@@ -540,6 +557,14 @@ public:
       __set_from_int64(static_cast<::cuda::std::__make_nbit_int_t<64, ::cuda::std::is_signed_v<_Tp>>>(__i));
     }
   }
+  // bool and character types are excluded from __cccl_is_integer_v, but `1.0 + true`
+  // and `1.0 + 'a'` are valid for double, so mirror that behavior: widen the value to
+  // int32 and reuse the int32 constructor path (no dedicated char/bool handling).
+  _CCCL_TEMPLATE(class _Tp)
+  _CCCL_REQUIRES(::cuda::std::is_integral_v<_Tp> _CCCL_AND(!::cuda::std::__cccl_is_integer_v<_Tp>))
+  _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(_Tp __i) noexcept
+      : fpemu_unpacked(static_cast<int32_t>(__i))
+  {}
 #if _CCCL_HAS_INT128()
   // 128-bit integers would silently truncate to 64 bits, so they are deleted until
   // real 128-bit support is added (tracking issue: extended-precision fp <-> __int128).
@@ -547,13 +572,21 @@ public:
   _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(__int128_t)  = delete;
   _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(__uint128_t) = delete;
 #endif // _CCCL_HAS_INT128()
+#if _CCCL_HAS_FLOAT128()
+  // __float128 -> double would silently lose precision (and today makes construction
+  // ambiguous with the float/double ctors), so it is deleted for parity with the
+  // 128-bit integer ctors until real extended-precision support exists.
+  // Mirror the integer ctor's explicitness so copy-init overload sets are unchanged.
+  _CCCL_API _CCCL_FPEMU_UNP_NARROW_EXPLICIT fpemu_unpacked(__float128) = delete;
+#endif // _CCCL_HAS_FLOAT128()
 #undef _CCCL_FPEMU_UNP_NARROW_EXPLICIT
-  // Type conversion to fpemu_unpacked with other accuracy and range
-  template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API operator fpemu_unpacked<double, _Acc>() const noexcept;
-  // Type conversion from fpemu_unpacked to fpemu (explicit to avoid overload ambiguity)
-  template <fpemu_accuracy _Acc = _Met>
-  _CCCL_API explicit operator fpemu<double, _Acc>() const noexcept;
+  // Converting constructor from another accuracy (same unpacked representation, so a
+  // pure reinterpretation). Explicit for the same reason as the packed class.
+  template <fpemu_accuracy _Acc2>
+  _CCCL_API explicit fpemu_unpacked(const fpemu_unpacked<double, _Acc2>& __src) noexcept;
+  // Converting constructor from the packed representation (unpacks the 64-bit form).
+  template <fpemu_accuracy _Acc2>
+  _CCCL_API explicit fpemu_unpacked(const fpemu<double, _Acc2>& __src) noexcept;
 
   // ==== Conversion from fpemu_unpacked to other types:
   // Implicit conversion to double
