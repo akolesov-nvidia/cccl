@@ -43,6 +43,7 @@
 
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
+#include <cuda/std/__bit/countl.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -340,7 +341,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_dadd_def(__fpbits64 __x, __fpbit
   }
 
   // Check first significant bit after sign bit
-  int32_t __nzeros = __internal_clzll(__fpemu_bit_cast<int64_t>(__c_32x2));
+  int32_t __nzeros = ::cuda::std::countl_zero(__fpemu_bit_cast<uint64_t>(__c_32x2));
 
   // Correct exponent by nzeros
   int32_t __exp_corr = (__nzeros - (11 - 1 - __extra_bits));
@@ -670,7 +671,7 @@ __internal_fp64emu_dadd_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __
     // rounding-dependent zero sign is intentionally NOT honored here (the core
     // is rounding-independent), so an exactly-zero sum is -0 only when both
     // addends are negative -- a tolerated deviation for directed modes.
-    int32_t __nz = __internal_clzll(__fpemu_bit_cast<int64_t>(__man_c));
+    int32_t __nz = ::cuda::std::countl_zero(__fpemu_bit_cast<uint64_t>(__man_c));
     if (__nz >= 64)
     {
       __is_sign_c = (__is_sign_a && __is_sign_b);

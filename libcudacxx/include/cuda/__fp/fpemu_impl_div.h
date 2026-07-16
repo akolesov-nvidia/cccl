@@ -38,6 +38,7 @@
 #include <cuda/__cmath/mul_hi.h>
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
+#include <cuda/std/__bit/countl.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -239,7 +240,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_ddiv(__fpbits64 __x, __fpbits64 
         return (__fpbits64) (((uint64_t) __sign_z << 63) | _CCCL_FPEMU_INF_64); // x / 0 -> inf
       }
     }
-    int __mant_b_shft = __internal_clzll((int64_t) __mant_b) - 11;
+    int __mant_b_shft = ::cuda::std::countl_zero((uint64_t) __mant_b) - 11;
     // normalize subnormal b
     __exp_b  = 1 - __mant_b_shft;
     __mant_b = __mant_b << __mant_b_shft;
@@ -250,7 +251,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_ddiv(__fpbits64 __x, __fpbits64 
     {
       return (__fpbits64) ((uint64_t) __sign_z << 63); // 0 / x -> 0
     }
-    int __mant_a_shft = __internal_clzll((int64_t) __mant_a) - 11;
+    int __mant_a_shft = ::cuda::std::countl_zero((uint64_t) __mant_a) - 11;
     // normalize subnormal a
     __exp_a  = 1 - __mant_a_shft;
     __mant_a = __mant_a << __mant_a_shft;

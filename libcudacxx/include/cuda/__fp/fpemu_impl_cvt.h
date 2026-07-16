@@ -37,6 +37,7 @@
 
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
+#include <cuda/std/__bit/countl.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -441,7 +442,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_float_to_fpbits64(float __x) noe
   // Subnormal float → normalize
   if (__exp == 0)
   {
-    int32_t __nz = __internal_clz((int) __frac) - (32 - _CCCL_FP32_MANT_BITS - 1);
+    int32_t __nz = ::cuda::std::countl_zero((uint32_t) __frac) - (32 - _CCCL_FP32_MANT_BITS - 1);
     __frac       = (__frac << __nz) & ((1u << _CCCL_FP32_MANT_BITS) - 1);
     __exp        = 1 - __nz;
   }
@@ -463,7 +464,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_int_to_fpbits64(int32_t __x) noe
   uint64_t __sign  = (__x < 0) ? (1ULL << 63) : 0ULL;
   uint32_t __abs_x = (uint32_t) ((__x < 0) ? -(int64_t) __x : (int64_t) __x);
 
-  int32_t __nz        = __internal_clz((int) __abs_x);
+  int32_t __nz        = ::cuda::std::countl_zero((uint32_t) __abs_x);
   uint64_t __exp      = (uint64_t) (_CCCL_FP64_BIAS + 31 - __nz);
   uint64_t __mantissa = ((uint64_t) __abs_x << (21 + __nz)) & __fpemu_mantissa_mask;
 
@@ -478,7 +479,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_uint_to_fpbits64(uint32_t __x) n
     return (__fpbits64) 0;
   }
 
-  int32_t __nz        = __internal_clz((int) __x);
+  int32_t __nz        = ::cuda::std::countl_zero((uint32_t) __x);
   uint64_t __exp      = (uint64_t) (_CCCL_FP64_BIAS + 31 - __nz);
   uint64_t __mantissa = ((uint64_t) __x << (21 + __nz)) & __fpemu_mantissa_mask;
 
@@ -496,7 +497,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_ll_to_fpbits64(int64_t __x) noex
   uint64_t __sign  = (__x < 0) ? (1ULL << 63) : 0ULL;
   uint64_t __abs_a = (__x < 0) ? -(uint64_t) __x : (uint64_t) __x;
 
-  int32_t __nz  = __internal_clzll((int64_t) __abs_a);
+  int32_t __nz  = ::cuda::std::countl_zero((uint64_t) __abs_a);
   int32_t __exp = _CCCL_FP64_BIAS + 63 - __nz;
 
   if (__nz >= 11)
@@ -534,7 +535,7 @@ _CCCL_TRIVIAL_API __fpbits64 __internal_fp64emu_ull_to_fpbits64(uint64_t __x) no
     return (__fpbits64) 0;
   }
 
-  int32_t __nz  = __internal_clzll((int64_t) __x);
+  int32_t __nz  = ::cuda::std::countl_zero((uint64_t) __x);
   int32_t __exp = _CCCL_FP64_BIAS + 63 - __nz;
 
   if (__nz >= 11)
