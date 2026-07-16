@@ -978,19 +978,19 @@ _CCCL_API fpemu<double, _Acc> operator+(const fpemu<double, _Acc>& __x, const fp
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_high_dadd_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_high_dadd_rn(__x.__bits_, __y.__bits_));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_dadd_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_mid_dadd_rn(__x.__bits_, __y.__bits_));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_dadd_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_low_dadd_rn(__x.__bits_, __y.__bits_));
   }
   else
   {
-    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_dadd_rn(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu<double, _Acc>>(__fp64emu_dadd_rn(__x.__bits_, __y.__bits_));
   }
 } // operator+
 
@@ -1093,19 +1093,19 @@ operator+(const fpemu_unpacked<double, _Acc>& __x, const fpemu_unpacked<double, 
 {
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_high_dadd(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_high_dadd(__x.__bits_, __y.__bits_));
   }
   else if constexpr (_Acc == fpemu_accuracy::mid)
   {
-    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_mid_dadd(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_mid_dadd(__x.__bits_, __y.__bits_));
   }
   else if constexpr (_Acc == fpemu_accuracy::low)
   {
-    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_low_dadd(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_low_dadd(__x.__bits_, __y.__bits_));
   }
   else
   {
-    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_dadd(__x.bits, __y.bits));
+    return __fpemu_bit_cast<fpemu_unpacked<double, _Acc>>(__fp64emu_unpacked_dadd(__x.__bits_, __y.__bits_));
   }
 } // operator+
 
