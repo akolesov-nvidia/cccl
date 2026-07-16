@@ -4,7 +4,7 @@ This test validates the correctness and performance of standalone integer-only F
 
 ## Overview
 
-The function under test adds an `int32_t` value to a `double` accumulator using **only integer operations** (no floating-point arithmetic). The algorithm is based on `__internal_fp64emu_dadd_def` with HA accuracy (9 extra precision bits).
+The function under test adds an `int32_t` value to a `double` accumulator using **only integer operations** (no floating-point arithmetic). The algorithm is based on `__internal_fp64emu_mid_dadd` with HA accuracy (9 extra precision bits).
 
 ### Test Categories
 

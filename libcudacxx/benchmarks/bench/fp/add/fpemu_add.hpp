@@ -5,7 +5,7 @@
  * @brief Standalone emulation of double-precision operations using integer operations
  *
  * Provides standalone integer-only emulation functions based on
- * __internal_fp64emu_dadd_def with HA accuracy (9 extra precision bits):
+ * __internal_fp64emu_mid_dadd with HA accuracy (9 extra precision bits):
  *
  *   __internal_int32_to_fp64 (int32_t i)           — int32 to double conversion
  *   __internal_fp64_add_fp64 (double x, double  y) — double + double
@@ -178,7 +178,7 @@ double __internal_int32_to_fp64(int32_t i)
  *
  * Standalone emulation function that performs (x + y) where both operands are
  * doubles. The implementation uses the same integer-only mantissa alignment and
- * addition algorithm as __internal_fp64emu_dadd_def (HA accuracy, normal range).
+ * addition algorithm as __internal_fp64emu_mid_dadd (HA accuracy, normal range).
  *
  * @param x  First double precision operand
  * @param y  Second double precision operand
