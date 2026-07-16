@@ -1358,22 +1358,6 @@ _CCCL_TRIVIAL_API __uint32x2 __round(__uint32x2 __man, const int __shift, bool _
 // implementations (fpemu_impl_div.h / fpemu_impl_sqrt.h).
 // ============================================================================
 
-//! @brief High 64 bits of a 64x64 -> 128 unsigned multiply (host/device).
-_CCCL_TRIVIAL_API uint64_t __internal_fp64emu_mulhi64(uint64_t __a, uint64_t __b) noexcept
-{
-#if defined(__CUDA_ARCH__)
-  return __umul64hi(__a, __b);
-#elif defined(__SIZEOF_INT128__)
-  return (uint64_t) (((unsigned __int128) __a * (unsigned __int128) __b) >> 64);
-#else
-  uint64_t al = (uint32_t) a, ah = a >> 32;
-  uint64_t bl = (uint32_t) b, bh = b >> 32;
-  uint64_t ll = al * bl, lh = al * bh, hl = ah * bl, hh = ah * bh;
-  uint64_t mid = (ll >> 32) + (uint32_t) lh + (uint32_t) hl;
-  return hh + (lh >> 32) + (hl >> 32) + (mid >> 32);
-#endif
-} // __internal_fp64emu_mulhi64
-
 //! @brief Right shift keeping a sticky bit.
 _CCCL_TRIVIAL_API uint64_t __internal_fp64emu_shr_jam64(uint64_t __a, uint32_t __dist) noexcept
 {

@@ -35,6 +35,7 @@
 //! through appropriate decorators and provide bit-exact results matching hardware
 //! floating point units.
 
+#include <cuda/__cmath/mul_hi.h>
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
 
@@ -84,7 +85,7 @@ _CCCL_TRIVIAL_API uint32_t __internal_fp64emu_div_recip32(uint32_t __b32) noexce
   int64_t __e     = (int64_t) (_CCCL_FPEMU_SIGN_64 - __prod); // 2^63 - prod
   uint64_t __ae   = (uint64_t) (__e < 0 ? -__e : __e);
   uint64_t __lo   = __r * __ae; // low 64 bits of r*ae
-  uint64_t __hi   = __internal_fp64emu_mulhi64(__r, __ae);
+  uint64_t __hi   = ::cuda::mul_hi(__r, __ae);
   uint64_t __corr = (__hi << 1) | (__lo >> 63); // (r*ae) >> 63
   __r             = (__e < 0) ? (__r - __corr) : (__r + __corr);
   if (__r > 0xFFFFFFFFULL)

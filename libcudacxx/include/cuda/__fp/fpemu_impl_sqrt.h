@@ -35,6 +35,7 @@
 //! through appropriate decorators and provide bit-exact results matching hardware
 //! floating point units.
 
+#include <cuda/__cmath/mul_hi.h>
 #include <cuda/__fp/fpemu_impl.h>
 #include <cuda/__fp/fpemu_impl_unpack.h>
 
@@ -91,7 +92,7 @@ _CCCL_TRIVIAL_API uint32_t __internal_fp64emu_sqrt_recip_sqrt32(uint32_t __odd_e
 
   // One Newton step (reciprocal-sqrt): r <- r*(3K - a*r^2)/(2K), K = 2^(94+odd).
   uint64_t __r2      = __r * __r; // < 2^64
-  uint64_t __a_r2_hi = __internal_fp64emu_mulhi64((uint64_t) __a, __r2); // a*r^2 >> 64
+  uint64_t __a_r2_hi = ::cuda::mul_hi((uint64_t) __a, __r2); // a*r^2 >> 64
   uint64_t __a_r2_lo = (uint64_t) __a * __r2; // low 64 bits (wraps)
   uint64_t __k3_hi   = 3ULL << (30 + __odd_exp); // (3 * 2^(94+odd)) >> 64
   uint64_t __t_lo    = 0ULL - __a_r2_lo;
@@ -99,7 +100,7 @@ _CCCL_TRIVIAL_API uint32_t __internal_fp64emu_sqrt_recip_sqrt32(uint32_t __odd_e
   uint64_t __t_hi    = __k3_hi - __a_r2_hi - __borrow; // t = 3K - a*r^2 (128-bit)
   // r' = (r * t) >> (95 + odd); pre-shift t by 33 so the product fits 128 bits.
   uint64_t __t_s   = (__t_hi << 31) | (__t_lo >> 33);
-  uint64_t __pr_hi = __internal_fp64emu_mulhi64(__r, __t_s);
+  uint64_t __pr_hi = ::cuda::mul_hi(__r, __t_s);
   uint64_t __pr_lo = __r * __t_s;
   __r              = (__pr_hi << (2 - __odd_exp)) | (__pr_lo >> (62 + __odd_exp));
   if (__r < 0x80000000ULL)
@@ -115,7 +116,7 @@ _CCCL_TRIVIAL_API uint32_t __internal_fp64emu_sqrt_recip_sqrt32(uint32_t __odd_e
   while (__r > 0x80000000ULL)
   {
     uint64_t __rr2 = __r * __r;
-    uint64_t __hi  = __internal_fp64emu_mulhi64((uint64_t) __a, __rr2);
+    uint64_t __hi  = ::cuda::mul_hi((uint64_t) __a, __rr2);
     uint64_t __lo  = (uint64_t) __a * __rr2;
     uint64_t __thr = 1ULL << (30 + __odd_exp);
     if ((__hi > __thr) || (__hi == __thr && __lo != 0))
