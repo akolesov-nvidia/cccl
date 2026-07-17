@@ -131,6 +131,17 @@ else
 endif
 
 CXXFLAGS  += $(EXTRA_FLAGS) $(ABI_FLAGS)
+
+# Treat warnings as errors when WERROR is enabled (default 0 for benchmarks).
+# host: -Wall -Wextra -Werror; device (nvcc): forwarded via -Xcompiler. Enable with WERROR=1.
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+  ifneq (,$(filter $(T) $(TARGET), host))
+    CXXFLAGS += -Wall -Wextra -Wno-strict-aliasing -Werror
+  else
+    CXXFLAGS += -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing,-Werror
+  endif
+endif
 LIBFLAGS  += $(EXTRA_FLAGS)
 
 # Compile-time definitions

@@ -195,6 +195,14 @@ else
 endif
 
 CXXFLAGS += $(EXTRA_FLAGS) $(ABI_FLAGS)
+
+# Treat warnings as errors when WERROR is enabled (default 0 for benchmarks).
+# Forwarded to the host compiler via -Xcompiler. Enable with WERROR=1. (Note: the
+# base CXXFLAGS pass nvcc --disable-warnings; -Werror here still applies to host.)
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+    CXXFLAGS += -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing,-Werror
+endif
 LIBFLAGS += $(EXTRA_FLAGS)
 
 # maximum verbose mode with -v flag

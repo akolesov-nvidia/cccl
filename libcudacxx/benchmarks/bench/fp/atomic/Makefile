@@ -166,6 +166,13 @@ else
 endif
 
 CXXFLAGS  += $(EXTRA_FLAGS) $(ABI_FLAGS)
+
+# Treat warnings as errors when WERROR is enabled (default 0 for benchmarks).
+# Forwarded to the host compiler via -Xcompiler. Enable with WERROR=1.
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+    CXXFLAGS += -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing,-Werror
+endif
 LINKFLAGS  += $(EXTRA_FLAGS)
 
 # Default target

@@ -19,6 +19,7 @@
 #    OUT      = output directory (default: `_out`)
 #    VERBOSE  = `0` (silent) | `1` (default) | `2` (full cmds) | `3` (very verbose)
 #               Aliases: `V`, `VERB`
+#    WERROR   = `1` (default) treat warnings as errors | `0`/`n` warnings only
 #
 #  Targets:
 #    all / build  - build selected examples (produces *.exe in OUT)
@@ -92,17 +93,30 @@ else
     QUADMATH_LIB :=
 endif
 
+# Treat warnings as errors when WERROR is enabled (default 1 for examples). When
+# on, the host compiler gets the full -Wall -Wextra -Werror set and nvcc gets
+# -Werror forwarded via -Xcompiler (device already carries -Wall,-Wextra below).
+# Pass WERROR=0 (aliases: n/no/false) to downgrade to plain warnings.
+WERROR ?= 1
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+    WERROR_HOST := -Wall -Wextra -Wno-strict-aliasing -Werror
+    WERROR_NVCC := -Xcompiler -Werror
+else
+    WERROR_HOST :=
+    WERROR_NVCC :=
+endif
+
 # toolchain / flags
 ifeq ($(TARGET),host)
     TARGET_SUFFIX := $(HOST_SUFFIX)
     CXX       := g++
-    OBJFLAGS  := -std=c++17 -O2 -c
-    LINKFLAGS :=
+    OBJFLAGS  := -std=c++17 -O2 -c $(WERROR_HOST)
+    LINKFLAGS := $(WERROR_HOST)
     LINKLIBS  := $(QUADMATH_LIB)
 else
     TARGET_SUFFIX := $(DEVICE_SUFFIX)
     CXX       := nvcc
-    OBJFLAGS  := -std=c++17 -arch=sm_$(ARCH) -O2 -x cu -dc -Xcompiler -Wall,-Wextra -Xcompiler -Wno-strict-aliasing
+    OBJFLAGS  := -std=c++17 -arch=sm_$(ARCH) -O2 -x cu -dc -Xcompiler -Wall,-Wextra -Xcompiler -Wno-strict-aliasing $(WERROR_NVCC)
     LINKFLAGS := -rdc=true -arch=sm_$(ARCH)
     LINKLIBS  := $(QUADMATH_LIB)
 endif
@@ -205,7 +219,7 @@ clean:
 help:
 	@echo "CCCL FP SDK examples (local header-only build)"
 	@echo ""
-	@echo "Usage: make [TARGET=host|device] [LINKAGE=inline|static|lto] [EXAMPLE=fp32mp2|fpemu|...] [ARCH=86] [OUT=...] [VERBOSE=0|1|2|3] (aliases: V, VERB)"
+	@echo "Usage: make [TARGET=host|device] [LINKAGE=inline|static|lto] [EXAMPLE=fp32mp2|fpemu|...] [ARCH=86] [OUT=...] [VERBOSE=0|1|2|3] (aliases: V, VERB) [WERROR=1|0]"
 	@echo ""
 	@echo "Targets: all/build, run, rebuild, rerun, clean, help"
 	@echo ""

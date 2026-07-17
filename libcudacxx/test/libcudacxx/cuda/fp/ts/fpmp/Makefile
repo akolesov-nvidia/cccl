@@ -304,12 +304,24 @@ ifeq ($(strip $(FPMP_NVVM_FP128_EXT)),)
 endif
 endif
 
+# Treat warnings as errors when WERROR is enabled (default 0 for ts). When on,
+# host adds -Wall -Wextra -Werror and nvcc adds -Werror via -Xcompiler (device
+# already carries -Wall,-Wextra below). Enable with WERROR=1.
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+    WERROR_HOST := -Wall -Wextra -Wno-strict-aliasing -Werror
+    WERROR_NVCC := -Xcompiler -Werror
+else
+    WERROR_HOST :=
+    WERROR_NVCC :=
+endif
+
 # Compiler settings
 ifneq (,$(filter $(T) $(TARGET), host))
     TARGET_SUFFIX = $(HOST_SUFFIX)
     # Host settings
     CXX = g++ -ffp-contract=off 
-	COMMONFLAGS += -O2 -std=c++20 -fopenmp -march=native
+	COMMONFLAGS += -O2 -std=c++20 -fopenmp -march=native $(WERROR_HOST)
     OBJFLAGS  =  -c 
 	EXEFLAGS  = 
 	LINKLIBS  = $(QUADMATH_LIB) -lgomp
@@ -325,7 +337,7 @@ else
 	COMMONFLAGS += -O2 -std=c++20 -rdc=true
 	# Inherited from repo root Makefile as $(FPMP_NVVM_FP128_EXT); required for extended __nv_fp128_*.
 	COMMONFLAGS += $(FPMP_NVVM_FP128_EXT)
-    OBJFLAGS    = -arch=sm_$(ARCH)  -x cu -dc -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing
+    OBJFLAGS    = -arch=sm_$(ARCH)  -x cu -dc -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing $(WERROR_NVCC)
 	EXEFLAGS    = -arch=sm_$(ARCH) 
 	LINKLIBS    = -lcurand $(QUADMATH_LIB)
 	SASSFLAGS   = -arch=sm_$(ARCH)

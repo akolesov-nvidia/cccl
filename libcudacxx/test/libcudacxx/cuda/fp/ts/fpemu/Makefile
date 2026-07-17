@@ -311,12 +311,24 @@ PTX_FILES = $(foreach test, $(TESTS), $(OUT)/$(test).ptx)
 SASS_FILES = $(foreach test, $(TESTS), $(OUT)/$(test).sass)
 endif
 
+# Treat warnings as errors when WERROR is enabled (default 0 for ts). When on,
+# host adds -Wall -Wextra -Werror and nvcc adds -Werror via -Xcompiler (device
+# already carries -Wall,-Wextra below). Enable with WERROR=1.
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+    WERROR_HOST := -Wall -Wextra -Wno-strict-aliasing -Werror
+    WERROR_NVCC := -Xcompiler -Werror
+else
+    WERROR_HOST :=
+    WERROR_NVCC :=
+endif
+
 # Compiler settings
 ifneq (,$(filter $(T) $(TARGET), host))
     TARGET_SUFFIX = $(HOST_SUFFIX)
     # Host settings
     CXX = g++ -ffp-contract=off 
-	COMMONFLAGS += -O2 -std=c++20
+	COMMONFLAGS += -O2 -std=c++20 $(WERROR_HOST)
     OBJFLAGS  =  -c 
 	EXEFLAGS  = 
 	PTXFLAGS  = 
@@ -329,7 +341,7 @@ else
     # CUDA settings
     CXX = nvcc
 	COMMONFLAGS += -O2 -std=c++20 -rdc=true -Xcompiler -ffp-contract=off
-    OBJFLAGS    = -arch=sm_$(ARCH)  -x cu -dc -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing
+    OBJFLAGS    = -arch=sm_$(ARCH)  -x cu -dc -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing $(WERROR_NVCC)
 	EXEFLAGS    = -arch=sm_$(ARCH) 
 	SASSFLAGS   = -arch=sm_$(ARCH)
 	PTXFLAGS    = -arch=compute_$(ARCH) 

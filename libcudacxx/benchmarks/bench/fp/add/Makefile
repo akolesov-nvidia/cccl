@@ -114,6 +114,17 @@ endif
 COMPILEFLAGS += $(EXTRA_FLAGS) $(ABI_FLAGS)
 LINKFLAGS    += $(EXTRA_FLAGS)
 
+# Treat warnings as errors when WERROR is enabled (default 0 for benchmarks).
+# host: -Wall -Wextra -Werror; device (nvcc): forwarded via -Xcompiler. Enable with WERROR=1.
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+  ifneq (,$(filter $(T) $(TARGET), host))
+    COMPILEFLAGS += -Wall -Wextra -Wno-strict-aliasing -Werror
+  else
+    COMPILEFLAGS += -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing,-Werror
+  endif
+endif
+
 # Add compile-time definitions
 DEFINES += -DRANDOM_LEN=$(RANDOM_LEN)
 DEFINES += -DACCUMULATE_LEN=$(ACCUM_LEN)

@@ -200,6 +200,17 @@ EXTRA_FLAGS_FILTERED := $(filter-out -DCCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=% \
 COMPILEFLAGS += $(EXTRA_FLAGS_FILTERED) $(ABI_FLAGS)
 LINKFLAGS    += $(EXTRA_FLAGS_FILTERED)
 
+# Treat warnings as errors when WERROR is enabled (default 0 for benchmarks).
+# host: -Wall -Wextra -Werror; device (nvcc): forwarded via -Xcompiler. Enable with WERROR=1.
+WERROR ?= 0
+ifeq (,$(filter 0 n N no No false False,$(WERROR)))
+  ifneq (,$(filter $(T) $(TARGET), host))
+    COMPILEFLAGS += -Wall -Wextra -Wno-strict-aliasing -Werror
+  else
+    COMPILEFLAGS += -Xcompiler -Wall,-Wextra,-Wno-strict-aliasing,-Werror
+  endif
+endif
+
 # Add compile-time definitions
 DEFINES += -DREPS=$(REPS)
 DEFINES += -DUNROLL=$(UNROLL)
