@@ -999,7 +999,7 @@ _CCCL_TRIVIAL_API __uint32x2 __unpack_mant(bool* __sign, __uint32x2 __input, boo
 //! @param exp   Output unbiased exponent field
 //! @param man   Output mantissa as two 32-bit integers
 template <__fpemu_rounding _Rm = __fpemu_rounding::rn>
-_CCCL_TRIVIAL_API void __fp64_ovfl_sat(bool __sign, int32_t& __exp, __uint32x2& __man) noexcept
+_CCCL_TRIVIAL_API void __fp64_ovfl_sat([[maybe_unused]] bool __sign, int32_t& __exp, __uint32x2& __man) noexcept
 {
   if constexpr (_Rm == __fpemu_rounding::rz)
   {
