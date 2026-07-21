@@ -65,7 +65,7 @@ namespace cuda::experimental
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_pow(
+_CCCL_FPMP_CORE_API void __fpmp2_pow(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -217,7 +217,7 @@ _CCCL_TRIVIAL_API void __fpmp2_pow(
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -366,7 +366,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -491,7 +491,7 @@ _CCCL_FPMP_MATH_PLACEHOLDER_2A(hypot)
 
 // Vector norm functions
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_norm3d(
+_CCCL_FPMP_CORE_API void __fpmp2_norm3d(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -516,7 +516,7 @@ _CCCL_TRIVIAL_API void __fpmp2_norm3d(
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_norm4d(
+_CCCL_FPMP_CORE_API void __fpmp2_norm4d(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -544,7 +544,7 @@ _CCCL_TRIVIAL_API void __fpmp2_norm4d(
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_rnorm3d(
+_CCCL_FPMP_CORE_API void __fpmp2_rnorm3d(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -569,7 +569,7 @@ _CCCL_TRIVIAL_API void __fpmp2_rnorm3d(
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_rnorm4d(
+_CCCL_FPMP_CORE_API void __fpmp2_rnorm4d(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -597,7 +597,7 @@ _CCCL_TRIVIAL_API void __fpmp2_rnorm4d(
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_rhypot(
+_CCCL_FPMP_CORE_API void __fpmp2_rhypot(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,

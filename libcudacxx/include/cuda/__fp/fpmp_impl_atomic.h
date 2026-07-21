@@ -52,7 +52,7 @@ namespace cuda::experimental
  */
 // Primary template declarations (specialized for float and double below)
 template <typename _FpType>
-_CCCL_DEVICE_API inline void __fpmp2_atomicAdd(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd(
   _FpType* __address_hi,
   _FpType* __address_lo,
   const _FpType __addition_hi,
@@ -61,7 +61,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicAdd(
   _FpType* __old_lo) noexcept;
 
 template <typename _FpType>
-_CCCL_DEVICE_API inline void __fpmp2_atomicSub(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicSub(
   _FpType* __address_hi,
   _FpType* __address_lo,
   const _FpType __val_hi,
@@ -78,7 +78,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicSub(
 // Two floats = 64 bits fits in unsigned long long int
 // Returns the old value before the addition
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicAdd<float>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<float>(
   float* __address_hi,
   float* __address_lo,
   const float __addition_hi,
@@ -128,7 +128,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<float>(
 
 // atomicSub for float: Uses negation and atomicAdd
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicSub<float>(
   float* __address_hi,
   float* __address_lo,
   const float __val_hi,
@@ -149,7 +149,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>(
 // Two doubles = 128 bits requires ulonglong2 and sm_90+ (Hopper architecture)
 // Returns the old value before the addition
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicAdd<double>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<double>(
   double* __address_hi,
   double* __address_lo,
   const double __addition_hi,
@@ -208,7 +208,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<double>(
 
 // atomicSub for double: Uses negation and atomicAdd
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicSub<double>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicSub<double>(
   double* __address_hi,
   double* __address_lo,
   const double __val_hi,
@@ -262,7 +262,7 @@ _CCCL_FPMP_BUILTIN_DEVICE_DECL void __fp64mp2_atomicSub(
 // -- type-generic template declarations (dispatch to fp32/fp64) --
 #  ifdef __CUDACC__
 template <typename _Tp>
-_CCCL_DEVICE_API inline void __fpmp2_atomicAdd(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd(
   _Tp* __address_hi,
   _Tp* __address_lo,
   const _Tp __addition_hi,
@@ -270,14 +270,14 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicAdd(
   _Tp* __old_hi,
   _Tp* __old_lo) noexcept;
 template <typename _Tp>
-_CCCL_DEVICE_API inline void __fpmp2_atomicSub(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicSub(
   _Tp* __address_hi, _Tp* __address_lo, const _Tp __val_hi, const _Tp __val_lo, _Tp* __old_hi, _Tp* __old_lo) noexcept;
 #  endif
 
 // -- fp32 template specializations --
 #  ifdef __CUDACC__
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicAdd<float>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<float>(
   float* __address_hi,
   float* __address_lo,
   const float __addition_hi,
@@ -288,7 +288,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<float>(
   __fp32mp2_atomicAdd(__address_hi, __address_lo, __addition_hi, __addition_lo, __old_hi, __old_lo);
 }
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicSub<float>(
   float* __address_hi,
   float* __address_lo,
   const float __val_hi,
@@ -303,7 +303,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicSub<float>(
 // -- fp64 template specializations --
 #  ifdef __CUDACC__
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicAdd<double>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<double>(
   double* __address_hi,
   double* __address_lo,
   const double __addition_hi,
@@ -314,7 +314,7 @@ _CCCL_DEVICE_API inline void __fpmp2_atomicAdd<double>(
   __fp64mp2_atomicAdd(__address_hi, __address_lo, __addition_hi, __addition_lo, __old_hi, __old_lo);
 }
 template <>
-_CCCL_DEVICE_API inline void __fpmp2_atomicSub<double>(
+_CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicSub<double>(
   double* __address_hi,
   double* __address_lo,
   const double __val_hi,

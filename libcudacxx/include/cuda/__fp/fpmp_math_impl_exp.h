@@ -82,7 +82,7 @@ namespace cuda::experimental
  *   the fp32mp2 ulp floor.
  * --------------------------------------------------------------------
  */
-_CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_exp2_kernel(fp32mp2_low __r) noexcept
+_CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp2_kernel(fp32mp2_low __r) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -145,7 +145,7 @@ _CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_exp2_kernel(fp32mp2_low __r) noexcept
  *   below the fp32mp2 ulp floor.
  * --------------------------------------------------------------------
  */
-_CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_exp10_kernel(fp32mp2_low __r) noexcept
+_CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp10_kernel(fp32mp2_low __r) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -187,7 +187,7 @@ _CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_exp10_kernel(fp32mp2_low __r) noexcept
  * intermediate multiplier overflows or denormalizes
  * --------------------------------------------------------------------
  */
-_CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int __n) noexcept
+_CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int __n) noexcept
 {
   const int __k = __n >> 1; /* floor-div-by-2; signed shift on negative n */
   int __ek1     = 127 + __k;
@@ -233,7 +233,7 @@ _CCCL_TRIVIAL_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int __n
  * With 14 terms and float-float arithmetic, this achieves approximately 10^-10 to 10^-11 relative accuracy.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -361,7 +361,7 @@ __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -503,7 +503,7 @@ __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   static_assert(::cuda::std::is_same_v<_FpType, float>,
@@ -634,7 +634,7 @@ __fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   static_assert(::cuda::std::is_same_v<_FpType, float>,
@@ -676,7 +676,7 @@ __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   static_assert(::cuda::std::is_same_v<_FpType, float>,
@@ -741,7 +741,7 @@ __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   static_assert(::cuda::std::is_same_v<_FpType, float>,
@@ -831,7 +831,7 @@ __fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   static_assert(::cuda::std::is_same_v<_FpType, float>,
@@ -958,7 +958,7 @@ __fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_expm1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   static_assert(::cuda::std::is_same_v<_FpType, float>,

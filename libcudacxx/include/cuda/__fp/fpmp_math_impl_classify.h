@@ -46,7 +46,7 @@ namespace cuda::experimental
  * C99/IEEE-754-2008: if exactly one operand is NaN, return the other.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_fmax(
+_CCCL_FPMP_CORE_API void __fpmp2_fmax(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -85,7 +85,7 @@ _CCCL_TRIVIAL_API void __fpmp2_fmax(
  * fmin: min(x, y).  Mirror image of fmax.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_fmin(
+_CCCL_FPMP_CORE_API void __fpmp2_fmin(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -126,7 +126,7 @@ _CCCL_TRIVIAL_API void __fpmp2_fmin(
  * return y only when x < y; otherwise return x (ties/unordered -> x).
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_max(
+_CCCL_FPMP_CORE_API void __fpmp2_max(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -153,7 +153,7 @@ _CCCL_TRIVIAL_API void __fpmp2_max(
  * return y only when y < x; otherwise return x (ties/unordered -> x).
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_min(
+_CCCL_FPMP_CORE_API void __fpmp2_min(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -177,28 +177,28 @@ _CCCL_FPMP_MATH_PLACEHOLDER_2A(fdim)
 
 // Classification and sign functions
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API int __fpmp2_isfinite(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __fpmp2_isfinite(const _FpType __x_hi, const _FpType __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isfinite) (static_cast<double>(__x_hi));
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API int __fpmp2_isinf(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __fpmp2_isinf(const _FpType __x_hi, const _FpType __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isinf) (static_cast<double>(__x_hi));
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API int __fpmp2_isnan(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __fpmp2_isnan(const _FpType __x_hi, const _FpType __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isnan) (static_cast<double>(__x_hi));
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API int __fpmp2_signbit(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __fpmp2_signbit(const _FpType __x_hi, const _FpType __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::signbit) (static_cast<double>(__x_hi));

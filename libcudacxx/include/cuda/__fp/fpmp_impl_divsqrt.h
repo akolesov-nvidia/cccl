@@ -45,7 +45,7 @@ namespace cuda::experimental
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_div(
+_CCCL_FPMP_CORE_API void __fpmp2_low_div(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -87,7 +87,7 @@ In Proceedings of the 8th International Conference on Computational Science,
 ICCS '08, Part I, pp. 446-455.
 */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_div(
+_CCCL_FPMP_CORE_API void __fpmp2_div(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -139,7 +139,7 @@ _CCCL_TRIVIAL_API void __fpmp2_div(
  *   Conditional scaling adapted from QD library techniques.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_div(
+_CCCL_FPMP_CORE_API void __fpmp2_high_div(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -154,44 +154,59 @@ _CCCL_TRIVIAL_API void __fpmp2_high_div(
   constexpr int __mant_bits     = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
   constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
 
-  // Threshold for scaling: exponent < threshold means we should scale up
-  // For float: if exp < 32 (value < 2^-95), scale up by 2^64
-  // For double: if exp < 64 (value < 2^-959), scale up by 2^512
-  constexpr int __exp_threshold_low = ::cuda::std::is_same_v<_FpType, float> ? 32 : 64;
+  // Highest biased exponent of a finite normal (all-ones encodes inf/nan).
+  constexpr int __exp_max = ::cuda::std::is_same_v<_FpType, float> ? 254 : 2046;
 
-  // Scale factors
+  // The reciprocal step (__r = rcp(__sb_hi)) is the fragile part of the Nagai
+  // iteration and it fails at BOTH ends of the exponent range:
+  //   - divisor too SMALL (exp < low): rcp overflows / the operand is denormal;
+  //   - divisor too LARGE (exp > high): rcp underflows to a denormal, which the
+  //     GPU flushes to zero under FTZ, collapsing the whole quotient to 0
+  //     (e.g. fp32mp2 a/b with b ~ 2^126: 1/b < 2^-126 -> denormal -> 0).
+  // We pull the offending operand's exponent back into the safe band with ONE
+  // bounded, always-normal power-of-two step (2^+/-K; K = 64 for float, 512 for
+  // double). K exceeds the width of each danger zone, so a single step clears
+  // it, and both the operand scale and the result-compensation factor stay
+  // normal powers of two -- never denormal -- so the fix is itself FTZ-safe.
+  // (Full exponent normalization, scaling b_hi into [1,2) with 2^-E_b, would
+  //  reintroduce the bug: for b near max, 2^-E_b is denormal and FTZ-flushed.)
+  constexpr int __exp_threshold_low  = ::cuda::std::is_same_v<_FpType, float> ? 32 : 64;
+  constexpr int __exp_threshold_high = __exp_max - __exp_threshold_low;
+
+  // Scale factors (all normal powers of two).
   constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
   constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
 
-  // Extract exponents
-  UintType __a_bits = __fpmp_internal_bit_cast<UintType>(__a_hi);
-  UintType __b_bits = __fpmp_internal_bit_cast<UintType>(__b_hi);
-  int __a_exp       = static_cast<int>((__a_bits & __exp_mask) >> __mant_bits);
-  int __b_exp       = static_cast<int>((__b_bits & __exp_mask) >> __mant_bits);
+  const UintType __up_bits   = __fpmp_internal_bit_cast<UintType>(__scale_up);
+  const UintType __down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
+  const UintType __one_bits  = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
 
-  // Branch-free: create mask for whether 'a' needs scaling
-  // needs_scale_a = -1 if a_exp < exp_threshold_low, 0 otherwise
-  int __needs_scale_a = (__a_exp - __exp_threshold_low) >> 31;
+  // Extract hi-component exponents.
+  const UintType __a_bits = __fpmp_internal_bit_cast<UintType>(__a_hi);
+  const UintType __b_bits = __fpmp_internal_bit_cast<UintType>(__b_hi);
+  const int __a_exp       = static_cast<int>((__a_bits & __exp_mask) >> __mant_bits);
+  const int __b_exp       = static_cast<int>((__b_bits & __exp_mask) >> __mant_bits);
 
-  // Branch-free: create mask for whether 'b' needs scaling
-  // needs_scale_b = -1 if b_exp < exp_threshold_low, 0 otherwise
-  int __needs_scale_b = (__b_exp - __exp_threshold_low) >> 31;
+  // Branch-free up/down masks (-1 = active). "up" and "down" are mutually
+  // exclusive: an operand cannot be both too small and too large.
+  const int __a_up   = (__a_exp - __exp_threshold_low) >> 31;   // a small -> scale up
+  const int __a_down = (__exp_threshold_high - __a_exp) >> 31;  // a large -> scale down
+  const int __b_up   = (__b_exp - __exp_threshold_low) >> 31;   // b small -> scale up
+  const int __b_down = (__exp_threshold_high - __b_exp) >> 31;  // b large -> scale down
 
-  // Select scale factors for 'a' (branch-free)
-  UintType __scale_up_bits = __fpmp_internal_bit_cast<UintType>(__scale_up);
-  UintType __one_bits      = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
-  UintType __scale_a_bits  = (__scale_up_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
-  _FpType __scale_a        = __fpmp_internal_bit_cast<_FpType>(__scale_a_bits);
+  // Operand scale factors: up ? 2^+K : (down ? 2^-K : 1).
+  const UintType __scale_a_bits = (__up_bits & UintType(__a_up)) | (__down_bits & UintType(__a_down))
+                                | (__one_bits & UintType(~(__a_up | __a_down)));
+  const UintType __scale_b_bits = (__up_bits & UintType(__b_up)) | (__down_bits & UintType(__b_down))
+                                | (__one_bits & UintType(~(__b_up | __b_down)));
+  const _FpType __scale_a = __fpmp_internal_bit_cast<_FpType>(__scale_a_bits);
+  const _FpType __scale_b = __fpmp_internal_bit_cast<_FpType>(__scale_b_bits);
 
-  // Select scale factors for 'b' (branch-free)
-  UintType __scale_b_bits = (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
-  _FpType __scale_b       = __fpmp_internal_bit_cast<_FpType>(__scale_b_bits);
-
-  // Scale operands
-  _FpType __sa_hi = __fpmp_mul_rn(__a_hi, __scale_a);
-  _FpType __sa_lo = __fpmp_mul_rn(__a_lo, __scale_a);
-  _FpType __sb_hi = __fpmp_mul_rn(__b_hi, __scale_b);
-  _FpType __sb_lo = __fpmp_mul_rn(__b_lo, __scale_b);
+  // Scale operands (exact: power-of-two multiply).
+  const _FpType __sa_hi = __fpmp_mul_rn(__a_hi, __scale_a);
+  const _FpType __sa_lo = __fpmp_mul_rn(__a_lo, __scale_a);
+  const _FpType __sb_hi = __fpmp_mul_rn(__b_hi, __scale_b);
+  const _FpType __sb_lo = __fpmp_mul_rn(__b_lo, __scale_b);
 
   // Perform division on scaled operands using Nagai et al. algorithm
   _FpType __t_hi, __t_lo;
@@ -211,23 +226,15 @@ _CCCL_TRIVIAL_API void __fpmp2_high_div(
   _FpType __r_hi = __e;
   _FpType __r_lo = __fpmp_add_rn(__t_hi - __e, __t_lo);
 
-  // Compute result scale factor: inv_scale = scale_b / scale_a
-  // If a was scaled up, result should be scaled down
-  // If b was scaled up, result should be scaled up (since we divided by larger b)
-  UintType __scale_down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
-
-  // For 'a' scaling: if we scaled a up, scale result down
-  UintType __inv_scale_a_bits =
-    (__scale_down_bits & UintType(__needs_scale_a)) | (__one_bits & UintType(~__needs_scale_a));
-  _FpType __inv_scale_a = __fpmp_internal_bit_cast<_FpType>(__inv_scale_a_bits);
-
-  // For 'b' scaling: if we scaled b up, scale result up (compensate)
-  UintType __comp_scale_b_bits =
-    (__scale_up_bits & UintType(__needs_scale_b)) | (__one_bits & UintType(~__needs_scale_b));
-  _FpType __comp_scale_b = __fpmp_internal_bit_cast<_FpType>(__comp_scale_b_bits);
-
-  // Combined scale factor
-  _FpType __final_scale = __fpmp_mul_rn(__inv_scale_a, __comp_scale_b);
+  // Undo the operand scaling on the result: a/b = (sa/sb) * (scale_b / scale_a).
+  //   inv_scale_a = 1 / scale_a   (a up -> 2^-K, a down -> 2^+K, none -> 1)
+  //   times scale_b               (b up -> 2^+K, b down -> 2^-K, none -> 1)
+  // Each factor is a normal power of two; their product is exact unless the true
+  // quotient itself overflows/underflows (a genuine range result, not an artifact).
+  const UintType __inv_scale_a_bits = (__down_bits & UintType(__a_up)) | (__up_bits & UintType(__a_down))
+                                    | (__one_bits & UintType(~(__a_up | __a_down)));
+  const _FpType __inv_scale_a = __fpmp_internal_bit_cast<_FpType>(__inv_scale_a_bits);
+  const _FpType __final_scale = __fpmp_mul_rn(__inv_scale_a, __scale_b);
 
   // Scale result back
   __r_hi = __fpmp_mul_rn(__r_hi, __final_scale);
@@ -249,7 +256,7 @@ High Precision Division and Square Root, ACM TOMS, vol. 23, no. 4, December
 1997, pp. 561-589.
 */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_rsqrt(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   _FpType __z_hi, __z_lo;
@@ -284,7 +291,7 @@ High Precision Division and Square Root, ACM TOMS, vol. 23, no. 4, December
 1997, pp. 561-589.
 */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_sqrt(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   _FpType __t_hi, __t_lo, __tmp_lo;

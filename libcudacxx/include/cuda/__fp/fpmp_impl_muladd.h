@@ -47,7 +47,7 @@ namespace cuda::experimental
 // to ensure that the hi and lo parts are non-overlapping
 // This is useful for fast mode to ensure that the result is accurate
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_renormalize(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   *__res_hi = __fpmp_fast_two_sum(__x_hi, __x_lo, __res_lo);
@@ -63,7 +63,7 @@ __fpmp2_renormalize(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_h
  * This is a simple addition operation with no normalization.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_add(
+_CCCL_FPMP_CORE_API void __fpmp2_low_add(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -87,7 +87,7 @@ _CCCL_TRIVIAL_API void __fpmp2_low_add(
  * This is classic split and error accumulation addition operation with normalization.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_add(
+_CCCL_FPMP_CORE_API void __fpmp2_add(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -120,7 +120,7 @@ _CCCL_TRIVIAL_API void __fpmp2_add(
  * Total: 20 ops, Critical path: 14 ops (vs Thall's 17 ops sequential)
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_fpan(
+_CCCL_FPMP_CORE_API void __internal_nv_fpmp2_add_fpan(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -172,7 +172,7 @@ _CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_fpan(
  * from http://andrewthall.org/papers/df64_qf128.pdf.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_exp(
+_CCCL_FPMP_CORE_API void __internal_nv_fpmp2_add_exp(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -200,7 +200,7 @@ _CCCL_TRIVIAL_API void __internal_nv_fpmp2_add_exp(
 #  define _CCCL_FPMP_FPAN_METHOD
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_add(
+_CCCL_FPMP_CORE_API void __fpmp2_high_add(
   const _FpType __a_hi,
   const _FpType __a_lo,
   const _FpType __b_hi,
@@ -225,7 +225,7 @@ _CCCL_TRIVIAL_API void __fpmp2_high_add(
  * This is a simple subtraction operation with no normalization.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_sub(
+_CCCL_FPMP_CORE_API void __fpmp2_low_sub(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -240,7 +240,7 @@ _CCCL_TRIVIAL_API void __fpmp2_low_sub(
  * This is a Dekker subtraction operation with normalization.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_sub(
+_CCCL_FPMP_CORE_API void __fpmp2_sub(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -257,7 +257,7 @@ _CCCL_TRIVIAL_API void __fpmp2_sub(
  * from http://andrewthall.org/papers/df64_qf128.pdf.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_sub(
+_CCCL_FPMP_CORE_API void __fpmp2_high_sub(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -289,7 +289,7 @@ _CCCL_TRIVIAL_API void __fpmp2_high_sub(
  * Result may have overlapping hi/lo components until renormalized.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_acc(const _FpType __c, _FpType* __acc_hi, _FpType* __acc_lo) noexcept
+_CCCL_FPMP_CORE_API void __fpmp2_low_acc(const _FpType __c, _FpType* __acc_hi, _FpType* __acc_lo) noexcept
 {
   _FpType __err;
   // Add c to high part with error capture
@@ -304,7 +304,7 @@ _CCCL_TRIVIAL_API void __fpmp2_low_acc(const _FpType __c, _FpType* __acc_hi, _Fp
  * Result is properly normalized (non-overlapping hi/lo).
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_acc(const _FpType __c, _FpType* __acc_hi, _FpType* __acc_lo) noexcept
+_CCCL_FPMP_CORE_API void __fpmp2_acc(const _FpType __c, _FpType* __acc_hi, _FpType* __acc_lo) noexcept
 {
   _FpType __err;
   // Add c to high part with error capture
@@ -320,7 +320,7 @@ _CCCL_TRIVIAL_API void __fpmp2_acc(const _FpType __c, _FpType* __acc_hi, _FpType
  * Provides maximum precision by properly ordering all error terms.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_acc(const _FpType __c, _FpType* __acc_hi, _FpType* __acc_lo) noexcept
+_CCCL_FPMP_CORE_API void __fpmp2_high_acc(const _FpType __c, _FpType* __acc_hi, _FpType* __acc_lo) noexcept
 {
   _FpType __err;
   // Add c to high part with error capture
@@ -347,7 +347,7 @@ _CCCL_TRIVIAL_API void __fpmp2_high_acc(const _FpType __c, _FpType* __acc_hi, _F
  * This is a simple multiplication operation with no normalization.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_mul(
+_CCCL_FPMP_CORE_API void __fpmp2_low_mul(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -370,7 +370,7 @@ _CCCL_TRIVIAL_API void __fpmp2_low_mul(
  * This is a Dekker multiplication operation with normalization.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_mul(
+_CCCL_FPMP_CORE_API void __fpmp2_mul(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -426,7 +426,7 @@ _CCCL_TRIVIAL_API void __fpmp2_mul(
  *   Conditional scaling adapted from QD library techniques.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_mul(
+_CCCL_FPMP_CORE_API void __fpmp2_high_mul(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -505,7 +505,7 @@ _CCCL_TRIVIAL_API void __fpmp2_high_mul(
     where (s - r_hi) is exact by the Boldo-Muller theorem.
 */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_fma(
+_CCCL_FPMP_CORE_API void __fpmp2_low_fma(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -541,7 +541,7 @@ _CCCL_TRIVIAL_API void __fpmp2_low_fma(
     where (s - r_hi) is exact by the Boldo-Muller theorem.
 */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_fma(
+_CCCL_FPMP_CORE_API void __fpmp2_fma(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -579,7 +579,7 @@ _CCCL_TRIVIAL_API void __fpmp2_fma(
     the main term).
 */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_fma(
+_CCCL_FPMP_CORE_API void __fpmp2_high_fma(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -625,7 +625,7 @@ _CCCL_TRIVIAL_API void __fpmp2_high_fma(
  */
 // multiply-add with rounding (default: fast mul + default add)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_mad(
+_CCCL_FPMP_CORE_API void __fpmp2_mad(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -642,7 +642,7 @@ _CCCL_TRIVIAL_API void __fpmp2_mad(
 
 // multiply-add fast (fast mul + fast add)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_low_mad(
+_CCCL_FPMP_CORE_API void __fpmp2_low_mad(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -659,7 +659,7 @@ _CCCL_TRIVIAL_API void __fpmp2_low_mad(
 
 // multiply-add accurate (default mul + accurate add)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_high_mad(
+_CCCL_FPMP_CORE_API void __fpmp2_high_mad(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -681,7 +681,7 @@ _CCCL_TRIVIAL_API void __fpmp2_high_mad(
  */
 // negation
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_neg(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   *__res_hi = -__x_hi;

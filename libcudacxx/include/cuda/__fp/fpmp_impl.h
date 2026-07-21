@@ -305,6 +305,34 @@ typedef long double __fpmp_fp128;
 #endif
 
 /*
+// Core per-type implementation linkage.
+//
+// The generic per-type kernels (e.g. __fpmp2_add<float>) share their mangled name
+// with the consumer-side forwarder templates emitted in _CCCL_FPMP_USE_LIB mode
+// (which just call the extern-"C" __fp32mp2_* ABI symbols). When the standalone
+// libcufp library is built (_CCCL_FPMP_BUILD_LIB) and later linked into consumer
+// code with device LTO (-dlto), those two same-named weak_odr definitions -- the
+// real implementation in the library and the forwarder in the consumer -- are
+// ODR-merged by nvlink. The merge fuses __fp32mp2_add <-> __fpmp2_add<float> into
+// mutual recursion that the optimizer then eliminates, producing empty kernels
+// (0 correct bits, unstable timing) for every op routed through the library.
+//
+// Giving the core templates INTERNAL linkage in library-build mode removes them
+// from ODR merging, so the extern-"C" wrapper keeps its own real body. In every
+// other mode (pure inline consumer, or the consumer side of a library build) the
+// decoration is unchanged, preserving CCCL styling and inline-mode codegen (adding
+// static in inline mode caps registers and hurts performance -- see the note in
+// fpmp_math_impl_special.h).
+*/
+#if defined(_CCCL_FPMP_BUILD_LIB)
+#  define _CCCL_FPMP_CORE_API        static _CCCL_TRIVIAL_API
+#  define _CCCL_FPMP_CORE_DEVICE_API static _CCCL_DEVICE_API
+#else
+#  define _CCCL_FPMP_CORE_API        _CCCL_TRIVIAL_API
+#  define _CCCL_FPMP_CORE_DEVICE_API _CCCL_DEVICE_API
+#endif
+
+/*
 // Optional function qualifiers for portable API annotation.
 // _CCCL_FPMP_CONSTEXPR can be used only on functions whose bodies are valid
 // constant-evaluation code across all supported toolchains.
@@ -393,15 +421,18 @@ typedef long double __fpmp_fp128;
 // When _CCCL_FPMP_USE_ACCURATE_MUL is 0, the accurate multiplication is not used
 // When _CCCL_FPMP_USE_ACCURATE_DIV is 1, the accurate division is used
 // When _CCCL_FPMP_USE_ACCURATE_DIV is 0, the accurate division is not used
-// The default is to not use accurate multiplication & division.
-// These implementations scale values to improve accuray on denormals
-// but may cause about 1.5x slowdown.
+// Defaults: accurate multiplication is OFF, accurate division is ON. The
+// accurate division routes fpmp2_accuracy::high through __fpmp2_high_div, whose
+// branch-free exponent scaling keeps the reciprocal in range at BOTH ends of
+// the exponent axis (small operands near denormal AND large divisors whose
+// reciprocal would otherwise underflow to a denormal and be flushed to 0 by
+// FTZ). It costs about 1.5x over the plain Nagai division; def/low are unaffected.
 */
 #ifndef _CCCL_FPMP_USE_ACCURATE_MUL
 #  define _CCCL_FPMP_USE_ACCURATE_MUL 0
 #endif
 #ifndef _CCCL_FPMP_USE_ACCURATE_DIV
-#  define _CCCL_FPMP_USE_ACCURATE_DIV 0
+#  define _CCCL_FPMP_USE_ACCURATE_DIV 1
 #endif
 
 /*********************************************************************

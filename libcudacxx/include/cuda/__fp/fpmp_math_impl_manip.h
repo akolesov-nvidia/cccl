@@ -77,7 +77,7 @@ namespace cuda::experimental
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   if constexpr (::cuda::std::is_same_v<_FpType, float>)
@@ -161,7 +161,7 @@ __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __re
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_scalbn(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   __fpmp2_ldexp<_FpType>(__x_hi, __x_lo, __n, __res_hi, __res_lo);
@@ -195,7 +195,7 @@ __fpmp2_scalbn(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __r
  * `lo`.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_fabs(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   *__res_hi = ::fabs(__x_hi);
@@ -223,7 +223,7 @@ _CCCL_FPMP_MATH_PLACEHOLDER_FP_LINT(scalbln)
 
 // frexp: extract mantissa and exponent
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_frexp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo, int* __nptr) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -235,7 +235,7 @@ __fpmp2_frexp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
 // modf: break into integer and fractional parts
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_modf(
+_CCCL_FPMP_CORE_API void __fpmp2_modf(
   const _FpType __x_hi,
   const _FpType __x_lo,
   _FpType* __res_hi,

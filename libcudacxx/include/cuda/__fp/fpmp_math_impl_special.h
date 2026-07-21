@@ -105,9 +105,10 @@ namespace cuda::experimental
 // Without static, the compiler respects __launch_bounds__ and allocates
 // 156 registers, enabling full ILP across the polynomial chains.
 //
-// In library build mode (_CCCL_FPMP_BUILD_LIB), static is required to
-// avoid ODR violations with the explicit float specialization in the
-// _CCCL_FPMP_USE_LIB block, which would cause infinite recursion in LTO.
+// In library build mode (_CCCL_FPMP_BUILD_LIB), static (internal linkage) is
+// required to avoid ODR violations with the explicit float specialization in the
+// _CCCL_FPMP_USE_LIB block, which would otherwise fuse into infinite recursion and
+// be eliminated under device LTO. See the _CCCL_FPMP_CORE_API note in fpmp_impl.h.
 */
 /*
  * Define _CCCL_FPMP_USE_ACCURATE_BOYS_F0 to use the accurate implementation
@@ -116,7 +117,7 @@ namespace cuda::experimental
 // #define _CCCL_FPMP_USE_ACCURATE_BOYS_F0
 
 #  if defined(_CCCL_FPMP_BUILD_LIB)
-#    define _CCCL_FPMP_INTERNAL_CUSTOM_DECL _CCCL_TRIVIAL_API
+#    define _CCCL_FPMP_INTERNAL_CUSTOM_DECL _CCCL_FPMP_CORE_API
 #  else
 #    define _CCCL_FPMP_INTERNAL_CUSTOM_DECL _CCCL_API inline
 #  endif
@@ -132,7 +133,7 @@ namespace cuda::experimental
 #  endif
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -351,7 +352,7 @@ __fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_erfc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   /*
@@ -658,7 +659,7 @@ __fpmp2_boys_f0(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _
  * --------------------------------------------------------------------
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -864,7 +865,7 @@ __fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi
  *   uint64_t version: p = (x + 0.5) / 2^48  (top 48 bits of 64)
  * ============================================================================
  */
-_CCCL_TRIVIAL_API void __fpmp2_icdf(uint32_t __x, float* __res_hi, float* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void __fpmp2_icdf(uint32_t __x, float* __res_hi, float* __res_lo) noexcept
 {
   float __sign = 1.0f;
   if (__x > 0x80000000u)
@@ -896,7 +897,7 @@ _CCCL_TRIVIAL_API void __fpmp2_icdf(uint32_t __x, float* __res_hi, float* __res_
   *__res_lo *= __sign;
 } // __fpmp2_icdf
 
-_CCCL_TRIVIAL_API void __fpmp2_icdf(uint64_t __x, float* __res_hi, float* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void __fpmp2_icdf(uint64_t __x, float* __res_hi, float* __res_lo) noexcept
 {
   float __sign = 1.0f;
   __x >>= 16; /* keep top 48 bits (matches fp32mp2 precision) */
@@ -933,7 +934,7 @@ _CCCL_FPMP_MATH_PLACEHOLDER_1A(tgamma)
 
 // Bessel functions (CUDA device; assert+return 0 on host)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_j0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -951,7 +952,7 @@ __fpmp2_j0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_j1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -969,7 +970,7 @@ __fpmp2_j1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_y0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -987,7 +988,7 @@ __fpmp2_y0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_y1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1006,7 +1007,7 @@ __fpmp2_y1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
 
 // Modified Bessel functions of the first kind (CUDA device; assert+return 0 on host)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_cyl_bessel_i0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1024,7 +1025,7 @@ __fpmp2_cyl_bessel_i0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_cyl_bessel_i1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1043,7 +1044,7 @@ __fpmp2_cyl_bessel_i1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res
 
 // Bessel functions with (int, fpmp2) -> fpmp2 signature (CUDA device; assert+return 0 on host)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_jn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1062,7 +1063,7 @@ __fpmp2_jn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* _
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_yn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1081,7 +1082,7 @@ __fpmp2_yn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* _
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_normcdf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1100,7 +1101,7 @@ __fpmp2_normcdf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _
 
 // Inverse error functions and scaled complementary error function (CUDA device; assert+return 0 on host)
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_erfcinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1118,7 +1119,7 @@ __fpmp2_erfcinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_erfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
@@ -1136,7 +1137,7 @@ __fpmp2_erfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _F
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_erfcx(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;

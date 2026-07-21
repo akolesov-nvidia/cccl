@@ -74,7 +74,7 @@ namespace cuda::experimental
 
 /* Scale a float by 2^s using two power-of-two factors, so the
  * intermediate stays in range for the |s| we feed it here. */
-_CCCL_TRIVIAL_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
+_CCCL_FPMP_CORE_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
 {
   const int __s1   = __s >> 1; /* floor(s/2) */
   const int __s2   = __s - __s1;
@@ -95,7 +95,7 @@ _CCCL_TRIVIAL_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
  * catastrophically amplified by the cancellation inherent to fmod when the
  * result is far smaller than the inputs.  Capturing 53 bits keeps the value
  * exactly (equivalent to the fp64 fallback's double round-trip). */
-_CCCL_TRIVIAL_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsigned long long* __m, int* __e) noexcept
+_CCCL_FPMP_CORE_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsigned long long* __m, int* __e) noexcept
 {
   const uint32_t __hb = __fpmp_internal_bit_cast<uint32_t>(__hi);
   int __eh;
@@ -143,7 +143,7 @@ _CCCL_TRIVIAL_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsigned
  * mag may carry up to 53 significant bits; it is first rounded
  * (round-half-to-even) down to the 48 bits an fp32mp2 can hold, then split
  * into two <= 24-bit halves so each casts to float exactly. */
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fp32mp2_modf_reconstruct(unsigned long long __mag, int __e, bool __neg, float* __res_hi, float* __res_lo) noexcept
 {
   if (__mag == 0ULL)
@@ -198,7 +198,7 @@ __fp32mp2_modf_reconstruct(unsigned long long __mag, int __e, bool __neg, float*
  * remainder mantissa ia (< My), the divisor mantissa My, its
  * exponent Ey, and the low bits of the integer quotient
  * floor(ax/ay) in quo. */
-_CCCL_TRIVIAL_API void __fp32mp2_fmod_kernel(
+_CCCL_FPMP_CORE_API void __fp32mp2_fmod_kernel(
   float __ax_hi,
   float __ax_lo,
   float __ay_hi,
@@ -241,7 +241,7 @@ _CCCL_TRIVIAL_API void __fp32mp2_fmod_kernel(
  * fmod(x, y): result has the sign of x and magnitude in [0, |y|).
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_fmod(
+_CCCL_FPMP_CORE_API void __fpmp2_fmod(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -316,7 +316,7 @@ _CCCL_TRIVIAL_API void __fpmp2_fmod(
  * with ties to even quotient.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_remainder(
+_CCCL_FPMP_CORE_API void __fpmp2_remainder(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
@@ -456,7 +456,7 @@ _CCCL_TRIVIAL_API void __fpmp2_remainder(
  * using fpmp2_acc to keep the adjustment in pair precision.
  */
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_floor(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   // NaN check
@@ -496,7 +496,7 @@ __fpmp2_floor(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   // NaN check
@@ -536,7 +536,7 @@ __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_round(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   // NaN check
@@ -564,7 +564,7 @@ __fpmp2_round(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_trunc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   // NaN check
@@ -624,7 +624,7 @@ _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lround)
 
 // Rounding functions rint, nearbyint
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t      = fpmp2<_FpType>;
@@ -635,7 +635,7 @@ __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 }
 
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void
+_CCCL_FPMP_CORE_API void
 __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t      = fpmp2<_FpType>;
@@ -647,7 +647,7 @@ __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi,
 
 // remquo: compute remainder and part of quotient
 template <typename _FpType = float>
-_CCCL_TRIVIAL_API void __fpmp2_remquo(
+_CCCL_FPMP_CORE_API void __fpmp2_remquo(
   const _FpType __x_hi,
   const _FpType __x_lo,
   const _FpType __y_hi,
