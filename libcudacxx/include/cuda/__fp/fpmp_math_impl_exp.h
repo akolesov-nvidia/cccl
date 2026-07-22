@@ -213,8 +213,8 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int _
   {
     __ek2 = 254;
   }
-  const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
-  const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
+  const float __scale_a = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
+  const float __scale_b = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
   return __p * __scale_a * __scale_b;
 }
 
@@ -299,7 +299,7 @@ __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
   float __t = __x_hi * __inv_ln2 + __shift_bias;
 
   // Shift the exponent by 23 bits to get the scale as fp32 value
-  int32_t __scale = __fpmp_internal_bit_cast<int32_t>(__t);
+  int32_t __scale = ::cuda::std::bit_cast<int32_t>(__t);
   __scale <<= 23;
 
   // Split the scale into high and low parts
@@ -308,8 +308,8 @@ __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
   __scale -= __scale_lo;
 
   // Cast the scales to fp32 values
-  float __fscale    = __fpmp_internal_bit_cast<float>(__scale);
-  float __fscale_lo = __fpmp_internal_bit_cast<float>(__scale_lo);
+  float __fscale    = ::cuda::std::bit_cast<float>(__scale);
+  float __fscale_lo = ::cuda::std::bit_cast<float>(__scale_lo);
 
   // Compute the reduced argument r = x - n*ln(2)
   float __tt = __t - __shift_bias;
@@ -399,26 +399,26 @@ __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
   int __e_adj  = 0;
 
   /* Normalize denormals: scale by 2^24 to make the exponent field nonzero */
-  uint32_t __xbits = __fpmp_internal_bit_cast<uint32_t>(__a_hi);
+  uint32_t __xbits = ::cuda::std::bit_cast<uint32_t>(__a_hi);
   if ((__xbits & 0x7F800000u) == 0u)
   {
     __a_hi  = __a_hi * 0x1.0p24f;
     __a_lo  = __a_lo * 0x1.0p24f;
     __e_adj = -24;
-    __xbits = __fpmp_internal_bit_cast<uint32_t>(__a_hi);
+    __xbits = ::cuda::std::bit_cast<uint32_t>(__a_hi);
   }
 
   int __e = static_cast<int>((__xbits >> 23) & 0xFFu) - 127 + __e_adj;
 
   /* m_hi in [1, 2) by replacing exponent field with bias 127 */
-  float __m_hi = __fpmp_internal_bit_cast<float>((__xbits & 0x007FFFFFu) | 0x3F800000u);
+  float __m_hi = ::cuda::std::bit_cast<float>((__xbits & 0x007FFFFFu) | 0x3F800000u);
 
   /* Scale a_lo by 2^(-e_orig) where e_orig = e - e_adj,
    * using split factors to stay in normal float range */
   int __e_orig = __e - __e_adj;
   int __e2     = __e_orig / 2;
-  float __s1   = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 - __e2) << 23);
-  float __s2   = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 - (__e_orig - __e2)) << 23);
+  float __s1   = ::cuda::std::bit_cast<float>(static_cast<uint32_t>(127 - __e2) << 23);
+  float __s2   = ::cuda::std::bit_cast<float>(static_cast<uint32_t>(127 - (__e_orig - __e2)) << 23);
   float __m_lo = __a_lo * __s1 * __s2;
 
   ffloat __m = renormalize(ffloat(__m_hi, __m_lo));

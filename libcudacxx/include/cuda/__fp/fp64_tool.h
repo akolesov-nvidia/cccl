@@ -252,57 +252,6 @@ struct fpbits64_raw_tag
 //! @brief Global instance of the raw bit construction tag
 inline constexpr fpbits64_raw_tag fpbits64_raw{};
 
-//! @brief Check for __builtin_bit_cast availability (C++20 or compiler extension)
-#undef _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST
-#ifdef __has_builtin
-#  define _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST __has_builtin(__builtin_bit_cast)
-#else
-#  define _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST 0
-#endif
-
-//! @brief Type-safe bit reinterpretation utility (internal)
-//!
-//! Reinterprets the bit pattern of one type as another type of the same size.
-//! Uses __builtin_bit_cast when available (optimal), falls back to memcpy.
-//!
-//! @tparam To   Target type
-//! @tparam From Source type
-//! @param src   Value to reinterpret
-//! @return      The same bit pattern interpreted as type To
-//!
-//! @note Uses compiler builtins for optimal codegen (compiles to zero instructions)
-//! @note Named with __ prefix to avoid conflict with std::bit_cast (C++20)
-template <typename _To, typename _From>
-_CCCL_TRIVIAL_API _To __fp64_tool_bit_cast(const _From& __src) noexcept
-{
-  static_assert(sizeof(_To) == sizeof(_From), "Size mismatch in __fp64_tool_bit_cast");
-#if _CCCL_FP64_TOOL_HAS_BUILTIN_BIT_CAST && !defined(__CUDA_ARCH__)
-  // Prefer compiler builtin if available (C++20 or compiler extension)
-  return __builtin_bit_cast(_To, __src);
-#else
-  // Fallback using memcpy (works on CUDA and older compilers)
-  _To __dst;
-#  if defined(__CUDA_ARCH__)
-  memcpy(&__dst, &__src, sizeof(_To));
-#  else
-  __builtin_memcpy(&__dst, &__src, sizeof(_To));
-#  endif
-  return __dst;
-#endif
-}
-
-/*
- * @brief Internal macro wrapper for bit_cast.
- *
- * CCCL integration: routes through CCCL's cuda::std::bit_cast by default.
- * _CCCL_FP64_TOOL_BIT_CAST is the single switch point -- define it before
- * including this header for a fast re-map back to the in-house polyfill:
- *   #define _CCCL_FP64_TOOL_BIT_CAST(To, src) __fp64_tool_bit_cast<To>(src)
- */
-#ifndef _CCCL_FP64_TOOL_BIT_CAST
-#  define _CCCL_FP64_TOOL_BIT_CAST(To, src) ::cuda::std::bit_cast<To>(src)
-#endif
-
 #if defined(CCCL_FP64_TOOL_RUNTIME_SIZE)
 
 // Global device variables (shared across all threads) - must be non-static for CUDA
@@ -597,12 +546,12 @@ public:
 
   //! @brief Construct from double (implicit conversion)
   _CCCL_API fp64_tool(double __d) noexcept
-      : __bits_{_CCCL_FP64_TOOL_BIT_CAST(fpbits64, __d)}
+      : __bits_{::cuda::std::bit_cast<fpbits64>(__d)}
   {}
 
   //! @brief Construct from float (implicit conversion with promotion)
   _CCCL_API fp64_tool(float __f) noexcept
-      : __bits_{_CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__f))}
+      : __bits_{::cuda::std::bit_cast<fpbits64>(static_cast<double>(__f))}
   {}
 
   //! @brief Construct from any standard integer type (int / long / long long + unsigned).
@@ -611,7 +560,7 @@ public:
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API fp64_tool(_Tp __i) noexcept
-      : __bits_{_CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__i))}
+      : __bits_{::cuda::std::bit_cast<fpbits64>(static_cast<double>(__i))}
   {}
 
   //=========================================================================
@@ -639,13 +588,13 @@ public:
   //! @brief Convert to double (implicit, preserves full precision)
   _CCCL_API operator double() const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_);
+    return ::cuda::std::bit_cast<double>(__bits_);
   }
 
   //! @brief Convert to float (explicit, may lose precision)
   _CCCL_API explicit operator float() const noexcept
   {
-    return static_cast<float>(_CCCL_FP64_TOOL_BIT_CAST(double, __bits_));
+    return static_cast<float>(::cuda::std::bit_cast<double>(__bits_));
   }
 
   //! @brief Convert to any standard integer type (explicit, truncates toward zero).
@@ -654,7 +603,7 @@ public:
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
   _CCCL_API explicit operator _Tp() const noexcept
   {
-    return static_cast<_Tp>(_CCCL_FP64_TOOL_BIT_CAST(double, __bits_));
+    return static_cast<_Tp>(::cuda::std::bit_cast<double>(__bits_));
   }
 
   //=========================================================================
@@ -673,11 +622,11 @@ public:
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
 #if defined(__CUDA_ARCH__)
-    fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(
-      fpbits64, __dadd_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
+    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
+      __dadd_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
 #else
     fpbits64 __r =
-      _CCCL_FP64_TOOL_BIT_CAST(fpbits64, _CCCL_FP64_TOOL_BIT_CAST(double, __a) + _CCCL_FP64_TOOL_BIT_CAST(double, __b));
+      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) + ::cuda::std::bit_cast<double>(__b));
 #endif
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -690,11 +639,11 @@ public:
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
 #if defined(__CUDA_ARCH__)
-    fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(
-      fpbits64, __dsub_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
+    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
+      __dsub_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
 #else
     fpbits64 __r =
-      _CCCL_FP64_TOOL_BIT_CAST(fpbits64, _CCCL_FP64_TOOL_BIT_CAST(double, __a) - _CCCL_FP64_TOOL_BIT_CAST(double, __b));
+      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) - ::cuda::std::bit_cast<double>(__b));
 #endif
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -707,11 +656,11 @@ public:
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
 #if defined(__CUDA_ARCH__)
-    fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(
-      fpbits64, __dmul_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
+    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
+      __dmul_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
 #else
     fpbits64 __r =
-      _CCCL_FP64_TOOL_BIT_CAST(fpbits64, _CCCL_FP64_TOOL_BIT_CAST(double, __a) * _CCCL_FP64_TOOL_BIT_CAST(double, __b));
+      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) * ::cuda::std::bit_cast<double>(__b));
 #endif
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -724,11 +673,11 @@ public:
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
 #if defined(__CUDA_ARCH__)
-    fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(
-      fpbits64, __ddiv_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a), _CCCL_FP64_TOOL_BIT_CAST(double, __b)));
+    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
+      __ddiv_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
 #else
     fpbits64 __r =
-      _CCCL_FP64_TOOL_BIT_CAST(fpbits64, _CCCL_FP64_TOOL_BIT_CAST(double, __a) / _CCCL_FP64_TOOL_BIT_CAST(double, __b));
+      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) / ::cuda::std::bit_cast<double>(__b));
 #endif
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -814,37 +763,37 @@ public:
   //! @brief Equality comparison
   _CCCL_API bool operator==(const fp64_tool& __y) const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_) == _CCCL_FP64_TOOL_BIT_CAST(double, __y.__bits_);
+    return ::cuda::std::bit_cast<double>(__bits_) == ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Inequality comparison
   _CCCL_API bool operator!=(const fp64_tool& __y) const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_) != _CCCL_FP64_TOOL_BIT_CAST(double, __y.__bits_);
+    return ::cuda::std::bit_cast<double>(__bits_) != ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Less than comparison
   _CCCL_API bool operator<(const fp64_tool& __y) const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_) < _CCCL_FP64_TOOL_BIT_CAST(double, __y.__bits_);
+    return ::cuda::std::bit_cast<double>(__bits_) < ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Greater than comparison
   _CCCL_API bool operator>(const fp64_tool& __y) const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_) > _CCCL_FP64_TOOL_BIT_CAST(double, __y.__bits_);
+    return ::cuda::std::bit_cast<double>(__bits_) > ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Less than or equal comparison
   _CCCL_API bool operator<=(const fp64_tool& __y) const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_) <= _CCCL_FP64_TOOL_BIT_CAST(double, __y.__bits_);
+    return ::cuda::std::bit_cast<double>(__bits_) <= ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Greater than or equal comparison
   _CCCL_API bool operator>=(const fp64_tool& __y) const noexcept
   {
-    return _CCCL_FP64_TOOL_BIT_CAST(double, __bits_) >= _CCCL_FP64_TOOL_BIT_CAST(double, __y.__bits_);
+    return ::cuda::std::bit_cast<double>(__bits_) >= ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
 private:
@@ -864,12 +813,12 @@ private:
 //! @note Uses __dsqrt_rn intrinsic on CUDA, ::sqrt on host
 _CCCL_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
 {
-  fpbits64 __a = _CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__x));
+  fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
   _CCCL_FP64_TOOL_CALLBACK(__a);
 #if defined(__CUDA_ARCH__)
-  fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64, __dsqrt_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a)));
+  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(__dsqrt_rn(::cuda::std::bit_cast<double>(__a)));
 #else
-  fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(fpbits64, ::sqrt(_CCCL_FP64_TOOL_BIT_CAST(double, __a)));
+  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(::sqrt(::cuda::std::bit_cast<double>(__a)));
 #endif
   _CCCL_FP64_TOOL_CALLBACK(__r);
   return fp64_tool(fpbits64_raw, __r);
@@ -887,24 +836,18 @@ _CCCL_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
 //! @note Uses __fma_rn intrinsic on CUDA, ::fma on host
 _CCCL_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const fp64_tool& __z) noexcept
 {
-  fpbits64 __a = _CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__x));
-  fpbits64 __b = _CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__y));
-  fpbits64 __c = _CCCL_FP64_TOOL_BIT_CAST(fpbits64, static_cast<double>(__z));
+  fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
+  fpbits64 __b = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__y));
+  fpbits64 __c = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__z));
   _CCCL_FP64_TOOL_CALLBACK(__a);
   _CCCL_FP64_TOOL_CALLBACK(__b);
   _CCCL_FP64_TOOL_CALLBACK(__c);
 #if defined(__CUDA_ARCH__)
-  fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(
-    fpbits64,
-    __fma_rn(_CCCL_FP64_TOOL_BIT_CAST(double, __a),
-             _CCCL_FP64_TOOL_BIT_CAST(double, __b),
-             _CCCL_FP64_TOOL_BIT_CAST(double, __c)));
+  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(__fma_rn(
+    ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));
 #else
-  fpbits64 __r = _CCCL_FP64_TOOL_BIT_CAST(
-    fpbits64,
-    ::fma(_CCCL_FP64_TOOL_BIT_CAST(double, __a),
-          _CCCL_FP64_TOOL_BIT_CAST(double, __b),
-          _CCCL_FP64_TOOL_BIT_CAST(double, __c)));
+  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
+    ::fma(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));
 #endif
   _CCCL_FP64_TOOL_CALLBACK(__r);
   return fp64_tool(fpbits64_raw, __r);

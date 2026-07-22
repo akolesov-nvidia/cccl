@@ -227,7 +227,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   // accuracy of the SFU lg2/ex2 pair so this is sufficient.
   constexpr float __third_f = 0x1.555556p-2f;
 
-  const uint32_t __xbits   = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
+  const uint32_t __xbits   = ::cuda::std::bit_cast<uint32_t>(__x_hi);
   const uint32_t __absbits = __xbits & 0x7FFFFFFFu;
   const uint32_t __signbit = __xbits & 0x80000000u;
 
@@ -239,7 +239,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   }
 
   /* Operate on |x|; sign of x_lo follows the sign of x_hi. */
-  float __ax_hi = __fpmp_internal_bit_cast<float>(__absbits);
+  float __ax_hi = ::cuda::std::bit_cast<float>(__absbits);
   float __ax_lo = (__signbit != 0u) ? -__x_lo : __x_lo;
 
   /* Denormal pre-scaling: multiply by 2^24 (chosen so the offset is
@@ -252,7 +252,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
     __ax_hi *= __scale_up;
     __ax_lo *= __scale_up;
     __denorm_div3    = 8;
-    __scaled_absbits = __fpmp_internal_bit_cast<uint32_t>(__ax_hi);
+    __scaled_absbits = ::cuda::std::bit_cast<uint32_t>(__ax_hi);
   }
 
   /* Reduce: ax = r * 2^(3 * nexpo), with nexpo chosen so r ~= 1. */
@@ -266,7 +266,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   constexpr int __exp_shift = 1 << 23;
   const int __delta_exp     = 3 * __nexpo;
   const int __new_bits      = static_cast<int>(__scaled_absbits) - __delta_exp * __exp_shift;
-  const float __r_hi        = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
+  const float __r_hi        = ::cuda::std::bit_cast<float>(static_cast<uint32_t>(__new_bits));
 
   /* r_lo: scale by the same power of two via float multiply.  Split
    * 2^(-3*nexpo) into two normal-range factors: for x near max float
@@ -276,8 +276,8 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
    * [62, 190]); the product stays exact for all valid inputs. */
   const int __half_pow  = -__delta_exp / 2;
   const int __rest_pow  = -__delta_exp - __half_pow;
-  const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __exp_shift));
-  const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __exp_shift));
+  const float __scale_a = ::cuda::std::bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __exp_shift));
+  const float __scale_b = ::cuda::std::bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __exp_shift));
   const float __r_lo    = (__ax_lo * __scale_a) * __scale_b;
 
   /* Initial cbrt approximation via the SFU lg2/ex2 pair (~23 bits). */
@@ -312,7 +312,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
    * scale factor a normal float for all valid float inputs
    * (biased exponent is always in [77, 170]). */
   const int __back_shift   = __nexpo - __denorm_div3;
-  const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __exp_shift));
+  const float __scale_back = ::cuda::std::bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __exp_shift));
   float __t_hi_back        = __t_new.hi() * __scale_back;
   float __t_lo_back        = __t_new.lo() * __scale_back;
 
@@ -376,7 +376,7 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   constexpr float __third_f      = 0x1.555556p-2f; // ~= 1/3
   constexpr float __two_ninths_f = 0x1.c71c72p-3f; // ~= 2/9
 
-  const uint32_t __xbits   = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
+  const uint32_t __xbits   = ::cuda::std::bit_cast<uint32_t>(__x_hi);
   const uint32_t __absbits = __xbits & 0x7FFFFFFFu;
   const uint32_t __signbit = __xbits & 0x80000000u;
 
@@ -389,11 +389,11 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   {
     if (__absbits == 0u)
     {
-      *__res_hi = __fpmp_internal_bit_cast<float>(__signbit | 0x7F800000u);
+      *__res_hi = ::cuda::std::bit_cast<float>(__signbit | 0x7F800000u);
     }
     else if (__absbits == 0x7F800000u)
     {
-      *__res_hi = __fpmp_internal_bit_cast<float>(__signbit);
+      *__res_hi = ::cuda::std::bit_cast<float>(__signbit);
     }
     else
     {
@@ -404,7 +404,7 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   }
 
   /* Operate on |x|; sign of x_lo follows the sign of x_hi. */
-  float __ax_hi = __fpmp_internal_bit_cast<float>(__absbits);
+  float __ax_hi = ::cuda::std::bit_cast<float>(__absbits);
   float __ax_lo = (__signbit != 0u) ? -__x_lo : __x_lo;
 
   /* Denormal pre-scaling: multiply by 2^24. */
@@ -416,7 +416,7 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
     __ax_hi *= __scale_up;
     __ax_lo *= __scale_up;
     __denorm_div3    = 8;
-    __scaled_absbits = __fpmp_internal_bit_cast<uint32_t>(__ax_hi);
+    __scaled_absbits = ::cuda::std::bit_cast<uint32_t>(__ax_hi);
   }
 
   /* Reduce: ax = r * 2^(3 * nexpo), with nexpo chosen so r ~= 1. */
@@ -429,15 +429,15 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   constexpr int __exp_shift = 1 << 23;
   const int __delta_exp     = 3 * __nexpo;
   const int __new_bits      = static_cast<int>(__scaled_absbits) - __delta_exp * __exp_shift;
-  const float __r_hi        = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(__new_bits));
+  const float __r_hi        = ::cuda::std::bit_cast<float>(static_cast<uint32_t>(__new_bits));
 
   /* r_lo: scale by 2^(-3*nexpo) via float multiply.  Split into two
    * normal-range factors to keep each biased exponent in roughly
    * [62, 190] for all valid float inputs. */
   const int __half_pow  = -__delta_exp / 2;
   const int __rest_pow  = -__delta_exp - __half_pow;
-  const float __scale_a = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __exp_shift));
-  const float __scale_b = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __exp_shift));
+  const float __scale_a = ::cuda::std::bit_cast<float>(static_cast<uint32_t>((127 + __half_pow) * __exp_shift));
+  const float __scale_b = ::cuda::std::bit_cast<float>(static_cast<uint32_t>((127 + __rest_pow) * __exp_shift));
   const float __r_lo    = (__ax_lo * __scale_a) * __scale_b;
 
   /* Initial 1/cbrt approximation via the SFU lg2/ex2 pair (~23 bits). */
@@ -470,7 +470,7 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
    * float multiply.  back_shift stays in [-43, +49] for all valid
    * float inputs, so the biased exponent is always in [84, 176]. */
   const int __back_shift   = -__nexpo + __denorm_div3;
-  const float __scale_back = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __exp_shift));
+  const float __scale_back = ::cuda::std::bit_cast<float>(static_cast<uint32_t>((127 + __back_shift) * __exp_shift));
   float __t_hi_back        = __t_new.hi() * __scale_back;
   float __t_lo_back        = __t_new.lo() * __scale_back;
 

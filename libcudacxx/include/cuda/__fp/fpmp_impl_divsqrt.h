@@ -177,30 +177,30 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_div(
   constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
   constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
 
-  const UintType __up_bits   = __fpmp_internal_bit_cast<UintType>(__scale_up);
-  const UintType __down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
-  const UintType __one_bits  = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
+  const UintType __up_bits   = ::cuda::std::bit_cast<UintType>(__scale_up);
+  const UintType __down_bits = ::cuda::std::bit_cast<UintType>(__scale_down);
+  const UintType __one_bits  = ::cuda::std::bit_cast<UintType>(_FpType(1.0));
 
   // Extract hi-component exponents.
-  const UintType __a_bits = __fpmp_internal_bit_cast<UintType>(__a_hi);
-  const UintType __b_bits = __fpmp_internal_bit_cast<UintType>(__b_hi);
+  const UintType __a_bits = ::cuda::std::bit_cast<UintType>(__a_hi);
+  const UintType __b_bits = ::cuda::std::bit_cast<UintType>(__b_hi);
   const int __a_exp       = static_cast<int>((__a_bits & __exp_mask) >> __mant_bits);
   const int __b_exp       = static_cast<int>((__b_bits & __exp_mask) >> __mant_bits);
 
   // Branch-free up/down masks (-1 = active). "up" and "down" are mutually
   // exclusive: an operand cannot be both too small and too large.
-  const int __a_up   = (__a_exp - __exp_threshold_low) >> 31;   // a small -> scale up
-  const int __a_down = (__exp_threshold_high - __a_exp) >> 31;  // a large -> scale down
-  const int __b_up   = (__b_exp - __exp_threshold_low) >> 31;   // b small -> scale up
-  const int __b_down = (__exp_threshold_high - __b_exp) >> 31;  // b large -> scale down
+  const int __a_up   = (__a_exp - __exp_threshold_low) >> 31; // a small -> scale up
+  const int __a_down = (__exp_threshold_high - __a_exp) >> 31; // a large -> scale down
+  const int __b_up   = (__b_exp - __exp_threshold_low) >> 31; // b small -> scale up
+  const int __b_down = (__exp_threshold_high - __b_exp) >> 31; // b large -> scale down
 
   // Operand scale factors: up ? 2^+K : (down ? 2^-K : 1).
-  const UintType __scale_a_bits = (__up_bits & UintType(__a_up)) | (__down_bits & UintType(__a_down))
-                                | (__one_bits & UintType(~(__a_up | __a_down)));
-  const UintType __scale_b_bits = (__up_bits & UintType(__b_up)) | (__down_bits & UintType(__b_down))
-                                | (__one_bits & UintType(~(__b_up | __b_down)));
-  const _FpType __scale_a = __fpmp_internal_bit_cast<_FpType>(__scale_a_bits);
-  const _FpType __scale_b = __fpmp_internal_bit_cast<_FpType>(__scale_b_bits);
+  const UintType __scale_a_bits =
+    (__up_bits & UintType(__a_up)) | (__down_bits & UintType(__a_down)) | (__one_bits & UintType(~(__a_up | __a_down)));
+  const UintType __scale_b_bits =
+    (__up_bits & UintType(__b_up)) | (__down_bits & UintType(__b_down)) | (__one_bits & UintType(~(__b_up | __b_down)));
+  const _FpType __scale_a = ::cuda::std::bit_cast<_FpType>(__scale_a_bits);
+  const _FpType __scale_b = ::cuda::std::bit_cast<_FpType>(__scale_b_bits);
 
   // Scale operands (exact: power-of-two multiply).
   const _FpType __sa_hi = __fpmp_mul_rn(__a_hi, __scale_a);
@@ -231,9 +231,9 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_div(
   //   times scale_b               (b up -> 2^+K, b down -> 2^-K, none -> 1)
   // Each factor is a normal power of two; their product is exact unless the true
   // quotient itself overflows/underflows (a genuine range result, not an artifact).
-  const UintType __inv_scale_a_bits = (__down_bits & UintType(__a_up)) | (__up_bits & UintType(__a_down))
-                                    | (__one_bits & UintType(~(__a_up | __a_down)));
-  const _FpType __inv_scale_a = __fpmp_internal_bit_cast<_FpType>(__inv_scale_a_bits);
+  const UintType __inv_scale_a_bits =
+    (__down_bits & UintType(__a_up)) | (__up_bits & UintType(__a_down)) | (__one_bits & UintType(~(__a_up | __a_down)));
+  const _FpType __inv_scale_a = ::cuda::std::bit_cast<_FpType>(__inv_scale_a_bits);
   const _FpType __final_scale = __fpmp_mul_rn(__inv_scale_a, __scale_b);
 
   // Scale result back

@@ -103,16 +103,16 @@ _CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<float>(
     // Extract old values from the 64-bit integer
     uint32_t __old_hi_bits = static_cast<uint32_t>(__assumed & 0xFFFFFFFFULL);
     uint32_t __old_lo_bits = static_cast<uint32_t>((__assumed >> 32) & 0xFFFFFFFFULL);
-    float __old_hi_val     = __fpmp_internal_bit_cast<float>(__old_hi_bits);
-    float __old_lo_val     = __fpmp_internal_bit_cast<float>(__old_lo_bits);
+    float __old_hi_val     = ::cuda::std::bit_cast<float>(__old_hi_bits);
+    float __old_lo_val     = ::cuda::std::bit_cast<float>(__old_lo_bits);
 
     // Perform addition based on method
     float __new_hi, __new_lo;
     __fpmp2_high_add(__old_hi_val, __old_lo_val, __addition_hi, __addition_lo, &__new_hi, &__new_lo);
 
     // Pack new values into a 64-bit integer
-    uint32_t __new_hi_bits = __fpmp_internal_bit_cast<uint32_t>(__new_hi);
-    uint32_t __new_lo_bits = __fpmp_internal_bit_cast<uint32_t>(__new_lo);
+    uint32_t __new_hi_bits = ::cuda::std::bit_cast<uint32_t>(__new_hi);
+    uint32_t __new_lo_bits = ::cuda::std::bit_cast<uint32_t>(__new_lo);
     unsigned long long int __new_ull =
       static_cast<unsigned long long int>(__new_hi_bits) | (static_cast<unsigned long long int>(__new_lo_bits) << 32);
 
@@ -122,8 +122,8 @@ _CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<float>(
   // Return old value - extract from the final 'old' value
   uint32_t __old_hi_bits = static_cast<uint32_t>(__old & 0xFFFFFFFFULL);
   uint32_t __old_lo_bits = static_cast<uint32_t>((__old >> 32) & 0xFFFFFFFFULL);
-  *__old_hi              = __fpmp_internal_bit_cast<float>(__old_hi_bits);
-  *__old_lo              = __fpmp_internal_bit_cast<float>(__old_lo_bits);
+  *__old_hi              = ::cuda::std::bit_cast<float>(__old_hi_bits);
+  *__old_lo              = ::cuda::std::bit_cast<float>(__old_lo_bits);
 }
 
 // atomicSub for float: Uses negation and atomicAdd
@@ -173,8 +173,8 @@ _CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<double>(
     __assumed = __old;
 
     // Extract old values from the 128-bit structure
-    double __old_hi_val = __fpmp_internal_bit_cast<double>(__assumed.x);
-    double __old_lo_val = __fpmp_internal_bit_cast<double>(__assumed.y);
+    double __old_hi_val = ::cuda::std::bit_cast<double>(__assumed.x);
+    double __old_lo_val = ::cuda::std::bit_cast<double>(__assumed.y);
 
     // Perform addition based on method
     double __new_hi, __new_lo;
@@ -182,16 +182,16 @@ _CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<double>(
 
     // Pack new values into a 128-bit structure
     ulonglong2 __new_ull2;
-    __new_ull2.x = __fpmp_internal_bit_cast<unsigned long long int>(__new_hi);
-    __new_ull2.y = __fpmp_internal_bit_cast<unsigned long long int>(__new_lo);
+    __new_ull2.x = ::cuda::std::bit_cast<unsigned long long int>(__new_hi);
+    __new_ull2.y = ::cuda::std::bit_cast<unsigned long long int>(__new_lo);
 
     // 128-bit atomicCAS available on sm_90+
     __old = atomicCAS(__address_as_ull2, __assumed, __new_ull2);
   } while (__assumed.x != __old.x || __assumed.y != __old.y);
 
   // Return old value - extract from the final 'old' value
-  *__old_hi = __fpmp_internal_bit_cast<double>(__old.x);
-  *__old_lo = __fpmp_internal_bit_cast<double>(__old.y);
+  *__old_hi = ::cuda::std::bit_cast<double>(__old.x);
+  *__old_lo = ::cuda::std::bit_cast<double>(__old.y);
 #    else
   // 128-bit atomicCAS requires sm_90+ (Hopper architecture)
   // On older architectures, this is a no-op stub

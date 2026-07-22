@@ -78,8 +78,8 @@ _CCCL_FPMP_CORE_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
 {
   const int __s1   = __s >> 1; /* floor(s/2) */
   const int __s2   = __s - __s1;
-  const float __f1 = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 + __s1) << 23);
-  const float __f2 = __fpmp_internal_bit_cast<float>(static_cast<uint32_t>(127 + __s2) << 23);
+  const float __f1 = ::cuda::std::bit_cast<float>(static_cast<uint32_t>(127 + __s1) << 23);
+  const float __f2 = ::cuda::std::bit_cast<float>(static_cast<uint32_t>(127 + __s2) << 23);
   return __v * __f1 * __f2;
 }
 
@@ -97,14 +97,14 @@ _CCCL_FPMP_CORE_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
  * exactly (equivalent to the fp64 fallback's double round-trip). */
 _CCCL_FPMP_CORE_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsigned long long* __m, int* __e) noexcept
 {
-  const uint32_t __hb = __fpmp_internal_bit_cast<uint32_t>(__hi);
+  const uint32_t __hb = ::cuda::std::bit_cast<uint32_t>(__hi);
   int __eh;
   if ((__hb & 0x7F800000u) == 0u)
   {
     /* denormal hi (hi > 0): value = mant * 2^-149 */
     const uint32_t __mant = __hb & 0x007FFFFFu;
     const float __fm      = static_cast<float>(__mant);
-    const uint32_t __fmb  = __fpmp_internal_bit_cast<uint32_t>(__fm);
+    const uint32_t __fmb  = ::cuda::std::bit_cast<uint32_t>(__fm);
     __eh                  = static_cast<int>((__fmb >> 23) & 0xFFu) - 127 - 149;
   }
   else

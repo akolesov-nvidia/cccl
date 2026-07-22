@@ -91,7 +91,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi
 #  if _CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
   if constexpr (::cuda::std::is_same_v<_FpType, float>)
   {
-    uint64_t __dbits = __fpmp_internal_bit_cast<uint64_t>(__x);
+    uint64_t __dbits = ::cuda::std::bit_cast<uint64_t>(__x);
     uint32_t __sign  = (uint32_t) (__dbits >> 63);
     uint32_t __d_exp = (uint32_t) ((__dbits >> 52) & 0x7FFU);
     uint64_t __mant  = __dbits & 0x000FFFFFFFFFFFFFULL;
@@ -117,7 +117,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi
       // hi_round into the shifted exponent field.
       uint32_t __hi_round = (((uint32_t) (__mant >> 28)) + 1U) >> 1;
       uint32_t __hi_bits  = (__sign << 31) | (((uint32_t) __f_exp << 23) + __hi_round);
-      *__res_hi           = __fpmp_internal_bit_cast<float>(__hi_bits);
+      *__res_hi           = ::cuda::std::bit_cast<float>(__hi_bits);
 
       // Encode the residual as a signed 32-bit integer with the
       // round bit placed at the sign position. Bottom 32 bits of
@@ -135,7 +135,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi
       //              offset (-52) to recover residual at unit scale.
       //   * scale  : 2^(f_exp - 127) with the sign of x. Both
       //              multiplications are exact (powers of two).
-      float __scale = __fpmp_internal_bit_cast<float>((__sign << 31) | ((uint32_t) __f_exp << 23));
+      float __scale = ::cuda::std::bit_cast<float>((__sign << 31) | ((uint32_t) __f_exp << 23));
       *__res_lo     = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
 
       // Fast2Sum to enforce canonical form fl(hi+lo) == hi.
@@ -285,7 +285,7 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
     float __x_lo;
     float __x_hi = __fpmp_two_sum(__x_hi_in, __x_lo_in, &__x_lo);
 
-    uint32_t __hi_bits = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
+    uint32_t __hi_bits = ::cuda::std::bit_cast<uint32_t>(__x_hi);
     uint32_t __sign_a  = __hi_bits >> 31;
     uint32_t __fexp_a  = (__hi_bits >> 23) & 0xFFU;
     uint32_t __fmant_a = __hi_bits & 0x7FFFFFU;
@@ -301,7 +301,7 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
     // float for fexp_a in [52, 254] (biased scale_exp = 306 - fexp_a
     // in [52, 254]). Sign of hi baked in so the signed r below is
     // already lo's contribution relative to hi.
-    float __scale = __fpmp_internal_bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
+    float __scale = ::cuda::std::bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
 
     // r exactly represents lo at hi's mantissa scale (signed). For
     // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is
@@ -320,7 +320,7 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
     uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
     __mu <<= __need_shift;
 
-    return __fpmp_internal_bit_cast<double>(
+    return ::cuda::std::bit_cast<double>(
       ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)
       | (__mu & 0x000FFFFFFFFFFFFFULL));
   }
@@ -440,14 +440,15 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API uint64_t __fpmp2_bit_cast(const _FpType __x_hi, const _FpType __x_lo) noexcept
 {
   double __d = __fpmp2_to_double(__x_hi, __x_lo);
-  return __fpmp_internal_bit_cast<uint64_t>(__d);
+  return ::cuda::std::bit_cast<uint64_t>(__d);
 }
 
 // __fpmp_fp128 operations (only for FpType == double)
 // available only for CUDA architectures >= 1000 or when _CCCL_FPMP_FP128_ENABLE is defined
 #  if _CCCL_FPMP_FP128_ENABLE == 1
 template <typename _FpType = double>
-constexpr _CCCL_FPMP_CORE_API void __fpmp2_from_quad(const __fpmp_fp128 __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
+constexpr _CCCL_FPMP_CORE_API void
+__fpmp2_from_quad(const __fpmp_fp128 __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   *__res_hi = static_cast<_FpType>(__x);
   *__res_lo = static_cast<_FpType>(__x - static_cast<__fpmp_fp128>(*__res_hi));

@@ -366,30 +366,6 @@ typedef long double __fpmp_fp128;
 #endif
 
 /*
-// Internal bit cast utility
-// This utility is used to bit cast a value from one type to another
-// Provides C++20 bit_cast functionality when it's absent
-*/
-#undef _CCCL_FPMP_HAS_BIT_CAST
-#ifdef __has_builtin
-#  define _CCCL_FPMP_HAS_BIT_CAST __has_builtin(__builtin_bit_cast)
-#else
-#  define _CCCL_FPMP_HAS_BIT_CAST 0
-#endif
-
-/*
-// by default route fpmp's internal bit-casts through CCCL's
-// cuda::std::bit_cast. _CCCL_FPMP_BIT_CAST is the single switch point -- define it
-// before including the fpmp headers for a fast re-map back to the in-house
-// polyfill, e.g.:
-//   #define _CCCL_FPMP_BIT_CAST(To, v) \
-//       ::cuda::experimental::__fpmp_builtin_bit_cast<To>(v)
-*/
-#ifndef _CCCL_FPMP_BIT_CAST
-#  define _CCCL_FPMP_BIT_CAST(To, v) ::cuda::std::bit_cast<To>(v)
-#endif
-
-/*
 // Internal macro for inline assembly support
 // for reciprocal and reciprocal square root operations when available (CUDA)
 // When _CCCL_FPMP_USE_INLINE_ASM_RSQRT is 1, the inline assembly is used
@@ -440,39 +416,6 @@ typedef long double __fpmp_fp128;
  *********************************************************************/
 // NOTE: the public fpmp2_accuracy enum lives in <cuda/__fp/fpmp_common.h>
 // (the public API header), which is included at the top of this file.
-
-/*
-// In-house bit cast polyfill, kept available as the _CCCL_FPMP_BIT_CAST
-// fallback target. Provides C++20 bit_cast functionality when it's absent.
-*/
-template <typename _To, typename _From>
-_CCCL_TRIVIAL_API _To __fpmp_builtin_bit_cast(_From __v) noexcept
-{
-  // Static checks to ensure bit_cast requirements
-  static_assert(sizeof(_To) == sizeof(_From), "bit_cast requires source and destination types to have the same size");
-  static_assert(::cuda::std::is_trivially_copyable_v<_From>, "bit_cast requires From to be trivially copyable");
-  static_assert(::cuda::std::is_trivially_copyable_v<_To>, "bit_cast requires To to be trivially copyable");
-
-#if _CCCL_FPMP_HAS_BIT_CAST
-  // Prefer compiler builtin if available (C++20 or compiler extension)
-  return __builtin_bit_cast(_To, __v);
-#else
-  // Fallback using reinterpret_cast for performance
-  // Note: This technically violates strict aliasing rules but is widely supported
-  // and works correctly in practice on all target platforms
-  return *reinterpret_cast<To*>(&__v);
-#endif
-} // __fpmp_builtin_bit_cast
-
-/*
-// Internal bit cast utility used throughout the library. Delegates to the
-// _CCCL_FPMP_BIT_CAST switch macro (cuda::std::bit_cast by default).
-*/
-template <typename _To, typename _From>
-_CCCL_TRIVIAL_API _To __fpmp_internal_bit_cast(_From __v) noexcept
-{
-  return _CCCL_FPMP_BIT_CAST(_To, __v);
-} // internal_bit_cast
 
 /*
 // Internal basic arith operations
@@ -636,10 +579,10 @@ _CCCL_TRIVIAL_API float __fpmp_add_rz(float __x, float __y) noexcept
   if ((__sum > 0.0f && __error < 0.0f) || (__sum < 0.0f && __error > 0.0f))
   {
     // Rounded away from zero - need to adjust mantissa toward zero
-    uint32_t __bits = __fpmp_internal_bit_cast<uint32_t>(__sum);
+    uint32_t __bits = ::cuda::std::bit_cast<uint32_t>(__sum);
     // Decrement mantissa (moves toward zero for both positive and negative)
     __bits--;
-    __sum = __fpmp_internal_bit_cast<float>(__bits);
+    __sum = ::cuda::std::bit_cast<float>(__bits);
   }
   return __sum;
 }
@@ -866,10 +809,10 @@ _CCCL_TRIVIAL_API double __fpmp_add_rz(double __x, double __y) noexcept
   if ((__sum > 0.0 && __error < 0.0) || (__sum < 0.0 && __error > 0.0))
   {
     // Rounded away from zero - need to adjust mantissa toward zero
-    uint64_t __bits = __fpmp_internal_bit_cast<uint64_t>(__sum);
+    uint64_t __bits = ::cuda::std::bit_cast<uint64_t>(__sum);
     // Decrement mantissa (moves toward zero for both positive and negative)
     __bits--;
-    __sum = __fpmp_internal_bit_cast<double>(__bits);
+    __sum = ::cuda::std::bit_cast<double>(__bits);
   }
   return __sum;
 }

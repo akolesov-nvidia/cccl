@@ -124,9 +124,9 @@ __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __re
     {
       __ek3 = 254;
     }
-    const float __s1 = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
-    const float __s2 = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
-    const float __s3 = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek3) << 23);
+    const float __s1 = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek1) << 23);
+    const float __s2 = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
+    const float __s3 = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek3) << 23);
 
     const ffloat __result = ffloat(__x_hi, __x_lo) * __s1 * __s2 * __s3;
 

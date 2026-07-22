@@ -453,8 +453,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_mul(
   constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
 
   // Extract exponents and compute conditional scale (branch-free)
-  UintType __x_bits = __fpmp_internal_bit_cast<UintType>(__x_hi);
-  UintType __y_bits = __fpmp_internal_bit_cast<UintType>(__y_hi);
+  UintType __x_bits = ::cuda::std::bit_cast<UintType>(__x_hi);
+  UintType __y_bits = ::cuda::std::bit_cast<UintType>(__y_hi);
   int __x_exp       = static_cast<int>((__x_bits & __exp_mask) >> __mant_bits);
   int __y_exp       = static_cast<int>((__y_bits & __exp_mask) >> __mant_bits);
   int __result_exp  = __x_exp + __y_exp;
@@ -463,14 +463,14 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_mul(
   int __needs_scale = (__result_exp - __exp_threshold) >> 31;
 
   // Select scale factor using bit manipulation (branch-free)
-  UintType __scale_up_bits = __fpmp_internal_bit_cast<UintType>(__scale_up);
-  UintType __one_bits      = __fpmp_internal_bit_cast<UintType>(_FpType(1.0));
+  UintType __scale_up_bits = ::cuda::std::bit_cast<UintType>(__scale_up);
+  UintType __one_bits      = ::cuda::std::bit_cast<UintType>(_FpType(1.0));
   UintType __scale_bits    = (__scale_up_bits & UintType(__needs_scale)) | (__one_bits & UintType(~__needs_scale));
-  _FpType __scale          = __fpmp_internal_bit_cast<_FpType>(__scale_bits);
+  _FpType __scale          = ::cuda::std::bit_cast<_FpType>(__scale_bits);
 
-  UintType __scale_down_bits = __fpmp_internal_bit_cast<UintType>(__scale_down);
+  UintType __scale_down_bits = ::cuda::std::bit_cast<UintType>(__scale_down);
   UintType __inv_scale_bits  = (__scale_down_bits & UintType(__needs_scale)) | (__one_bits & UintType(~__needs_scale));
-  _FpType __inv_scale        = __fpmp_internal_bit_cast<_FpType>(__inv_scale_bits);
+  _FpType __inv_scale        = ::cuda::std::bit_cast<_FpType>(__inv_scale_bits);
 
   // Scale first operand
   _FpType __a_hi = __fpmp_mul_rn(__x_hi, __scale);

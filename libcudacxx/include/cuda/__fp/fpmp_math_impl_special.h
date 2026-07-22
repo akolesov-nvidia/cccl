@@ -168,7 +168,7 @@ __fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 
   ffloat __x     = renormalize(ffloat(__x_hi, __x_lo));
   bool __is_neg  = __x.hi() < 0.f;
-  uint32_t __xhi = __fpmp_internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
+  uint32_t __xhi = ::cuda::std::bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
   ffloat __abs_a = __is_neg ? -__x : __x;
 
   /* |x| >= saturation_bound (~5.92) or Inf -> erf = +-1 */
@@ -312,7 +312,7 @@ __fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
   {
     __en = 254;
   }
-  float __scale    = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__en) << 23);
+  float __scale    = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__en) << 23);
   ffloat __scalem1 = ffloat(1.f, 0.f) - ffloat(__scale, 0.f);
 
   /* result = -expm1(-arg) = -u*scale + scalem1 */
@@ -421,7 +421,7 @@ __fpmp2_erfc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 
   ffloat __x     = renormalize(ffloat(__x_hi, __x_lo));
   bool __is_neg  = __x.hi() < 0.f;
-  uint32_t __xhi = __fpmp_internal_bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
+  uint32_t __xhi = ::cuda::std::bit_cast<uint32_t>(__x.hi()) & 0x7fffffffU;
   ffloat __a     = (__is_neg) ? -__x : __x;
 
   // handle x > 27.5 && <= Inf
@@ -478,8 +478,8 @@ __fpmp2_erfc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
     __ek2 = 1;
   }
 
-  float __scale_lo    = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek) << 23);
-  float __scale_hi    = __fpmp_internal_bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
+  float __scale_lo    = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek) << 23);
+  float __scale_hi    = ::cuda::std::bit_cast<float>(static_cast<unsigned>(__ek2) << 23);
   ffloat __exp_scaled = ffloat(__t.hi() * __scale_lo * __scale_hi, __t.lo() * __scale_lo * __scale_hi);
 
   /* Correction: exp(-x^2) = exp_scaled * (1 + (-x^2 - xx)) same as double fma(t3, -x*x - xx, t3) */
@@ -776,13 +776,13 @@ __fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi
   /* Standard mathematical convention: normcdfinv(0) = -inf, normcdfinv(1) = +inf */
   if (__p.hi() <= 0.0f)
   {
-    *__res_hi = __fpmp_internal_bit_cast<float>(0xFF800000U);
+    *__res_hi = ::cuda::std::bit_cast<float>(0xFF800000U);
     *__res_lo = 0.0f;
     return;
   }
   if (__p.hi() >= 1.0f)
   {
-    *__res_hi = __fpmp_internal_bit_cast<float>(0x7F800000U);
+    *__res_hi = ::cuda::std::bit_cast<float>(0x7F800000U);
     *__res_lo = 0.0f;
     return;
   }

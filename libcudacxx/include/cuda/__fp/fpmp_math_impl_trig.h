@@ -89,7 +89,7 @@ __internal_fpmp2_ph_frac(_FpType __a_hi, unsigned* __q_out, uint32_t* __frac_hi,
     0xa2f9836eU,
   };
 
-  uint32_t __ia = __fpmp_internal_bit_cast<uint32_t>(__a_hi);
+  uint32_t __ia = ::cuda::std::bit_cast<uint32_t>(__a_hi);
   uint32_t __result[7];
   uint32_t __hi, __lo;
   int __iq;
@@ -223,7 +223,7 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
 
   if (__rem == 0U)
   {
-    *__r_hi = __fpmp_internal_bit_cast<_FpType>(__f1_bits);
+    *__r_hi = ::cuda::std::bit_cast<_FpType>(__f1_bits);
     *__r_lo = _FpType(0);
     return;
   }
@@ -239,14 +239,14 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
   int __biased_exp2 = (int) __biased_exp - 24 - (int) __rlz;
   if (__biased_exp2 < 1)
   {
-    *__r_hi = __fpmp_internal_bit_cast<_FpType>(__f1_bits);
+    *__r_hi = ::cuda::std::bit_cast<_FpType>(__f1_bits);
     *__r_lo = _FpType(0);
   }
   else
   {
     uint32_t __f2_bits = __s | ((uint32_t) __biased_exp2 << 23) | ((__rem_norm >> 8) & 0x7FFFFFU);
-    *__r_hi            = __fpmp_internal_bit_cast<_FpType>(__f1_bits);
-    *__r_lo            = __fpmp_internal_bit_cast<_FpType>(__f2_bits);
+    *__r_hi            = ::cuda::std::bit_cast<_FpType>(__f1_bits);
+    *__r_lo            = ::cuda::std::bit_cast<_FpType>(__f2_bits);
   }
 }
 
@@ -268,7 +268,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
   using afloat = fp32mp2_high;
 
   _FpType __abs_hi    = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-  uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
+  uint32_t __abs_bits = ::cuda::std::bit_cast<uint32_t>(__abs_hi);
 
   /* No reduction for |x| < pi/4 */
   if (__abs_bits < 0x3F490FDBU)
@@ -349,7 +349,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
     unsigned __q_hi;
     __internal_fpmp2_ph_frac(__x_hi, &__q_hi, &__fhi, &__flo);
 
-    uint32_t __x_hi_sign = __fpmp_internal_bit_cast<uint32_t>(__x_hi) & 0x80000000U;
+    uint32_t __x_hi_sign = ::cuda::std::bit_cast<uint32_t>(__x_hi) & 0x80000000U;
     int __q              = (int) __q_hi;
 
     /* Add x_lo contribution in fixed-point.
@@ -360,7 +360,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
     if (__x_lo != _FpType(0))
     {
       _FpType __abs_lo       = (__x_lo < _FpType(0)) ? -__x_lo : __x_lo;
-      uint32_t __abs_lo_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_lo);
+      uint32_t __abs_lo_bits = ::cuda::std::bit_cast<uint32_t>(__abs_lo);
       bool __same_sign       = (__x_lo > _FpType(0)) == (__x_hi > _FpType(0));
 
       uint32_t __fhi2 = 0, __flo2 = 0;
@@ -669,7 +669,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincos(
 {
 #  if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
   _FpType __abs_hi    = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-  uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
+  uint32_t __abs_bits = ::cuda::std::bit_cast<uint32_t>(__abs_hi);
   if (__abs_bits >= 0x49800000U)
   {
     using mp2_t = fpmp2<_FpType>;
@@ -786,7 +786,7 @@ __fpmp2_tan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 {
 #  if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
   _FpType __abs_hi    = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-  uint32_t __abs_bits = __fpmp_internal_bit_cast<uint32_t>(__abs_hi);
+  uint32_t __abs_bits = ::cuda::std::bit_cast<uint32_t>(__abs_hi);
   if (__abs_bits >= 0x49800000U) /* |x_hi| >= 2^20 */
   {
     using mp2_t = fpmp2<_FpType>;
@@ -876,8 +876,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
 
   /* Signed-zero / signed-infinity safe sign probes via the sign bit
    * (a plain `x_hi < 0` test would return false for -0.0). */
-  const uint32_t __x_bits = __fpmp_internal_bit_cast<uint32_t>(__x_hi);
-  const uint32_t __y_bits = __fpmp_internal_bit_cast<uint32_t>(__y_hi);
+  const uint32_t __x_bits = ::cuda::std::bit_cast<uint32_t>(__x_hi);
+  const uint32_t __y_bits = ::cuda::std::bit_cast<uint32_t>(__y_hi);
   const bool __x_is_neg   = (__x_bits & 0x80000000U) != 0U;
   const bool __y_is_neg   = (__y_bits & 0x80000000U) != 0U;
 
@@ -901,8 +901,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
 
   /* |a| == +inf  <->  bit-pattern 0x7f800000 (with sign bit already
    * stripped by the abs above). */
-  const bool __x_is_inf = (__fpmp_internal_bit_cast<uint32_t>(__ax.hi()) == 0x7f800000U);
-  const bool __y_is_inf = (__fpmp_internal_bit_cast<uint32_t>(__ay.hi()) == 0x7f800000U);
+  const bool __x_is_inf = (::cuda::std::bit_cast<uint32_t>(__ax.hi()) == 0x7f800000U);
+  const bool __y_is_inf = (::cuda::std::bit_cast<uint32_t>(__ay.hi()) == 0x7f800000U);
 
   /* Special cases.  IEEE-754 + C99 sectionF.10.1.4 atan2 semantics:
    *   atan2(+-0, +0)    = +-0           (preserves sign of y)
@@ -931,7 +931,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
    * y_hi != 0, IEEE `y_is_neg` is the right answer because the
    * collapsed sign matches `hi`'s sign for any normal value. */
   const _FpType __y_sum       = __y_hi + __y_lo;
-  const uint32_t __y_sum_bits = __fpmp_internal_bit_cast<uint32_t>(__y_sum);
+  const uint32_t __y_sum_bits = ::cuda::std::bit_cast<uint32_t>(__y_sum);
   const bool __y_eff_neg      = (__y_sum_bits & 0x80000000U) != 0U;
 
   ffloat __r;
@@ -942,7 +942,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
      * that here:  x_collapsed >= +0 -> r = +0;  x_collapsed = -0 -> r = pi
      * (the framework's `atan2(+-0, -0)` returns +-pi). */
     const _FpType __x_sum       = __x_hi + __x_lo;
-    const uint32_t __x_sum_bits = __fpmp_internal_bit_cast<uint32_t>(__x_sum);
+    const uint32_t __x_sum_bits = ::cuda::std::bit_cast<uint32_t>(__x_sum);
     const bool __x_eff_neg      = (__x_sum_bits & 0x80000000U) != 0U;
     __r                         = __x_eff_neg ? __PI : ffloat(_FpType(0));
   }
