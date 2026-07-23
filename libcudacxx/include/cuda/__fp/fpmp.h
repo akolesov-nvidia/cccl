@@ -148,19 +148,31 @@
       to fp32mp2, fp64mp2 to fp32mp2, and integer (int32/uint32/int64/uint64) to fpmp2) require explicit casts, matching
       CCCL's strict-cast conventions. The widening conversion OUT to double (operator double()) is
       always implicit and is not affected by this macro. Set to 0 to restore the fully-implicit model
-      (all conversions implicit) for easier migration of existing code from standard types.
+      (all conversions implicit) for easier migration of existing code from standard types. Setting 0
+      helps when fpmp2 is a near drop-in for double/float in a large codebase (existing call sites and
+      mixed-type expressions compile unchanged instead of needing an explicit cast at every narrowing
+      boundary) or for rapid prototyping. Warning: implicit casts let the compiler silently narrow
+      INTO fpmp2, which can drop precision at unintended conversions or introduce accidental
+      round-trips / FP64 use (accuracy/perf) with no diagnostic; keep the default 1 unless the
+      migration benefit outweighs that risk.
     - _CCCL_FPMP_FP128_ENABLE: Automatically detected from compiler version and CUDA capabilities.
       Can be explicitly set to 0 to disable 128-bit float support (older compilers, compatibility).
     - _CCCL_FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math functions use quad-precision (__fpmp_fp128)
       for higher accuracy. Requires libquadmath linkage, slower compilation, larger code.
       When 0 (default), falls back to double precision—faster builds, smaller code, but
       reduced accuracy for transcendental functions.
-    - CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP: When 1, double-to-fpmp2 conversion uses integer bit
-      manipulation instead of FP64 casts. Avoids the slow FP64 pipeline on GPUs with limited
-      double-precision throughput (1:64 ratio). When 0 (default), uses standard casts.
-    - CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: When 1, fpmp2-to-double conversion reconstructs the
-      double bit pattern using integer arithmetic (no FP64 ops). More complex than the forward
-      direction (full software double-add). When 0 (default), uses (double)hi + (double)lo.
+    - CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP: When 1 (default), double-to-fpmp2 conversion uses integer
+      bit manipulation instead of FP64 casts. Avoids the slow FP64 pipeline on GPUs with limited
+      double-precision throughput (e.g. consumer GPUs with a 1:64 ratio). When 0, uses standard casts.
+    - CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: When 1 (default), fpmp2-to-double conversion reconstructs
+      the double bit pattern using integer arithmetic (no FP64 ops). When 0, uses (double)hi + (double)lo.
+    - Tuning the double<->fp32mp2 conversions: both macros above default to 1 because the integer
+      path is a large win on FP64-throttled GPUs (measured several-x faster than the FP64 casts on
+      an L40S) and applies to the FP32-based fp32mp2 (fp64mp2 conversions are inherently FP64 either
+      way). Set either to 0 to fall back to the plain FP64 casts if you hit: (a) register pressure /
+      reduced occupancy from the extra integer work in large kernels, or (b) a GPU with high FP64
+      throughput (e.g. datacenter A100/H100, ~1:2) where the FP64 path is already cheap.
+      e.g. -DCCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=0 (and/or -DCCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP=0).
 
     Important Notes:
     -------------------------------------------------------------------------

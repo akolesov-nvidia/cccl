@@ -292,9 +292,15 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
 
     // Cold fallback for hi outside the FP32-scale-representable range:
     // zero/subnormal, very tiny normal (fexp_a in [1, 51]), Inf, NaN.
+    // NB: sum the ORIGINAL inputs, not the 2Sum-renormalized (__x_hi, __x_lo).
+    // The 2Sum prologue exists only to canonicalize finite operands for the
+    // integer hot path; on special values it poisons the low word (e.g.
+    // two_sum(inf, 0) yields lo = inf - inf = NaN), which would turn a clean
+    // (inf, 0) / (nan, 0) into NaN here. The plain double sum of the originals
+    // handles inf/nan/zero/subnormal correctly.
     if (__fexp_a < 52U || __fexp_a == 0xFFU)
     {
-      return static_cast<double>(__x_hi) + static_cast<double>(__x_lo);
+      return static_cast<double>(__x_hi_in) + static_cast<double>(__x_lo_in);
     }
 
     // scale = (sign_a ? -1 : +1) * 2^(179 - fexp_a). Always a normal

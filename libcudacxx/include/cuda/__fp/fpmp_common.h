@@ -83,6 +83,23 @@
 // affected by this macro (it is a value-preserving widening conversion).
 //
 // Default is 1 (lossy casts explicit), matching CCCL's strict-cast conventions.
+//
+// Set to 0 (fully-implicit model) when it eases adoption more than strictness
+// helps, e.g.:
+//   - migrating a large existing codebase where `double`/`float` are being
+//     replaced by fpmp2 as a near drop-in: implicit casts let the existing call
+//     sites and mixed-type expressions compile unchanged instead of requiring an
+//     explicit cast at every narrowing boundary, and
+//   - rapid prototyping, where minimizing edit churn speeds up the process.
+// Warning: with implicit casts the compiler will silently perform narrowing
+// conversions INTO fpmp2 (double/fp64mp2/__float128 -> smaller fpmp2, integers
+// -> fpmp2). This can:
+//   - silently drop precision at conversions you did not intend (e.g. a stray
+//     `double` in an expression pulls an fp32mp2 value down to double-float), and
+//   - introduce unintended conversions / round-trips that hurt accuracy or
+//     performance (e.g. accidental FP64 use) without any diagnostic.
+// Keep the default 1 unless you have weighed these risks; prefer explicit casts
+// at the boundaries you actually intend once migration settles.
 #ifndef CCCL_FPMP_EXPLICIT_CASTS
 #  define CCCL_FPMP_EXPLICIT_CASTS 1
 #endif
@@ -95,13 +112,21 @@
 // CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP / CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE: use integer
 // bit manipulation instead of FP64 arithmetic for the double<->fpmp2 conversions.
 // This avoids the slow FP64 pipeline on GPUs with limited double-precision throughput
-// (e.g. consumer GPUs with a 1:64 ratio) at the cost of extra integer/register pressure.
-// Both default to 0 (standard cast-based conversions).
+// (e.g. consumer GPUs with a 1:64 ratio), which is the common target for the FP32-based
+// fp32mp2 double-word type. (The optimization applies to the float-based fp32mp2
+// conversions; fp64mp2 conversions are inherently FP64 either way.)
+//
+// Both default to 1 (integer conversions on the hot path). Set either to 0 to fall back
+// to the plain cast-based conversions (static_cast + FP64 add) if you hit:
+//   - register pressure / reduced occupancy from the extra integer work, or
+//   - a GPU with high FP64 throughput (e.g. datacenter A100/H100, ~1:2), where the FP64
+//     path is already cheap and the integer path adds instructions for little gain.
+// e.g. compile with -DCCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=0 (and/or ..._DOUBLE_TO_FPMP=0).
 #ifndef CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP
-#  define CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP 0
+#  define CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP 1
 #endif
 #ifndef CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE
-#  define CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE 0
+#  define CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE 1
 #endif
 #ifndef _CCCL_FPMP_USE_OPT_FROM_DOUBLE
 #  define _CCCL_FPMP_USE_OPT_FROM_DOUBLE CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP

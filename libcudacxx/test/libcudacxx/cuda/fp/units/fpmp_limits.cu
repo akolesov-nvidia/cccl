@@ -99,25 +99,36 @@ static_assert(kEps32.hi() > 0.0f && kMax64.hi() > 0.0, "constexpr value members"
 // Runtime checks (host + device)
 //==========================================================================================
 
+// Labeled per-check helper: prints a PASS/FAIL line (host and device) so a
+// failing run pinpoints the offending property instead of collapsing every
+// check into a single bool (restores the per-check diagnostics we had in
+// cuda_multi_fp). Returns the predicate so callers can accumulate.
+_CCCL_HOST_DEVICE inline bool fp_check(const char* label, bool pass)
+{
+  printf("    [%s] %s\n", pass ? "PASS" : "FAIL", label);
+  return pass;
+}
+
 // (1 + epsilon) != 1, infinity() > max(), quiet_NaN() != quiet_NaN(), lowest() < 0.
+// Each check is run unconditionally (no short-circuit) so every diagnostic line
+// is emitted even when an earlier check fails; the results are combined at the end.
 _CCCL_HOST_DEVICE bool run_test()
 {
-  bool ok = true;
-
   const fp32mp2 one32(1.0f);
-  ok = ok && ((one32 + nl<fp32mp2>::epsilon()) != one32);
+  const bool c_eps32 = fp_check("fp32mp2: (1 + epsilon) != 1", (one32 + nl<fp32mp2>::epsilon()) != one32);
 
   const fp64mp2 one64(1.0);
-  ok = ok && ((one64 + nl<fp64mp2>::epsilon()) != one64);
+  const bool c_eps64 = fp_check("fp64mp2: (1 + epsilon) != 1", (one64 + nl<fp64mp2>::epsilon()) != one64);
 
-  ok = ok && ((double) nl<fp32mp2>::infinity() > (double) nl<fp32mp2>::max());
+  const bool c_inf32 =
+    fp_check("fp32mp2: infinity() > max()", (double) nl<fp32mp2>::infinity() > (double) nl<fp32mp2>::max());
 
   const double nan64 = (double) nl<fp64mp2>::quiet_NaN();
-  ok                 = ok && (nan64 != nan64); // NaN compares unequal to itself
+  const bool c_nan64 = fp_check("fp64mp2: quiet_NaN() != quiet_NaN()", nan64 != nan64);
 
-  ok = ok && ((double) nl<fp64mp2>::lowest() < 0.0);
+  const bool c_low64 = fp_check("fp64mp2: lowest() < 0", (double) nl<fp64mp2>::lowest() < 0.0);
 
-  return ok;
+  return c_eps32 && c_eps64 && c_inf32 && c_nan64 && c_low64;
 }
 
 #if _CCCL_CUDA_COMPILATION()
