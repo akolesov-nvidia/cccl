@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -107,7 +107,8 @@ _CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<float>(
     float __old_lo_val     = ::cuda::std::bit_cast<float>(__old_lo_bits);
 
     // Perform addition based on method
-    float __new_hi, __new_lo;
+    float __new_hi;
+    float __new_lo;
     __fpmp2_high_add(__old_hi_val, __old_lo_val, __addition_hi, __addition_lo, &__new_hi, &__new_lo);
 
     // Pack new values into a 64-bit integer
@@ -177,7 +178,8 @@ _CCCL_FPMP_CORE_DEVICE_API inline void __fpmp2_atomicAdd<double>(
     double __old_lo_val = ::cuda::std::bit_cast<double>(__assumed.y);
 
     // Perform addition based on method
-    double __new_hi, __new_lo;
+    double __new_hi;
+    double __new_lo;
     __fpmp2_high_add(__old_hi_val, __old_lo_val, __addition_hi, __addition_lo, &__new_hi, &__new_lo);
 
     // Pack new values into a 128-bit structure

@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -802,7 +802,8 @@ __fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi
     __arg = ffloat(0x1.0p-126f);
   }
 
-  float __log_hi, __log_lo;
+  float __log_hi;
+  float __log_lo;
   __fpmp2_log(__arg.hi(), __arg.lo(), &__log_hi, &__log_lo);
   ffloat __w = -ffloat(__log_hi, __log_lo);
 
@@ -818,7 +819,8 @@ __fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi
    */
   if (__w.hi() >= 6.125f)
   {
-    float __sw_hi, __sw_lo;
+    float __sw_hi;
+    float __sw_lo;
     __fpmp2_sqrt(__w.hi(), __w.lo(), &__sw_hi, &__sw_lo);
     ffloat __sw(__sw_hi, __sw_lo);
 
@@ -1194,7 +1196,8 @@ __fpmp2_normcdfinv<double>(const double __x_hi, const double __x_lo, double* __r
   __fpmp2_from_double(-__sqrt2_v * ::erfcinv(2.0 * __p), __res_hi, __res_lo);
 #  else
   // Not implemented yet: double precision normcdfinv fallback to float precision
-  float __f_hi, __f_lo;
+  float __f_hi;
+  float __f_lo;
   __fpmp2_normcdfinv(static_cast<float>(__p), 0.0f, &__f_hi, &__f_lo);
   *__res_hi = static_cast<double>(__f_hi) + static_cast<double>(__f_lo);
   *__res_lo = 0.0;

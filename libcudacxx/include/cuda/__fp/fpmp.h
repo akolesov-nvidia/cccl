@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -440,7 +440,10 @@ public:
   _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
   _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(const fpmp2<double, _TypeAcc2>& __src) noexcept
   {
-    float __a_hi, __a_lo, __b_hi, __b_lo;
+    float __a_hi;
+    float __a_lo;
+    float __b_hi;
+    float __b_lo;
     __fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
     __fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
     __fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &__mp2_hi_, &__mp2_lo_);
@@ -450,7 +453,10 @@ public:
   _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
   _CCCL_API fpmp2& operator=(const fpmp2<double, _TypeAcc2>& __src) noexcept
   {
-    float __a_hi, __a_lo, __b_hi, __b_lo;
+    float __a_hi;
+    float __a_lo;
+    float __b_hi;
+    float __b_lo;
     __fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
     __fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
     __fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &__mp2_hi_, &__mp2_lo_);

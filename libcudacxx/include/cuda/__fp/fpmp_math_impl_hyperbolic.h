@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -108,7 +108,8 @@ __fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   {
     /* ---- (2) large-|x| branch: 1 - 2/(exp(2|x|)+1) ------------ */
     ffloat __two_abs = __abs_a + __abs_a; /* exactly 2|x|: addition of equals */
-    float __u_hi, __u_lo;
+    float __u_hi;
+    float __u_lo;
     __fpmp2_exp<float>(__two_abs.hi(), __two_abs.lo(), &__u_hi, &__u_lo);
     ffloat __denom  = ffloat(__u_hi, __u_lo) + ffloat(1.f);
     ffloat __r      = ffloat(2.f) / __denom;
@@ -234,7 +235,8 @@ __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   if (__abs_hi >= __branch_point)
   {
     /* ---- large-|x| branch:  sinh(|x|) = (e - 1/e) / 2 ---------- */
-    float __u_hi, __u_lo;
+    float __u_hi;
+    float __u_lo;
     __fpmp2_exp<float>(__abs_a.hi(), __abs_a.lo(), &__u_hi, &__u_lo);
     ffloat __e(__u_hi, __u_lo);
     ffloat __half_e     = __e * ffloat(0.5f);
@@ -321,7 +323,8 @@ __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   ffloat __x(__x_hi, __x_lo);
   ffloat __abs_a = __is_neg ? -__x : __x;
 
-  float __u_hi, __u_lo;
+  float __u_hi;
+  float __u_lo;
   __fpmp2_exp<float>(__abs_a.hi(), __abs_a.lo(), &__u_hi, &__u_lo);
   ffloat __e(__u_hi, __u_lo);
 
@@ -440,7 +443,8 @@ __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   if (__abs_hi > __large_asinh)
   {
     constexpr ffloat __ln2(0x1.62e42fefa39efp-1);
-    float __l_hi, __l_lo;
+    float __l_hi;
+    float __l_lo;
     __fpmp2_log<float>(__abs_a.hi(), __abs_a.lo(), &__l_hi, &__l_lo);
     __result = renormalize(ffloat(__l_hi, __l_lo) + __ln2);
   }
@@ -458,13 +462,15 @@ __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
      * fp32mp2 precision -- the same reasoning as in log1p. */
     ffloat __a2   = __abs_a * __abs_a;
     ffloat __a2p1 = add<fpmp2_accuracy::high>(__a2, 1.0f);
-    float __s_hi, __s_lo;
+    float __s_hi;
+    float __s_lo;
     __fpmp2_sqrt<float>(__a2p1.hi(), __a2p1.lo(), &__s_hi, &__s_lo);
     ffloat __s     = ffloat(__s_hi, __s_lo);
     ffloat __denom = add<fpmp2_accuracy::high>(__s, 1.0f);
     ffloat __t     = renormalize(__abs_a + __a2 / __denom);
 
-    float __r_hi, __r_lo;
+    float __r_hi;
+    float __r_lo;
     __fpmp2_log1p<float>(__t.hi(), __t.lo(), &__r_hi, &__r_lo);
     __result = ffloat(__r_hi, __r_lo);
   }
@@ -542,7 +548,8 @@ __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
     /* Asymptotic form: acosh(x) ~= log(2x) = log(x) + ln(2).
      * O(1/x^2) correction is below fp32mp2 ulp at crossover. */
     constexpr ffloat __ln2(0x1.62e42fefa39efp-1);
-    float __l_hi, __l_lo;
+    float __l_hi;
+    float __l_lo;
     __fpmp2_log<float>(__x.hi(), __x.lo(), &__l_hi, &__l_lo);
     __result = renormalize(ffloat(__l_hi, __l_lo) + __ln2);
   }
@@ -564,12 +571,14 @@ __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
     ffloat __xm1  = sub<fpmp2_accuracy::high>(__x, 1.0f);
     ffloat __xp1  = add<fpmp2_accuracy::high>(__x, 1.0f);
     ffloat __x2m1 = __xm1 * __xp1;
-    float __s_hi, __s_lo;
+    float __s_hi;
+    float __s_lo;
     __fpmp2_sqrt<float>(__x2m1.hi(), __x2m1.lo(), &__s_hi, &__s_lo);
     ffloat __s = ffloat(__s_hi, __s_lo);
     ffloat __t = renormalize(__xm1 + __s);
 
-    float __r_hi, __r_lo;
+    float __r_hi;
+    float __r_lo;
     __fpmp2_log1p<float>(__t.hi(), __t.lo(), &__r_hi, &__r_lo);
     __result = ffloat(__r_hi, __r_lo);
   }
@@ -691,7 +700,8 @@ __fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   ffloat __two_abs   = __abs_a + __abs_a;
   ffloat __t         = __two_abs / __one_minus;
 
-  float __l_hi, __l_lo;
+  float __l_hi;
+  float __l_lo;
   __fpmp2_log1p<float>(__t.hi(), __t.lo(), &__l_hi, &__l_lo);
 
   ffloat __result = ffloat(__l_hi, __l_lo) * ffloat(0.5f);

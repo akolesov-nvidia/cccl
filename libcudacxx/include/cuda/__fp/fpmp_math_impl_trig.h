@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -91,7 +91,8 @@ __internal_fpmp2_ph_frac(_FpType __a_hi, unsigned* __q_out, uint32_t* __frac_hi,
 
   uint32_t __ia = ::cuda::std::bit_cast<uint32_t>(__a_hi);
   uint32_t __result[7];
-  uint32_t __hi, __lo;
+  uint32_t __hi;
+  uint32_t __lo;
   int __iq;
 
   int __e = (int) ((__ia >> 23U) & 0xFFU) - 128;
@@ -345,7 +346,8 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
      * 64-bit fixed-point BEFORE the pi/2 multiply to avoid
      * precision loss from floating-point cancellation.
      */
-    uint32_t __fhi, __flo;
+    uint32_t __fhi;
+    uint32_t __flo;
     unsigned __q_hi;
     __internal_fpmp2_ph_frac(__x_hi, &__q_hi, &__fhi, &__flo);
 
@@ -363,7 +365,8 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
       uint32_t __abs_lo_bits = ::cuda::std::bit_cast<uint32_t>(__abs_lo);
       bool __same_sign       = (__x_lo > _FpType(0)) == (__x_hi > _FpType(0));
 
-      uint32_t __fhi2 = 0, __flo2 = 0;
+      uint32_t __fhi2 = 0;
+      uint32_t __flo2 = 0;
       unsigned __q_lo = 0;
 
       if (__abs_lo_bits >= 0x00800000U)
@@ -674,7 +677,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincos(
   {
     using mp2_t = fpmp2<_FpType>;
     double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-    double __sd = ::sin(__xd), __cd = ::cos(__xd);
+    double __sd = ::sin(__xd);
+    double __cd = ::cos(__xd);
     /* Split each fp64 result into (hi, lo) via the fp32mp2(double)
      * constructor -- casting to FpType first would drop the lo bits
      * and silently cap precision at ~24 bits instead of ~46.
@@ -1164,7 +1168,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincospi(
 {
   using mp2_t = fpmp2<_FpType>;
   double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-  double __sd, __cd;
+  double __sd;
+  double __cd;
 #  if defined(__CUDA_ARCH__)
   ::sincospi(__xd, &__sd, &__cd);
 #  else
@@ -1278,7 +1283,8 @@ _CCCL_API inline void __fpmp2_sincospi<double>(
 {
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
 #  if defined(__CUDA_ARCH__)
-  double __sd, __cd;
+  double __sd;
+  double __cd;
   ::sincospi(__xd, &__sd, &__cd);
   __fpmp2_from_double(__sd, __sin_hi, __sin_lo);
   __fpmp2_from_double(__cd, __cos_hi, __cos_lo);

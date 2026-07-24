@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -162,13 +162,16 @@ _CCCL_FPMP_CORE_API void __fpmp2_pow(
   }
 
   /* ---- (9) main path: exp(b * log(|a|)) ---- */
-  float __loga_hi, __loga_lo;
+  float __loga_hi;
+  float __loga_lo;
   __fpmp2_log<float>(__abs_a_hi, __abs_a_lo, &__loga_hi, &__loga_lo);
 
-  float __prod_hi, __prod_lo;
+  float __prod_hi;
+  float __prod_lo;
   __fpmp2_mul<float>(__b_hi, __b_lo, __loga_hi, __loga_lo, &__prod_hi, &__prod_lo);
 
-  float __t_hi, __t_lo;
+  float __t_hi;
+  float __t_lo;
   __fpmp2_exp<float>(__prod_hi, __prod_lo, &__t_hi, &__t_lo);
 
   /* ---- sign fixup for a < 0 with odd integer b ---- */

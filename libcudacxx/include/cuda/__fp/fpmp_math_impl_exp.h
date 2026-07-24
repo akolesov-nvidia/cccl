@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -645,7 +645,8 @@ __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   /* 1/ln(2) ~= 1.4426950408889634073599... */
   constexpr ffloat __inv_ln2(0x1.71547652b82fep+0);
 
-  float __l_hi, __l_lo;
+  float __l_hi;
+  float __l_lo;
   __fpmp2_log<float>(__x_hi, __x_lo, &__l_hi, &__l_lo);
 
   /* Propagate non-finite outputs (NaN, +-inf) unchanged: a multiply
@@ -687,7 +688,8 @@ __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   /* 1/ln(10) ~= 0.4342944819032518276511289... */
   constexpr ffloat __inv_ln10(0x1.bcb7b1526e50ep-2);
 
-  float __l_hi, __l_lo;
+  float __l_hi;
+  float __l_lo;
   __fpmp2_log<float>(__x_hi, __x_lo, &__l_hi, &__l_lo);
 
   if (__l_hi != __l_hi || __l_hi == __builtin_huge_valf() || __l_hi == -__builtin_huge_valf())
@@ -1032,7 +1034,8 @@ __fpmp2_expm1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
    * |x| >= 1/2 the leading term exp(x) is at least 0.6 away from 1
    * (positive side) or 0.6 below 1 (negative side), so the
    * subtraction never loses more than ~1 bit. */
-  float __e_hi, __e_lo;
+  float __e_hi;
+  float __e_lo;
   __fpmp2_exp<float>(__x_hi, __x_lo, &__e_hi, &__e_lo);
 
   /* exp() may already produce +inf for very large x; pass that

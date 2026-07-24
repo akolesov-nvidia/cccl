@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -593,7 +593,8 @@ _CCCL_API inline fpmp2<_FpType, _TypeAcc> normcdfinv(const fpmp2<_FpType, _TypeA
 template <fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
 _CCCL_API inline fpmp2<float, _TypeAcc> icdf(uint32_t __x) noexcept
 {
-  float __res_hi, __res_lo;
+  float __res_hi;
+  float __res_lo;
   __fpmp2_icdf(__x, &__res_hi, &__res_lo);
   return fpmp2<float, _TypeAcc>(__res_hi, __res_lo);
 }
@@ -601,7 +602,8 @@ _CCCL_API inline fpmp2<float, _TypeAcc> icdf(uint32_t __x) noexcept
 template <fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
 _CCCL_API inline fpmp2<float, _TypeAcc> icdf(uint64_t __x) noexcept
 {
-  float __res_hi, __res_lo;
+  float __res_hi;
+  float __res_lo;
   __fpmp2_icdf(__x, &__res_hi, &__res_lo);
   return fpmp2<float, _TypeAcc>(__res_hi, __res_lo);
 }

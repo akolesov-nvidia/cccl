@@ -4,7 +4,7 @@
 // under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
 //
 //===----------------------------------------------------------------------===//
 
@@ -208,8 +208,10 @@ _CCCL_FPMP_CORE_API void __fp32mp2_fmod_kernel(
   int* __Ey_out,
   unsigned long long* __quo_out) noexcept
 {
-  unsigned long long __Mx, __my;
-  int __Ex, __ey;
+  unsigned long long __Mx;
+  unsigned long long __my;
+  int __Ex;
+  int __ey;
   __fp32mp2_modf_decompose(__ax_hi, __ax_lo, &__Mx, &__Ex);
   __fp32mp2_modf_decompose(__ay_hi, __ay_lo, &__my, &__ey);
 
@@ -305,7 +307,9 @@ _CCCL_FPMP_CORE_API void __fpmp2_fmod(
     return;
   }
 
-  unsigned long long __ia, __my, __quo;
+  unsigned long long __ia;
+  unsigned long long __my;
+  unsigned long long __quo;
   int __ey;
   __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
   __fp32mp2_modf_reconstruct(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
@@ -380,7 +384,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_remainder(
   if (__c < 0)
   {
     /* |x| < |y|: quotient is 0 or +-1.  Compare 2|x| against |y|. */
-    const float __t_hi = 2.0f * __axh, __t_lo = 2.0f * __axl; /* 2|x| exact */
+    const float __t_hi = 2.0f * __axh;
+    const float __t_lo = 2.0f * __axl; /* 2|x| exact */
     int __c2;
     if (__t_hi != __ayh)
     {
@@ -404,7 +409,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_remainder(
 
     /* 2|x| > |y|: r = |x| - |y|  (negative in the |x| frame) */
     const ffloat __r = sub<fpmp2_accuracy::high>(ffloat(__axh, __axl), ffloat(__ayh, __ayl));
-    float __rh = __r.hi(), __rl = __r.lo();
+    float __rh       = __r.hi();
+    float __rl       = __r.lo();
     if (__xneg)
     {
       __rh = -__rh;
@@ -416,7 +422,9 @@ _CCCL_FPMP_CORE_API void __fpmp2_remainder(
   }
 
   /* |x| > |y|: full integer reduction, then round-to-nearest-even. */
-  unsigned long long __ia, __my, __quo;
+  unsigned long long __ia;
+  unsigned long long __my;
+  unsigned long long __quo;
   int __ey;
   __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
 
