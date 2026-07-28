@@ -251,7 +251,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_fmod(
   _FpType* __res_hi,
   _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_fmod is fp32mp2 only; fp64mp2 has its own specialization");
 
   /* (hi + lo) != (hi + lo) also catches a degenerate (+inf, -inf) limb
@@ -328,7 +328,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_remainder(
   _FpType* __res_hi,
   _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_remainder is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;
@@ -477,7 +477,7 @@ __fpmp2_floor(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   }
 
   const _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
-  const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+  const _FpType __int_scale = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
   if (__abs_hi >= __int_scale)
   {
     // x_hi is already an integer at this scale; floor(x_hi + x_lo) = x_hi + floor(x_lo).
@@ -517,7 +517,7 @@ __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   }
 
   const _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
-  const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+  const _FpType __int_scale = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
   if (__abs_hi >= __int_scale)
   {
     // x_hi is already an integer at this scale; ceil(x_hi + x_lo) = x_hi + ceil(x_lo).
@@ -585,7 +585,7 @@ __fpmp2_trunc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   }
 
   const _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
-  const _FpType __int_scale = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+  const _FpType __int_scale = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
   if (__abs_hi >= __int_scale)
   {
     // x_hi is integral at this scale and dominates sign, so trunc is:

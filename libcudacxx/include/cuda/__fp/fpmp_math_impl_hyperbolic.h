@@ -73,7 +73,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_tanh is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;
@@ -210,7 +210,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_sinh is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;
@@ -305,7 +305,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_cosh is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;
@@ -385,7 +385,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_asinh is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;
@@ -487,7 +487,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_acosh is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;
@@ -591,7 +591,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_atanh is fp32mp2 only; fp64mp2 has its own specialization");
 
   using ffloat = fp32mp2_low;

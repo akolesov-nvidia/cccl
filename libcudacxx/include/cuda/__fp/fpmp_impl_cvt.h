@@ -89,7 +89,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
 #  if _CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     uint64_t __dbits = ::cuda::std::bit_cast<uint64_t>(__x);
     uint32_t __sign  = (uint32_t) (__dbits >> 63);
@@ -145,7 +145,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi
       *__res_hi = __fpmp_fast_two_sum(*__res_hi, *__res_lo, __res_lo);
     }
   }
-  else if constexpr (::cuda::std::is_same_v<_FpType, double>)
+  else if constexpr (__fpmp2_is_fp64_v<_FpType>)
   {
     // FpType == double (fp64mp2): the cast-based split below would
     // compute (double)(x - (double)x) == 0.0 and the compiler folds
@@ -163,7 +163,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi
     *__res_lo = static_cast<_FpType>(__x - static_cast<double>(*__res_hi));
   }
 #  else // !_CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
-  if constexpr (::cuda::std::is_same_v<_FpType, double>)
+  if constexpr (__fpmp2_is_fp64_v<_FpType>)
   {
     // FpType == double (fp64mp2): trivial split, see comment above.
     *__res_hi = __x;
@@ -276,7 +276,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpType __x_lo_in) noexcept
 {
 #  if _CCCL_FPMP_USE_OPT_TO_DOUBLE == 1
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     // Renormalize input to canonical form. See "Step 0" in the
     // function's docstring for why this is required for the integer
@@ -353,7 +353,7 @@ _CCCL_FPMP_CORE_API int32_t __fpmp2_to_int(const _FpType __x_hi, const _FpType _
   _FpType __abs_hi = __fpmp_internal_fabs(__x_hi);
   // Check threshold BEFORE computing sum - for large values, addition loses precision
   // 2^24 for float, 2^53 for double
-  _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 0x1.0p53;
+  _FpType __threshold = __fpmp2_is_fp32_v<_FpType> ? 0x1.0p24f : 0x1.0p53;
   if (__abs_hi < __threshold)
   {
     // Small value: use round-toward-zero addition
@@ -375,7 +375,7 @@ _CCCL_FPMP_CORE_API uint32_t __fpmp2_to_uint(const _FpType __x_hi, const _FpType
 {
   // Check threshold BEFORE computing sum
   // 2^24 for float, 2^53 for double
-  _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 0x1.0p53;
+  _FpType __threshold = __fpmp2_is_fp32_v<_FpType> ? 0x1.0p24f : 0x1.0p53;
   if (__x_hi < __threshold)
   {
     // Small value: use round-toward-zero addition
@@ -398,7 +398,7 @@ _CCCL_FPMP_CORE_API int64_t __fpmp2_to_ll(const _FpType __x_hi, const _FpType __
   _FpType __abs_hi = __fpmp_internal_fabs(__x_hi);
   // Check threshold BEFORE computing sum
   // 2^24 for float, 2^53 for double
-  _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 0x1.0p53;
+  _FpType __threshold = __fpmp2_is_fp32_v<_FpType> ? 0x1.0p24f : 0x1.0p53;
   if (__abs_hi < __threshold)
   {
     // Small value: use round-toward-zero addition
@@ -420,7 +420,7 @@ _CCCL_FPMP_CORE_API uint64_t __fpmp2_to_ull(const _FpType __x_hi, const _FpType 
 {
   // Check threshold BEFORE computing sum
   // 2^24 for float, 2^53 for double
-  _FpType __threshold = ::cuda::std::is_same_v<_FpType, float> ? 0x1.0p24f : 0x1.0p53;
+  _FpType __threshold = __fpmp2_is_fp32_v<_FpType> ? 0x1.0p24f : 0x1.0p53;
   if (__x_hi < __threshold)
   {
     // Small value: use round-toward-zero addition

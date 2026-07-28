@@ -204,9 +204,10 @@
 
 namespace cuda::experimental
 {
-// The public fpmp2_accuracy selector is defined in <cuda/__fp/fpmp_common.h>
-// (included above) so both this class and the arithmetic cores in fpmp_impl.h can
-// see it while every FP header stays self-contained.
+// The public fpmp2_accuracy selector is defined in <cuda/__fp/fpmp_common.h>; the
+// internal element-format predicates (__fpmp2_is_fp32_v / __fpmp2_is_fp64_v /
+// __fpmp2_is_supported_fp_v) in <cuda/__fp/fpmp_impl.h>. Both are included above, so
+// this class and the arithmetic cores agree while every FP header stays self-contained.
 
 /*********************************************************************
  * Multi-precision 32-bit floating-point emulation type (double-float)
@@ -266,6 +267,13 @@ template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::de
 class alignas(2 * alignof(_FpType)) fpmp2
 {
 public:
+  // float selects the double-float representation (fp32mp2) and double the
+  // double-double one (fp64mp2); see __fpmp2_is_supported_fp_v for why the set is
+  // exactly these two types.
+  static_assert(__fpmp2_is_supported_fp_v<_FpType>,
+                "cuda::experimental::fpmp2 supports only _FpType == float (double-float) "
+                "or double (double-double)");
+
   /*
   // Accessor functions for hi and lo fields.
   // constexpr so the cross-method converting constructor below (and any
@@ -399,7 +407,7 @@ public:
   // method tag is preserved.
   */
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
-  _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
+  _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
   _CCCL_API fpmp2(const fpmp2<float, _TypeAcc2>& __src) noexcept
   {
     const double __d_hi_in = static_cast<double>(__src.hi());
@@ -409,7 +417,7 @@ public:
   }
 
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
-  _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
+  _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
   _CCCL_API fpmp2& operator=(const fpmp2<float, _TypeAcc2>& __src) noexcept
   {
     const double __d_hi_in = static_cast<double>(__src.hi());
@@ -437,7 +445,7 @@ public:
   // perform the same precision-preserving 2-pair add.
   */
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
-  _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
+  _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
   _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(const fpmp2<double, _TypeAcc2>& __src) noexcept
   {
     float __a_hi;
@@ -450,7 +458,7 @@ public:
   }
 
   _CCCL_TEMPLATE(typename _Up = _FpType, fpmp2_accuracy _TypeAcc2)
-  _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
+  _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
   _CCCL_API fpmp2& operator=(const fpmp2<double, _TypeAcc2>& __src) noexcept
   {
     float __a_hi;
@@ -482,7 +490,7 @@ public:
   // When FpType is double, use the regular FpType constructor instead
   */
   _CCCL_TEMPLATE(typename _Up = _FpType)
-  _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, float>)
+  _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
 #if __cplusplus >= 202002L
   _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2(double __d) noexcept
   {
@@ -510,7 +518,7 @@ public:
   // C++20: compile-time uses simple double casts, runtime delegates to __fpmp2_from_quad
   // C++17: always uses simple double casts (member initializer list, same as original)
   _CCCL_TEMPLATE(typename _Up = _FpType)
-  _CCCL_REQUIRES(::cuda::std::is_same_v<_Up, double>)
+  _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
   _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2(__fpmp_fp128 __d) noexcept
 #  if __cplusplus >= 202002L
   {
@@ -1386,11 +1394,11 @@ atomicAdd(fpmp2<_FpType, _TypeAcc>* address, const fpmp2<_FpType, _TypeAcc>& val
   _FpType* __res_lo = __res_hi + 1;
 #  if defined(_CCCL_FPMP_USE_LIB)
   // In library mode, call the library function directly
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     __fp32mp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
   }
-  else if constexpr (::cuda::std::is_same_v<_FpType, double>)
+  else if constexpr (__fpmp2_is_fp64_v<_FpType>)
   {
     __fp64mp2_atomicAdd(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
   }
@@ -1414,11 +1422,11 @@ atomicSub(fpmp2<_FpType, _TypeAcc>* address, const fpmp2<_FpType, _TypeAcc>& val
   _FpType* __res_lo = __res_hi + 1;
 #  if defined(_CCCL_FPMP_USE_LIB)
   // In library mode, call the library function directly
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     __fp32mp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
   }
-  else if constexpr (::cuda::std::is_same_v<_FpType, double>)
+  else if constexpr (__fpmp2_is_fp64_v<_FpType>)
   {
     __fp64mp2_atomicSub(addr_hi, addr_lo, val.hi(), val.lo(), __res_hi, __res_lo);
   }

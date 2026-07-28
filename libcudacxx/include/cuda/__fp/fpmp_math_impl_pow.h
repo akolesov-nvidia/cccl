@@ -73,7 +73,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_pow(
   _FpType* __res_hi,
   _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_pow is fp32mp2 only; fp64mp2 has its own specialization");
 
   /* ---- (1,2) pow(1,b) = pow(a,0) = 1, highest priority per IEEE 754-2008 ---- */

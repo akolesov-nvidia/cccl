@@ -80,7 +80,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     using ffloat = fp32mp2_low;
 

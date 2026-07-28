@@ -435,22 +435,22 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_mul(
   _FpType* __res_lo) noexcept
 {
   // Type-specific constants for conditional scaling
-  using UintType = ::cuda::std::conditional_t<::cuda::std::is_same_v<_FpType, float>, uint32_t, uint64_t>;
+  using UintType = ::cuda::std::conditional_t<__fpmp2_is_fp32_v<_FpType>, uint32_t, uint64_t>;
 
-  constexpr int __exp_bits      = ::cuda::std::is_same_v<_FpType, float> ? 8 : 11;
-  constexpr int __mant_bits     = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
-  constexpr int __exp_bias      = ::cuda::std::is_same_v<_FpType, float> ? 127 : 1023;
+  constexpr int __exp_bits      = __fpmp2_is_fp32_v<_FpType> ? 8 : 11;
+  constexpr int __mant_bits     = __fpmp2_is_fp32_v<_FpType> ? 23 : 52;
+  constexpr int __exp_bias      = __fpmp2_is_fp32_v<_FpType> ? 127 : 1023;
   constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
 
   // Threshold: if combined exponent < this, we need scaling
   // For float: scale_shift=64, threshold=190 (2*127-64)
   // For double: scale_shift=512, threshold=1534 (2*1023-512)
-  constexpr int __scale_shift   = ::cuda::std::is_same_v<_FpType, float> ? 64 : 512;
+  constexpr int __scale_shift   = __fpmp2_is_fp32_v<_FpType> ? 64 : 512;
   constexpr int __exp_threshold = 2 * __exp_bias - __scale_shift;
 
   // Scale factors
-  constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
-  constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
+  constexpr _FpType __scale_up   = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
+  constexpr _FpType __scale_down = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
 
   // Extract exponents and compute conditional scale (branch-free)
   UintType __x_bits = ::cuda::std::bit_cast<UintType>(__x_hi);

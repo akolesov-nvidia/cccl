@@ -148,14 +148,14 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_div(
   _FpType* __res_lo) noexcept
 {
   // Type-specific constants for conditional scaling
-  using UintType = ::cuda::std::conditional_t<::cuda::std::is_same_v<_FpType, float>, uint32_t, uint64_t>;
+  using UintType = ::cuda::std::conditional_t<__fpmp2_is_fp32_v<_FpType>, uint32_t, uint64_t>;
 
-  constexpr int __exp_bits      = ::cuda::std::is_same_v<_FpType, float> ? 8 : 11;
-  constexpr int __mant_bits     = ::cuda::std::is_same_v<_FpType, float> ? 23 : 52;
+  constexpr int __exp_bits      = __fpmp2_is_fp32_v<_FpType> ? 8 : 11;
+  constexpr int __mant_bits     = __fpmp2_is_fp32_v<_FpType> ? 23 : 52;
   constexpr UintType __exp_mask = ((UintType(1) << __exp_bits) - 1) << __mant_bits;
 
   // Highest biased exponent of a finite normal (all-ones encodes inf/nan).
-  constexpr int __exp_max = ::cuda::std::is_same_v<_FpType, float> ? 254 : 2046;
+  constexpr int __exp_max = __fpmp2_is_fp32_v<_FpType> ? 254 : 2046;
 
   // The reciprocal step (__r = rcp(__sb_hi)) is the fragile part of the Nagai
   // iteration and it fails at BOTH ends of the exponent range:
@@ -170,12 +170,12 @@ _CCCL_FPMP_CORE_API void __fpmp2_high_div(
   // normal powers of two -- never denormal -- so the fix is itself FTZ-safe.
   // (Full exponent normalization, scaling b_hi into [1,2) with 2^-E_b, would
   //  reintroduce the bug: for b near max, 2^-E_b is denormal and FTZ-flushed.)
-  constexpr int __exp_threshold_low  = ::cuda::std::is_same_v<_FpType, float> ? 32 : 64;
+  constexpr int __exp_threshold_low  = __fpmp2_is_fp32_v<_FpType> ? 32 : 64;
   constexpr int __exp_threshold_high = __exp_max - __exp_threshold_low;
 
   // Scale factors (all normal powers of two).
-  constexpr _FpType __scale_up   = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
-  constexpr _FpType __scale_down = ::cuda::std::is_same_v<_FpType, float> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
+  constexpr _FpType __scale_up   = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p64f) : _FpType(0x1.0p512);
+  constexpr _FpType __scale_down = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p-64f) : _FpType(0x1.0p-512);
 
   const UintType __up_bits   = ::cuda::std::bit_cast<UintType>(__scale_up);
   const UintType __down_bits = ::cuda::std::bit_cast<UintType>(__scale_down);

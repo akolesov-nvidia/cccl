@@ -830,7 +830,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_atan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_atan is fp32mp2 only; "
                 "fp64mp2 has its own specialization");
 
@@ -872,7 +872,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
   _FpType* __res_hi,
   _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_atan2 is fp32mp2 only; "
                 "fp64mp2 has its own specialization");
 
@@ -1012,7 +1012,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_asin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_asin is fp32mp2 only; "
                 "fp64mp2 has its own specialization");
 
@@ -1067,7 +1067,7 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_acos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  static_assert(::cuda::std::is_same_v<_FpType, float>,
+  static_assert(__fpmp2_is_fp32_v<_FpType>,
                 "dedicated __fpmp2_acos is fp32mp2 only; "
                 "fp64mp2 has its own specialization");
 

@@ -418,6 +418,27 @@ typedef long double __fpmp_fp128;
 // (the public API header), which is included at the top of this file.
 
 /*
+// Which IEEE-754 format an fpmp2 element type is: binary32 (double-float) or binary64
+// (double-double), asked in one place instead of restated at every dispatch site.
+//
+// Exact type identity, not a format comparison against ::cuda::std::__fp_format_of_v:
+// the math layer specializes on exactly float / double (__fpmp2_sin<double> and its
+// siblings) with the fp32 implementation as the primary template, so any other type
+// sharing a format is silently routed into the fp32 kernels. That excludes long double,
+// which is binary64 wherever LDBL_MANT_DIG == 53 (MSVC, some AArch64 ABIs), and
+// std::float32_t / std::float64_t, which are distinct types from float / double.
+*/
+template <typename _Tp>
+inline constexpr bool __fpmp2_is_fp32_v = ::cuda::std::is_same_v<_Tp, float>;
+
+template <typename _Tp>
+inline constexpr bool __fpmp2_is_fp64_v = ::cuda::std::is_same_v<_Tp, double>;
+
+// Element types accepted by fpmp2: exactly the two formats above.
+template <typename _Tp>
+inline constexpr bool __fpmp2_is_supported_fp_v = __fpmp2_is_fp32_v<_Tp> || __fpmp2_is_fp64_v<_Tp>;
+
+/*
 // Internal basic arith operations
 // dispatched to the appropriate built-in for host and device
 // if not available, use the appropriate fallback
@@ -658,7 +679,7 @@ _CCCL_TRIVIAL_API _FpType __fpmp_int2fp_rz(int32_t __x) noexcept
   double __exact = static_cast<double>(__x);
   if ((__x > 0 && __f > __exact) || (__x < 0 && __f < __exact))
   {
-    __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+    __f = __fpmp2_is_fp32_v<_FpType> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
   }
   return __f;
 }
@@ -669,7 +690,7 @@ _CCCL_TRIVIAL_API _FpType __fpmp_uint2fp_rz(uint32_t __x) noexcept
   double __exact = static_cast<double>(__x);
   if (__f > __exact)
   {
-    __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+    __f = __fpmp2_is_fp32_v<_FpType> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
   }
   return __f;
 }
@@ -680,7 +701,7 @@ _CCCL_TRIVIAL_API _FpType __fpmp_ll2fp_rz(int64_t __x) noexcept
   double __exact = static_cast<double>(__x);
   if ((__x > 0 && __f > __exact) || (__x < 0 && __f < __exact))
   {
-    __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+    __f = __fpmp2_is_fp32_v<_FpType> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
   }
   return __f;
 }
@@ -691,7 +712,7 @@ _CCCL_TRIVIAL_API _FpType __fpmp_ull2fp_rz(uint64_t __x) noexcept
   double __exact = static_cast<double>(__x);
   if (__f > __exact)
   {
-    __f = ::cuda::std::is_same_v<_FpType, float> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
+    __f = __fpmp2_is_fp32_v<_FpType> ? nextafterf(__f, 0.0f) : nextafter(__f, 0.0);
   }
   return __f;
 }
@@ -910,7 +931,7 @@ _CCCL_API inline double __fpmp_ull2fp_rz<double>(uint64_t __x) noexcept
 template <typename _FpType = float>
 _CCCL_TRIVIAL_API _FpType __fpmp_internal_trunc(const _FpType __x) noexcept
 {
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     const _FpType __abs_x = __fpmp_internal_fabs(__x);
     if (__abs_x >= _FpType(0x1.0p23f))
@@ -934,7 +955,7 @@ _CCCL_TRIVIAL_API _FpType __fpmp_internal_trunc(const _FpType __x) noexcept
 template <typename _FpType = float>
 _CCCL_TRIVIAL_API _FpType __fpmp_internal_floor(const _FpType __x) noexcept
 {
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     const _FpType __abs_x = __fpmp_internal_fabs(__x);
     if (__abs_x >= _FpType(0x1.0p23f))
@@ -957,7 +978,7 @@ _CCCL_TRIVIAL_API _FpType __fpmp_internal_floor(const _FpType __x) noexcept
 template <typename _FpType = float>
 _CCCL_TRIVIAL_API _FpType __fpmp_internal_ceil(const _FpType __x) noexcept
 {
-  if constexpr (::cuda::std::is_same_v<_FpType, float>)
+  if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
     const _FpType __abs_x = __fpmp_internal_fabs(__x);
     if (__abs_x >= _FpType(0x1.0p23f))
