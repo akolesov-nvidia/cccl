@@ -9,20 +9,16 @@
 //  fp32mp2 (double-float) and fp64mp2 (double-double). Compile-time static_asserts
 //  cover every reported characteristic (integer traits and the exact power-of-two
 //  hi/lo components of min()/max()/lowest()/epsilon(), plus cv-qualified and
-//  accuracy-variant forwarding). The _CCCL_HOST_DEVICE run_test() then exercises
-//  the value members at runtime on the host and, under CUDA, on the device.
+//  accuracy-variant forwarding). The run_test() then exercises the value members
+//  at runtime.
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdio>
-
-#ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
-#  include <c2h/catch2_test_helper.h> // must be included in every C2H file
-#endif
-
 #include <cuda/fpmp>
+#include <cuda/std/cassert>
+#include <cuda/std/limits>
 
-#include "fp_test_targets.h"
+#include "test_macros.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
@@ -99,19 +95,16 @@ static_assert(kEps32.hi() > 0.0f && kMax64.hi() > 0.0, "constexpr value members"
 // Runtime checks (host + device)
 //==========================================================================================
 
-// Labeled per-check helper: prints a PASS/FAIL line (host and device) so a
-// failing run pinpoints the offending property instead of collapsing every
-// check into a single bool (restores the per-check diagnostics we had in
-// cuda_multi_fp). Returns the predicate so callers can accumulate.
+// Labeled per-check helper: returns the predicate so callers can accumulate.
 _CCCL_HOST_DEVICE inline bool fp_check(const char* label, bool pass)
 {
-  printf("    [%s] %s\n", pass ? "PASS" : "FAIL", label);
+  (void) label;
   return pass;
 }
 
 // (1 + epsilon) != 1, infinity() > max(), quiet_NaN() != quiet_NaN(), lowest() < 0.
-// Each check is run unconditionally (no short-circuit) so every diagnostic line
-// is emitted even when an earlier check fails; the results are combined at the end.
+// Each check is run unconditionally (no short-circuit) so every diagnostic is
+// evaluated even when an earlier check fails; the results are combined at the end.
 _CCCL_HOST_DEVICE bool run_test()
 {
   const fp32mp2 one32(1.0f);
@@ -131,27 +124,14 @@ _CCCL_HOST_DEVICE bool run_test()
   return c_eps32 && c_eps64 && c_inf32 && c_nan64 && c_low64;
 }
 
-#if _CCCL_CUDA_COMPILATION()
-__global__ void run_test_kernel(bool* out)
+TEST_FUNC void test()
 {
-  *out = run_test();
+  assert(run_test());
 }
-#endif // _CCCL_CUDA_COMPILATION()
 
-C2H_TEST("fpmp numeric_limits specialization", "[fpmp]")
+int main(int, char**)
 {
-  fp_ran_on_host();
-  REQUIRE(run_test());
+  test();
 
-#if _CCCL_CUDA_COMPILATION()
-  fp_ran_on_device();
-  bool* d_ok = nullptr;
-  REQUIRE_CUDART(cudaMallocManaged(&d_ok, sizeof(bool)));
-  *d_ok = false;
-  run_test_kernel<<<1, 1>>>(d_ok);
-  REQUIRE_CUDART(cudaGetLastError());
-  REQUIRE_CUDART(cudaDeviceSynchronize());
-  REQUIRE(*d_ok);
-  REQUIRE_CUDART(cudaFree(d_ok));
-#endif // _CCCL_CUDA_COMPILATION()
+  return 0;
 }

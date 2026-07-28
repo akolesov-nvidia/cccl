@@ -15,21 +15,16 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda/std/cassert>
 #include <cuda/std/cmath>
 #include <cuda/std/cstdint>
-
-#include <cstdio>
-#include <cstring>
-
-#ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
-#  include <c2h/catch2_test_helper.h> // must be included in every C2H file
-#endif
+#include <cuda/std/cstring>
 
 // Reduced precision version (23 mantissa bits like float).
 #define CCCL_FP64_TOOL_MANTISSA_BITS 23
 #include <cuda/fptool>
 
-#include "fp_test_targets.h"
+#include "test_macros.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
@@ -160,9 +155,9 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
     fp64_tool r_result = r_val + fp64_tool(0.0);
     double n_out       = (double) n_result;
     double r_out       = (double) r_result;
-    memcpy(&r->bits_orig, &val, sizeof(::cuda::std::uint64_t));
-    memcpy(&r->bits_native, &n_out, sizeof(::cuda::std::uint64_t));
-    memcpy(&r->bits_reduced, &r_out, sizeof(::cuda::std::uint64_t));
+    ::cuda::std::memcpy(&r->bits_orig, &val, sizeof(::cuda::std::uint64_t));
+    ::cuda::std::memcpy(&r->bits_native, &n_out, sizeof(::cuda::std::uint64_t));
+    ::cuda::std::memcpy(&r->bits_reduced, &r_out, sizeof(::cuda::std::uint64_t));
   }
 
   // Comparison operators.
@@ -218,27 +213,14 @@ _CCCL_HOST_DEVICE bool run_test()
   return verify(r);
 }
 
-#if _CCCL_CUDA_COMPILATION()
-__global__ void run_test_kernel(bool* out)
+TEST_FUNC void test()
 {
-  *out = run_test();
+  assert(run_test());
 }
-#endif // _CCCL_CUDA_COMPILATION()
 
-C2H_TEST("fptool reduced-precision emulation", "[fptool]")
+int main(int, char**)
 {
-  fp_ran_on_host();
-  REQUIRE(run_test());
+  test();
 
-#if _CCCL_CUDA_COMPILATION()
-  fp_ran_on_device();
-  bool* d_ok = nullptr;
-  REQUIRE_CUDART(cudaMallocManaged(&d_ok, sizeof(bool)));
-  *d_ok = false;
-  run_test_kernel<<<1, 1>>>(d_ok);
-  REQUIRE_CUDART(cudaGetLastError());
-  REQUIRE_CUDART(cudaDeviceSynchronize());
-  REQUIRE(*d_ok);
-  REQUIRE_CUDART(cudaFree(d_ok));
-#endif // _CCCL_CUDA_COMPILATION()
+  return 0;
 }

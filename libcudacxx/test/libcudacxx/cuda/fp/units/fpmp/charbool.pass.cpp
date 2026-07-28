@@ -8,23 +8,16 @@
 //  bool and character types are excluded from __cccl_is_integer_v, so they are
 //  routed through a dedicated converting constructor that upconverts to int32 and
 //  reuses the existing int32 path. This mirrors double, for which `1.0 + true` and
-//  `1.0 + 'a'` are valid. The same _CCCL_HOST_DEVICE run_test<T>() runs on the host
-//  and, under CUDA, on the device via a kernel launch.
+//  `1.0 + 'a'` are valid.
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda/fpmp>
+#include <cuda/std/cassert>
 #include <cuda/std/cmath>
 #include <cuda/std/type_traits>
 
-#include <cstdio>
-
-#ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
-#  include <c2h/catch2_test_helper.h> // must be included in every C2H file
-#endif
-
-#include <cuda/fpmp>
-
-#include "fp_test_targets.h"
+#include "test_macros.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
@@ -78,43 +71,15 @@ _CCCL_HOST_DEVICE bool run_test()
   return ok;
 }
 
-#if _CCCL_CUDA_COMPILATION()
-template <class FP>
-__global__ void run_test_kernel(bool* out)
+TEST_FUNC void test()
 {
-  *out = run_test<FP>();
+  assert(run_test<fp32mp2>());
+  assert(run_test<fp64mp2>());
 }
 
-template <class FP>
-static bool device_ok()
+int main(int, char**)
 {
-  bool* d_ok = nullptr;
-  if (cudaMallocManaged(&d_ok, sizeof(bool)) != cudaSuccess)
-  {
-    return false;
-  }
-  *d_ok = false;
-  run_test_kernel<FP><<<1, 1>>>(d_ok);
-  cudaError_t err = cudaGetLastError();
-  if (err == cudaSuccess)
-  {
-    err = cudaDeviceSynchronize();
-  }
-  const bool ok = (err == cudaSuccess) && *d_ok;
-  cudaFree(d_ok);
-  return ok;
-}
-#endif // _CCCL_CUDA_COMPILATION()
+  test();
 
-C2H_TEST("fpmp char/bool mixed ops mirror double", "[fpmp]")
-{
-  fp_ran_on_host();
-  REQUIRE(run_test<fp32mp2>());
-  REQUIRE(run_test<fp64mp2>());
-
-#if _CCCL_CUDA_COMPILATION()
-  fp_ran_on_device();
-  REQUIRE(device_ok<fp32mp2>());
-  REQUIRE(device_ok<fp64mp2>());
-#endif // _CCCL_CUDA_COMPILATION()
+  return 0;
 }

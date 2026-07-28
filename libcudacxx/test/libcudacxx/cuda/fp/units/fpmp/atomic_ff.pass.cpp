@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+// UNSUPPORTED: enable-tile
+// error: atomic operations are unsupported in tile code
+
 //===----------------------------------------------------------------------===//
 //
 //  Unit test: atomicAdd / atomicSub on fp32mp2 (float-float).
@@ -11,22 +14,16 @@
 //    - Accuracy: many threads accumulate a small value and the result is compared
 //      against the analytic sum within a relative tolerance.
 //
-//  On a host-only build (no CUDA) the test is SKIP()ed; under CUDA it runs on the
-//  device.
+//  The grid-wide accumulation is verified on the host after the kernels finish;
+//  a host-only build (no CUDA) compiles the device work out.
 //
 //===----------------------------------------------------------------------===//
 
+#include <cuda/fpmp>
+#include <cuda/std/cassert>
 #include <cuda/std/cmath>
 
-#include <cstdio>
-
-#ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
-#  include <c2h/catch2_test_helper.h> // must be included in every C2H file
-#endif
-
-#include <cuda/fpmp>
-
-#include "fp_test_targets.h"
+#include "test_macros.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
@@ -54,52 +51,41 @@ __global__ void test_atomicSub_accuracy_kernel(ffloat* res, float value_to_sub)
   ffloat val(value_to_sub);
   atomicSub(res, val);
 }
-#endif // _CCCL_CUDA_COMPILATION()
 
-C2H_TEST("fpmp atomicAdd/atomicSub atomicity", "[fpmp]")
+void run_atomicity()
 {
-#if !_CCCL_CUDA_COMPILATION()
-  SKIP("atomicAdd/atomicSub on fp32mp2 are device-only");
-#else
-  fp_ran_on_device();
   const int num_threads = 512;
   const int num_blocks  = 4;
 
   unsigned int* d_idx = nullptr;
   ffloat* d_res       = nullptr;
-  REQUIRE_CUDART(cudaMalloc(&d_idx, sizeof(unsigned int)));
-  REQUIRE_CUDART(cudaMalloc(&d_res, sizeof(ffloat)));
+  assert(cudaMalloc(&d_idx, sizeof(unsigned int)) == cudaSuccess);
+  assert(cudaMalloc(&d_res, sizeof(ffloat)) == cudaSuccess);
 
   unsigned int h_idx = 0;
   ffloat h_res(0.0f);
-  REQUIRE_CUDART(cudaMemcpy(d_idx, &h_idx, sizeof(unsigned int), cudaMemcpyHostToDevice));
-  REQUIRE_CUDART(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice));
+  assert(cudaMemcpy(d_idx, &h_idx, sizeof(unsigned int), cudaMemcpyHostToDevice) == cudaSuccess);
+  assert(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice) == cudaSuccess);
 
   test_atomicity_kernel<<<num_blocks, num_threads>>>(d_idx, d_res);
-  REQUIRE_CUDART(cudaGetLastError());
-  REQUIRE_CUDART(cudaDeviceSynchronize());
+  assert(cudaGetLastError() == cudaSuccess);
+  assert(cudaDeviceSynchronize() == cudaSuccess);
 
-  REQUIRE_CUDART(cudaMemcpy(&h_idx, d_idx, sizeof(unsigned int), cudaMemcpyDeviceToHost));
-  REQUIRE_CUDART(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost));
+  assert(cudaMemcpy(&h_idx, d_idx, sizeof(unsigned int), cudaMemcpyDeviceToHost) == cudaSuccess);
+  assert(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost) == cudaSuccess);
 
   const double result = static_cast<double>(h_res);
-  ::printf("  atomicity: threads=%u  result=%.10e\n", h_idx, result);
 
   // All threads participated and add/sub cancelled to ~0.
-  REQUIRE(h_idx == static_cast<unsigned int>(num_threads * num_blocks));
-  REQUIRE(::cuda::std::fabs(result) < 1e-6);
+  assert(h_idx == static_cast<unsigned int>(num_threads * num_blocks));
+  assert(::cuda::std::fabs(result) < 1e-6);
 
-  REQUIRE_CUDART(cudaFree(d_idx));
-  REQUIRE_CUDART(cudaFree(d_res));
-#endif // _CCCL_CUDA_COMPILATION()
+  assert(cudaFree(d_idx) == cudaSuccess);
+  assert(cudaFree(d_res) == cudaSuccess);
 }
 
-C2H_TEST("fpmp atomicAdd/atomicSub accuracy", "[fpmp]")
+void run_accuracy()
 {
-#if !_CCCL_CUDA_COMPILATION()
-  SKIP("atomicAdd/atomicSub on fp32mp2 are device-only");
-#else
-  fp_ran_on_device();
   const int num_threads   = 512;
   const int num_blocks    = 4;
   const int total_threads = num_threads * num_blocks;
@@ -107,68 +93,73 @@ C2H_TEST("fpmp atomicAdd/atomicSub accuracy", "[fpmp]")
   // Test 1: add a small value from all threads.
   {
     ffloat* d_res = nullptr;
-    REQUIRE_CUDART(cudaMalloc(&d_res, sizeof(ffloat)));
+    assert(cudaMalloc(&d_res, sizeof(ffloat)) == cudaSuccess);
     ffloat h_res(0.0f);
-    REQUIRE_CUDART(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice));
+    assert(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice) == cudaSuccess);
 
     const float value_to_add = 0.1f;
     test_atomicAdd_accuracy_kernel<<<num_blocks, num_threads>>>(d_res, value_to_add);
-    REQUIRE_CUDART(cudaGetLastError());
-    REQUIRE_CUDART(cudaDeviceSynchronize());
-    REQUIRE_CUDART(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost));
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+    assert(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost) == cudaSuccess);
 
     const double result    = static_cast<double>(h_res);
     const double expected  = static_cast<double>(value_to_add) * total_threads;
     const double rel_error = ::cuda::std::fabs(result - expected) / expected;
-    ::printf("  add:      expected=%.10e computed=%.10e rel=%.4e\n", expected, result, rel_error);
-    REQUIRE(rel_error <= 1e-5);
+    assert(rel_error <= 1e-5);
 
-    REQUIRE_CUDART(cudaFree(d_res));
+    assert(cudaFree(d_res) == cudaSuccess);
   }
 
   // Test 2: add then subtract the same value (start at 100.0).
   {
     ffloat* d_res = nullptr;
-    REQUIRE_CUDART(cudaMalloc(&d_res, sizeof(ffloat)));
+    assert(cudaMalloc(&d_res, sizeof(ffloat)) == cudaSuccess);
     ffloat h_res(100.0f);
-    REQUIRE_CUDART(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice));
+    assert(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice) == cudaSuccess);
 
     const float value = 0.5f;
     test_atomicAdd_accuracy_kernel<<<num_blocks, num_threads>>>(d_res, value);
-    REQUIRE_CUDART(cudaDeviceSynchronize());
+    assert(cudaDeviceSynchronize() == cudaSuccess);
     test_atomicSub_accuracy_kernel<<<num_blocks, num_threads>>>(d_res, value);
-    REQUIRE_CUDART(cudaDeviceSynchronize());
-    REQUIRE_CUDART(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost));
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+    assert(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost) == cudaSuccess);
 
     const double result    = static_cast<double>(h_res);
     const double expected  = 100.0;
     const double rel_error = ::cuda::std::fabs(result - expected) / expected;
-    ::printf("  add/sub:  expected=%.10e computed=%.10e rel=%.4e\n", expected, result, rel_error);
-    REQUIRE(rel_error <= 1e-5);
+    assert(rel_error <= 1e-5);
 
-    REQUIRE_CUDART(cudaFree(d_res));
+    assert(cudaFree(d_res) == cudaSuccess);
   }
 
   // Test 3: subtract a value from all threads (start at 1000.0).
   {
     ffloat* d_res = nullptr;
-    REQUIRE_CUDART(cudaMalloc(&d_res, sizeof(ffloat)));
+    assert(cudaMalloc(&d_res, sizeof(ffloat)) == cudaSuccess);
     ffloat h_res(1000.0f);
-    REQUIRE_CUDART(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice));
+    assert(cudaMemcpy(d_res, &h_res, sizeof(ffloat), cudaMemcpyHostToDevice) == cudaSuccess);
 
     const float value_to_sub = 0.25f;
     test_atomicSub_accuracy_kernel<<<num_blocks, num_threads>>>(d_res, value_to_sub);
-    REQUIRE_CUDART(cudaGetLastError());
-    REQUIRE_CUDART(cudaDeviceSynchronize());
-    REQUIRE_CUDART(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost));
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+    assert(cudaMemcpy(&h_res, d_res, sizeof(ffloat), cudaMemcpyDeviceToHost) == cudaSuccess);
 
     const double result    = static_cast<double>(h_res);
     const double expected  = 1000.0 - (static_cast<double>(value_to_sub) * total_threads);
     const double rel_error = ::cuda::std::fabs(result - expected) / expected;
-    ::printf("  sub:      expected=%.10e computed=%.10e rel=%.4e\n", expected, result, rel_error);
-    REQUIRE(rel_error <= 1e-5);
+    assert(rel_error <= 1e-5);
 
-    REQUIRE_CUDART(cudaFree(d_res));
+    assert(cudaFree(d_res) == cudaSuccess);
   }
+}
 #endif // _CCCL_CUDA_COMPILATION()
+
+int main(int, char**)
+{
+#if _CCCL_CUDA_COMPILATION()
+  NV_IF_TARGET(NV_IS_HOST, (run_atomicity(); run_accuracy();))
+#endif // _CCCL_CUDA_COMPILATION()
+  return 0;
 }

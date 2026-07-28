@@ -1,0 +1,178 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+//===----------------------------------------------------------------------===//
+//
+//  Unit test: fp64emu division (correctly rounded, bit-exact).
+//
+//  Validates that the fpemu division reproduces, bit-for-bit, correctly-rounded
+//  IEEE-754 binary64 division for all four rounding modes (rn, rz, ru, rd) across
+//  the C builtins (__fp64emu_ddiv_*), the packed operator/ (rn) and the unpacked
+//  operator/ (rn). The reference is the CUDA __ddiv_* intrinsics on the device and
+//  fenv-directed division on the host, so the same check runs on the host and,
+//  under CUDA, on the device. NaN results are matched by class.
+//
+//===----------------------------------------------------------------------===//
+
+#include <cuda/fpemu>
+#include <cuda/std/bit>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
+
+#if !defined(__CUDA_ARCH__)
+#  include <cfenv>
+#endif
+
+#include "test_macros.h"
+
+using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+
+enum
+{
+  M_RN = 0,
+  M_RZ,
+  M_RU,
+  M_RD,
+  M_COUNT
+};
+
+_CCCL_HOST_DEVICE double from_bits(uint64_t b)
+{
+  return cuda::std::bit_cast<double>(b);
+}
+_CCCL_HOST_DEVICE uint64_t d_bits(double d)
+{
+  return cuda::std::bit_cast<uint64_t>(d);
+}
+
+_CCCL_HOST_DEVICE bool is_nan_bits(uint64_t b)
+{
+  return ((b & UINT64_C(0x7FF0000000000000)) == UINT64_C(0x7FF0000000000000)) && (b & UINT64_C(0x000FFFFFFFFFFFFF));
+}
+// NaN payloads are platform-defined: treat any two NaNs as a match.
+_CCCL_HOST_DEVICE bool match(uint64_t got, uint64_t ref)
+{
+  return (got == ref) || (is_nan_bits(got) && is_nan_bits(ref));
+}
+
+// Reference: CUDA __ddiv_* intrinsics on device, fenv-directed division on host.
+_CCCL_HOST_DEVICE uint64_t ref_one(double a, double b, int mode)
+{
+#if defined(__CUDA_ARCH__)
+  double q;
+  switch (mode)
+  {
+    case M_RZ:
+      q = __ddiv_rz(a, b);
+      break;
+    case M_RU:
+      q = __ddiv_ru(a, b);
+      break;
+    case M_RD:
+      q = __ddiv_rd(a, b);
+      break;
+    default:
+      q = __ddiv_rn(a, b);
+      break; // M_RN
+  }
+  return d_bits(q);
+#else
+  int old = fegetround();
+  int fe;
+  switch (mode)
+  {
+    case M_RZ:
+      fe = FE_TOWARDZERO;
+      break;
+    case M_RU:
+      fe = FE_UPWARD;
+      break;
+    case M_RD:
+      fe = FE_DOWNWARD;
+      break;
+    default:
+      fe = FE_TONEAREST;
+      break; // M_RN
+  }
+  fesetround(fe);
+  // volatile forces the divsd to execute (in memory) between the fesetround
+  // calls and prevents compile-time constant folding under the wrong mode.
+  volatile double va = a, vb = b;
+  volatile double q = va / vb;
+  double r          = q;
+  fesetround(old);
+  return d_bits(r);
+#endif
+}
+
+// Compare every division surface for one pair against the reference on the same
+// target. Returns true if all match.
+_CCCL_HOST_DEVICE bool check_pair(double x, double y)
+{
+  __fpbits64 a = __fp64emu_from_double(x);
+  __fpbits64 b = __fp64emu_from_double(y);
+  bool ok      = true;
+
+  ok = ok && match((uint64_t) __fp64emu_ddiv_rn(a, b), ref_one(x, y, M_RN));
+  ok = ok && match((uint64_t) __fp64emu_ddiv_rz(a, b), ref_one(x, y, M_RZ));
+  ok = ok && match((uint64_t) __fp64emu_ddiv_ru(a, b), ref_one(x, y, M_RU));
+  ok = ok && match((uint64_t) __fp64emu_ddiv_rd(a, b), ref_one(x, y, M_RD));
+
+  fp64emu pa = x, pb = y;
+  ok = ok && match(d_bits((double) (pa / pb)), ref_one(x, y, M_RN));
+
+  fp64emu_unpacked ua = (fp64emu_unpacked) x, ub = (fp64emu_unpacked) y;
+  ok = ok && match(d_bits((double) (ua / ub)), ref_one(x, y, M_RN));
+
+  return ok;
+}
+
+// Exhaustively divides every ordered pair of the representative special values
+// and checks each surface against the correctly-rounded reference.
+TEST_FUNC void test()
+{
+  const double specials[] = {
+    0.0,
+    -0.0,
+    1.0,
+    -1.0,
+    2.0,
+    -2.0,
+    3.0,
+    -3.0,
+    0.5,
+    -0.5,
+    100.0,
+    -100.0,
+    3.14159265358979,
+    -3.14159265358979,
+    1e-300,
+    -1e-300,
+    1e300,
+    -1e300,
+    from_bits(0x0000000000000001ULL), // min subnormal
+    from_bits(0x800FFFFFFFFFFFFFULL), // -max subnormal
+    from_bits(0x0010000000000000ULL), // min normal
+    from_bits(0x7FF0000000000000ULL), // +inf
+    from_bits(0xFFF0000000000000ULL), // -inf
+    from_bits(0x7FF8000000000000ULL), // +qNaN
+    from_bits(0xFFF8000000000000ULL), // -qNaN
+    from_bits(0x7FF0000000000001ULL), // +sNaN
+  };
+  const int n = (int) (sizeof(specials) / sizeof(specials[0]));
+
+  for (int i = 0; i < n; i++)
+  {
+    for (int j = 0; j < n; j++)
+    {
+      assert(check_pair(specials[i], specials[j]));
+    }
+  }
+}
+
+int main(int, char**)
+{
+  test();
+
+  return 0;
+}

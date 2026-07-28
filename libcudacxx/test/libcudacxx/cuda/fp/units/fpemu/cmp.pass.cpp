@@ -1,0 +1,141 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+//===----------------------------------------------------------------------===//
+//
+//  Unit test: fp64emu comparison operations vs native IEEE-754 double.
+//
+//  Validates that the fpemu comparison primitives (==, !=, <, <=, >, >=) match
+//  native double comparisons for every value class (normals, subnormals, +/-0,
+//  +/-inf, quiet/signaling NaN, unordered cases). Three surfaces are cross-checked
+//  against native double: the C builtins (__fp64emu_cmp_*), the packed operators
+//  and the unpacked operators.
+//
+//===----------------------------------------------------------------------===//
+
+#include <cuda/fpemu>
+#include <cuda/std/bit>
+#include <cuda/std/cassert>
+#include <cuda/std/cstdint>
+
+#include "test_macros.h"
+
+using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+
+// Comparison operation indices (also bit positions in the packed result code).
+enum cmp_op
+{
+  OP_EQ = 0,
+  OP_NE,
+  OP_LT,
+  OP_LE,
+  OP_GT,
+  OP_GE,
+  OP_COUNT
+};
+
+_CCCL_HOST_DEVICE double from_bits(uint64_t b)
+{
+  return cuda::std::bit_cast<double>(b);
+}
+
+// Pack the six native comparison results into one bit code.
+_CCCL_HOST_DEVICE uint32_t native_codes(double x, double y)
+{
+  uint32_t c = 0;
+  c |= (uint32_t) (x == y) << OP_EQ;
+  c |= (uint32_t) (x != y) << OP_NE;
+  c |= (uint32_t) (x < y) << OP_LT;
+  c |= (uint32_t) (x <= y) << OP_LE;
+  c |= (uint32_t) (x > y) << OP_GT;
+  c |= (uint32_t) (x >= y) << OP_GE;
+  return c;
+}
+
+// Compare all three emulation surfaces against native for one pair.
+_CCCL_HOST_DEVICE bool check_pair(double x, double y)
+{
+  const uint32_t ref = native_codes(x, y);
+
+  __fpbits64 ex = __fp64emu_from_double(x);
+  __fpbits64 ey = __fp64emu_from_double(y);
+  uint32_t cb   = 0;
+  cb |= (uint32_t) __fp64emu_cmp_eq(ex, ey) << OP_EQ;
+  cb |= (uint32_t) __fp64emu_cmp_ne(ex, ey) << OP_NE;
+  cb |= (uint32_t) __fp64emu_cmp_lt(ex, ey) << OP_LT;
+  cb |= (uint32_t) __fp64emu_cmp_le(ex, ey) << OP_LE;
+  cb |= (uint32_t) __fp64emu_cmp_gt(ex, ey) << OP_GT;
+  cb |= (uint32_t) __fp64emu_cmp_ge(ex, ey) << OP_GE;
+
+  fp64emu px = x, py = y;
+  uint32_t cp = 0;
+  cp |= (uint32_t) (px == py) << OP_EQ;
+  cp |= (uint32_t) (px != py) << OP_NE;
+  cp |= (uint32_t) (px < py) << OP_LT;
+  cp |= (uint32_t) (px <= py) << OP_LE;
+  cp |= (uint32_t) (px > py) << OP_GT;
+  cp |= (uint32_t) (px >= py) << OP_GE;
+
+  fp64emu_unpacked ux = (fp64emu_unpacked) x, uy = (fp64emu_unpacked) y;
+  uint32_t cu = 0;
+  cu |= (uint32_t) (ux == uy) << OP_EQ;
+  cu |= (uint32_t) (ux != uy) << OP_NE;
+  cu |= (uint32_t) (ux < uy) << OP_LT;
+  cu |= (uint32_t) (ux <= uy) << OP_LE;
+  cu |= (uint32_t) (ux > uy) << OP_GT;
+  cu |= (uint32_t) (ux >= uy) << OP_GE;
+
+  return cb == ref && cp == ref && cu == ref;
+}
+
+// Exhaustively compares every ordered pair of the representative special values
+// (covers the NaN / inf / zero / subnormal corners) across all three surfaces.
+TEST_FUNC void test()
+{
+  const double specials[] = {
+    0.0,
+    -0.0,
+    1.0,
+    -1.0,
+    2.0,
+    -2.0,
+    0.5,
+    -0.5,
+    3.14159265358979,
+    -3.14159265358979,
+    1.0e308,
+    -1.0e308,
+    1.0e-308,
+    -1.0e-308,
+    from_bits(0x7FF0000000000000ULL), // +inf
+    from_bits(0xFFF0000000000000ULL), // -inf
+    from_bits(0x0010000000000000ULL), // min normal
+    from_bits(0x8010000000000000ULL), // -min normal
+    from_bits(0x000FFFFFFFFFFFFFULL), // max subnormal
+    from_bits(0x0000000000000001ULL), // min subnormal
+    from_bits(0x8000000000000001ULL), // -min subnormal
+    from_bits(0x7FEFFFFFFFFFFFFFULL), // max finite
+    from_bits(0xFFEFFFFFFFFFFFFFULL), // -max finite
+    from_bits(0x7FF8000000000000ULL), // +qNaN
+    from_bits(0xFFF8000000000000ULL), // -qNaN
+    from_bits(0x7FF0000000000001ULL), // +sNaN
+    from_bits(0xFFF0000000000001ULL), // -sNaN
+    from_bits(0x7FF80000DEADBEEFULL), // qNaN with payload
+  };
+  const int n = (int) (sizeof(specials) / sizeof(specials[0]));
+
+  for (int i = 0; i < n; i++)
+  {
+    for (int j = 0; j < n; j++)
+    {
+      assert(check_pair(specials[i], specials[j]));
+    }
+  }
+}
+
+int main(int, char**)
+{
+  test();
+
+  return 0;
+}

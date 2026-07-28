@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+// UNSUPPORTED: enable-tile
+// error: device math intrinsics are unsupported in tile code
+
 //===----------------------------------------------------------------------===//
 //
 //  Unit test: fp32mp2 / fp64mp2 math functions (device only).
@@ -12,33 +15,24 @@
 //
 //  This test relies on CUDA device math intrinsics (rcbrt, normcdf, Bessel, pi-
 //  scaled trig, vector norms, ...) that have no host equivalent, so it is
-//  device-only: SKIP()ed in a host-only build, run on the device under CUDA.
+//  device-only: a host-only build compiles the device work out.
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstdio>
-
-#ifndef _CCCL_FP_STANDALONE_UNIT_TESTS
-#  include <c2h/catch2_test_helper.h> // must be included in every C2H file
-#endif
-
 #include <cuda/fpmp_math>
+#include <cuda/std/cassert>
+#include <cuda/std/cmath>
 
-#include "fp_test_targets.h"
+#include "test_macros.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 #if _CCCL_CUDA_COMPILATION()
 
-#  define CUDA_CHECK(call)                                                                           \
-    do                                                                                               \
-    {                                                                                                \
-      cudaError_t err = (call);                                                                      \
-      if (err != cudaSuccess)                                                                        \
-      {                                                                                              \
-        ::fprintf(stderr, "CUDA error at %s:%d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
-        return false;                                                                                \
-      }                                                                                              \
+#  define CUDA_CHECK(call)           \
+    do                               \
+    {                                \
+      assert((call) == cudaSuccess); \
     } while (0)
 
 // Result structures stored in managed memory.
@@ -400,8 +394,8 @@ static bool approx_eq(double a, double b, double tol)
   {
     return true;
   }
-  double diff = ::fabs(a - b);
-  double mag  = ::fmax(::fabs(a), ::fabs(b));
+  double diff = ::cuda::std::fabs(a - b);
+  double mag  = ::cuda::std::fmax(::cuda::std::fabs(a), ::cuda::std::fabs(b));
   if (mag == 0.0)
   {
     return diff < tol;
@@ -409,38 +403,19 @@ static bool approx_eq(double a, double b, double tol)
   return (diff / mag) < tol;
 }
 
-static bool check(const char* label, double fpmp_val, double ref_val, double tol)
+static bool check(double fpmp_val, double ref_val, double tol)
 {
-  bool ok = approx_eq(fpmp_val, ref_val, tol);
-  if (ok)
-  {
-    ::printf("  PASS  %-38s  fpmp=%.12e  ref=%.12e\n", label, fpmp_val, ref_val);
-  }
-  else
-  {
-    ::printf(
-      "  FAIL  %-38s  fpmp=%.12e  ref=%.12e  (diff=%.3e)\n", label, fpmp_val, ref_val, ::fabs(fpmp_val - ref_val));
-  }
-  return ok;
+  return approx_eq(fpmp_val, ref_val, tol);
 }
 
-static bool check_int(const char* label, long long fpmp_val, long long ref_val)
+static bool check_int(long long fpmp_val, long long ref_val)
 {
-  bool ok = (fpmp_val == ref_val);
-  if (ok)
-  {
-    ::printf("  PASS  %-38s  fpmp=%lld  ref=%lld\n", label, fpmp_val, ref_val);
-  }
-  else
-  {
-    ::printf("  FAIL  %-38s  fpmp=%lld  ref=%lld\n", label, fpmp_val, ref_val);
-  }
-  return ok;
+  return fpmp_val == ref_val;
 }
 
 // Templated test runner — works for both fp32mp2 and fp64mp2.
 template <typename MP2>
-static bool run_tests(const char* type_name, double tol)
+static bool run_tests(double tol)
 {
   const double x_val = 1.234567890123;
   const double y_val = 2.345678901234;
@@ -459,43 +434,26 @@ static bool run_tests(const char* type_name, double tol)
   CUDA_CHECK(cudaMallocManaged(&rl, sizeof(ResultLong)));
 
   bool ok = true;
-  ::printf("\n  ====== %s sanity test ======\n", type_name);
 
-#  define RUN_1A(name, xv)                                   \
-    kernel_##name<MP2><<<1, 1>>>(xv, r1);                    \
-    CUDA_CHECK(cudaDeviceSynchronize());                     \
-    {                                                        \
-      char lbl[80];                                          \
-      ::snprintf(lbl, sizeof(lbl), #name "(%.6g)", xv);      \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok; \
-    }
+#  define RUN_1A(name, xv)                \
+    kernel_##name<MP2><<<1, 1>>>(xv, r1); \
+    CUDA_CHECK(cudaDeviceSynchronize());  \
+    ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
-#  define RUN_2A(name, xv, yv)                                    \
-    kernel_##name<MP2><<<1, 1>>>(xv, yv, r1);                     \
-    CUDA_CHECK(cudaDeviceSynchronize());                          \
-    {                                                             \
-      char lbl[80];                                               \
-      ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g)", xv, yv); \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;      \
-    }
+#  define RUN_2A(name, xv, yv)                \
+    kernel_##name<MP2><<<1, 1>>>(xv, yv, r1); \
+    CUDA_CHECK(cudaDeviceSynchronize());      \
+    ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
-#  define RUN_3A(name, av, bv, cv)                                          \
-    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, r1);                           \
-    CUDA_CHECK(cudaDeviceSynchronize());                                    \
-    {                                                                       \
-      char lbl[80];                                                         \
-      ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g, %.6g)", av, bv, cv); \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;                \
-    }
+#  define RUN_3A(name, av, bv, cv)                \
+    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, r1); \
+    CUDA_CHECK(cudaDeviceSynchronize());          \
+    ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
-#  define RUN_4A(name, av, bv, cv, dv)                                                \
-    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, dv, r1);                                 \
-    CUDA_CHECK(cudaDeviceSynchronize());                                              \
-    {                                                                                 \
-      char lbl[80];                                                                   \
-      ::snprintf(lbl, sizeof(lbl), #name "(%.6g, %.6g, %.6g, %.6g)", av, bv, cv, dv); \
-      ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;                          \
-    }
+#  define RUN_4A(name, av, bv, cv, dv)                \
+    kernel_##name<MP2><<<1, 1>>>(av, bv, cv, dv, r1); \
+    CUDA_CHECK(cudaDeviceSynchronize());              \
+    ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
   // Exponential / Logarithmic
   RUN_1A(exp, x_val)
@@ -566,11 +524,7 @@ static bool run_tests(const char* type_name, double tol)
   // Inverse CDF
   kernel_normcdfinv<MP2><<<1, 1>>>(p_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "normcdfinv(%.6g)", p_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
   // Two-argument
   RUN_2A(pow, x_val, y_val)
@@ -579,18 +533,10 @@ static bool run_tests(const char* type_name, double tol)
   RUN_2A(fmin, x_val, y_val)
   kernel_max<MP2><<<1, 1>>>(x_val, y_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "max(%.6g, %.6g)", x_val, y_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   kernel_min<MP2><<<1, 1>>>(x_val, y_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "min(%.6g, %.6g)", x_val, y_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   RUN_2A(fmod, x_val, y_val)
   RUN_2A(remainder, x_val, y_val)
   RUN_2A(hypot, x_val, y_val)
@@ -608,156 +554,75 @@ static bool run_tests(const char* type_name, double tol)
   // sincos / sincospi
   kernel_sincos<MP2><<<1, 1>>>(x_val, r1, r2);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "sincos_sin(%.6g)", x_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-    ::snprintf(lbl, sizeof(lbl), "sincos_cos(%.6g)", x_val);
-    ok = check(lbl, r2->fpmp_val, r2->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
+  ok = check(r2->fpmp_val, r2->ref_val, tol) && ok;
 
   kernel_sincospi<MP2><<<1, 1>>>(x_val, r1, r2);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "sincospi_sin(%.6g)", x_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-    ::snprintf(lbl, sizeof(lbl), "sincospi_cos(%.6g)", x_val);
-    ok = check(lbl, r2->fpmp_val, r2->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
+  ok = check(r2->fpmp_val, r2->ref_val, tol) && ok;
 
   // Integer-returning
   kernel_ilogb<MP2><<<1, 1>>>(x_val, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "ilogb(%.6g)", x_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
   kernel_llrint<MP2><<<1, 1>>>(x_val, rll);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "llrint(%.6g)", x_val);
-    ok = check_int(lbl, rll->fpmp_val, rll->ref_val) && ok;
-  }
+  ok = check_int(rll->fpmp_val, rll->ref_val) && ok;
   kernel_llround<MP2><<<1, 1>>>(x_val, rll);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "llround(%.6g)", x_val);
-    ok = check_int(lbl, rll->fpmp_val, rll->ref_val) && ok;
-  }
+  ok = check_int(rll->fpmp_val, rll->ref_val) && ok;
   kernel_lrint<MP2><<<1, 1>>>(x_val, rl);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "lrint(%.6g)", x_val);
-    ok = check_int(lbl, (long long) rl->fpmp_val, (long long) rl->ref_val) && ok;
-  }
+  ok = check_int((long long) rl->fpmp_val, (long long) rl->ref_val) && ok;
   kernel_lround<MP2><<<1, 1>>>(x_val, rl);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "lround(%.6g)", x_val);
-    ok = check_int(lbl, (long long) rl->fpmp_val, (long long) rl->ref_val) && ok;
-  }
+  ok = check_int((long long) rl->fpmp_val, (long long) rl->ref_val) && ok;
 
   // Classification
   kernel_isfinite<MP2><<<1, 1>>>(x_val, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "isfinite(%.6g)", x_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
   kernel_isinf<MP2><<<1, 1>>>(x_val, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "isinf(%.6g)", x_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
   kernel_isnan<MP2><<<1, 1>>>(x_val, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "isnan(%.6g)", x_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
   kernel_signbit<MP2><<<1, 1>>>(x_val, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "signbit(%.6g)", x_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
 
   // Mixed signature (fp, int)
   kernel_ldexp<MP2><<<1, 1>>>(x_val, n_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "ldexp(%.6g, %d)", x_val, n_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   kernel_scalbn<MP2><<<1, 1>>>(x_val, n_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "scalbn(%.6g, %d)", x_val, n_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   kernel_scalbln<MP2><<<1, 1>>>(x_val, (long) n_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "scalbln(%.6g, %d)", x_val, n_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   kernel_jn<MP2><<<1, 1>>>(n_val, x_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "jn(%d, %.6g)", n_val, x_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   kernel_yn<MP2><<<1, 1>>>(n_val, x_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "yn(%d, %.6g)", n_val, x_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
   // frexp / modf / remquo
   kernel_frexp<MP2><<<1, 1>>>(x_val, r1, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "frexp_frac(%.6g)", x_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-    ::snprintf(lbl, sizeof(lbl), "frexp_exp(%.6g)", x_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
   kernel_modf<MP2><<<1, 1>>>(x_val, r1, r2);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "modf_frac(%.6g)", x_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-    ::snprintf(lbl, sizeof(lbl), "modf_int(%.6g)", x_val);
-    ok = check(lbl, r2->fpmp_val, r2->ref_val, tol) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
+  ok = check(r2->fpmp_val, r2->ref_val, tol) && ok;
   kernel_remquo<MP2><<<1, 1>>>(x_val, y_val, r1, ri);
   CUDA_CHECK(cudaDeviceSynchronize());
-  {
-    char lbl[80];
-    ::snprintf(lbl, sizeof(lbl), "remquo_rem(%.6g, %.6g)", x_val, y_val);
-    ok = check(lbl, r1->fpmp_val, r1->ref_val, tol) && ok;
-    ::snprintf(lbl, sizeof(lbl), "remquo_quo(%.6g, %.6g)", x_val, y_val);
-    ok = check_int(lbl, ri->fpmp_val, ri->ref_val) && ok;
-  }
+  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
+  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
 
 #  undef RUN_1A
 #  undef RUN_2A
@@ -771,15 +636,22 @@ static bool run_tests(const char* type_name, double tol)
   cudaFree(rl);
   return ok;
 }
+
+// The launches must live outside the NV_IF_TARGET(NV_IS_HOST) block in main(): nvcc's device
+// pass discards that block, so the kernel templates would never be instantiated for the device
+// and every launch would fail with cudaErrorInvalidDeviceFunction.
+bool run_all_tests()
+{
+  bool ok = run_tests<fp32mp2>(1e-5);
+  ok      = run_tests<fp64mp2>(1e-12) && ok;
+  return ok;
+}
 #endif // _CCCL_CUDA_COMPILATION()
 
-C2H_TEST("fpmp math functions", "[fpmp][math]")
+int main(int, char**)
 {
-#if !_CCCL_CUDA_COMPILATION()
-  SKIP("fpmp2 math functions rely on CUDA device math intrinsics (device-only)");
-#else
-  fp_ran_on_device();
-  REQUIRE(run_tests<fp32mp2>("fp32mp2", 1e-5));
-  REQUIRE(run_tests<fp64mp2>("fp64mp2", 1e-12));
+#if _CCCL_CUDA_COMPILATION()
+  NV_IF_TARGET(NV_IS_HOST, (assert(run_all_tests());))
 #endif // _CCCL_CUDA_COMPILATION()
+  return 0;
 }
