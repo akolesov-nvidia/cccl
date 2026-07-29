@@ -151,8 +151,8 @@ namespace cuda::experimental
 //   - MSVC (no GCC runtime)
 //   - Most Windows toolchains (MinGW configurations vary)
 //
-// Override at compile time with -DFPMP_HOST_SUPPORTS_LIBQUADMATH=1 (force enable) or
-// -DFPMP_HOST_SUPPORTS_LIBQUADMATH=0 (force disable) when the auto-detection is wrong
+// Override at compile time with -D_CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH=1 (force enable) or
+// -D_CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH=0 (force disable) when the auto-detection is wrong
 // for your environment.
 */
 #ifndef _CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH
@@ -591,7 +591,7 @@ _CCCL_TRIVIAL_API float __fpmp_internal_fabs(float __x) noexcept
 }
 _CCCL_TRIVIAL_API bool __fpmp_internal_isnan(float __x) noexcept
 {
-  return std::isnan(__x);
+  return ::cuda::std::isnan(__x);
 }
 _CCCL_TRIVIAL_API float __fpmp_add_rn(float __x, float __y) noexcept
 {
@@ -849,7 +849,7 @@ _CCCL_TRIVIAL_API double __fpmp_internal_fabs(double __x) noexcept
 }
 _CCCL_TRIVIAL_API bool __fpmp_internal_isnan(double __x) noexcept
 {
-  return std::isnan(__x);
+  return ::cuda::std::isnan(__x);
 }
 _CCCL_TRIVIAL_API double __fpmp_add_rn(double __x, double __y) noexcept
 {
@@ -1097,7 +1097,7 @@ __fpmp_from_double(const double __x, float* __res_hi, float* __res_lo) _CCCL_FPM
 // (family -> base -> family) that breaks standalone (internal_headers)
 // compilation. Instead each family includes this base plus the specific sibling
 // families it depends on, and the aggregators <cuda/__fp/fpmp.h> and
-// <cuda/__fp/fpmp_lib.h> pull in the full family set. (Mirrors the fpemu layout,
+// <cuda/__fp/fpmp_math.h> pull in the full family set. (Mirrors the fpemu layout,
 // where fpemu.h aggregates the fpemu_impl_*.h families.)
 //
 // NOTE: the freestanding fpmp2 atomics (atomicAdd/atomicSub) and warp-shuffle

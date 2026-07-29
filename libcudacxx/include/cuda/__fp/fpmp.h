@@ -30,7 +30,7 @@
     Linkage note:
     - In header mode (default, CCCL_FPMP_INLINE=1), built-in entry points are defined as inline/static.
     - In library mode (CCCL_FPMP_LIB=1), built-in entry points are provided by a
-      separately compiled object/library (see `src/fpmp_lib.cpp`), while the C++ API remains header-based.
+      separately compiled object/library, while the C++ API remains header-based.
 
     Supported Formats:
     -------------------------------------------------------------------------
@@ -82,8 +82,8 @@
 
     Example Usage:
     -------------------------------------------------------------------------
-        #include "fpmp.h"
-        #include "fpmp_math.h"
+        #include <cuda/fpmp>
+        #include <cuda/fpmp_math>
 
         // Basic arithmetic with double-float precision
         fp32mp2 a = 1.23456789123456789;       // double-float precision from double value
@@ -1329,10 +1329,11 @@ _CCCL_API inline auto mad(const _T1& __x, const _T2& __y, const _T3& __z) noexce
  *   __shfl_down_sync(mask, var, delta,    width = warpSize)
  *   __shfl_up_sync  (mask, var, delta,    width = warpSize)
  *
- * Defined as overloads in the global namespace (matching CUDA's convention)
- * so the same call site works for built-in scalars and fpmp2.  The
- * recursive `::__shfl_sync(mask, var.hi(), ...)` resolves to CUDA's
- * float/double overload (our template only matches fpmp2 arguments).
+ * Declared in cuda::experimental next to fpmp2, so ADL on an fpmp2 argument
+ * finds them at an unqualified call site, exactly as it finds CUDA's built-in
+ * scalar overloads for float/double.  The recursive calls are spelled
+ * `::__shfl_sync(mask, var.hi(), ...)` to reach CUDA's global-namespace
+ * overload rather than recursing into this template.
  *
  * Defined only for CUDA compilation (NVCC); the warp shuffle primitives have
  * no host counterpart, so host-only translation units never see them.
