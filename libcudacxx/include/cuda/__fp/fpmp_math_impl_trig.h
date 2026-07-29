@@ -54,22 +54,17 @@ namespace cuda::experimental
  *      - Tiny (|x| < pi/4): no reduction
  *      - Fast (|x| < 2^20): Cody-Waite with exact error tracking
  *        via two_mult_fma + two_sum (3-piece pi/2, ~70 bits)
- *      - Large (|x| >= 2^20): controlled by _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK
- *        = 0 (default): Payne-Hanek using integer 2/pi table, combining x_hi
- *             and x_lo fractions in 64-bit fixed-point before
- *             converting to fp32mp2 (pure fp32 arithmetic, no fp64).
- *             Delivers ~46 bits in the reduced argument r.
- *        = 1: fall back to system fp64 sin/cos. Final precision capped by
- *             fp64; tan near singularities is further limited by tan'
- *             amplification of the fp32mp2 input quantization.
+ *      - Large (|x| >= 2^20): Payne-Hanek using integer 2/pi table, combining
+ *        x_hi and x_lo fractions in 64-bit fixed-point before converting to
+ *        fp32mp2 (pure fp32 arithmetic, no fp64). Delivers ~46 bits in the
+ *        reduced argument r; final precision can be lower for tan near
+ *        singularities, where small input quantization is amplified by tan'.
  *   2. Evaluate sin(r) and cos(r) via Taylor polynomials in fp32mp2
  *      sin: 8 terms (x through x^15), cos: 9 terms (1 through x^16)
  *   3. Map to correct quadrant using n mod 4
  *      sincos computes both kernels; sin/cos call sincos internally
  * ============================================================================
  */
-
-#  if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 0)
 
 /*
  * Payne-Hanek stage 1: compute |a| * (2/pi) via integer arithmetic,
@@ -165,20 +160,20 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
 /* Normalize: shift so MSB of hi is 1.
  * Handle hi == 0 separately to avoid shift-by-32 UB.
  */
-#    ifdef __CUDA_ARCH__
+#  ifdef __CUDA_ARCH__
   uint32_t __lz = __clz((int) __hi);
-#    else
+#  else
   uint32_t __lz = (__hi == 0U) ? 32U : (uint32_t) __builtin_clz(__hi);
-#    endif
+#  endif
 
   if (__lz >= 32U)
   {
     __lz += (__lo == 0U) ? 0U :
-#    ifdef __CUDA_ARCH__
+#  ifdef __CUDA_ARCH__
                          (uint32_t) __clz((int) __lo);
-#    else
+#  else
                          (uint32_t) __builtin_clz(__lo);
-#    endif
+#  endif
     __hi             = __lo;
     __lo             = 0U;
     uint32_t __shift = __lz - 32U;
@@ -229,11 +224,11 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
     return;
   }
 
-#    ifdef __CUDA_ARCH__
+#  ifdef __CUDA_ARCH__
   uint32_t __rlz = __clz((int) __rem);
-#    else
+#  else
   uint32_t __rlz = (uint32_t) __builtin_clz(__rem);
-#    endif
+#  endif
 
   uint32_t __rem_norm = (__rlz > 0U) ? ((__rem << __rlz) | (__rem_extra >> (32U - __rlz))) : __rem;
 
@@ -250,8 +245,6 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
     *__r_lo            = ::cuda::std::bit_cast<_FpType>(__f2_bits);
   }
 }
-
-#  endif /* _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 0 */
 
 /*
  * Trigonometric argument reduction for fp32mp2.
@@ -341,7 +334,6 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
   {
     /* -- Slow path: |x_hi| >= 2^20 -- */
 
-#  if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 0)
     /* Payne-Hanek: combine x_hi and x_lo 2/pi fractions in
      * 64-bit fixed-point BEFORE the pi/2 multiply to avoid
      * precision loss from floating-point cancellation.
@@ -429,7 +421,6 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
 
     *__quadrant = (int) __q;
     __internal_fpmp2_frac_to_angle(__fhi, __flo, __x_hi_sign, __r_hi, __r_lo);
-#  endif /* _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK */
   }
 }
 
@@ -657,9 +648,6 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_acos_poly(const fpmp2<_FpType>& __y, f
  * sincos for fp32mp2: compute sin(x) and cos(x) simultaneously.
  * Shared argument reduction, separate sin/cos kernels on [-pi/4, pi/4],
  * quadrant-based swap and sign adjustment.
- *
- * When _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1, arguments with |x| >= 2^20
- * fall back to system fp64 sin/cos (avoids the Payne-Hanek code).
  */
 template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void __fpmp2_sincos(
@@ -670,29 +658,6 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincos(
   _FpType* __cos_hi,
   _FpType* __cos_lo) noexcept
 {
-#  if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
-  _FpType __abs_hi    = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-  uint32_t __abs_bits = ::cuda::std::bit_cast<uint32_t>(__abs_hi);
-  if (__abs_bits >= 0x49800000U)
-  {
-    using mp2_t = fpmp2<_FpType>;
-    double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-    double __sd = ::sin(__xd);
-    double __cd = ::cos(__xd);
-    /* Split each fp64 result into (hi, lo) via the fp32mp2(double)
-     * constructor -- casting to FpType first would drop the lo bits
-     * and silently cap precision at ~24 bits instead of ~46.
-     */
-    mp2_t s_mp(__sd);
-    mp2_t c_mp(__cd);
-    *__sin_hi = s_mp.hi();
-    *__sin_lo = s_mp.lo();
-    *__cos_hi = c_mp.hi();
-    *__cos_lo = c_mp.lo();
-    return;
-  }
-#  endif
-
   int __quadrant;
   _FpType __r_hi, __r_lo;
   __internal_fpmp2_trig_reduction(__x_hi, __x_lo, &__quadrant, &__r_hi, &__r_lo);
@@ -778,35 +743,11 @@ __fpmp2_cos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * branch when sin(r) underflows to zero (matches the IEEE
  * convention; signed-infinity direction follows the rounded reduced
  * argument).  Inf / NaN inputs propagate to NaN through the reduction.
- *
- * Optional large-|x| FP64 fallback (mirrors __fpmp2_sincos): when
- * _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1 and |x_hi| >= 2^20, delegate to
- * the system ::tan to keep the dedicated path off the Payne-Hanek
- * reducer for extreme arguments.
  */
 template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_tan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-#  if (_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK == 1)
-  _FpType __abs_hi    = (__x_hi < _FpType(0)) ? -__x_hi : __x_hi;
-  uint32_t __abs_bits = ::cuda::std::bit_cast<uint32_t>(__abs_hi);
-  if (__abs_bits >= 0x49800000U) /* |x_hi| >= 2^20 */
-  {
-    using mp2_t = fpmp2<_FpType>;
-    double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-    double td   = ::tan(__xd);
-    /* Split the fp64 result into (hi, lo) via the fp32mp2(double)
-     * constructor -- casting to FpType first would drop the lo bits
-     * and silently cap precision at ~24 bits instead of ~46.
-     */
-    mp2_t r_mp(td);
-    *__res_hi = r_mp.hi();
-    *__res_lo = r_mp.lo();
-    return;
-  }
-#  endif
-
   int __quadrant;
   _FpType __r_hi, __r_lo;
   __internal_fpmp2_trig_reduction(__x_hi, __x_lo, &__quadrant, &__r_hi, &__r_lo);

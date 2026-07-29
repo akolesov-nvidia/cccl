@@ -362,17 +362,6 @@
       * When 0 (default): Falls back to double-precision math. Faster builds, smaller
         code, no extra library dependencies, but accuracy limited to ~53-bit mantissa
         for transcendental functions.
-    - _CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK: Controls fp32mp2 sin/cos/sincos/tan for large
-      arguments (|x| >= 2^20):
-      * When 0 (default): Uses dedicated pure-fp32mp2 Payne-Hanek argument reduction
-        (~46 bits in the reduced argument; final precision can be lower for tan near
-        singularities, where any small input quantization is amplified by tan').
-        No fp64 operations, larger code.
-      * When 1: Falls back to system fp64 sin/cos/tan. Smaller code path on the hot
-        loop, accuracy limited by fp64 (~52 bits for sin/cos; tan still suffers
-        near-singularity amplification on the fp32mp2 input).
-      Note: this macro does NOT change the small-argument (|x| < 2^20) Cody-Waite
-      path, which is always used and never depends on fp64.
 */
 #include <cuda/__fp/fpmp.h>
 #include <cuda/std/cassert>
@@ -1114,25 +1103,25 @@ _CCCL_API inline long int lround(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 
 // Classification functions
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_isfinite(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int fpmp_isfinite(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return __fpmp2_isfinite(__x.hi(), __x.lo());
 }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_isinf(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int fpmp_isinf(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return __fpmp2_isinf(__x.hi(), __x.lo());
 }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_isnan(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int fpmp_isnan(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return __fpmp2_isnan(__x.hi(), __x.lo());
 }
 
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int fpmp_signbit(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int fpmp_signbit(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return __fpmp2_signbit(__x.hi(), __x.lo());
 }
@@ -1140,7 +1129,7 @@ _CCCL_API inline int fpmp_signbit(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPM
 // Standard names are provided only when no conflicting macro is active.
 #ifndef isfinite
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int isfinite(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int isfinite(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return fpmp_isfinite(__x);
 }
@@ -1148,7 +1137,7 @@ _CCCL_API inline int isfinite(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NO
 
 #ifndef isinf
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int isinf(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int isinf(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return fpmp_isinf(__x);
 }
@@ -1156,7 +1145,7 @@ _CCCL_API inline int isinf(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXC
 
 #ifndef isnan
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int isnan(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int isnan(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return fpmp_isnan(__x);
 }
@@ -1164,7 +1153,7 @@ _CCCL_API inline int isnan(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXC
 
 #ifndef signbit
 template <typename _FpType = float, fpmp2_accuracy _TypeAcc = fpmp2_accuracy::def>
-_CCCL_API inline int signbit(const fpmp2<_FpType, _TypeAcc>& __x) _CCCL_FPMP_NOEXCEPT
+_CCCL_API inline int signbit(const fpmp2<_FpType, _TypeAcc>& __x) noexcept
 {
   return fpmp_signbit(__x);
 }
