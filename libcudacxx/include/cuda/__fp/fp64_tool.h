@@ -151,10 +151,12 @@
 #include <cuda/std/cmath>
 #include <cuda/std/cstdint>
 
-#if defined(__CUDACC__) && !defined(__CUDA_ARCH__)
+#if _CCCL_CUDA_COMPILATION() && _CCCL_HOST_COMPILATION()
 // Include CUDA runtime for host-side functions like cudaMemcpyToSymbol
 #  include <cuda_runtime.h>
 #endif
+
+#include <nv/target>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -257,7 +259,7 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 // Global device variables (shared across all threads) - must be non-static for CUDA
 // On device: __device__ variables are in global memory, shared across all threads
 // On host: static variables for normal C++ behavior
-#  if defined(__CUDACC__)
+#  if _CCCL_CUDA_COMPILATION()
 [[maybe_unused]] __device__ static int __fp64_tool_device_mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
 [[maybe_unused]] __device__ static int __fp64_tool_device_exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
 #  endif
@@ -265,9 +267,21 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 [[maybe_unused]] static int __fp64_tool_host_mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
 [[maybe_unused]] static int __fp64_tool_host_exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
 
+// Readers for the active copy: device code sees the __device__ variables, host
+// code the static ones.
+[[maybe_unused]] static _CCCL_HOST_DEVICE int __fp64_tool_mantissa_bits() noexcept
+{
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return __fp64_tool_device_mantissa_bits;), (return __fp64_tool_host_mantissa_bits;))
+}
+
+[[maybe_unused]] static _CCCL_HOST_DEVICE int __fp64_tool_exponent_bits() noexcept
+{
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return __fp64_tool_device_exponent_bits;), (return __fp64_tool_host_exponent_bits;))
+}
+
 // Device-side setter (can be called from __device__ or __global__ functions)
 // Only thread 0 in block 0 sets the value to avoid race conditions
-#  if defined(__CUDACC__)
+#  if _CCCL_CUDA_COMPILATION()
 [[maybe_unused]] __device__ static void __fp64_tool_set_device_mantissa_size(int __new_size)
 {
   if (threadIdx.x == 0 && blockIdx.x == 0)
@@ -285,32 +299,24 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 #  endif
 
 // Device setter - works on both host and device
-#  if defined(__CUDA_ARCH__) || defined(__CUDACC__)
+#  if _CCCL_CUDA_COMPILATION()
 [[maybe_unused]] static _CCCL_HOST_DEVICE void fp64_tool_set_device_mantissa_size(int __new_size) noexcept
 {
-#    if defined(__CUDA_ARCH__)
-  // On device: call device function
-  __fp64_tool_set_device_mantissa_size(__new_size);
-#    elif defined(__CUDACC__)
-  // On host (CUDA compilation): use cudaMemcpyToSymbol
-  cudaMemcpyToSymbol(__fp64_tool_device_mantissa_bits, &__new_size, sizeof(int));
-#    endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fp64_tool_set_device_mantissa_size(__new_size);),
+                    (cudaMemcpyToSymbol(__fp64_tool_device_mantissa_bits, &__new_size, sizeof(int));))
 }
 
 [[maybe_unused]] static _CCCL_HOST_DEVICE void fp64_tool_set_device_exponent_size(int __new_size) noexcept
 {
-#    if defined(__CUDA_ARCH__)
-  // On device: call device function
-  __fp64_tool_set_device_exponent_size(__new_size);
-#    elif defined(__CUDACC__)
-  // On host (CUDA compilation): use cudaMemcpyToSymbol
-  cudaMemcpyToSymbol(__fp64_tool_device_exponent_bits, &__new_size, sizeof(int));
-#    endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fp64_tool_set_device_exponent_size(__new_size);),
+                    (cudaMemcpyToSymbol(__fp64_tool_device_exponent_bits, &__new_size, sizeof(int));))
 }
 #  endif
 
 // Host setter - works on host only
-#  if !defined(__CUDACC__)
+#  if !_CCCL_CUDA_COMPILATION()
 [[maybe_unused]] static _CCCL_HOST void fp64_tool_set_host_mantissa_size(int __new_size) noexcept
 {
   // On host (non-CUDA): direct assignment
@@ -361,11 +367,7 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64& __v) noexcept
   {
 /* Get the exponent bits for the device or host */
 #      if _CCCL_FP64_TOOL_RUNTIME_SIZE
-#        if defined(__CUDA_ARCH__)
-    _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_device_exponent_bits;
-#        else
-    _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_host_exponent_bits;
-#        endif
+    _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_exponent_bits();
 #      else
     _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
 #      endif
@@ -417,11 +419,7 @@ _CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64& __v) noexcept
 #  if defined(_CCCL_FP64_TOOL_REDUCE_MANTISSA)
 /* Get the mantissa bits for the device or host */
 #    if _CCCL_FP64_TOOL_RUNTIME_SIZE
-#      if defined(__CUDA_ARCH__)
-  _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_device_mantissa_bits;
-#      else
-  _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_host_mantissa_bits;
-#      endif
+  _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_mantissa_bits();
 #    else
   _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
 #    endif
@@ -621,13 +619,12 @@ public:
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
-#if defined(__CUDA_ARCH__)
-    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
-      __dadd_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
-#else
-    fpbits64 __r =
-      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) + ::cuda::std::bit_cast<double>(__b));
-#endif
+    fpbits64 __r{};
+    NV_IF_ELSE_TARGET(
+      NV_IS_DEVICE,
+      (__r = ::cuda::std::bit_cast<fpbits64>(
+         __dadd_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+      (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) + ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
   }
@@ -638,13 +635,12 @@ public:
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
-#if defined(__CUDA_ARCH__)
-    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
-      __dsub_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
-#else
-    fpbits64 __r =
-      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) - ::cuda::std::bit_cast<double>(__b));
-#endif
+    fpbits64 __r{};
+    NV_IF_ELSE_TARGET(
+      NV_IS_DEVICE,
+      (__r = ::cuda::std::bit_cast<fpbits64>(
+         __dsub_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+      (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) - ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
   }
@@ -655,13 +651,12 @@ public:
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
-#if defined(__CUDA_ARCH__)
-    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
-      __dmul_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
-#else
-    fpbits64 __r =
-      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) * ::cuda::std::bit_cast<double>(__b));
-#endif
+    fpbits64 __r{};
+    NV_IF_ELSE_TARGET(
+      NV_IS_DEVICE,
+      (__r = ::cuda::std::bit_cast<fpbits64>(
+         __dmul_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+      (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) * ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
   }
@@ -672,13 +667,12 @@ public:
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
     _CCCL_FP64_TOOL_CALLBACK(__b);
-#if defined(__CUDA_ARCH__)
-    fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
-      __ddiv_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));
-#else
-    fpbits64 __r =
-      ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) / ::cuda::std::bit_cast<double>(__b));
-#endif
+    fpbits64 __r{};
+    NV_IF_ELSE_TARGET(
+      NV_IS_DEVICE,
+      (__r = ::cuda::std::bit_cast<fpbits64>(
+         __ddiv_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+      (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) / ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
   }
@@ -815,11 +809,10 @@ _CCCL_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
 {
   fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
   _CCCL_FP64_TOOL_CALLBACK(__a);
-#if defined(__CUDA_ARCH__)
-  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(__dsqrt_rn(::cuda::std::bit_cast<double>(__a)));
-#else
-  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(::sqrt(::cuda::std::bit_cast<double>(__a)));
-#endif
+  fpbits64 __r{};
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__r = ::cuda::std::bit_cast<fpbits64>(__dsqrt_rn(::cuda::std::bit_cast<double>(__a)));),
+                    (__r = ::cuda::std::bit_cast<fpbits64>(::sqrt(::cuda::std::bit_cast<double>(__a)));))
   _CCCL_FP64_TOOL_CALLBACK(__r);
   return fp64_tool(fpbits64_raw, __r);
 }
@@ -842,13 +835,13 @@ _CCCL_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const
   _CCCL_FP64_TOOL_CALLBACK(__a);
   _CCCL_FP64_TOOL_CALLBACK(__b);
   _CCCL_FP64_TOOL_CALLBACK(__c);
-#if defined(__CUDA_ARCH__)
-  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(__fma_rn(
-    ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));
-#else
-  fpbits64 __r = ::cuda::std::bit_cast<fpbits64>(
-    ::fma(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));
-#endif
+  fpbits64 __r{};
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__r = ::cuda::std::bit_cast<fpbits64>(__fma_rn(
+       ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));),
+    (__r = ::cuda::std::bit_cast<fpbits64>(::fma(
+       ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));))
   _CCCL_FP64_TOOL_CALLBACK(__r);
   return fp64_tool(fpbits64_raw, __r);
 }

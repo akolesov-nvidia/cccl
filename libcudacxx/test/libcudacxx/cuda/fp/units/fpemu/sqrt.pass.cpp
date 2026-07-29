@@ -20,9 +20,11 @@
 #include <cuda/std/cmath>
 #include <cuda/std/cstdint>
 
-#if !defined(__CUDA_ARCH__)
+#if _CCCL_HOST_COMPILATION()
 #  include <cfenv>
 #endif
+
+#include <nv/target>
 
 #include "test_macros.h"
 
@@ -57,54 +59,54 @@ _CCCL_HOST_DEVICE bool match(uint64_t got, uint64_t ref)
 }
 
 // Reference: CUDA __dsqrt_* intrinsics on device, fenv-directed sqrt on host.
-_CCCL_HOST_DEVICE uint64_t ref_one(double a, int mode)
-{
-#if defined(__CUDA_ARCH__)
-  double r;
-  switch (mode)
-  {
-    case M_RZ:
-      r = __dsqrt_rz(a);
-      break;
-    case M_RU:
-      r = __dsqrt_ru(a);
-      break;
-    case M_RD:
-      r = __dsqrt_rd(a);
-      break;
-    default:
-      r = __dsqrt_rn(a);
-      break; // M_RN
-  }
-  return d_bits(r);
-#else
-  int old = fegetround();
-  int fe;
-  switch (mode)
-  {
-    case M_RZ:
-      fe = FE_TOWARDZERO;
-      break;
-    case M_RU:
-      fe = FE_UPWARD;
-      break;
-    case M_RD:
-      fe = FE_DOWNWARD;
-      break;
-    default:
-      fe = FE_TONEAREST;
-      break; // M_RN
-  }
-  fesetround(fe);
-  // volatile forces the sqrtsd to execute (in memory) between the fesetround
-  // calls and prevents compile-time constant folding under the wrong mode.
-  volatile double va = a;
-  volatile double r  = ::sqrt(va);
-  double rr          = r;
-  fesetround(old);
-  return d_bits(rr);
-#endif
-}
+_CCCL_HOST_DEVICE uint64_t ref_one(double a, int mode){NV_IF_ELSE_TARGET(
+  NV_IS_DEVICE,
+  ({
+    double r;
+    switch (mode)
+    {
+      case M_RZ:
+        r = __dsqrt_rz(a);
+        break;
+      case M_RU:
+        r = __dsqrt_ru(a);
+        break;
+      case M_RD:
+        r = __dsqrt_rd(a);
+        break;
+      default:
+        r = __dsqrt_rn(a);
+        break; // M_RN
+    }
+    return d_bits(r);
+  }),
+  ({
+    int old = fegetround();
+    int fe;
+    switch (mode)
+    {
+      case M_RZ:
+        fe = FE_TOWARDZERO;
+        break;
+      case M_RU:
+        fe = FE_UPWARD;
+        break;
+      case M_RD:
+        fe = FE_DOWNWARD;
+        break;
+      default:
+        fe = FE_TONEAREST;
+        break; // M_RN
+    }
+    fesetround(fe);
+    // volatile forces the sqrtsd to execute (in memory) between the fesetround
+    // calls and prevents compile-time constant folding under the wrong mode.
+    volatile double va = a;
+    volatile double r  = ::sqrt(va);
+    double rr          = r;
+    fesetround(old);
+    return d_bits(rr);
+  }))}
 
 // Compare every sqrt surface for one value against the reference on the same
 // target. Returns true if all match.

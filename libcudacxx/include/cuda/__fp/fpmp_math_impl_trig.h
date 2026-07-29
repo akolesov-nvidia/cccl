@@ -33,6 +33,9 @@
 #include <cuda/__fp/fpmp_math_impl.h>
 // Sibling families whose kernels this family calls (exp10 is used by trig).
 #include <cuda/__fp/fpmp_math_impl_exp.h>
+#include <cuda/std/__bit/countl.h> // countl_zero for the Payne-Hanek normalization
+
+#include <nv/target>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -157,23 +160,15 @@ template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpType* __r_hi, _FpType* __r_lo) noexcept
 {
-/* Normalize: shift so MSB of hi is 1.
- * Handle hi == 0 separately to avoid shift-by-32 UB.
- */
-#  ifdef __CUDA_ARCH__
-  uint32_t __lz = __clz((int) __hi);
-#  else
-  uint32_t __lz = (__hi == 0U) ? 32U : (uint32_t) __builtin_clz(__hi);
-#  endif
+  /* Normalize: shift so MSB of hi is 1.
+   * countl_zero is well defined for 0 (it yields 32), unlike __builtin_clz, and lowers
+   * to the clz instruction on device.
+   */
+  uint32_t __lz = (uint32_t) ::cuda::std::countl_zero(__hi);
 
   if (__lz >= 32U)
   {
-    __lz += (__lo == 0U) ? 0U :
-#  ifdef __CUDA_ARCH__
-                         (uint32_t) __clz((int) __lo);
-#  else
-                         (uint32_t) __builtin_clz(__lo);
-#  endif
+    __lz += (__lo == 0U) ? 0U : (uint32_t) ::cuda::std::countl_zero(__lo);
     __hi             = __lo;
     __lo             = 0U;
     uint32_t __shift = __lz - 32U;
@@ -224,11 +219,7 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
     return;
   }
 
-#  ifdef __CUDA_ARCH__
-  uint32_t __rlz = __clz((int) __rem);
-#  else
-  uint32_t __rlz = (uint32_t) __builtin_clz(__rem);
-#  endif
+  uint32_t __rlz = (uint32_t) ::cuda::std::countl_zero(__rem);
 
   uint32_t __rem_norm = (__rlz > 0U) ? ((__rem << __rlz) | (__rem_extra >> (32U - __rlz))) : __rem;
 
@@ -1072,11 +1063,8 @@ __fpmp2_sinpi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 {
   using mp2_t = fpmp2<_FpType>;
   double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::sinpi(__xd);
-#  else
-  double __r = ::sin(__xd * 3.14159265358979323846);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::sinpi(__xd);), (__r = ::sin(__xd * 3.14159265358979323846);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1088,11 +1076,8 @@ __fpmp2_cospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 {
   using mp2_t = fpmp2<_FpType>;
   double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::cospi(__xd);
-#  else
-  double __r = ::cos(__xd * 3.14159265358979323846);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::cospi(__xd);), (__r = ::cos(__xd * 3.14159265358979323846);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1111,13 +1096,11 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincospi(
   double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
   double __sd;
   double __cd;
-#  if defined(__CUDA_ARCH__)
-  ::sincospi(__xd, &__sd, &__cd);
-#  else
-  double __xpi = __xd * 3.14159265358979323846;
-  __sd         = ::sin(__xpi);
-  __cd         = ::cos(__xpi);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (::sincospi(__xd, &__sd, &__cd);), ({
+                      double __xpi = __xd * 3.14159265358979323846;
+                      __sd         = ::sin(__xpi);
+                      __cd         = ::cos(__xpi);
+                    }))
   mp2_t __s(__sd), __c(__cd);
   *__sin_hi = __s.hi();
   *__sin_lo = __s.lo();
@@ -1196,22 +1179,18 @@ _CCCL_API inline void
 __fpmp2_sinpi<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::sinpi(__xd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(::sin(__xd * 3.14159265358979323846), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::sinpi(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::sin(__xd * 3.14159265358979323846), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_cospi<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::cospi(__xd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(::cos(__xd * 3.14159265358979323846), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::cospi(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::cos(__xd * 3.14159265358979323846), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void __fpmp2_sincospi<double>(
@@ -1223,17 +1202,20 @@ _CCCL_API inline void __fpmp2_sincospi<double>(
   double* __cos_lo) noexcept
 {
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-#  if defined(__CUDA_ARCH__)
-  double __sd;
-  double __cd;
-  ::sincospi(__xd, &__sd, &__cd);
-  __fpmp2_from_double(__sd, __sin_hi, __sin_lo);
-  __fpmp2_from_double(__cd, __cos_hi, __cos_lo);
-#  else
-  double __xpi = __xd * 3.14159265358979323846;
-  __fpmp2_from_double(::sin(__xpi), __sin_hi, __sin_lo);
-  __fpmp2_from_double(::cos(__xpi), __cos_hi, __cos_lo);
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    ({
+      double __sd;
+      double __cd;
+      ::sincospi(__xd, &__sd, &__cd);
+      __fpmp2_from_double(__sd, __sin_hi, __sin_lo);
+      __fpmp2_from_double(__cd, __cos_hi, __cos_lo);
+    }),
+    ({
+      double __xpi = __xd * 3.14159265358979323846;
+      __fpmp2_from_double(::sin(__xpi), __sin_hi, __sin_lo);
+      __fpmp2_from_double(::cos(__xpi), __cos_hi, __cos_lo);
+    }))
 }
 
 #endif // _CCCL_FPMP_USE_LIB

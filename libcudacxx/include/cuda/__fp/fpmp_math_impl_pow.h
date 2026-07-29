@@ -34,6 +34,8 @@
 // Sibling families whose kernels this family calls (exp/log are used by pow).
 #include <cuda/__fp/fpmp_math_impl_exp.h>
 
+#include <nv/target>
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -508,11 +510,9 @@ _CCCL_FPMP_CORE_API void __fpmp2_norm3d(
   double __ad = static_cast<double>(mp2_t(__a_hi, __a_lo));
   double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
   double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::norm3d(__ad, __bd, __cd);
-#  else
-  double __r = ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__r = ::norm3d(__ad, __bd, __cd);), (__r = ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -536,11 +536,10 @@ _CCCL_FPMP_CORE_API void __fpmp2_norm4d(
   double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
   double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
   double __dd = static_cast<double>(mp2_t(__d_hi, __d_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::norm4d(__ad, __bd, __cd, __dd);
-#  else
-  double __r = ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__r = ::norm4d(__ad, __bd, __cd, __dd);),
+                    (__r = ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -561,11 +560,9 @@ _CCCL_FPMP_CORE_API void __fpmp2_rnorm3d(
   double __ad = static_cast<double>(mp2_t(__a_hi, __a_lo));
   double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
   double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::rnorm3d(__ad, __bd, __cd);
-#  else
-  double __r = 1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__r = ::rnorm3d(__ad, __bd, __cd);), (__r = 1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -589,11 +586,10 @@ _CCCL_FPMP_CORE_API void __fpmp2_rnorm4d(
   double __bd = static_cast<double>(mp2_t(__b_hi, __b_lo));
   double __cd = static_cast<double>(mp2_t(__c_hi, __c_lo));
   double __dd = static_cast<double>(mp2_t(__d_hi, __d_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::rnorm4d(__ad, __bd, __cd, __dd);
-#  else
-  double __r = 1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__r = ::rnorm4d(__ad, __bd, __cd, __dd);),
+                    (__r = 1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -609,11 +605,11 @@ _CCCL_FPMP_CORE_API void __fpmp2_rhypot(
   _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::rhypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));
-#  else
-  double __r = 1.0 / ::hypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__r = ::rhypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));),
+    (__r = 1.0 / ::hypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -662,24 +658,21 @@ _CCCL_API inline void __fpmp2_rhypot<double>(
   double* __res_hi,
   double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(
-    ::rhypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(
-    1.0 / ::hypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__fpmp2_from_double(
+       ::rhypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);),
+    (__fpmp2_from_double(
+       1.0 / ::hypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_rcbrt<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::rcbrt(__xd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(1.0 / ::cbrt(__xd), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::rcbrt(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(1.0 / ::cbrt(__xd), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void __fpmp2_norm3d<double>(
@@ -694,11 +687,9 @@ _CCCL_API inline void __fpmp2_norm3d<double>(
 {
   double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
          __cd = __fpmp2_to_double(__c_hi, __c_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::norm3d(__ad, __bd, __cd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::norm3d(__ad, __bd, __cd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void __fpmp2_norm4d<double>(
@@ -715,11 +706,10 @@ _CCCL_API inline void __fpmp2_norm4d<double>(
 {
   double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
          __cd = __fpmp2_to_double(__c_hi, __c_lo), __dd = __fpmp2_to_double(__d_hi, __d_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::norm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__fpmp2_from_double(::norm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);),
+    (__fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void __fpmp2_rnorm3d<double>(
@@ -734,11 +724,9 @@ _CCCL_API inline void __fpmp2_rnorm3d<double>(
 {
   double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
          __cd = __fpmp2_to_double(__c_hi, __c_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::rnorm3d(__ad, __bd, __cd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::rnorm3d(__ad, __bd, __cd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void __fpmp2_rnorm4d<double>(
@@ -755,11 +743,10 @@ _CCCL_API inline void __fpmp2_rnorm4d<double>(
 {
   double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
          __cd = __fpmp2_to_double(__c_hi, __c_lo), __dd = __fpmp2_to_double(__d_hi, __d_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::rnorm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__fpmp2_from_double(::rnorm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);),
+    (__fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);))
 }
 
 #endif // _CCCL_FPMP_USE_LIB

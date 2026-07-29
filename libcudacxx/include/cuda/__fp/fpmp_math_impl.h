@@ -119,9 +119,7 @@ __fpmp_poly_horner_mixed(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpTyp
   {
     // Pure ff Horner -- no FpType phase.
     ff_t __v = __c[_Np - 1];
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+    _CCCL_PRAGMA_UNROLL_FULL()
     for (int __k = _Np - 2; __k >= 0; --__k)
     {
       __v = __v * __x + __c[__k];
@@ -133,9 +131,7 @@ __fpmp_poly_horner_mixed(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpTyp
     // FpType phase: M iterations consuming c[N-1] ... c[N-M].
     const _FpType __xh = __x.hi();
     _FpType __v_f      = __c[_Np - 1].hi();
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+    _CCCL_PRAGMA_UNROLL_FULL()
     for (int __k = _Np - 2; __k >= _Np - _Mp; --__k)
     {
       __v_f = __v_f * __xh + __c[__k].hi();
@@ -152,9 +148,7 @@ __fpmp_poly_horner_mixed(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpTyp
       // (the mixed-type operator+ promotes the FpType product
       // to ff_t with .lo() == 0 before adding c[N-M-1].)
       ff_t __v = __v_f * __xh + __c[_Np - _Mp - 1];
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+      _CCCL_PRAGMA_UNROLL_FULL()
       for (int __k = _Np - _Mp - 2; __k >= 0; --__k)
       {
         __v = __v * __x + __c[__k];
@@ -239,9 +233,7 @@ __fpmp_poly_horner_comp(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType
   _FpType __acc = __c[_Np - 1].hi();
   if constexpr (_Mp >= 2)
   {
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+    _CCCL_PRAGMA_UNROLL_FULL()
     for (int __k = _Np - 2; __k >= _Np - _Mp; --__k)
     {
       __acc = __acc * __xh + __c[__k].hi();
@@ -256,9 +248,7 @@ __fpmp_poly_horner_comp(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType
     // starts at c[N-2]; for M >= 1 Phase 0 handled c[N-1]..c[N-M],
     // so compensated loop starts at c[N-M-1].
     constexpr int __comp_start = (_Mp == 0) ? (_Np - 2) : (_Np - _Mp - 1);
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+    _CCCL_PRAGMA_UNROLL_FULL()
     for (int __k = __comp_start; __k >= 0; --__k)
     {
       const _FpType __ckh = __c[__k].hi();
@@ -287,9 +277,7 @@ __fpmp_poly_horner_comp(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType
     // For M == 0 we visit all N coefficients (k = N-1 .. 0);
     // for M >= 1 we skip the top M (their .lo() == 0 by contract).
     constexpr int __lo_start = (_Mp == 0) ? (_Np - 1) : (_Np - _Mp - 1);
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+    _CCCL_PRAGMA_UNROLL_FULL()
     for (int __k = __lo_start; __k >= 0; --__k)
     {
       __corr = __fpmp_fma_rn(__xh, __corr, __c[__k].lo());
@@ -298,9 +286,7 @@ __fpmp_poly_horner_comp(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType
 
   // === Phase 2b: x.lo * p'(x.hi)  (full derivative, all N-1 terms) ===
   _FpType __dp = static_cast<_FpType>(0);
-#  if defined(__CUDA_ARCH__)
-#    pragma unroll
-#  endif
+  _CCCL_PRAGMA_UNROLL_FULL()
   for (int __k = _Np - 1; __k >= 1; --__k)
   {
     __dp = __fpmp_fma_rn(__xh, __dp, __fpmp_mul_rn(static_cast<_FpType>(__k), __c[__k].hi()));
@@ -495,7 +481,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
 
 #  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
 
-#    if defined(__CUDA_ARCH__) && (defined(__aarch64__) || defined(_M_ARM64))         \
+#    if _CCCL_DEVICE_COMPILATION() && (defined(__aarch64__) || defined(_M_ARM64))     \
       && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS)                                    \
       && !(defined(__GNUC__) && !defined(__clang__) && !defined(__NVCOMPILER_MAJOR__) \
            && ((__GNUC__ > 13) || (__GNUC__ == 13 && __GNUC_MINOR__ >= 1)))           \
@@ -503,9 +489,9 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
 #      define _CCCL_FLOAT128_CPP_SPELLING_ENABLED
 #    endif
 } // namespace cuda::experimental
-#    if defined(__CUDA_ARCH__)
+#    if _CCCL_DEVICE_COMPILATION()
   // CUDA device
-#      include "crt/device_fp128_functions.h"
+#      include <crt/device_fp128_functions.h>
 #    elif (_CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH == 1)
   // x86 host: libquadmath
 #      include <quadmath.h>
@@ -525,7 +511,7 @@ namespace cuda::experimental
 // function that has one; the five without a native intrinsic (cbrt,
 // atan2, erf, erfc, nearbyint) widen through double.
 // ----------------------------------------------------------------------
-#    if defined(__CUDA_ARCH__) && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) \
+#    if _CCCL_DEVICE_COMPILATION() && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) \
       && (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))
 #      define _CCCL_FPMP_EXPQ(x)          __nv_fp128_exp(x)
 #      define _CCCL_FPMP_EXP2Q(x)         __nv_fp128_exp2(x)
@@ -565,14 +551,14 @@ namespace cuda::experimental
 #      define _CCCL_FPMP_ERFCQ(x)     ((__fpmp_fp128) erfc((double) (x)))
 // ----------------------------------------------------------------------
 // Branch 2 -- HOST with libquadmath (the primary x86_64 host path).
-// Target: host compile (no __CUDA_ARCH__) where libquadmath is present
-// (typically x86_64 GCC distributions). Reference math uses the true
-// binary128 libquadmath entry points (the `*q` suffix); __fpmp_fp128 is
-// __float128 here. The explicit !defined(__CUDA_ARCH__) guard keeps the
-// device pass on an x86_64 host (where _CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH is
-// also 1) from matching this host-only branch.
+// Target: host compilation pass where libquadmath is present (typically
+// x86_64 GCC distributions). Reference math uses the true binary128
+// libquadmath entry points (the `*q` suffix); __fpmp_fp128 is __float128
+// here. The explicit _CCCL_HOST_COMPILATION() guard keeps the device pass on
+// an x86_64 host (where _CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH is also 1) from
+// matching this host-only branch.
 // ----------------------------------------------------------------------
-#    elif (_CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH == 1) && !defined(__CUDA_ARCH__)
+#    elif (_CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH == 1) && _CCCL_HOST_COMPILATION()
 #      define _CCCL_FPMP_EXPQ(x)          expq(x)
 #      define _CCCL_FPMP_EXP2Q(x)         exp2q(x)
 #      define _CCCL_FPMP_EXPM1Q(x)        expm1q(x)
@@ -611,13 +597,13 @@ namespace cuda::experimental
 // ----------------------------------------------------------------------
 // Branch 3 -- HOST, no libquadmath, 128-bit `long double`
 //             (the primary AArch64 / non-x86 host path).
-// Target: host compile (no __CUDA_ARCH__) on platforms whose C
-// `long double` is a true 128-bit type (IEEE binary128 on AArch64 /
-// PPC64LE, or 80-bit x87 extended on x86 without libquadmath) AND where
-// libquadmath is unavailable. Reference math uses the standard C
-// `long double` libm entry points (the `*l` suffix).
+// Target: host compilation pass on platforms whose C `long double` is a
+// true 128-bit type (IEEE binary128 on AArch64 / PPC64LE, or 80-bit x87
+// extended on x86 without libquadmath) AND where libquadmath is
+// unavailable. Reference math uses the standard C `long double` libm entry
+// points (the `*l` suffix).
 // ----------------------------------------------------------------------
-#    elif (_CCCL_FPMP_HOST_SUPPORTS_LDOUBLE128 == 1) && !defined(__CUDA_ARCH__) \
+#    elif (_CCCL_FPMP_HOST_SUPPORTS_LDOUBLE128 == 1) && _CCCL_HOST_COMPILATION() \
       && (_CCCL_FPMP_HOST_SUPPORTS_LIBQUADMATH == 0)
 #      define _CCCL_FPMP_EXPQ(x)          expl(x)
 #      define _CCCL_FPMP_EXP2Q(x)         exp2l(x)
@@ -670,7 +656,7 @@ namespace cuda::experimental
 // to a double-precision computation widened back to __fpmp_fp128 (i.e. the
 // reference is effectively fp64-accurate on this target).
 // ----------------------------------------------------------------------
-#    elif defined(__CUDA_ARCH__)
+#    elif _CCCL_DEVICE_COMPILATION()
 #      define _CCCL_FPMP_EXPQ(x)          ((__fpmp_fp128) exp((double) (x)))
 #      define _CCCL_FPMP_EXP2Q(x)         ((__fpmp_fp128) exp2((double) (x)))
 #      define _CCCL_FPMP_EXP10Q(x)        ((__fpmp_fp128) exp10((double) (x)))

@@ -32,6 +32,8 @@
 
 #include <cuda/__fp/fpmp_math_impl.h>
 
+#include <nv/target>
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -1106,11 +1108,9 @@ __fpmp2_exp10<double>(const double __x_hi, const double __x_lo, double* __res_hi
   /* fp64 fallback: libm has no portable `exp10`; synthesize via
    * pow(10, x).  CUDA device has the intrinsic, prefer it. */
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-#    if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::exp10(__xd), __res_hi, __res_lo);
-#    else
-  __fpmp2_from_double(::pow(10.0, __xd), __res_hi, __res_lo);
-#    endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::exp10(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::pow(10.0, __xd), __res_hi, __res_lo);))
 #  endif
 }
 

@@ -25,6 +25,8 @@
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
 
+#include <nv/target>
+
 #include "test_macros.h"
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
@@ -100,116 +102,116 @@ _CCCL_HOST_DEVICE double ref_round_even(double d)
 }
 
 // Reference: CUDA intrinsics on device, portable saturating math on host.
-_CCCL_HOST_DEVICE uint64_t ref_one(double d, int type, int mode)
-{
-#if defined(__CUDA_ARCH__)
-  switch (type * 4 + mode)
-  {
-    case T_I32 * 4 + M_RN:
-      return enc_i32(__double2int_rn(d));
-    case T_I32 * 4 + M_RZ:
-      return enc_i32(__double2int_rz(d));
-    case T_I32 * 4 + M_RU:
-      return enc_i32(__double2int_ru(d));
-    case T_I32 * 4 + M_RD:
-      return enc_i32(__double2int_rd(d));
-    case T_U32 * 4 + M_RN:
-      return enc_u32(__double2uint_rn(d));
-    case T_U32 * 4 + M_RZ:
-      return enc_u32(__double2uint_rz(d));
-    case T_U32 * 4 + M_RU:
-      return enc_u32(__double2uint_ru(d));
-    case T_U32 * 4 + M_RD:
-      return enc_u32(__double2uint_rd(d));
-    case T_I64 * 4 + M_RN:
-      return enc_i64(__double2ll_rn(d));
-    case T_I64 * 4 + M_RZ:
-      return enc_i64(__double2ll_rz(d));
-    case T_I64 * 4 + M_RU:
-      return enc_i64(__double2ll_ru(d));
-    case T_I64 * 4 + M_RD:
-      return enc_i64(__double2ll_rd(d));
-    case T_U64 * 4 + M_RN:
-      return enc_u64(__double2ull_rn(d));
-    case T_U64 * 4 + M_RZ:
-      return enc_u64(__double2ull_rz(d));
-    case T_U64 * 4 + M_RU:
-      return enc_u64(__double2ull_ru(d));
-    case T_U64 * 4 + M_RD:
-      return enc_u64(__double2ull_rd(d));
-    default:
-      break;
-  }
-  return 0;
-#else
-  // NaN -> integer indefinite (sign bit only), per CUDA hardware.
-  if (cuda::std::isnan(d))
-  {
-    return (type <= T_U32) ? UINT64_C(0x0000000080000000) : UINT64_C(0x8000000000000000);
-  }
+_CCCL_HOST_DEVICE uint64_t ref_one(double d, int type, int mode){NV_IF_ELSE_TARGET(
+  NV_IS_DEVICE,
+  ({
+    switch (type * 4 + mode)
+    {
+      case T_I32 * 4 + M_RN:
+        return enc_i32(__double2int_rn(d));
+      case T_I32 * 4 + M_RZ:
+        return enc_i32(__double2int_rz(d));
+      case T_I32 * 4 + M_RU:
+        return enc_i32(__double2int_ru(d));
+      case T_I32 * 4 + M_RD:
+        return enc_i32(__double2int_rd(d));
+      case T_U32 * 4 + M_RN:
+        return enc_u32(__double2uint_rn(d));
+      case T_U32 * 4 + M_RZ:
+        return enc_u32(__double2uint_rz(d));
+      case T_U32 * 4 + M_RU:
+        return enc_u32(__double2uint_ru(d));
+      case T_U32 * 4 + M_RD:
+        return enc_u32(__double2uint_rd(d));
+      case T_I64 * 4 + M_RN:
+        return enc_i64(__double2ll_rn(d));
+      case T_I64 * 4 + M_RZ:
+        return enc_i64(__double2ll_rz(d));
+      case T_I64 * 4 + M_RU:
+        return enc_i64(__double2ll_ru(d));
+      case T_I64 * 4 + M_RD:
+        return enc_i64(__double2ll_rd(d));
+      case T_U64 * 4 + M_RN:
+        return enc_u64(__double2ull_rn(d));
+      case T_U64 * 4 + M_RZ:
+        return enc_u64(__double2ull_rz(d));
+      case T_U64 * 4 + M_RU:
+        return enc_u64(__double2ull_ru(d));
+      case T_U64 * 4 + M_RD:
+        return enc_u64(__double2ull_rd(d));
+      default:
+        break;
+    }
+    return 0;
+  }),
+  ({
+    // NaN -> integer indefinite (sign bit only), per CUDA hardware.
+    if (cuda::std::isnan(d))
+    {
+      return (type <= T_U32) ? UINT64_C(0x0000000080000000) : UINT64_C(0x8000000000000000);
+    }
 
-  double r;
-  switch (mode)
-  {
-    case M_RN:
-      r = ref_round_even(d);
-      break;
-    case M_RZ:
-      r = cuda::std::trunc(d);
-      break;
-    case M_RU:
-      r = cuda::std::ceil(d);
-      break;
-    default:
-      r = cuda::std::floor(d);
-      break; // M_RD
-  }
+    double r;
+    switch (mode)
+    {
+      case M_RN:
+        r = ref_round_even(d);
+        break;
+      case M_RZ:
+        r = cuda::std::trunc(d);
+        break;
+      case M_RU:
+        r = cuda::std::ceil(d);
+        break;
+      default:
+        r = cuda::std::floor(d);
+        break; // M_RD
+    }
 
-  switch (type)
-  {
-    case T_I32:
-      if (r >= 2147483648.0)
-      {
-        return enc_i32(INT32_MAX);
-      }
-      if (r <= -2147483648.0)
-      {
-        return enc_i32(INT32_MIN);
-      }
-      return enc_i32((int32_t) r);
-    case T_U32:
-      if (r < 0.0)
-      {
-        return enc_u32(0);
-      }
-      if (r >= 4294967296.0)
-      {
-        return enc_u32(UINT32_MAX);
-      }
-      return enc_u32((uint32_t) r);
-    case T_I64:
-      if (r >= 9223372036854775808.0)
-      {
-        return enc_i64(INT64_MAX);
-      }
-      if (r <= -9223372036854775808.0)
-      {
-        return enc_i64(INT64_MIN);
-      }
-      return enc_i64((int64_t) r);
-    default: // T_U64
-      if (r < 0.0)
-      {
-        return enc_u64(0);
-      }
-      if (r >= 18446744073709551616.0)
-      {
-        return enc_u64(UINT64_MAX);
-      }
-      return enc_u64((uint64_t) r);
-  }
-#endif // __CUDA_ARCH__
-}
+    switch (type)
+    {
+      case T_I32:
+        if (r >= 2147483648.0)
+        {
+          return enc_i32(INT32_MAX);
+        }
+        if (r <= -2147483648.0)
+        {
+          return enc_i32(INT32_MIN);
+        }
+        return enc_i32((int32_t) r);
+      case T_U32:
+        if (r < 0.0)
+        {
+          return enc_u32(0);
+        }
+        if (r >= 4294967296.0)
+        {
+          return enc_u32(UINT32_MAX);
+        }
+        return enc_u32((uint32_t) r);
+      case T_I64:
+        if (r >= 9223372036854775808.0)
+        {
+          return enc_i64(INT64_MAX);
+        }
+        if (r <= -9223372036854775808.0)
+        {
+          return enc_i64(INT64_MIN);
+        }
+        return enc_i64((int64_t) r);
+      default: // T_U64
+        if (r < 0.0)
+        {
+          return enc_u64(0);
+        }
+        if (r >= 18446744073709551616.0)
+        {
+          return enc_u64(UINT64_MAX);
+        }
+        return enc_u64((uint64_t) r);
+    }
+  }))}
 
 // Compare every emulation surface for one value against the reference computed on
 // the same target. Returns true if all conversions match.

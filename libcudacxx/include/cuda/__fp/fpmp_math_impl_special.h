@@ -36,6 +36,8 @@
 #include <cuda/__fp/fpmp_math_impl_manip.h>
 #include <cuda/__fp/fpmp_math_impl_pow.h>
 
+#include <nv/target>
+
 #include <cuda/std/__cccl/prologue.h>
 
 namespace cuda::experimental
@@ -940,14 +942,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_j0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::j0(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "j0: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::j0(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "j0: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -958,14 +958,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_j1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::j1(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "j1: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::j1(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "j1: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -976,14 +974,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_y0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::y0(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "y0: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::y0(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "y0: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -994,14 +990,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_y1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::y1(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "y1: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::y1(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "y1: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1013,14 +1007,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_cyl_bessel_i0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::cyl_bessel_i0(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "cyl_bessel_i0: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::cyl_bessel_i0(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "cyl_bessel_i0: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1031,14 +1023,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_cyl_bessel_i1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::cyl_bessel_i1(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "cyl_bessel_i1: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::cyl_bessel_i1(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "cyl_bessel_i1: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1050,15 +1040,13 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_jn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::jn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __n;
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "jn: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::jn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __n;
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "jn: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1069,15 +1057,13 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_yn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::yn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __n;
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "yn: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::yn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __n;
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "yn: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1089,11 +1075,8 @@ __fpmp2_normcdf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _
 {
   using mp2_t = fpmp2<_FpType>;
   double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
-#  if defined(__CUDA_ARCH__)
-  double __r = ::normcdf(__xd);
-#  else
-  double __r = 0.5 * ::erfc(-__xd * 0.70710678118654752440);
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::normcdf(__xd);), (__r = 0.5 * ::erfc(-__xd * 0.70710678118654752440);))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1107,14 +1090,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_erfcinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::erfcinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "erfcinv: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::erfcinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "erfcinv: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1125,14 +1106,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_erfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::erfinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "erfinv: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::erfinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "erfinv: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1143,14 +1122,12 @@ _CCCL_FPMP_CORE_API void
 __fpmp2_erfcx(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   using mp2_t = fpmp2<_FpType>;
-#  if defined(__CUDA_ARCH__)
-  double __r = ::erfcx(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "erfcx: no host fallback, returning 0");
-  double __r = 0.0;
-#  endif
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::erfcx(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
+                      (void) __x_hi;
+                      (void) __x_lo;
+                      assert(0 && "erfcx: no host fallback, returning 0");
+                    }))
   mp2_t __result(__r);
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1190,18 +1167,21 @@ _CCCL_API inline void
 __fpmp2_normcdfinv<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __p = __fpmp2_to_double(__x_hi, __x_lo);
-#  if defined(__CUDA_ARCH__)
-  // Hardcoded value since M_SQRT2 is not guaranteed to be defined on all platforms
-  constexpr double __sqrt2_v = 1.41421356237309504880;
-  __fpmp2_from_double(-__sqrt2_v * ::erfcinv(2.0 * __p), __res_hi, __res_lo);
-#  else
-  // Not implemented yet: double precision normcdfinv fallback to float precision
-  float __f_hi;
-  float __f_lo;
-  __fpmp2_normcdfinv(static_cast<float>(__p), 0.0f, &__f_hi, &__f_lo);
-  *__res_hi = static_cast<double>(__f_hi) + static_cast<double>(__f_lo);
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    ({
+      // Hardcoded value since M_SQRT2 is not guaranteed to be defined on all platforms
+      constexpr double __sqrt2_v = 1.41421356237309504880;
+      __fpmp2_from_double(-__sqrt2_v * ::erfcinv(2.0 * __p), __res_hi, __res_lo);
+    }),
+    ({
+      // Not implemented yet: double precision normcdfinv fallback to float precision
+      float __f_hi;
+      float __f_lo;
+      __fpmp2_normcdfinv(static_cast<float>(__p), 0.0f, &__f_hi, &__f_lo);
+      *__res_hi = static_cast<double>(__f_hi) + static_cast<double>(__f_lo);
+      *__res_lo = 0.0;
+    }))
 }
 // __fpmp2_fabs<double>: handled by the type-agnostic primary template above (no double round-trip).
 template <>
@@ -1220,168 +1200,155 @@ template <>
 _CCCL_API inline void
 __fpmp2_j0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::j0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "j0: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::j0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "j0: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_j1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::j1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "j1: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::j1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "j1: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_y0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::y0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "y0: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::y0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "y0: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_y1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::y1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "y1: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::y1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "y1: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_cyl_bessel_i0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::cyl_bessel_i0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "cyl_bessel_i0: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::cyl_bessel_i0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "cyl_bessel_i0: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_cyl_bessel_i1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::cyl_bessel_i1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "cyl_bessel_i1: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::cyl_bessel_i1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "cyl_bessel_i1: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_jn<double>(int __n, const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::jn(__n, __fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __n;
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "jn: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::jn(__n, __fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __n;
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "jn: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_yn<double>(int __n, const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::yn(__n, __fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __n;
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "yn: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::yn(__n, __fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __n;
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "yn: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_normcdf<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::normcdf(__xd), __res_hi, __res_lo);
-#  else
-  __fpmp2_from_double(0.5 * ::erfc(-__xd * 0.70710678118654752440), __res_hi, __res_lo);
-#  endif
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::normcdf(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(0.5 * ::erfc(-__xd * 0.70710678118654752440), __res_hi, __res_lo);))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_erfcinv<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::erfcinv(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "erfcinv: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::erfcinv(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "erfcinv: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_erfinv<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::erfinv(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "erfinv: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::erfinv(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "erfinv: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 template <>
 _CCCL_API inline void
 __fpmp2_erfcx<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-#  if defined(__CUDA_ARCH__)
-  __fpmp2_from_double(::erfcx(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-#  else
-  (void) __x_hi;
-  (void) __x_lo;
-  assert(0 && "erfcx: no host fallback, returning 0");
-  *__res_hi = 0.0;
-  *__res_lo = 0.0;
-#  endif
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE, (__fpmp2_from_double(::erfcx(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
+      (void) __x_hi;
+      (void) __x_lo;
+      assert(0 && "erfcx: no host fallback, returning 0");
+      *__res_hi = 0.0;
+      *__res_lo = 0.0;
+    }))
 }
 
 #endif // _CCCL_FPMP_USE_LIB

@@ -19,9 +19,11 @@
 #include <cuda/std/cassert>
 #include <cuda/std/cstdint>
 
-#if !defined(__CUDA_ARCH__)
+#if _CCCL_HOST_COMPILATION()
 #  include <cfenv>
 #endif
+
+#include <nv/target>
 
 #include "test_macros.h"
 
@@ -56,54 +58,54 @@ _CCCL_HOST_DEVICE bool match(uint64_t got, uint64_t ref)
 }
 
 // Reference: CUDA __ddiv_* intrinsics on device, fenv-directed division on host.
-_CCCL_HOST_DEVICE uint64_t ref_one(double a, double b, int mode)
-{
-#if defined(__CUDA_ARCH__)
-  double q;
-  switch (mode)
-  {
-    case M_RZ:
-      q = __ddiv_rz(a, b);
-      break;
-    case M_RU:
-      q = __ddiv_ru(a, b);
-      break;
-    case M_RD:
-      q = __ddiv_rd(a, b);
-      break;
-    default:
-      q = __ddiv_rn(a, b);
-      break; // M_RN
-  }
-  return d_bits(q);
-#else
-  int old = fegetround();
-  int fe;
-  switch (mode)
-  {
-    case M_RZ:
-      fe = FE_TOWARDZERO;
-      break;
-    case M_RU:
-      fe = FE_UPWARD;
-      break;
-    case M_RD:
-      fe = FE_DOWNWARD;
-      break;
-    default:
-      fe = FE_TONEAREST;
-      break; // M_RN
-  }
-  fesetround(fe);
-  // volatile forces the divsd to execute (in memory) between the fesetround
-  // calls and prevents compile-time constant folding under the wrong mode.
-  volatile double va = a, vb = b;
-  volatile double q = va / vb;
-  double r          = q;
-  fesetround(old);
-  return d_bits(r);
-#endif
-}
+_CCCL_HOST_DEVICE uint64_t ref_one(double a, double b, int mode){NV_IF_ELSE_TARGET(
+  NV_IS_DEVICE,
+  ({
+    double q;
+    switch (mode)
+    {
+      case M_RZ:
+        q = __ddiv_rz(a, b);
+        break;
+      case M_RU:
+        q = __ddiv_ru(a, b);
+        break;
+      case M_RD:
+        q = __ddiv_rd(a, b);
+        break;
+      default:
+        q = __ddiv_rn(a, b);
+        break; // M_RN
+    }
+    return d_bits(q);
+  }),
+  ({
+    int old = fegetround();
+    int fe;
+    switch (mode)
+    {
+      case M_RZ:
+        fe = FE_TOWARDZERO;
+        break;
+      case M_RU:
+        fe = FE_UPWARD;
+        break;
+      case M_RD:
+        fe = FE_DOWNWARD;
+        break;
+      default:
+        fe = FE_TONEAREST;
+        break; // M_RN
+    }
+    fesetround(fe);
+    // volatile forces the divsd to execute (in memory) between the fesetround
+    // calls and prevents compile-time constant folding under the wrong mode.
+    volatile double va = a, vb = b;
+    volatile double q = va / vb;
+    double r          = q;
+    fesetround(old);
+    return d_bits(r);
+  }))}
 
 // Compare every division surface for one pair against the reference on the same
 // target. Returns true if all match.
