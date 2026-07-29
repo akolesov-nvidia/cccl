@@ -16,6 +16,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// nvcc doesn't currently support _Float64 in device code.
+// UNSUPPORTED: nvcc
+
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
@@ -26,20 +29,18 @@
 
 using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-#if defined(__STDCPP_FLOAT64_T__) && (__STDCPP_FLOAT64_T__ == 1)
-
-// _Float64 is a distinct type here, yet fpemu<_Float64> must still be a valid,
-// trivially copyable emulated double that constructs from / converts to double.
-static_assert(!cuda::std::is_same_v<double, _Float64>, "expected _Float64 to be a distinct type in this mode");
-static_assert(cuda::std::is_trivially_copyable_v<fpemu<_Float64>>);
-static_assert(cuda::std::is_trivially_copyable_v<fpemu_unpacked<_Float64>>);
-static_assert(sizeof(fpemu<_Float64>) == sizeof(fpemu<double>));
-static_assert(cuda::std::is_constructible_v<fpemu<_Float64>, double>);
-static_assert(cuda::std::is_constructible_v<fpemu<_Float64>, int>);
-
-// fpemu<_Float64> yields the same 64-bit result as fpemu<double> for the same input.
 TEST_FUNC void test()
 {
+#if __STDCPP_FLOAT64_T__ == 1
+  // _Float64 is a distinct type here, yet fpemu<_Float64> must still be a valid,
+  // trivially copyable emulated double that constructs from / converts to double.
+  static_assert(!cuda::std::is_same_v<double, _Float64>, "expected _Float64 to be a distinct type in this mode");
+  static_assert(cuda::std::is_trivially_copyable_v<fpemu<_Float64>>);
+  static_assert(cuda::std::is_trivially_copyable_v<fpemu_unpacked<_Float64>>);
+  static_assert(sizeof(fpemu<_Float64>) == sizeof(fpemu<double>));
+  static_assert(cuda::std::is_constructible_v<fpemu<_Float64>, double>);
+  static_assert(cuda::std::is_constructible_v<fpemu<_Float64>, int>);
+
   const double vals[] = {0.0, 1.5, -3.25, 1234.5678, -9.999e12};
   for (double d : vals)
   {
@@ -49,15 +50,8 @@ TEST_FUNC void test()
     assert(cuda::std::bit_cast<uint64_t>((double) a) == cuda::std::bit_cast<uint64_t>((double) b));
     assert(cuda::std::bit_cast<uint64_t>((double) a) == cuda::std::bit_cast<uint64_t>(d));
   }
+#endif // __STDCPP_FLOAT64_T__ == 1
 }
-
-#else // ^^^ __STDCPP_FLOAT64_T__ ^^^ / vvv no distinct _Float64 vvv
-
-// _Float64 is unavailable or an alias for double in this language mode; the
-// fpemu<double> path already covers it. Nothing distinct to exercise.
-TEST_FUNC void test() {}
-
-#endif // __STDCPP_FLOAT64_T__
 
 int main(int, char**)
 {
