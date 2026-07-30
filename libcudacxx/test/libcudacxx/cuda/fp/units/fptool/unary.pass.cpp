@@ -1,0 +1,163 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+//===----------------------------------------------------------------------===//
+//
+//  Unit test: fp64_tool increment, decrement, negation and compound assignment.
+//
+//  Only += was reachable from the existing fptool test, so the rest of this
+//  surface was never instantiated. With the default mantissa width fp64_tool is
+//  a drop-in for double, so every result below is compared against the same
+//  expression in double and must match exactly.
+//
+//  Negation is a sign-bit flip on the stored bits rather than a subtraction,
+//  which is why it is also checked on zero and on a value whose mantissa the
+//  precision callback would truncate.
+//
+//===----------------------------------------------------------------------===//
+
+#include <cuda/fptool>
+#include <cuda/std/cassert>
+#include <cuda/std/cmath>
+
+#include "test_macros.h"
+
+using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+
+TEST_FUNC bool test_incdec()
+{
+  bool ok = true;
+
+  {
+    fp64_tool x(2.5);
+    fp64_tool ret = ++x;
+    ok            = ok && static_cast<double>(x) == 3.5; // side effect
+    ok            = ok && static_cast<double>(ret) == 3.5; // prefix returns the new value
+  }
+  {
+    fp64_tool x(2.5);
+    fp64_tool ret = --x;
+    ok            = ok && static_cast<double>(x) == 1.5;
+    ok            = ok && static_cast<double>(ret) == 1.5;
+  }
+  {
+    fp64_tool x(2.5);
+    fp64_tool ret = x++;
+    ok            = ok && static_cast<double>(x) == 3.5;
+    ok            = ok && static_cast<double>(ret) == 2.5; // postfix returns the old value
+  }
+  {
+    fp64_tool x(2.5);
+    fp64_tool ret = x--;
+    ok            = ok && static_cast<double>(x) == 1.5;
+    ok            = ok && static_cast<double>(ret) == 2.5;
+  }
+
+  // Prefix returns a reference to the object, not a copy.
+  {
+    fp64_tool x(2.5);
+    ++(++x);
+    ok = ok && static_cast<double>(x) == 4.5;
+  }
+
+  // Crossing zero and coming back.
+  {
+    fp64_tool x(0.5);
+    --x;
+    ok = ok && static_cast<double>(x) == -0.5;
+    --x;
+    ok = ok && static_cast<double>(x) == -1.5;
+    ++x;
+    ++x;
+    ok = ok && static_cast<double>(x) == 0.5;
+  }
+
+  return ok;
+}
+
+TEST_FUNC bool test_neg()
+{
+  bool ok = true;
+
+  const fp64_tool x(2.5);
+  ok = ok && static_cast<double>(-x) == -2.5;
+  ok = ok && static_cast<double>(-(-x)) == 2.5;
+  ok = ok && static_cast<double>(x) == 2.5; // operand untouched
+
+  const fp64_tool y(-4.0);
+  ok = ok && static_cast<double>(-y) == 4.0;
+
+  // A sign-bit flip, so it also has to work on zero and on a non-dyadic value.
+  ok = ok && ::cuda::std::signbit(static_cast<double>(-fp64_tool(0.0)));
+  ok = ok && !::cuda::std::signbit(static_cast<double>(-fp64_tool(-0.0)));
+
+  const fp64_tool z(0.1);
+  ok = ok && static_cast<double>(-z) == -static_cast<double>(z);
+  ok = ok && static_cast<double>(z + (-z)) == 0.0;
+
+  return ok;
+}
+
+TEST_FUNC bool test_compound()
+{
+  bool ok = true;
+
+  const double da = 6.25;
+  const double db = 1.5;
+
+  {
+    fp64_tool x(da);
+    x += fp64_tool(db);
+    ok = ok && static_cast<double>(x) == da + db;
+  }
+  {
+    fp64_tool x(da);
+    x -= fp64_tool(db);
+    ok = ok && static_cast<double>(x) == da - db;
+  }
+  {
+    fp64_tool x(da);
+    x *= fp64_tool(db);
+    ok = ok && static_cast<double>(x) == da * db;
+  }
+  {
+    fp64_tool x(da);
+    x /= fp64_tool(db);
+    ok = ok && static_cast<double>(x) == da / db;
+  }
+
+  // The returned reference must be the object itself.
+  {
+    fp64_tool x(1.0);
+    (x += fp64_tool(2.0)) += fp64_tool(4.0);
+    ok = ok && static_cast<double>(x) == 7.0;
+  }
+
+  // Accumulation must match double step for step.
+  {
+    fp64_tool x(0.0);
+    double ref = 0.0;
+    for (int i = 1; i <= 16; ++i)
+    {
+      x += fp64_tool(1.0 / static_cast<double>(i));
+      ref += 1.0 / static_cast<double>(i);
+    }
+    ok = ok && static_cast<double>(x) == ref;
+  }
+
+  return ok;
+}
+
+TEST_FUNC void test()
+{
+  assert(test_incdec());
+  assert(test_neg());
+  assert(test_compound());
+}
+
+int main(int, char**)
+{
+  test();
+
+  return 0;
+}
