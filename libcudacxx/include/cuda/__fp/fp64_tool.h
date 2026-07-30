@@ -607,6 +607,10 @@ public:
   //=========================================================================
   // Arithmetic Operators (with precision callbacks)
   //=========================================================================
+  //
+  // The CUDA intrinsics are called as ::__dadd_rn etc. because this class lives in
+  // cuda::experimental, where <cuda/fpemu> declares same-named overloads for its own
+  // types: unqualified lookup would stop there and never reach the global scope.
 
   //! @brief Addition with precision callbacks
   //!
@@ -623,7 +627,7 @@ public:
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
-         __dadd_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+         ::__dadd_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) + ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -639,7 +643,7 @@ public:
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
-         __dsub_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+         ::__dsub_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) - ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -655,7 +659,7 @@ public:
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
-         __dmul_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+         ::__dmul_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) * ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -671,7 +675,7 @@ public:
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
-         __ddiv_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
+         ::__ddiv_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) / ::cuda::std::bit_cast<double>(__b));))
     _CCCL_FP64_TOOL_CALLBACK(__r);
     return fp64_tool(fpbits64_raw, __r);
@@ -811,7 +815,7 @@ _CCCL_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
   _CCCL_FP64_TOOL_CALLBACK(__a);
   fpbits64 __r{};
   NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__r = ::cuda::std::bit_cast<fpbits64>(__dsqrt_rn(::cuda::std::bit_cast<double>(__a)));),
+                    (__r = ::cuda::std::bit_cast<fpbits64>(::__dsqrt_rn(::cuda::std::bit_cast<double>(__a)));),
                     (__r = ::cuda::std::bit_cast<fpbits64>(::sqrt(::cuda::std::bit_cast<double>(__a)));))
   _CCCL_FP64_TOOL_CALLBACK(__r);
   return fp64_tool(fpbits64_raw, __r);
@@ -838,7 +842,7 @@ _CCCL_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const
   fpbits64 __r{};
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE,
-    (__r = ::cuda::std::bit_cast<fpbits64>(__fma_rn(
+    (__r = ::cuda::std::bit_cast<fpbits64>(::__fma_rn(
        ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));),
     (__r = ::cuda::std::bit_cast<fpbits64>(::fma(
        ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));))
