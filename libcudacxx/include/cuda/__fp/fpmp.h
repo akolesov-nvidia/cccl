@@ -156,9 +156,13 @@
       migration benefit outweighs that risk.
     - _CCCL_FPMP_FP128_ENABLE: Automatically detected: the __float128 type where the compiler provides
       it, otherwise a 128-bit long double on platforms that have one (aarch64, s390x, PowerPC with IEEE
-      long double). Under CUDA it is device-only and limited to sm_100+; set it to 1 explicitly on a
-      toolchain that provides device fp128 on earlier architectures. Can be set to 0 to disable 128-bit
-      float support (older compilers, compatibility).
+      long double). Decides whether fpmp2 declares its fp128 interchange at all, and answers the same
+      in both passes of a CUDA compilation, so host code in a .cu file keeps the interchange whatever
+      the target architecture. Can be set to 0 to disable 128-bit float support (older compilers,
+      compatibility).
+    - _CCCL_FPMP_FP128_DEVICE_OPS: Automatically detected: whether the fp128 interchange is callable
+      from device code, which nvcc allows from sm_100 up and only when every targeted architecture
+      qualifies. Set it to 1 explicitly on a toolchain that provides device fp128 earlier.
     - _CCCL_FPMP_FP128_MATH_FALLBACK: When 1, fp64mp2 math functions use quad-precision (__fpmp_fp128)
       for higher accuracy. Requires libquadmath linkage, slower compilation, larger code.
       When 0 (default), falls back to double precision—faster builds, smaller code, but
@@ -509,7 +513,9 @@ public:
   {}
 
 //  __fpmp_fp128  operations, both directions restricted to FpType == double
-// available only for CUDA architectures >= 1000 or when _CCCL_FPMP_FP128_ENABLE is defined
+// declared wherever the 128-bit type can be named (_CCCL_FPMP_FP128_ENABLE), which is a
+// property of the host toolchain and so holds in both passes of a CUDA compilation; under
+// nvcc they are device-callable only from sm_100 up (_CCCL_FPMP_FP128_DEVICE_OPS)
 #if _CCCL_FPMP_FP128_ENABLE == 1
   /*
   // fp128 is the interchange type for quad-precision host code (libquadmath,
@@ -531,13 +537,13 @@ public:
   // double constructor above.
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
-  _CCCL_API constexpr _CCCL_FPMP_EXPLICIT fpmp2(__fpmp_fp128 __d) noexcept
+  _CCCL_FPMP_FP128_API constexpr _CCCL_FPMP_EXPLICIT fpmp2(__fpmp_fp128 __d) noexcept
       : fpmp2(__split_quad(__d))
   {}
   // Explicit conversion to __fpmp_fp128
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
-  [[nodiscard]] _CCCL_API explicit operator __fpmp_fp128() const noexcept
+  [[nodiscard]] _CCCL_FPMP_FP128_API explicit operator __fpmp_fp128() const noexcept
   {
     return __fpmp2_to_quad(__mp2_hi_, __mp2_lo_);
   }
@@ -549,10 +555,10 @@ public:
   // Callers who want the double image can spell it: (__fpmp_fp128) (double) x.
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
-  _CCCL_API _CCCL_FPMP_EXPLICIT fpmp2(__fpmp_fp128) = delete;
+  _CCCL_FPMP_FP128_API _CCCL_FPMP_EXPLICIT fpmp2(__fpmp_fp128) = delete;
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
-  _CCCL_API explicit operator __fpmp_fp128() const = delete;
+  _CCCL_FPMP_FP128_API explicit operator __fpmp_fp128() const = delete;
 #endif // _CCCL_FPMP_FP128_ENABLE == 1
 
   // Constructor from any standard integer type (int / long / long long + unsigned).
@@ -1007,7 +1013,7 @@ private:
   }
 
 #if _CCCL_FPMP_FP128_ENABLE == 1
-  [[nodiscard]] _CCCL_API static constexpr fpmp2 __split_quad(__fpmp_fp128 __d) noexcept
+  [[nodiscard]] _CCCL_FPMP_FP128_API static constexpr fpmp2 __split_quad(__fpmp_fp128 __d) noexcept
   {
     if (::cuda::std::__cccl_default_is_constant_evaluated())
     {
