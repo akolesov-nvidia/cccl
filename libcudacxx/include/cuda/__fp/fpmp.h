@@ -58,7 +58,6 @@
    function (exp).
         * Utility: Renormalization, error-aware summation and multiplication with or without FMA.
         * Comparison: Supports all common relational operators (==, !=, <, <=, >, >=).
-        * Bit-casting: Supports reinterpretation of the value as a 64-bit integer (IEEE-754 format).
         * Atomic Operations: Supports atomic addition and subtraction on multi-precision floating point numbers (CUDA
    only).
         * Warp Shuffle: Overloads of CUDA's __shfl_sync family for fpmp2 pairs (CUDA only, header-only,
@@ -212,6 +211,10 @@ namespace cuda::experimental
 // internal element-format predicates (__fpmp2_is_fp32_v / __fpmp2_is_fp64_v /
 // __fpmp2_is_supported_fp_v) in <cuda/__fp/fpmp_impl.h>. Both are included above, so
 // this class and the arithmetic cores agree while every FP header stays self-contained.
+//
+// The atomics the class befriends are declared in <cuda/__fp/fpmp_impl_atomic.h>,
+// also included above, since a friend declaration needs them visible beforehand;
+// they are defined at the end of this header.
 
 /*********************************************************************
  * Multi-precision 32-bit floating-point emulation type (double-float)
@@ -234,7 +237,6 @@ namespace cuda::experimental
 //! - **Construction**: Can be constructed from float, double, int32_t, uint32_t, int64_t, uint64_t.
 //! - **Conversion**: Provides explicit and implicit conversion to standard C++ scalar types.
 //! - **Comparison**: Supports all common relational operators (==, !=, <, <=, >, >=)
-//! - **Bit-casting**: Supports reinterpretation of the value as a 64-bit integer (IEEE-754 format)
 //! - **GPU & Host Compatibility**: All operations and members are decorated for both device and host use.
 //!
 //! ## Internal Representation
@@ -261,25 +263,6 @@ namespace cuda::experimental
 //! ## Limitations
 //! - Denormals, NaN, and Inf handling may differ from IEEE 754 strict standards, depending on accuracy level.
 //! - Performance depends on template parameters and underlying hardware.
-
-#if _CCCL_CUDA_COMPILATION()
-/*
-// The freestanding atomics defined at the end of this header are declared up here
-// so the class can befriend them. Both the inline implementation and the library
-// ABI take the target as a flat (hi*, lo*) pair, which means the atomics need the
-// addresses of the two components; those are private members.
-*/
-template <typename _FpType, fpmp2_accuracy _TypeAcc>
-class fpmp2;
-
-template <typename _FpType, fpmp2_accuracy _TypeAcc>
-_CCCL_DEVICE_API fpmp2<_FpType, _TypeAcc>
-atomicAdd(fpmp2<_FpType, _TypeAcc>* __address, const fpmp2<_FpType, _TypeAcc>& __val) noexcept;
-
-template <typename _FpType, fpmp2_accuracy _TypeAcc>
-_CCCL_DEVICE_API fpmp2<_FpType, _TypeAcc>
-atomicSub(fpmp2<_FpType, _TypeAcc>* __address, const fpmp2<_FpType, _TypeAcc>& __val) noexcept;
-#endif // _CCCL_CUDA_COMPILATION()
 
 // fpmp2 class template
 // met: arithmetic accuracy level
@@ -591,6 +574,15 @@ public:
   // being asked to fit in 53, and the low word is simply dropped. That is a narrowing
   // conversion and says so, which is the same reason operator float() is explicit for
   // both.
+  //
+  // The specifier cannot depend on _FpType directly before C++20, hence the
+  // constrained templates. They come with a limitation worth knowing: a conversion
+  // function template only enters overload resolution when the target type matches
+  // its conversion-type-id exactly, so double is the only floating-point sink these
+  // reach. Feeding an fpmp2 to a long double or a 128-bit sink needs hi() / lo(), or
+  // the fp128 conversion below, which is exact where a widening through double would
+  // not be. Once C++20 is the baseline, explicit(!__fpmp2_is_fp32_v<_FpType>) on a
+  // single non-template operator expresses the same intent without the limitation.
   //
   // Implicitness here does not put FP64 into fpmp<->fpmp conversions or fpmp
   // arithmetic: cross-method conversions copy (hi, lo) directly, and mixed
