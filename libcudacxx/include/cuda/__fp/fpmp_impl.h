@@ -385,8 +385,7 @@ static_assert(sizeof(__fpmp_fp128) == 16, "__fpmp_fp128 must be a 128-bit floati
 // from ODR merging, so the extern-"C" wrapper keeps its own real body. In every
 // other mode (pure inline consumer, or the consumer side of a library build) the
 // decoration is unchanged, preserving CCCL styling and inline-mode codegen (adding
-// static in inline mode caps registers and hurts performance -- see the note in
-// fpmp_math_impl_special.h).
+// static in inline mode caps registers and hurts performance).
 */
 #if defined(_CCCL_FPMP_BUILD_LIB)
 #  define _CCCL_FPMP_CORE_API        static _CCCL_TRIVIAL_API
@@ -800,8 +799,8 @@ _CCCL_API inline double __fpmp_ull2fp_rz<double>(uint64_t __x) noexcept
 
 /*
 // Scalar rounding helpers (host + device)
-// Intentionally __fpmp_-prefixed and used by fpmp_math.h
-// dedicated fp32mp2 rounding implementations.
+// Intentionally __fpmp_-prefixed: they back the dedicated fp32mp2 rounding
+// implementations rather than being part of the public surface.
 */
 template <typename _FpType>
 _CCCL_TRIVIAL_API _FpType __fpmp_internal_trunc(const _FpType __x) noexcept
@@ -933,9 +932,9 @@ _CCCL_API constexpr void __fpmp_from_double(const double __x, float* __res_hi, f
 // include the family headers -- that would create a self-referential cycle
 // (family -> base -> family) that breaks standalone (internal_headers)
 // compilation. Instead each family includes this base plus the specific sibling
-// families it depends on, and the aggregators <cuda/__fp/fpmp.h> and
-// <cuda/__fp/fpmp_math.h> pull in the full family set. (Mirrors the fpemu layout,
-// where fpemu.h aggregates the fpemu_impl_*.h families.)
+// families it depends on, and the aggregator <cuda/__fp/fpmp.h> pulls in the full
+// family set. (Mirrors the fpemu layout, where fpemu.h aggregates the
+// fpemu_impl_*.h families.)
 //
 // NOTE: the freestanding fpmp2 atomics (atomicAdd/atomicSub) and warp-shuffle
 // helpers live in <cuda/__fp/fpmp.h>, after the fpmp2 class definition, since

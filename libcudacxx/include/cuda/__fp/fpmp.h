@@ -54,14 +54,13 @@
         * Basic Arithmetic: Addition, subtraction, multiplication, negation, and division for double-float.
         * Accuracy-Explicit Arithmetic: Free functions add<m>, sub<m>, mul<m>, div<m>, fma<m>, mad<m>
           that override the arithmetic method for a single operation without changing the type.
-        * Advanced: Square root, reciprocal square root, fused multiply-add (FMA), multiply-add (MAD), exponential
-   function (exp).
+        * Advanced: Square root, reciprocal square root, fused multiply-add (FMA), multiply-add (MAD).
         * Utility: Renormalization, error-aware summation and multiplication with or without FMA.
         * Comparison: Supports all common relational operators (==, !=, <, <=, >, >=).
         * Atomic Operations: Supports atomic addition and subtraction on multi-precision floating point numbers (CUDA
    only).
         * Warp Shuffle: Overloads of CUDA's __shfl_sync family for fpmp2 pairs (CUDA only, header-only,
-          declared in fpmp_math.h; not exposed via fpmp_lib).
+          declared in this header; not exposed as library ABI symbols).
         * GPU & Host Compatibility: All operations and members are decorated for both device and host use.
 
     - Implementation Aspects
@@ -82,7 +81,6 @@
     Example Usage:
     -------------------------------------------------------------------------
         #include <cuda/fpmp>
-        #include <cuda/fpmp_math>
 
         // Basic arithmetic with double-float precision
         fp32mp2 a = 1.23456789123456789;       // double-float precision from double value
@@ -91,7 +89,6 @@
         auto product = a * b;                    // High-precision multiplication
         auto result  = fma(a, b, sum);           // Fused multiply-add: a*b + sum
         auto root = sqrt(a);                     // High-precision square root
-        auto exponential = exp(a);               // High-precision exponential
         double d = static_cast<double>(result);  // Convert to double
         float f  = static_cast<float>(result);   // Convert to float (high part only)
         float hi = result.hi(), lo = result.lo(); // The two components, to inspect or store
@@ -108,12 +105,11 @@
         * __fpmp2_low_add, __fpmp2_high_add : Method-specific variants
         * __fpmp2_fma, __fpmp2_mad : Fused multiply-add and multiply-add operations
         * __fpmp2_sqrt, __fpmp2_rsqrt : Square root and reciprocal square root
-        * __fpmp2_exp : Exponential function
         * __fpmp2_from_double, __fpmp2_to_double : Type conversions
         * __fpmp2_cmp_eq, __fpmp2_cmp_lt, etc. : Comparison operations
         * __fpmp2_atomicAdd, __fpmp2_atomicSub : Atomic operations (CUDA only, slower than hardware atomics)
         * __shfl_sync, __shfl_xor_sync, __shfl_down_sync, __shfl_up_sync :
-          Warp shuffle overloads for fpmp2 pairs (CUDA only, header-only via fpmp_math.h).
+          Warp shuffle overloads for fpmp2 pairs (CUDA only, header-only).
 
     - C++ class template:
         * fpmp2<FpType, fpmp2_accuracy> : Template class with operator overloading
@@ -1404,7 +1400,7 @@ _CCCL_REQUIRES(
  * counterpart, so host-only translation units never see them.
  *
  * These are thread-cooperation primitives (not math), so they live in the core
- * header and are available via <cuda/fpmp> without pulling in <cuda/fpmp_math>.
+ * header and are available via <cuda/fpmp>.
  * ============================================================================
  */
 
