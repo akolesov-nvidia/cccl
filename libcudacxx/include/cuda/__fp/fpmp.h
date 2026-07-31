@@ -967,10 +967,13 @@ private:
 #endif // _CCCL_CUDA_COMPILATION()
 
   // Wider-than-FpType splits, used by the delegating constructors above. Plain casts
-  // during constant evaluation, the arithmetic primitive at run time.
+  // during constant evaluation, the arithmetic primitive at run time. Where the
+  // compiler cannot tell the two apart (no __builtin_is_constant_evaluated, so
+  // pre-GCC-9 hosts and tile mode) the default is the cast, which keeps the
+  // constructors usable in a constant expression.
   [[nodiscard]] _CCCL_API static constexpr fpmp2 __split_double(double __d) noexcept
   {
-    if (::cuda::std::is_constant_evaluated())
+    if (::cuda::std::__cccl_default_is_constant_evaluated())
     {
       return fpmp2{(_FpType) __d, (_FpType) (__d - (double) (_FpType) __d)};
     }
@@ -983,7 +986,7 @@ private:
 #if _CCCL_FPMP_FP128_ENABLE == 1
   [[nodiscard]] _CCCL_API static constexpr fpmp2 __split_quad(__fpmp_fp128 __d) noexcept
   {
-    if (::cuda::std::is_constant_evaluated())
+    if (::cuda::std::__cccl_default_is_constant_evaluated())
     {
       return fpmp2{(_FpType) __d, (_FpType) (__d - (__fpmp_fp128) (_FpType) __d)};
     }
