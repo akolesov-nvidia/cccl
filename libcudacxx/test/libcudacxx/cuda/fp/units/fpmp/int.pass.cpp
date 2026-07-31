@@ -48,13 +48,11 @@ static_assert(::cuda::std::is_constructible_v<fp64mp2, __fpmp_fp128>, "");
 static_assert(::cuda::std::is_constructible_v<__fpmp_fp128, fp64mp2>, "");
 #endif // _CCCL_FPMP_FP128_ENABLE == 1
 
-_CCCL_HOST_DEVICE bool run_test()
+_CCCL_HOST_DEVICE void run_test()
 {
   using ::cuda::std::int32_t;
   using ::cuda::std::int64_t;
   using ::cuda::std::uint32_t;
-
-  bool ok = true;
 
   // int32_t round-trip: exact, and lo carries the sign of the input. INT32_MIN is spelled
   // -2147483647 - 1 because -2147483648 is unary minus on a literal too large for int,
@@ -66,14 +64,14 @@ _CCCL_HOST_DEVICE bool run_test()
     {
       ffloat x(v);
       const int32_t back = static_cast<int32_t>(x);
-      ok                 = ok && (back == v);
+      assert(back == v);
       if (v > 0)
       {
-        ok = ok && (x.lo() >= 0);
+        assert(x.lo() >= 0);
       }
       else if (v < 0)
       {
-        ok = ok && (x.lo() <= 0);
+        assert(x.lo() <= 0);
       }
     }
   }
@@ -85,7 +83,7 @@ _CCCL_HOST_DEVICE bool run_test()
     {
       ffloat x(v);
       const uint32_t back = static_cast<uint32_t>(x);
-      ok                  = ok && (back == v) && (x.hi() >= 0) && (x.lo() >= 0);
+      assert((back == v) && (x.hi() >= 0) && (x.lo() >= 0));
     }
   }
 
@@ -100,17 +98,17 @@ _CCCL_HOST_DEVICE bool run_test()
       const long l       = static_cast<long>(v);
       const long long l2 = v;
 
-      ok = ok && static_cast<short>(ffloat(s)) == s && static_cast<int>(ffloat(i)) == i
-        && static_cast<long>(ffloat(l)) == l && static_cast<long long>(ffloat(l2)) == l2
-        && static_cast<long long>(ffloat(l2)) == static_cast<int64_t>(ffloat(static_cast<int64_t>(v)));
+      assert(static_cast<short>(ffloat(s)) == s && static_cast<int>(ffloat(i)) == i && static_cast<long>(ffloat(l)) == l
+             && static_cast<long long>(ffloat(l2)) == l2
+             && static_cast<long long>(ffloat(l2)) == static_cast<int64_t>(ffloat(static_cast<int64_t>(v))));
 
       if (v >= 0)
       {
         const unsigned int ui        = static_cast<unsigned int>(v);
         const unsigned long ul       = static_cast<unsigned long>(v);
         const unsigned long long ull = static_cast<unsigned long long>(v);
-        ok = ok && static_cast<unsigned int>(ffloat(ui)) == ui && static_cast<unsigned long>(ffloat(ul)) == ul
-          && static_cast<unsigned long long>(ffloat(ull)) == ull;
+        assert(static_cast<unsigned int>(ffloat(ui)) == ui && static_cast<unsigned long>(ffloat(ul)) == ul
+               && static_cast<unsigned long long>(ffloat(ull)) == ull);
       }
     }
   }
@@ -122,7 +120,7 @@ _CCCL_HOST_DEVICE bool run_test()
     for (int i = 0; i < 6; ++i)
     {
       ffloat x(vals[i]);
-      ok = ok && (static_cast<int32_t>(x) == expect[i]);
+      assert(static_cast<int32_t>(x) == expect[i]);
     }
   }
 
@@ -144,16 +142,14 @@ _CCCL_HOST_DEVICE bool run_test()
     for (int i = 0; i < 10; ++i)
     {
       ffloat x(vals[i]);
-      ok = ok && (static_cast<int32_t>(x) == expect[i]);
+      assert(static_cast<int32_t>(x) == expect[i]);
     }
   }
-
-  return ok;
 }
 
 TEST_FUNC void test()
 {
-  assert(run_test());
+  run_test();
 }
 
 int main(int, char**)
