@@ -11,12 +11,16 @@
 //  against native double: the C builtins (__fp64emu_cmp_*), the packed operators
 //  and the unpacked operators.
 //
+//  Every ordered pair of the special values is checked exhaustively, then a
+//  deterministic pseudo-random sweep covers arbitrary bit patterns.
+//
 //===----------------------------------------------------------------------===//
 
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
 #include <cuda/std/cstdint>
+#include <cuda/std/random>
 
 #include "test_macros.h"
 
@@ -90,6 +94,17 @@ _CCCL_HOST_DEVICE void check_pair(double x, double y)
   assert(cu == ref); // unpacked operators
 }
 
+// Mostly arbitrary bit patterns, with one draw in sixteen taken from the special
+// values so the sweep keeps hitting the classes an encoding rarely produces.
+_CCCL_HOST_DEVICE double draw(cuda::std::minstd_rand& rng, const double* specials, int n)
+{
+  cuda::std::uniform_int_distribution<int> one_in_16(0, 15);
+  cuda::std::uniform_int_distribution<int> pick(0, n - 1);
+  cuda::std::uniform_int_distribution<uint64_t> bits;
+
+  return (one_in_16(rng) == 0) ? specials[pick(rng)] : cuda::std::bit_cast<double>(bits(rng));
+}
+
 // Exhaustively compares every ordered pair of the representative special values
 // (covers the NaN / inf / zero / subnormal corners) across all three surfaces.
 TEST_FUNC void test()
@@ -132,6 +147,17 @@ TEST_FUNC void test()
     {
       check_pair(specials[i], specials[j]);
     }
+  }
+
+  // Pseudo-random pairs. Every fourth pair compares a value against itself,
+  // which is the only cheap way to reach the equal branch with random inputs.
+  cuda::std::minstd_rand rng(0xC0FFEEu);
+  cuda::std::uniform_int_distribution<int> one_in_4(0, 3);
+  for (int i = 0; i < 512; i++)
+  {
+    const double x = draw(rng, specials, n);
+    const double y = (one_in_4(rng) == 0) ? x : draw(rng, specials, n);
+    check_pair(x, y);
   }
 }
 

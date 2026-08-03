@@ -15,12 +15,16 @@
 //  canonicalizes NaNs, so a NaN-vs-NaN bit difference is tolerated in that mode
 //  only; otherwise the conversion must be strictly bit-exact.
 //
+//  Each direction checks a table of boundary values and then a deterministic
+//  pseudo-random sweep of the regions where the conversion has a decision to make.
+//
 //===----------------------------------------------------------------------===//
 
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
 #include <cuda/std/cstdint>
+#include <cuda/std/random>
 #include <cuda/std/type_traits>
 
 #include "test_macros.h"
@@ -135,6 +139,19 @@ TEST_FUNC void test_f2d()
   {
     assert(f2d_ok(v));
   }
+
+  // Random normals and random subnormals, the two regions where the widening has
+  // real work to do (a subnormal float becomes a normal double).
+  cuda::std::minstd_rand rng(42u);
+  cuda::std::uniform_int_distribution<uint32_t> normal(0x00800000u, 0x7F7FFFFFu);
+  cuda::std::uniform_int_distribution<uint32_t> subnormal(1u, 0x007FFFFFu);
+  cuda::std::uniform_int_distribution<uint32_t> sign(0, 1);
+  for (int i = 0; i < 256; i++)
+  {
+    const uint32_t s = sign(rng) << 31;
+    assert(f2d_ok(from_f_bits(s | normal(rng))));
+    assert(f2d_ok(from_f_bits(s | subnormal(rng))));
+  }
 }
 
 // double -> float narrowing (round-to-nearest-even) over every value class.
@@ -179,6 +196,25 @@ TEST_FUNC void test_d2f()
   for (const double v : vals)
   {
     assert(d2f_ok(v));
+  }
+
+  // The three regions where the narrowing decides something: exponents that land
+  // in the float subnormals, significands sitting exactly on a rounding tie, and
+  // exponents around float's overflow.
+  cuda::std::minstd_rand rng(555u);
+  cuda::std::uniform_int_distribution<uint64_t> sign(0, 1);
+  cuda::std::uniform_int_distribution<uint64_t> frac(0, 0x000FFFFFFFFFFFFFull);
+  cuda::std::uniform_int_distribution<uint64_t> upper23(0, 0x7FFFFFull);
+  cuda::std::uniform_int_distribution<uint64_t> exp_subnormal(874, 896);
+  cuda::std::uniform_int_distribution<uint64_t> exp_normal(897, 1096);
+  cuda::std::uniform_int_distribution<uint64_t> exp_overflow(1149, 1158);
+  for (int i = 0; i < 256; i++)
+  {
+    const uint64_t s = sign(rng) << 63;
+    assert(d2f_ok(from_d_bits(s | (exp_subnormal(rng) << 52) | frac(rng))));
+    // Significand sitting exactly on a tie: the 29 dropped bits are 0x10000000.
+    assert(d2f_ok(from_d_bits(s | (exp_normal(rng) << 52) | (upper23(rng) << 29) | (1ULL << 28))));
+    assert(d2f_ok(from_d_bits(s | (exp_overflow(rng) << 52) | frac(rng))));
   }
 }
 

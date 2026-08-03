@@ -19,6 +19,7 @@
 #include <cuda/std/cassert>
 #include <cuda/std/cmath>
 #include <cuda/std/cstdint>
+#include <cuda/std/random>
 
 #if _CCCL_HOST_COMPILATION()
 #  include <cfenv>
@@ -126,8 +127,33 @@ _CCCL_HOST_DEVICE void check_value(double x)
   assert(match(d_bits((double) sqrt(u)), ref_one(x, M_RN)));
 }
 
+// The four classes the old randomized sweep drew from. The two uniform ranges are
+// non-negative, where the result is a real number; negative inputs still arrive
+// through the special values and the arbitrary bit patterns.
+_CCCL_HOST_DEVICE double draw(cuda::std::minstd_rand& rng, const double* specials, int n)
+{
+  cuda::std::uniform_int_distribution<int> which(0, 3);
+  cuda::std::uniform_int_distribution<int> pick(0, n - 1);
+  cuda::std::uniform_int_distribution<uint64_t> bits;
+  cuda::std::uniform_real_distribution<double> small(0.0, 16.0);
+  cuda::std::uniform_real_distribution<double> wide(0.0, 1.0e150);
+
+  switch (which(rng))
+  {
+    case 0:
+      return specials[pick(rng)];
+    case 1:
+      return small(rng);
+    case 2:
+      return wide(rng);
+    default:
+      return cuda::std::bit_cast<double>(bits(rng));
+  }
+}
+
 // Takes the square root of the representative special values and checks each
-// surface against the correctly-rounded reference.
+// surface against the correctly-rounded reference, then repeats the check over a
+// deterministic pseudo-random sweep.
 TEST_FUNC void test()
 {
   const double specials[] = {
@@ -162,6 +188,12 @@ TEST_FUNC void test()
   for (int i = 0; i < n; i++)
   {
     check_value(specials[i]);
+  }
+
+  cuda::std::minstd_rand rng(0x5417u);
+  for (int i = 0; i < 512; i++)
+  {
+    check_value(draw(rng, specials, n));
   }
 }
 

@@ -23,6 +23,7 @@
 #include <cuda/std/cassert>
 #include <cuda/std/cmath>
 #include <cuda/std/cstdint>
+#include <cuda/std/random>
 #include <cuda/std/type_traits>
 
 #include <nv/target>
@@ -270,6 +271,34 @@ _CCCL_HOST_DEVICE void check_value(double x)
   assert(enc_u64((uint64_t) u) == ref_one(x, T_U64, M_RZ));
 }
 
+// The classes the old randomized sweep drew from: a special value, a fractional
+// magnitude that exercises the ties, one range that lands inside 32 bits and one
+// that straddles the 64-bit boundary where the conversion saturates, plus
+// arbitrary bit patterns.
+_CCCL_HOST_DEVICE double draw(cuda::std::minstd_rand& rng, const double* specials, int n)
+{
+  cuda::std::uniform_int_distribution<int> which(0, 5);
+  cuda::std::uniform_int_distribution<int> pick(0, n - 1);
+  cuda::std::uniform_int_distribution<uint64_t> bits;
+  cuda::std::uniform_real_distribution<double> fractional(-4.0, 4.0);
+  cuda::std::uniform_real_distribution<double> in_32_bits(-1.0e10, 1.0e10);
+  cuda::std::uniform_real_distribution<double> past_64_bits(-2.0e19, 2.0e19);
+
+  switch (which(rng))
+  {
+    case 0:
+      return specials[pick(rng)];
+    case 1:
+      return fractional(rng);
+    case 2:
+      return in_32_bits(rng);
+    case 3:
+      return past_64_bits(rng);
+    default:
+      return cuda::std::bit_cast<double>(bits(rng));
+  }
+}
+
 // Converts the representative special values (fractional ties, type-boundary
 // magnitudes, subnormals, +/-inf and NaN) and checks each surface against the
 // saturating reference.
@@ -325,6 +354,12 @@ TEST_FUNC void test()
   for (int i = 0; i < n; i++)
   {
     check_value(specials[i]);
+  }
+
+  cuda::std::minstd_rand rng(0xC0FFEEu);
+  for (int i = 0; i < 256; i++)
+  {
+    check_value(draw(rng, specials, n));
   }
 }
 

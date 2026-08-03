@@ -18,6 +18,7 @@
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
 #include <cuda/std/cstdint>
+#include <cuda/std/random>
 
 #if _CCCL_HOST_COMPILATION()
 #  include <cfenv>
@@ -126,8 +127,33 @@ _CCCL_HOST_DEVICE void check_pair(double x, double y)
   assert(match(d_bits((double) (ua / ub)), ref_one(x, y, M_RN)));
 }
 
+// The four classes the old randomized sweep drew from: a special value, a small
+// magnitude where the quotient stays normal, a wide-exponent value, and an
+// arbitrary bit pattern.
+_CCCL_HOST_DEVICE double draw(cuda::std::minstd_rand& rng, const double* specials, int n)
+{
+  cuda::std::uniform_int_distribution<int> which(0, 3);
+  cuda::std::uniform_int_distribution<int> pick(0, n - 1);
+  cuda::std::uniform_int_distribution<uint64_t> bits;
+  cuda::std::uniform_real_distribution<double> small(-4.0, 4.0);
+  cuda::std::uniform_real_distribution<double> wide(-1.0e150, 1.0e150);
+
+  switch (which(rng))
+  {
+    case 0:
+      return specials[pick(rng)];
+    case 1:
+      return small(rng);
+    case 2:
+      return wide(rng);
+    default:
+      return cuda::std::bit_cast<double>(bits(rng));
+  }
+}
+
 // Exhaustively divides every ordered pair of the representative special values
-// and checks each surface against the correctly-rounded reference.
+// and checks each surface against the correctly-rounded reference, then repeats
+// the check over a deterministic pseudo-random sweep.
 TEST_FUNC void test()
 {
   const double specials[] = {
@@ -166,6 +192,12 @@ TEST_FUNC void test()
     {
       check_pair(specials[i], specials[j]);
     }
+  }
+
+  cuda::std::minstd_rand rng(0xD1D1DEu);
+  for (int i = 0; i < 512; i++)
+  {
+    check_pair(draw(rng, specials, n), draw(rng, specials, n));
   }
 }
 
