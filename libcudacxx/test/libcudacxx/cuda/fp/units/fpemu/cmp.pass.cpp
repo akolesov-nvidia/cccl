@@ -53,7 +53,7 @@ _CCCL_HOST_DEVICE uint32_t native_codes(double x, double y)
 }
 
 // Compare all three emulation surfaces against native for one pair.
-_CCCL_HOST_DEVICE bool check_pair(double x, double y)
+_CCCL_HOST_DEVICE void check_pair(double x, double y)
 {
   const uint32_t ref = native_codes(x, y);
 
@@ -85,7 +85,9 @@ _CCCL_HOST_DEVICE bool check_pair(double x, double y)
   cu |= (uint32_t) (ux > uy) << OP_GT;
   cu |= (uint32_t) (ux >= uy) << OP_GE;
 
-  return cb == ref && cp == ref && cu == ref;
+  assert(cb == ref); // C builtins
+  assert(cp == ref); // packed operators
+  assert(cu == ref); // unpacked operators
 }
 
 // Exhaustively compares every ordered pair of the representative special values
@@ -128,7 +130,7 @@ TEST_FUNC void test()
   {
     for (int j = 0; j < n; j++)
     {
-      assert(check_pair(specials[i], specials[j]));
+      check_pair(specials[i], specials[j]);
     }
   }
 }

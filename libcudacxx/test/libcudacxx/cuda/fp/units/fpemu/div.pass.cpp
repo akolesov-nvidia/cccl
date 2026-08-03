@@ -108,25 +108,22 @@ _CCCL_HOST_DEVICE uint64_t ref_one(double a, double b, int mode){NV_IF_ELSE_TARG
   }))}
 
 // Compare every division surface for one pair against the reference on the same
-// target. Returns true if all match.
-_CCCL_HOST_DEVICE bool check_pair(double x, double y)
+// target.
+_CCCL_HOST_DEVICE void check_pair(double x, double y)
 {
   __fpbits64 a = __fp64emu_from_double(x);
   __fpbits64 b = __fp64emu_from_double(y);
-  bool ok      = true;
 
-  ok = ok && match((uint64_t) __fp64emu_ddiv_rn(a, b), ref_one(x, y, M_RN));
-  ok = ok && match((uint64_t) __fp64emu_ddiv_rz(a, b), ref_one(x, y, M_RZ));
-  ok = ok && match((uint64_t) __fp64emu_ddiv_ru(a, b), ref_one(x, y, M_RU));
-  ok = ok && match((uint64_t) __fp64emu_ddiv_rd(a, b), ref_one(x, y, M_RD));
+  assert(match((uint64_t) __fp64emu_ddiv_rn(a, b), ref_one(x, y, M_RN)));
+  assert(match((uint64_t) __fp64emu_ddiv_rz(a, b), ref_one(x, y, M_RZ)));
+  assert(match((uint64_t) __fp64emu_ddiv_ru(a, b), ref_one(x, y, M_RU)));
+  assert(match((uint64_t) __fp64emu_ddiv_rd(a, b), ref_one(x, y, M_RD)));
 
   fp64emu pa = x, pb = y;
-  ok = ok && match(d_bits((double) (pa / pb)), ref_one(x, y, M_RN));
+  assert(match(d_bits((double) (pa / pb)), ref_one(x, y, M_RN)));
 
   fp64emu_unpacked ua = (fp64emu_unpacked) x, ub = (fp64emu_unpacked) y;
-  ok = ok && match(d_bits((double) (ua / ub)), ref_one(x, y, M_RN));
-
-  return ok;
+  assert(match(d_bits((double) (ua / ub)), ref_one(x, y, M_RN)));
 }
 
 // Exhaustively divides every ordered pair of the representative special values
@@ -167,7 +164,7 @@ TEST_FUNC void test()
   {
     for (int j = 0; j < n; j++)
     {
-      assert(check_pair(specials[i], specials[j]));
+      check_pair(specials[i], specials[j]);
     }
   }
 }

@@ -214,63 +214,60 @@ _CCCL_HOST_DEVICE uint64_t ref_one(double d, int type, int mode){NV_IF_ELSE_TARG
   }))}
 
 // Compare every emulation surface for one value against the reference computed on
-// the same target. Returns true if all conversions match.
-_CCCL_HOST_DEVICE bool check_value(double x)
+// the same target.
+_CCCL_HOST_DEVICE void check_value(double x)
 {
   __fpbits64 e       = __fp64emu_from_double(x);
   fp64emu p          = x;
   fp64emu_unpacked u = (fp64emu_unpacked) x;
-  bool ok            = true;
 
   // C builtins (__fp64emu_to_*), all 16 conversions.
-  ok = ok && enc_i32(__fp64emu_to_int_rn(e)) == ref_one(x, T_I32, M_RN);
-  ok = ok && enc_i32(__fp64emu_to_int_rz(e)) == ref_one(x, T_I32, M_RZ);
-  ok = ok && enc_i32(__fp64emu_to_int_ru(e)) == ref_one(x, T_I32, M_RU);
-  ok = ok && enc_i32(__fp64emu_to_int_rd(e)) == ref_one(x, T_I32, M_RD);
-  ok = ok && enc_u32(__fp64emu_to_uint_rn(e)) == ref_one(x, T_U32, M_RN);
-  ok = ok && enc_u32(__fp64emu_to_uint_rz(e)) == ref_one(x, T_U32, M_RZ);
-  ok = ok && enc_u32(__fp64emu_to_uint_ru(e)) == ref_one(x, T_U32, M_RU);
-  ok = ok && enc_u32(__fp64emu_to_uint_rd(e)) == ref_one(x, T_U32, M_RD);
-  ok = ok && enc_i64(__fp64emu_to_ll_rn(e)) == ref_one(x, T_I64, M_RN);
-  ok = ok && enc_i64(__fp64emu_to_ll_rz(e)) == ref_one(x, T_I64, M_RZ);
-  ok = ok && enc_i64(__fp64emu_to_ll_ru(e)) == ref_one(x, T_I64, M_RU);
-  ok = ok && enc_i64(__fp64emu_to_ll_rd(e)) == ref_one(x, T_I64, M_RD);
-  ok = ok && enc_u64(__fp64emu_to_ull_rn(e)) == ref_one(x, T_U64, M_RN);
-  ok = ok && enc_u64(__fp64emu_to_ull_rz(e)) == ref_one(x, T_U64, M_RZ);
-  ok = ok && enc_u64(__fp64emu_to_ull_ru(e)) == ref_one(x, T_U64, M_RU);
-  ok = ok && enc_u64(__fp64emu_to_ull_rd(e)) == ref_one(x, T_U64, M_RD);
+  assert(enc_i32(__fp64emu_to_int_rn(e)) == ref_one(x, T_I32, M_RN));
+  assert(enc_i32(__fp64emu_to_int_rz(e)) == ref_one(x, T_I32, M_RZ));
+  assert(enc_i32(__fp64emu_to_int_ru(e)) == ref_one(x, T_I32, M_RU));
+  assert(enc_i32(__fp64emu_to_int_rd(e)) == ref_one(x, T_I32, M_RD));
+  assert(enc_u32(__fp64emu_to_uint_rn(e)) == ref_one(x, T_U32, M_RN));
+  assert(enc_u32(__fp64emu_to_uint_rz(e)) == ref_one(x, T_U32, M_RZ));
+  assert(enc_u32(__fp64emu_to_uint_ru(e)) == ref_one(x, T_U32, M_RU));
+  assert(enc_u32(__fp64emu_to_uint_rd(e)) == ref_one(x, T_U32, M_RD));
+  assert(enc_i64(__fp64emu_to_ll_rn(e)) == ref_one(x, T_I64, M_RN));
+  assert(enc_i64(__fp64emu_to_ll_rz(e)) == ref_one(x, T_I64, M_RZ));
+  assert(enc_i64(__fp64emu_to_ll_ru(e)) == ref_one(x, T_I64, M_RU));
+  assert(enc_i64(__fp64emu_to_ll_rd(e)) == ref_one(x, T_I64, M_RD));
+  assert(enc_u64(__fp64emu_to_ull_rn(e)) == ref_one(x, T_U64, M_RN));
+  assert(enc_u64(__fp64emu_to_ull_rz(e)) == ref_one(x, T_U64, M_RZ));
+  assert(enc_u64(__fp64emu_to_ull_ru(e)) == ref_one(x, T_U64, M_RU));
+  assert(enc_u64(__fp64emu_to_ull_rd(e)) == ref_one(x, T_U64, M_RD));
 
   // C++ packed named ops (__double2*), all 16 conversions.
-  ok = ok && enc_i32(__double2int_rn(p)) == ref_one(x, T_I32, M_RN);
-  ok = ok && enc_i32(__double2int_rz(p)) == ref_one(x, T_I32, M_RZ);
-  ok = ok && enc_i32(__double2int_ru(p)) == ref_one(x, T_I32, M_RU);
-  ok = ok && enc_i32(__double2int_rd(p)) == ref_one(x, T_I32, M_RD);
-  ok = ok && enc_u32(__double2uint_rn(p)) == ref_one(x, T_U32, M_RN);
-  ok = ok && enc_u32(__double2uint_rz(p)) == ref_one(x, T_U32, M_RZ);
-  ok = ok && enc_u32(__double2uint_ru(p)) == ref_one(x, T_U32, M_RU);
-  ok = ok && enc_u32(__double2uint_rd(p)) == ref_one(x, T_U32, M_RD);
-  ok = ok && enc_i64(__double2ll_rn(p)) == ref_one(x, T_I64, M_RN);
-  ok = ok && enc_i64(__double2ll_rz(p)) == ref_one(x, T_I64, M_RZ);
-  ok = ok && enc_i64(__double2ll_ru(p)) == ref_one(x, T_I64, M_RU);
-  ok = ok && enc_i64(__double2ll_rd(p)) == ref_one(x, T_I64, M_RD);
-  ok = ok && enc_u64(__double2ull_rn(p)) == ref_one(x, T_U64, M_RN);
-  ok = ok && enc_u64(__double2ull_rz(p)) == ref_one(x, T_U64, M_RZ);
-  ok = ok && enc_u64(__double2ull_ru(p)) == ref_one(x, T_U64, M_RU);
-  ok = ok && enc_u64(__double2ull_rd(p)) == ref_one(x, T_U64, M_RD);
+  assert(enc_i32(__double2int_rn(p)) == ref_one(x, T_I32, M_RN));
+  assert(enc_i32(__double2int_rz(p)) == ref_one(x, T_I32, M_RZ));
+  assert(enc_i32(__double2int_ru(p)) == ref_one(x, T_I32, M_RU));
+  assert(enc_i32(__double2int_rd(p)) == ref_one(x, T_I32, M_RD));
+  assert(enc_u32(__double2uint_rn(p)) == ref_one(x, T_U32, M_RN));
+  assert(enc_u32(__double2uint_rz(p)) == ref_one(x, T_U32, M_RZ));
+  assert(enc_u32(__double2uint_ru(p)) == ref_one(x, T_U32, M_RU));
+  assert(enc_u32(__double2uint_rd(p)) == ref_one(x, T_U32, M_RD));
+  assert(enc_i64(__double2ll_rn(p)) == ref_one(x, T_I64, M_RN));
+  assert(enc_i64(__double2ll_rz(p)) == ref_one(x, T_I64, M_RZ));
+  assert(enc_i64(__double2ll_ru(p)) == ref_one(x, T_I64, M_RU));
+  assert(enc_i64(__double2ll_rd(p)) == ref_one(x, T_I64, M_RD));
+  assert(enc_u64(__double2ull_rn(p)) == ref_one(x, T_U64, M_RN));
+  assert(enc_u64(__double2ull_rz(p)) == ref_one(x, T_U64, M_RZ));
+  assert(enc_u64(__double2ull_ru(p)) == ref_one(x, T_U64, M_RU));
+  assert(enc_u64(__double2ull_rd(p)) == ref_one(x, T_U64, M_RD));
 
   // C++ packed cast operators (round-to-zero).
-  ok = ok && enc_i32((int32_t) p) == ref_one(x, T_I32, M_RZ);
-  ok = ok && enc_u32((uint32_t) p) == ref_one(x, T_U32, M_RZ);
-  ok = ok && enc_i64((int64_t) p) == ref_one(x, T_I64, M_RZ);
-  ok = ok && enc_u64((uint64_t) p) == ref_one(x, T_U64, M_RZ);
+  assert(enc_i32((int32_t) p) == ref_one(x, T_I32, M_RZ));
+  assert(enc_u32((uint32_t) p) == ref_one(x, T_U32, M_RZ));
+  assert(enc_i64((int64_t) p) == ref_one(x, T_I64, M_RZ));
+  assert(enc_u64((uint64_t) p) == ref_one(x, T_U64, M_RZ));
 
   // C++ unpacked cast operators (round-to-zero).
-  ok = ok && enc_i32((int32_t) u) == ref_one(x, T_I32, M_RZ);
-  ok = ok && enc_u32((uint32_t) u) == ref_one(x, T_U32, M_RZ);
-  ok = ok && enc_i64((int64_t) u) == ref_one(x, T_I64, M_RZ);
-  ok = ok && enc_u64((uint64_t) u) == ref_one(x, T_U64, M_RZ);
-
-  return ok;
+  assert(enc_i32((int32_t) u) == ref_one(x, T_I32, M_RZ));
+  assert(enc_u32((uint32_t) u) == ref_one(x, T_U32, M_RZ));
+  assert(enc_i64((int64_t) u) == ref_one(x, T_I64, M_RZ));
+  assert(enc_u64((uint64_t) u) == ref_one(x, T_U64, M_RZ));
 }
 
 // Converts the representative special values (fractional ties, type-boundary
@@ -327,7 +324,7 @@ TEST_FUNC void test()
 
   for (int i = 0; i < n; i++)
   {
-    assert(check_value(specials[i]));
+    check_value(specials[i]);
   }
 }
 

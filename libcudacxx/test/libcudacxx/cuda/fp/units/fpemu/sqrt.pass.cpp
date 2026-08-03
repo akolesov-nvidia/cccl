@@ -109,24 +109,21 @@ _CCCL_HOST_DEVICE uint64_t ref_one(double a, int mode){NV_IF_ELSE_TARGET(
   }))}
 
 // Compare every sqrt surface for one value against the reference on the same
-// target. Returns true if all match.
-_CCCL_HOST_DEVICE bool check_value(double x)
+// target.
+_CCCL_HOST_DEVICE void check_value(double x)
 {
   __fpbits64 a = __fp64emu_from_double(x);
-  bool ok      = true;
 
-  ok = ok && match((uint64_t) __fp64emu_dsqrt_rn(a), ref_one(x, M_RN));
-  ok = ok && match((uint64_t) __fp64emu_dsqrt_rz(a), ref_one(x, M_RZ));
-  ok = ok && match((uint64_t) __fp64emu_dsqrt_ru(a), ref_one(x, M_RU));
-  ok = ok && match((uint64_t) __fp64emu_dsqrt_rd(a), ref_one(x, M_RD));
+  assert(match((uint64_t) __fp64emu_dsqrt_rn(a), ref_one(x, M_RN)));
+  assert(match((uint64_t) __fp64emu_dsqrt_rz(a), ref_one(x, M_RZ)));
+  assert(match((uint64_t) __fp64emu_dsqrt_ru(a), ref_one(x, M_RU)));
+  assert(match((uint64_t) __fp64emu_dsqrt_rd(a), ref_one(x, M_RD)));
 
   fp64emu p = x;
-  ok        = ok && match(d_bits((double) sqrt(p)), ref_one(x, M_RN));
+  assert(match(d_bits((double) sqrt(p)), ref_one(x, M_RN)));
 
   fp64emu_unpacked u = (fp64emu_unpacked) x;
-  ok                 = ok && match(d_bits((double) sqrt(u)), ref_one(x, M_RN));
-
-  return ok;
+  assert(match(d_bits((double) sqrt(u)), ref_one(x, M_RN)));
 }
 
 // Takes the square root of the representative special values and checks each
@@ -164,7 +161,7 @@ TEST_FUNC void test()
 
   for (int i = 0; i < n; i++)
   {
-    assert(check_value(specials[i]));
+    check_value(specials[i]);
   }
 }
 

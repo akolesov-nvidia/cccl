@@ -59,40 +59,38 @@ TEST_FUNC bool same(const T& __a, const T& __b)
 // packed low returns the smallest normal instead of zero for 1.0 - 1.0, and mid
 // perturbs 1.0 when a negligible operand is subtracted from it.
 template <class T>
-TEST_FUNC bool test_incdec(bool __correctly_rounded)
+TEST_FUNC void test_incdec(bool __correctly_rounded)
 {
   const T start(opaque(2.5));
   const T one(opaque(1.0));
 
-  bool ok = true;
-
   {
     T x   = start;
     T ret = ++x;
-    ok    = ok && same(x, start + one); // side effect
-    ok    = ok && same(ret, x); // prefix returns the new value
-    ok    = ok && static_cast<double>(x) == 3.5;
+    assert(same(x, start + one)); // side effect
+    assert(same(ret, x)); // prefix returns the new value
+    assert(static_cast<double>(x) == 3.5);
   }
   {
     T x   = start;
     T ret = --x;
-    ok    = ok && same(x, start - one);
-    ok    = ok && same(ret, x);
-    ok    = ok && static_cast<double>(x) == 1.5;
+    assert(same(x, start - one));
+    assert(same(ret, x));
+    assert(static_cast<double>(x) == 1.5);
   }
   {
     T x   = start;
     T ret = x++;
-    ok    = ok && same(x, start + one);
-    ok    = ok && same(ret, start); // postfix returns the old value
-    ok    = ok && static_cast<double>(x) == 3.5;
+    assert(same(x, start + one));
+    assert(same(ret, start)); // postfix returns the old value
+    assert(static_cast<double>(x) == 3.5);
   }
   {
     T x   = start;
     T ret = x--;
-    ok    = ok && same(x, start - one);
-    ok    = ok && same(ret, start);
-    ok    = ok && static_cast<double>(x) == 1.5;
+    assert(same(x, start - one));
+    assert(same(ret, start));
+    assert(static_cast<double>(x) == 1.5);
   }
 
   // Prefix returns a reference to the object itself, not a copy: incrementing
@@ -100,7 +98,7 @@ TEST_FUNC bool test_incdec(bool __correctly_rounded)
   {
     T x = start;
     ++(++x);
-    ok = ok && static_cast<double>(x) == 4.5;
+    assert(static_cast<double>(x) == 4.5);
   }
 
   // A sequence has to land back where it started.
@@ -110,7 +108,7 @@ TEST_FUNC bool test_incdec(bool __correctly_rounded)
     ++x;
     --x;
     --x;
-    ok = ok && same(x, start);
+    assert(same(x, start));
   }
 
   // Counting up from zero: zero is the extreme case for the exponent alignment
@@ -118,47 +116,41 @@ TEST_FUNC bool test_incdec(bool __correctly_rounded)
   {
     T x(opaque(0.0));
     ++x;
-    ok = ok && static_cast<double>(x) == 1.0;
+    assert(static_cast<double>(x) == 1.0);
     ++x;
-    ok = ok && static_cast<double>(x) == 2.0;
+    assert(static_cast<double>(x) == 2.0);
     --x;
-    ok = ok && static_cast<double>(x) == 1.0;
+    assert(static_cast<double>(x) == 1.0);
     if (__correctly_rounded)
     {
       --x;
-      ok = ok && static_cast<double>(x) == 0.0;
+      assert(static_cast<double>(x) == 0.0);
       --x;
-      ok = ok && static_cast<double>(x) == -1.0;
+      assert(static_cast<double>(x) == -1.0);
     }
   }
-
-  return ok;
 }
 
 // ---- unary minus ---------------------------------------------------------
 template <class T>
-TEST_FUNC bool test_neg(bool __correctly_rounded)
+TEST_FUNC void test_neg(bool __correctly_rounded)
 {
-  bool ok = true;
-
   const T x(opaque(2.5));
-  ok = ok && static_cast<double>(-x) == -2.5;
-  ok = ok && static_cast<double>(-(-x)) == 2.5;
-  ok = ok && static_cast<double>(x) == 2.5; // operand untouched
+  assert(static_cast<double>(-x) == -2.5);
+  assert(static_cast<double>(-(-x)) == 2.5);
+  assert(static_cast<double>(x) == 2.5); // operand untouched
 
   const T y(opaque(-4.0));
-  ok = ok && static_cast<double>(-y) == 4.0;
+  assert(static_cast<double>(-y) == 4.0);
 
   // Negation must agree with subtracting from zero.
-  ok = ok && same(-x, T(opaque(0.0)) - x);
+  assert(same(-x, T(opaque(0.0)) - x));
 
   // Adding a value to its own negation cancels.
   if (__correctly_rounded)
   {
-    ok = ok && static_cast<double>(x + (-x)) == 0.0;
+    assert(static_cast<double>(x + (-x)) == 0.0);
   }
-
-  return ok;
 }
 
 // ---- compound assignment -------------------------------------------------
@@ -166,45 +158,43 @@ TEST_FUNC bool test_neg(bool __correctly_rounded)
 // Compared against the corresponding binary operator, so whatever the mode
 // rounds to, the test still means "+= is +".
 template <class T>
-TEST_FUNC bool test_compound(bool __correctly_rounded)
+TEST_FUNC void test_compound(bool __correctly_rounded)
 {
   const T a(opaque(6.25));
   const T b(opaque(1.5));
 
-  bool ok = true;
-
   {
     T x = a;
     x += b;
-    ok = ok && same(x, a + b);
+    assert(same(x, a + b));
   }
   {
     T x = a;
     x -= b;
-    ok = ok && same(x, a - b);
+    assert(same(x, a - b));
   }
   {
     T x = a;
     x *= b;
-    ok = ok && same(x, a * b);
+    assert(same(x, a * b));
   }
   {
     T x = a;
     x /= b;
-    ok = ok && same(x, a / b);
+    assert(same(x, a / b));
   }
 
   // Exact on powers of two in every mode.
   {
     T x(opaque(8.0));
     x += T(opaque(4.0));
-    ok = ok && static_cast<double>(x) == 12.0;
+    assert(static_cast<double>(x) == 12.0);
     x -= T(opaque(2.0));
-    ok = ok && static_cast<double>(x) == 10.0;
+    assert(static_cast<double>(x) == 10.0);
     x *= T(opaque(2.0));
-    ok = ok && static_cast<double>(x) == 20.0;
+    assert(static_cast<double>(x) == 20.0);
     x /= T(opaque(4.0));
-    ok = ok && static_cast<double>(x) == 5.0;
+    assert(static_cast<double>(x) == 5.0);
   }
 
   // The returned reference has to be the object, so a chained compound
@@ -212,7 +202,7 @@ TEST_FUNC bool test_compound(bool __correctly_rounded)
   {
     T x(opaque(1.0));
     (x += T(opaque(2.0))) += T(opaque(4.0));
-    ok = ok && static_cast<double>(x) == 7.0;
+    assert(static_cast<double>(x) == 7.0);
   }
 
   // Adding a value far below the ulp of the accumulator has to leave it
@@ -222,35 +212,34 @@ TEST_FUNC bool test_compound(bool __correctly_rounded)
   {
     T x(opaque(1.0));
     x += T(opaque(1e-300));
-    ok = ok && static_cast<double>(x) == 1.0;
+    assert(static_cast<double>(x) == 1.0);
     x -= T(opaque(1e-300));
-    ok = ok && static_cast<double>(x) == 1.0;
+    assert(static_cast<double>(x) == 1.0);
   }
-
-  return ok;
 }
 
 template <class T>
-TEST_FUNC bool test_type(bool __correctly_rounded = true)
+TEST_FUNC void test_type(bool __correctly_rounded = true)
 {
-  return test_incdec<T>(__correctly_rounded) && test_neg<T>(__correctly_rounded)
-      && test_compound<T>(__correctly_rounded);
+  test_incdec<T>(__correctly_rounded);
+  test_neg<T>(__correctly_rounded);
+  test_compound<T>(__correctly_rounded);
 }
 
 TEST_FUNC void test()
 {
   // Packed. def == high are the correctly rounded modes; low and mid run the
   // same operators with the accuracy-dependent checks relaxed.
-  assert(test_type<fp64emu>());
-  assert(test_type<fp64emu_high>());
-  assert(test_type<fp64emu_low>(false));
-  assert(test_type<fp64emu_mid>(false));
+  test_type<fp64emu>();
+  test_type<fp64emu_high>();
+  test_type<fp64emu_low>(false);
+  test_type<fp64emu_mid>(false);
 
   // Unpacked.
-  assert(test_type<fp64emu_unpacked>());
-  assert(test_type<fp64emu_unpacked_high>());
-  assert(test_type<fp64emu_unpacked_low>(false));
-  assert(test_type<fp64emu_unpacked_mid>(false));
+  test_type<fp64emu_unpacked>();
+  test_type<fp64emu_unpacked_high>();
+  test_type<fp64emu_unpacked_low>(false);
+  test_type<fp64emu_unpacked_mid>(false);
 }
 
 int main(int, char**)
