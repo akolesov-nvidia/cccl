@@ -10,7 +10,7 @@
 //  (small differences, catastrophic cancellation), accumulation error,
 //  Newton-Raphson convergence, mantissa-truncation bit patterns, and
 //  comparisons. Every check confirms the reduced-precision surface behaves as
-//  expected relative to native double. The same _CCCL_HOST_DEVICE run_test()
+//  expected relative to native double. The same TEST_HOST_DEVICE_FUNC run_test()
 //  runs on the host and, under CUDA, on the device.
 //
 //===----------------------------------------------------------------------===//
@@ -26,7 +26,7 @@
 
 #include "test_macros.h"
 
-using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 struct TestResults
 {
@@ -54,7 +54,7 @@ struct TestResults
 };
 
 // Core computation, runs on both CPU and GPU.
-_CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
+TEST_HOST_DEVICE_FUNC void run_precision_tests(TestResults* r)
 {
   const double val_a = 1.12345678123456789;
   const double val_b = 2.12345678123456789;
@@ -62,7 +62,7 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
   // Basic arithmetic.
   {
     double na = val_a, nb = val_b;
-    fp64_tool ra = val_a, rb = val_b;
+    cudax::fp64_tool ra = val_a, rb = val_b;
 
     r->add_n = (double) (na + nb);
     r->add_r = (double) (ra + rb);
@@ -78,14 +78,14 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
 
   // Math functions.
   {
-    double nx    = 2.12345678123456789;
-    fp64_tool rx = 2.32145678123456789;
+    double nx           = 2.12345678123456789;
+    cudax::fp64_tool rx = 2.32145678123456789;
 
     r->sqrt_n = ::cuda::std::sqrt(nx);
     r->sqrt_r = (double) sqrt(rx);
 
     double na = val_a, nb = val_b, nc = 0.5;
-    fp64_tool ra = val_a, rb = val_b, rc = 0.5;
+    cudax::fp64_tool ra = val_a, rb = val_b, rc = 0.5;
 
     r->fma_n = ::cuda::std::fma(na, nb, nc);
     r->fma_r = (double) fma(ra, rb, rc);
@@ -96,7 +96,7 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
     double a  = 1.0 + 1e-10;
     double b  = 1.0;
     double na = a, nb = b;
-    fp64_tool ra = a, rb = b;
+    cudax::fp64_tool ra = a, rb = b;
     r->small_diff_n = (double) (na - nb);
     r->small_diff_r = (double) (ra - rb);
   }
@@ -105,7 +105,7 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
   {
     double a = 1.0, b = 1e-10;
     double na = a, nb = b;
-    fp64_tool ra = a, rb = b;
+    cudax::fp64_tool ra = a, rb = b;
     r->cancel_n = (double) ((na + nb) - na);
     r->cancel_r = (double) ((ra + rb) - ra);
   }
@@ -114,20 +114,20 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
   {
     double a = 1.0000001, b = 1.0000002;
     double na = a, nb = b;
-    fp64_tool ra = a, rb = b;
+    cudax::fp64_tool ra = a, rb = b;
     r->mul_prec_n = (double) (na * nb);
     r->mul_prec_r = (double) (ra * rb);
   }
 
   // Accumulation error (sum of 1/n, n=1..1000).
   {
-    double native_sum     = 0.0;
-    fp64_tool reduced_sum = 0.0;
+    double native_sum            = 0.0;
+    cudax::fp64_tool reduced_sum = 0.0;
     for (int n = 1; n <= 1000; n++)
     {
       double term = 1.0 / n;
       native_sum += double(term);
-      reduced_sum += fp64_tool(term);
+      reduced_sum += cudax::fp64_tool(term);
     }
     r->accum_n = (double) native_sum;
     r->accum_r = (double) reduced_sum;
@@ -136,7 +136,7 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
   // Newton-Raphson sqrt(2): x_{n+1} = 0.5 * (x_n + S/x_n).
   {
     double n_x = 1.0, n_S = 2.0, n_half = 0.5;
-    fp64_tool r_x = 1.0, r_S = 2.0, r_half = 0.5;
+    cudax::fp64_tool r_x = 1.0, r_S = 2.0, r_half = 0.5;
     for (int i = 0; i < 10; i++)
     {
       n_x = n_half * (n_x + n_S / n_x);
@@ -148,13 +148,13 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
 
   // Bit-pattern analysis (mantissa truncation).
   {
-    double val         = 1.12345678123456789;
-    double n_val       = val;
-    fp64_tool r_val    = val;
-    double n_result    = n_val + double(0.0);
-    fp64_tool r_result = r_val + fp64_tool(0.0);
-    double n_out       = (double) n_result;
-    double r_out       = (double) r_result;
+    double val                = 1.12345678123456789;
+    double n_val              = val;
+    cudax::fp64_tool r_val    = val;
+    double n_result           = n_val + double(0.0);
+    cudax::fp64_tool r_result = r_val + cudax::fp64_tool(0.0);
+    double n_out              = (double) n_result;
+    double r_out              = (double) r_result;
     ::cuda::std::memcpy(&r->bits_orig, &val, sizeof(::cuda::std::uint64_t));
     ::cuda::std::memcpy(&r->bits_native, &n_out, sizeof(::cuda::std::uint64_t));
     ::cuda::std::memcpy(&r->bits_reduced, &r_out, sizeof(::cuda::std::uint64_t));
@@ -170,7 +170,7 @@ _CCCL_HOST_DEVICE void run_precision_tests(TestResults* r)
 }
 
 // Verify the reduced-precision surface behaves as expected vs native double.
-_CCCL_HOST_DEVICE bool verify(const TestResults& r)
+TEST_HOST_DEVICE_FUNC bool verify(const TestResults& r)
 {
   bool ok = true;
 
@@ -206,7 +206,7 @@ _CCCL_HOST_DEVICE bool verify(const TestResults& r)
   return ok;
 }
 
-_CCCL_HOST_DEVICE bool run_test()
+TEST_HOST_DEVICE_FUNC bool run_test()
 {
   TestResults r{};
   run_precision_tests(&r);

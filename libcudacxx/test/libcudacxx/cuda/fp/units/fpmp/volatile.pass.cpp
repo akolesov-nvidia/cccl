@@ -19,21 +19,23 @@
 
 #include "test_macros.h"
 
-using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 // Compile-time: every accuracy variant is trivially copyable.
-static_assert(::cuda::std::is_trivially_copyable<fp32mp2>::value, "fp32mp2 must be trivially copyable");
-static_assert(::cuda::std::is_trivially_copyable<fp32mp2_low>::value, "fp32mp2_low must be trivially copyable");
-static_assert(::cuda::std::is_trivially_copyable<fp32mp2_high>::value, "fp32mp2_high must be trivially copyable");
-static_assert(::cuda::std::is_trivially_copyable<fp64mp2>::value, "fp64mp2 must be trivially copyable");
-static_assert(::cuda::std::is_trivially_copyable<fp64mp2_low>::value, "fp64mp2_low must be trivially copyable");
-static_assert(::cuda::std::is_trivially_copyable<fp64mp2_high>::value, "fp64mp2_high must be trivially copyable");
+static_assert(::cuda::std::is_trivially_copyable<cudax::fp32mp2>::value, "fp32mp2 must be trivially copyable");
+static_assert(::cuda::std::is_trivially_copyable<cudax::fp32mp2_low>::value, "fp32mp2_low must be trivially copyable");
+static_assert(::cuda::std::is_trivially_copyable<cudax::fp32mp2_high>::value,
+              "fp32mp2_high must be trivially copyable");
+static_assert(::cuda::std::is_trivially_copyable<cudax::fp64mp2>::value, "fp64mp2 must be trivially copyable");
+static_assert(::cuda::std::is_trivially_copyable<cudax::fp64mp2_low>::value, "fp64mp2_low must be trivially copyable");
+static_assert(::cuda::std::is_trivially_copyable<cudax::fp64mp2_high>::value,
+              "fp64mp2_high must be trivially copyable");
 
 // Exercise the four volatile paths for one fpmp2 type. Value checks use a
 // tolerance (the double-word truncates the source double); the bit-preserving
 // round-trip is checked exactly on hi/lo.
 template <typename mp_type>
-_CCCL_HOST_DEVICE void vol_ok()
+TEST_HOST_DEVICE_FUNC void vol_ok()
 {
   const double v1  = 3.141592653589793;
   const double v2  = 2.718281828459045;
@@ -77,14 +79,14 @@ _CCCL_HOST_DEVICE void vol_ok()
   }
 }
 
-_CCCL_HOST_DEVICE void run_test()
+TEST_HOST_DEVICE_FUNC void run_test()
 {
-  vol_ok<fp32mp2>();
-  vol_ok<fp32mp2_low>();
-  vol_ok<fp32mp2_high>();
-  vol_ok<fp64mp2>();
-  vol_ok<fp64mp2_low>();
-  vol_ok<fp64mp2_high>();
+  vol_ok<cudax::fp32mp2>();
+  vol_ok<cudax::fp32mp2_low>();
+  vol_ok<cudax::fp32mp2_high>();
+  vol_ok<cudax::fp64mp2>();
+  vol_ok<cudax::fp64mp2_low>();
+  vol_ok<cudax::fp64mp2_high>();
 }
 
 TEST_FUNC void test()

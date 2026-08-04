@@ -32,34 +32,34 @@
 
 #include "test_macros.h"
 
-using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 // Every fp64_tool operation whose device path calls one of the captured names.
 // With the default mantissa width fp64_tool is a drop-in for double, so the
 // expected values are exact.
 TEST_FUNC bool check_fptool()
 {
-  const fp64_tool a(3.0);
-  const fp64_tool b(4.0);
-  const fp64_tool c(0.5);
+  const cudax::fp64_tool a(3.0);
+  const cudax::fp64_tool b(4.0);
+  const cudax::fp64_tool c(0.5);
 
   bool ok = true;
 
   ok = ok && static_cast<double>(a + b) == 7.0; // __dadd_rn
   ok = ok && static_cast<double>(a - b) == -1.0; // __dsub_rn
   ok = ok && static_cast<double>(a * b) == 12.0; // __dmul_rn
-  ok = ok && static_cast<double>(b / fp64_tool(2.0)) == 2.0; // __ddiv_rn
-  ok = ok && static_cast<double>(sqrt(fp64_tool(16.0))) == 4.0; // __dsqrt_rn
+  ok = ok && static_cast<double>(b / cudax::fp64_tool(2.0)) == 2.0; // __ddiv_rn
+  ok = ok && static_cast<double>(sqrt(cudax::fp64_tool(16.0))) == 4.0; // __dsqrt_rn
   ok = ok && static_cast<double>(fma(a, b, c)) == 12.5; // __fma_rn
 
   // The compound and inc/dec operators reach the same intrinsics through the
   // binary operators.
   {
-    fp64_tool x(1.0);
+    cudax::fp64_tool x(1.0);
     x += a;
     x -= c;
     x *= b;
-    x /= fp64_tool(2.0);
+    x /= cudax::fp64_tool(2.0);
     ++x;
     --x;
     ok = ok && static_cast<double>(x) == 7.0;
@@ -77,18 +77,18 @@ TEST_FUNC bool check_fpemu()
   const double dx = 1.2345;
   const double dy = 2.3456;
 
-  const fp64emu ex = dx;
-  const fp64emu ey = dy;
+  const cudax::fp64emu ex = dx;
+  const cudax::fp64emu ey = dy;
 
   // Unqualified, so these resolve to cuda::experimental::__dadd_rn and friends.
-  static_assert(::cuda::std::is_same_v<decltype(__dadd_rn(ex, ey)), fp64emu>);
-  static_assert(::cuda::std::is_same_v<decltype(__dsub_rn(ex, ey)), fp64emu>);
+  static_assert(::cuda::std::is_same_v<decltype(cudax::__dadd_rn(ex, ey)), cudax::fp64emu>);
+  static_assert(::cuda::std::is_same_v<decltype(cudax::__dsub_rn(ex, ey)), cudax::fp64emu>);
 
   const double tol = 1e-10;
 
   bool ok = true;
-  ok      = ok && ::cuda::std::fabs(static_cast<double>(__dadd_rn(ex, ey)) - (dx + dy)) <= tol;
-  ok      = ok && ::cuda::std::fabs(static_cast<double>(__dsub_rn(ex, ey)) - (dx - dy)) <= tol;
+  ok      = ok && ::cuda::std::fabs(static_cast<double>(cudax::__dadd_rn(ex, ey)) - (dx + dy)) <= tol;
+  ok      = ok && ::cuda::std::fabs(static_cast<double>(cudax::__dsub_rn(ex, ey)) - (dx - dy)) <= tol;
 
   return ok;
 }
@@ -99,15 +99,15 @@ TEST_FUNC bool check_mixed()
   const double dx = 6.25;
   const double dy = 1.5;
 
-  const fp64emu emu_sum    = fp64emu(dx) + fp64emu(dy);
-  const fp64_tool tool_sum = fp64_tool(dx) + fp64_tool(dy);
+  const cudax::fp64emu emu_sum    = cudax::fp64emu(dx) + cudax::fp64emu(dy);
+  const cudax::fp64_tool tool_sum = cudax::fp64_tool(dx) + cudax::fp64_tool(dy);
 
   bool ok = static_cast<double>(tool_sum) == dx + dy;
   ok      = ok && static_cast<double>(emu_sum) == static_cast<double>(tool_sum);
 
   // Feed an fpemu result into fp64_tool and back.
-  const fp64_tool round_trip = fp64_tool(static_cast<double>(emu_sum)) * fp64_tool(2.0);
-  ok                         = ok && static_cast<double>(round_trip) == 2.0 * (dx + dy);
+  const cudax::fp64_tool round_trip = cudax::fp64_tool(static_cast<double>(emu_sum)) * cudax::fp64_tool(2.0);
+  ok                                = ok && static_cast<double>(round_trip) == 2.0 * (dx + dy);
 
   return ok;
 }

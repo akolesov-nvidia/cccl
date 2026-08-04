@@ -22,47 +22,47 @@
 
 #include "test_macros.h"
 
-using namespace cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
+namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 TEST_FUNC bool test_incdec()
 {
   bool ok = true;
 
   {
-    fp64_tool x(2.5);
-    fp64_tool ret = ++x;
-    ok            = ok && static_cast<double>(x) == 3.5; // side effect
-    ok            = ok && static_cast<double>(ret) == 3.5; // prefix returns the new value
+    cudax::fp64_tool x(2.5);
+    cudax::fp64_tool ret = ++x;
+    ok                   = ok && static_cast<double>(x) == 3.5; // side effect
+    ok                   = ok && static_cast<double>(ret) == 3.5; // prefix returns the new value
   }
   {
-    fp64_tool x(2.5);
-    fp64_tool ret = --x;
-    ok            = ok && static_cast<double>(x) == 1.5;
-    ok            = ok && static_cast<double>(ret) == 1.5;
+    cudax::fp64_tool x(2.5);
+    cudax::fp64_tool ret = --x;
+    ok                   = ok && static_cast<double>(x) == 1.5;
+    ok                   = ok && static_cast<double>(ret) == 1.5;
   }
   {
-    fp64_tool x(2.5);
-    fp64_tool ret = x++;
-    ok            = ok && static_cast<double>(x) == 3.5;
-    ok            = ok && static_cast<double>(ret) == 2.5; // postfix returns the old value
+    cudax::fp64_tool x(2.5);
+    cudax::fp64_tool ret = x++;
+    ok                   = ok && static_cast<double>(x) == 3.5;
+    ok                   = ok && static_cast<double>(ret) == 2.5; // postfix returns the old value
   }
   {
-    fp64_tool x(2.5);
-    fp64_tool ret = x--;
-    ok            = ok && static_cast<double>(x) == 1.5;
-    ok            = ok && static_cast<double>(ret) == 2.5;
+    cudax::fp64_tool x(2.5);
+    cudax::fp64_tool ret = x--;
+    ok                   = ok && static_cast<double>(x) == 1.5;
+    ok                   = ok && static_cast<double>(ret) == 2.5;
   }
 
   // Prefix returns a reference to the object, not a copy.
   {
-    fp64_tool x(2.5);
+    cudax::fp64_tool x(2.5);
     ++(++x);
     ok = ok && static_cast<double>(x) == 4.5;
   }
 
   // Crossing zero and coming back.
   {
-    fp64_tool x(0.5);
+    cudax::fp64_tool x(0.5);
     --x;
     ok = ok && static_cast<double>(x) == -0.5;
     --x;
@@ -79,19 +79,19 @@ TEST_FUNC bool test_neg()
 {
   bool ok = true;
 
-  const fp64_tool x(2.5);
+  const cudax::fp64_tool x(2.5);
   ok = ok && static_cast<double>(-x) == -2.5;
   ok = ok && static_cast<double>(-(-x)) == 2.5;
   ok = ok && static_cast<double>(x) == 2.5; // operand untouched
 
-  const fp64_tool y(-4.0);
+  const cudax::fp64_tool y(-4.0);
   ok = ok && static_cast<double>(-y) == 4.0;
 
   // A sign-bit flip, so it also has to work on zero and on a non-dyadic value.
-  ok = ok && ::cuda::std::signbit(static_cast<double>(-fp64_tool(0.0)));
-  ok = ok && !::cuda::std::signbit(static_cast<double>(-fp64_tool(-0.0)));
+  ok = ok && ::cuda::std::signbit(static_cast<double>(-cudax::fp64_tool(0.0)));
+  ok = ok && !::cuda::std::signbit(static_cast<double>(-cudax::fp64_tool(-0.0)));
 
-  const fp64_tool z(0.1);
+  const cudax::fp64_tool z(0.1);
   ok = ok && static_cast<double>(-z) == -static_cast<double>(z);
   ok = ok && static_cast<double>(z + (-z)) == 0.0;
 
@@ -106,40 +106,40 @@ TEST_FUNC bool test_compound()
   const double db = 1.5;
 
   {
-    fp64_tool x(da);
-    x += fp64_tool(db);
+    cudax::fp64_tool x(da);
+    x += cudax::fp64_tool(db);
     ok = ok && static_cast<double>(x) == da + db;
   }
   {
-    fp64_tool x(da);
-    x -= fp64_tool(db);
+    cudax::fp64_tool x(da);
+    x -= cudax::fp64_tool(db);
     ok = ok && static_cast<double>(x) == da - db;
   }
   {
-    fp64_tool x(da);
-    x *= fp64_tool(db);
+    cudax::fp64_tool x(da);
+    x *= cudax::fp64_tool(db);
     ok = ok && static_cast<double>(x) == da * db;
   }
   {
-    fp64_tool x(da);
-    x /= fp64_tool(db);
+    cudax::fp64_tool x(da);
+    x /= cudax::fp64_tool(db);
     ok = ok && static_cast<double>(x) == da / db;
   }
 
   // The returned reference must be the object itself.
   {
-    fp64_tool x(1.0);
-    (x += fp64_tool(2.0)) += fp64_tool(4.0);
+    cudax::fp64_tool x(1.0);
+    (x += cudax::fp64_tool(2.0)) += cudax::fp64_tool(4.0);
     ok = ok && static_cast<double>(x) == 7.0;
   }
 
   // Accumulation must match double step for step.
   {
-    fp64_tool x(0.0);
+    cudax::fp64_tool x(0.0);
     double ref = 0.0;
     for (int i = 1; i <= 16; ++i)
     {
-      x += fp64_tool(1.0 / static_cast<double>(i));
+      x += cudax::fp64_tool(1.0 / static_cast<double>(i));
       ref += 1.0 / static_cast<double>(i);
     }
     ok = ok && static_cast<double>(x) == ref;
