@@ -1133,18 +1133,29 @@ __fpmp2_erfcx(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 }
 
-// Functions with no 128-bit support in CUDA
+// erf/erfc: binary64 unless the active fp128 backend is known to provide them, which
+// no CUDA release does yet -- see _CCCL_FPMP_FP128_QUAD_ERF in fpmp_math_impl.h. The
+// double round trip is spelled out rather than left to _CCCL_FPMP_CALL_FP64MP2_MATH so
+// that it also applies when the fp128 math fallback is on.
 template <>
 _CCCL_API inline void
 __fpmp2_erf<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
+#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1) && _CCCL_FPMP_FP128_QUAD_ERF
+  _CCCL_FPMP_CALL_FP64MP2_MATH(erf, _CCCL_FPMP_ERFQ, __x_hi, __x_lo, __res_hi, __res_lo);
+#  else
   __fpmp2_from_double(::erf(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
+#  endif
 }
 template <>
 _CCCL_API inline void
 __fpmp2_erfc<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
+#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1) && _CCCL_FPMP_FP128_QUAD_ERF
+  _CCCL_FPMP_CALL_FP64MP2_MATH(erfc, _CCCL_FPMP_ERFCQ, __x_hi, __x_lo, __res_hi, __res_lo);
+#  else
   __fpmp2_from_double(::erfc(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
+#  endif
 }
 template <>
 _CCCL_API inline void
@@ -1306,10 +1317,20 @@ template <>
 _CCCL_API inline void
 __fpmp2_normcdf<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
+#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1) && _CCCL_FPMP_FP128_QUAD_ERF
+  // N(x) = erfc(-x/sqrt(2))/2 carried entirely in binary128, so the scaling and the
+  // halving do not discard the precision the quad erfc just produced. 1/sqrt(2) comes
+  // from the backend's own sqrt rather than a literal, which keeps this free of the
+  // fp128 literal-suffix spelling differences between backends.
+  const __fpmp_fp128 __xq  = __fpmp2_to_quad(__x_hi, __x_lo);
+  const __fpmp_fp128 __two = (__fpmp_fp128) 2;
+  __fpmp2_from_quad(_CCCL_FPMP_ERFCQ(-__xq / _CCCL_FPMP_SQRTQ(__two)) / __two, __res_hi, __res_lo);
+#  else
   double __xd = __fpmp2_to_double(__x_hi, __x_lo);
   NV_IF_ELSE_TARGET(NV_IS_DEVICE,
                     (__fpmp2_from_double(::normcdf(__xd), __res_hi, __res_lo);),
                     (__fpmp2_from_double(0.5 * ::erfc(-__xd * 0.70710678118654752440), __res_hi, __res_lo);))
+#  endif
 }
 template <>
 _CCCL_API inline void

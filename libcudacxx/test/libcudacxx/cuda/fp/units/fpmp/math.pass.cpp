@@ -9,16 +9,25 @@
 
 //===----------------------------------------------------------------------===//
 //
-//  Unit test: fp32mp2 / fp64mp2 math functions (device only).
+//  Unit test: fp32mp2 / fp64mp2 math functions.
 //
-//  Sanity test that calls every fpmp2 math function from its own CUDA kernel on
-//  a single input and compares the result against the corresponding
-//  double-precision reference computed on the device. Kernels are templated on
-//  the multi-precision type so the same kernel serves both fp32mp2 and fp64mp2.
+//  Sanity test that calls every fpmp2 math entry point on a single input and
+//  compares against the corresponding double-precision reference. It checks that
+//  each function exists, is callable and lands in the right neighbourhood;
+//  accuracy to the last bit is the accuracy suite's job, not this one's.
 //
-//  This test relies on CUDA device math intrinsics (rcbrt, normcdf, Bessel, pi-
-//  scaled trig, vector norms, ...) that have no host equivalent, so it is
-//  device-only: a host-only build compiles the device work out.
+//  The functions divide by what their *reference* needs rather than by anything
+//  fpmp2 lacks, since fpmp2 math is host and device alike apart from erfinv,
+//  erfcinv and erfcx:
+//
+//    - Where the reference is in ISO <cmath>, the check lives in main(), which
+//      force_include.h turns into a __host__ __device__ function that the
+//      harness runs on the host and then in a kernel. Those get both.
+//    - The rest compare against CUDA-only math (rcbrt, the pi-scaled trig,
+//      normcdf, the inverse error functions, cyl_bessel_i*, the vector norms)
+//      or against names that exist in glibc and CUDA but not in ISO C++, namely
+//      exp10, sincos and the POSIX Bessel functions. Neither group has a
+//      portable host spelling, so they stay in kernels and are device-only.
 //
 //===----------------------------------------------------------------------===//
 
@@ -30,6 +39,163 @@
 
 namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
+// Comparison helpers, shared by the portable checks and the device-only kernels.
+TEST_FUNC bool approx_eq(double a, double b, double tol)
+{
+  if (a == b)
+  {
+    return true;
+  }
+  double diff = ::cuda::std::fabs(a - b);
+  double mag  = ::cuda::std::fmax(::cuda::std::fabs(a), ::cuda::std::fabs(b));
+  if (mag == 0.0)
+  {
+    return diff < tol;
+  }
+  return (diff / mag) < tol;
+}
+
+TEST_FUNC bool check(double fpmp_val, double ref_val, double tol)
+{
+  return approx_eq(fpmp_val, ref_val, tol);
+}
+
+TEST_FUNC bool check_int(long long fpmp_val, long long ref_val)
+{
+  return fpmp_val == ref_val;
+}
+
+// ---- checks whose reference is in ISO <cmath> ------------------------------
+//
+// Reached on the host directly and on the device through force_include.h, so
+// these cover both the host fallbacks and the device paths.
+template <typename MP2>
+TEST_FUNC void test_host_device(double tol)
+{
+  const double x_val = 1.234567890123;
+  const double y_val = 2.345678901234;
+  const int n_val    = 3;
+
+  // assert per check rather than an accumulated flag, so a failure names the
+  // function that broke instead of just the test.
+#define CHECK_1A(name, xv) assert(check(static_cast<double>(name(MP2(xv))), ::name(xv), tol))
+#define CHECK_2A(name, xv, yv) assert(check(static_cast<double>(name(MP2(xv), MP2(yv))), ::name(xv, yv), tol))
+
+  // Exponential / logarithmic
+  CHECK_1A(exp, x_val);
+  CHECK_1A(exp2, x_val);
+  CHECK_1A(expm1, x_val);
+  CHECK_1A(log, x_val);
+  CHECK_1A(log2, x_val);
+  CHECK_1A(log10, x_val);
+  CHECK_1A(log1p, x_val);
+  CHECK_1A(logb, x_val);
+
+  // Power / root
+  CHECK_1A(cbrt, x_val);
+
+  // Trigonometric
+  CHECK_1A(sin, x_val);
+  CHECK_1A(cos, x_val);
+  CHECK_1A(tan, x_val);
+  CHECK_1A(asin, 0.5);
+  CHECK_1A(acos, 0.5);
+  CHECK_1A(atan, x_val);
+
+  // Hyperbolic
+  CHECK_1A(sinh, x_val);
+  CHECK_1A(cosh, x_val);
+  CHECK_1A(tanh, x_val);
+  CHECK_1A(acosh, x_val);
+  CHECK_1A(asinh, x_val);
+  CHECK_1A(atanh, 0.5);
+
+  // Error and gamma
+  CHECK_1A(erf, x_val);
+  CHECK_1A(erfc, x_val);
+  CHECK_1A(lgamma, x_val);
+  CHECK_1A(tgamma, x_val);
+
+  // Rounding and absolute value
+  CHECK_1A(ceil, x_val);
+  CHECK_1A(floor, x_val);
+  CHECK_1A(trunc, x_val);
+  CHECK_1A(round, x_val);
+  CHECK_1A(rint, x_val);
+  CHECK_1A(nearbyint, x_val);
+  CHECK_1A(fabs, -x_val);
+
+  // Two-argument
+  CHECK_2A(pow, x_val, y_val);
+  CHECK_2A(atan2, x_val, y_val);
+  CHECK_2A(fmax, x_val, y_val);
+  CHECK_2A(fmin, x_val, y_val);
+  CHECK_2A(fmod, x_val, y_val);
+  CHECK_2A(remainder, x_val, y_val);
+  CHECK_2A(hypot, x_val, y_val);
+  CHECK_2A(copysign, x_val, y_val);
+  CHECK_2A(fdim, x_val, y_val);
+  CHECK_2A(nextafter, x_val, y_val);
+
+  // min / max are spelled without the f and have no ISO counterpart taking two
+  // doubles, so the reference is the comparison itself.
+  assert(check(static_cast<double>(max(MP2(x_val), MP2(y_val))), (x_val < y_val) ? y_val : x_val, tol));
+  assert(check(static_cast<double>(min(MP2(x_val), MP2(y_val))), (y_val < x_val) ? y_val : x_val, tol));
+
+  // The Boys function has no counterpart in the C library; its reference comes
+  // from the definition, F_0(x) = 0.5 * sqrt(pi/x) * erf(sqrt(x)) for x > 0.
+  assert(check(static_cast<double>(boys_f0(MP2(x_val))),
+               0.5 * ::sqrt(3.14159265358979323846 / x_val) * ::erf(::sqrt(x_val)),
+               tol));
+
+  // Scaling by a power of two
+  assert(check(static_cast<double>(ldexp(MP2(x_val), n_val)), ::ldexp(x_val, n_val), tol));
+  assert(check(static_cast<double>(scalbn(MP2(x_val), n_val)), ::scalbn(x_val, n_val), tol));
+  assert(check(static_cast<double>(scalbln(MP2(x_val), (long) n_val)), ::scalbln(x_val, (long) n_val), tol));
+
+  // Integer-returning
+  assert(check_int(ilogb(MP2(x_val)), ::ilogb(x_val)));
+  assert(check_int(llrint(MP2(x_val)), ::llrint(x_val)));
+  assert(check_int(llround(MP2(x_val)), ::llround(x_val)));
+  assert(check_int(lrint(MP2(x_val)), ::lrint(x_val)));
+  assert(check_int(lround(MP2(x_val)), ::lround(x_val)));
+
+  // Classification
+  assert(check_int(fpmp_isfinite(MP2(x_val)), ::cuda::std::isfinite(x_val) ? 1 : 0));
+  assert(check_int(fpmp_isinf(MP2(x_val)), ::cuda::std::isinf(x_val) ? 1 : 0));
+  assert(check_int(fpmp_isnan(MP2(x_val)), ::cuda::std::isnan(x_val) ? 1 : 0));
+  assert(check_int(fpmp_signbit(MP2(x_val)), ::cuda::std::signbit(x_val) ? 1 : 0));
+
+  // Functions returning a second result through a pointer
+  {
+    int e = 0;
+    const MP2 frac = frexp(MP2(x_val), &e);
+    int ref_e      = 0;
+    const double ref = ::frexp(x_val, &ref_e);
+    assert(check(static_cast<double>(frac), ref, tol));
+    assert(check_int(e, ref_e));
+  }
+  {
+    MP2 ipart;
+    const MP2 frac     = modf(MP2(x_val), &ipart);
+    double ref_ipart   = 0;
+    const double ref_f = ::modf(x_val, &ref_ipart);
+    assert(check(static_cast<double>(frac), ref_f, tol));
+    assert(check(static_cast<double>(ipart), ref_ipart, tol));
+  }
+  {
+    int quo = 0;
+    const MP2 res    = remquo(MP2(x_val), MP2(y_val), &quo);
+    int ref_quo      = 0;
+    const double ref = ::remquo(x_val, y_val, &ref_quo);
+    assert(check(static_cast<double>(res), ref, tol));
+    assert(check_int(quo, ref_quo));
+  }
+
+#undef CHECK_1A
+#undef CHECK_2A
+}
+
 #if _CCCL_CUDA_COMPILATION()
 
 #  define CUDA_CHECK(call)           \
@@ -38,26 +204,11 @@ namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (lat
       assert((call) == cudaSuccess); \
     } while (0)
 
-// Result structures stored in managed memory.
+// Result structure stored in managed memory.
 struct Result
 {
   double fpmp_val;
   double ref_val;
-};
-struct ResultInt
-{
-  int fpmp_val;
-  int ref_val;
-};
-struct ResultLL
-{
-  long long fpmp_val;
-  long long ref_val;
-};
-struct ResultLong
-{
-  long fpmp_val;
-  long ref_val;
 };
 
 // One-argument kernels: f(x) -> fpmp2
@@ -71,39 +222,7 @@ struct ResultLong
       r->ref_val  = ::name(x_in);                         \
     }
 
-DEFINE_KERNEL_1A(exp)
-DEFINE_KERNEL_1A(log)
-DEFINE_KERNEL_1A(log2)
-DEFINE_KERNEL_1A(log10)
-DEFINE_KERNEL_1A(log1p)
-DEFINE_KERNEL_1A(cbrt)
-DEFINE_KERNEL_1A(sin)
-DEFINE_KERNEL_1A(cos)
-DEFINE_KERNEL_1A(asin)
-DEFINE_KERNEL_1A(acos)
-DEFINE_KERNEL_1A(atan)
-DEFINE_KERNEL_1A(sinh)
-DEFINE_KERNEL_1A(cosh)
-DEFINE_KERNEL_1A(tanh)
-DEFINE_KERNEL_1A(erf)
-DEFINE_KERNEL_1A(erfc)
-DEFINE_KERNEL_1A(acosh)
-DEFINE_KERNEL_1A(asinh)
-DEFINE_KERNEL_1A(atanh)
-DEFINE_KERNEL_1A(tan)
-DEFINE_KERNEL_1A(exp2)
 DEFINE_KERNEL_1A(exp10)
-DEFINE_KERNEL_1A(expm1)
-DEFINE_KERNEL_1A(logb)
-DEFINE_KERNEL_1A(ceil)
-DEFINE_KERNEL_1A(floor)
-DEFINE_KERNEL_1A(trunc)
-DEFINE_KERNEL_1A(round)
-DEFINE_KERNEL_1A(rint)
-DEFINE_KERNEL_1A(nearbyint)
-DEFINE_KERNEL_1A(fabs)
-DEFINE_KERNEL_1A(lgamma)
-DEFINE_KERNEL_1A(tgamma)
 DEFINE_KERNEL_1A(j0)
 DEFINE_KERNEL_1A(j1)
 DEFINE_KERNEL_1A(y0)
@@ -158,37 +277,6 @@ DEFINE_KERNEL_4A(rnorm4d)
       r->ref_val  = ::name(x_in, y_in);                                \
     }
 
-DEFINE_KERNEL_2A(pow)
-DEFINE_KERNEL_2A(atan2)
-DEFINE_KERNEL_2A(fmax)
-DEFINE_KERNEL_2A(fmin)
-
-template <typename MP2>
-__global__ void kernel_max(double x_in, double y_in, Result* r)
-{
-  MP2 x       = MP2(x_in);
-  MP2 y       = MP2(y_in);
-  MP2 res     = max(x, y);
-  r->fpmp_val = static_cast<double>(res);
-  r->ref_val  = (x_in < y_in) ? y_in : x_in;
-}
-
-template <typename MP2>
-__global__ void kernel_min(double x_in, double y_in, Result* r)
-{
-  MP2 x       = MP2(x_in);
-  MP2 y       = MP2(y_in);
-  MP2 res     = min(x, y);
-  r->fpmp_val = static_cast<double>(res);
-  r->ref_val  = (y_in < x_in) ? y_in : x_in;
-}
-
-DEFINE_KERNEL_2A(fmod)
-DEFINE_KERNEL_2A(remainder)
-DEFINE_KERNEL_2A(hypot)
-DEFINE_KERNEL_2A(copysign)
-DEFINE_KERNEL_2A(fdim)
-DEFINE_KERNEL_2A(nextafter)
 DEFINE_KERNEL_2A(rhypot)
 
 // sincos / sincospi (use sin+cos / sinpi+cospi to avoid overload clash).
@@ -226,108 +314,7 @@ __global__ void kernel_normcdfinv(double x_in, Result* r)
   r->ref_val  = ::normcdfinv(x_in);
 }
 
-// Integer-returning kernels.
-template <typename MP2>
-__global__ void kernel_ilogb(double x_in, ResultInt* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = ilogb(x);
-  r->ref_val  = ::ilogb(x_in);
-}
-
-template <typename MP2>
-__global__ void kernel_llrint(double x_in, ResultLL* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = llrint(x);
-  r->ref_val  = ::llrint(x_in);
-}
-
-template <typename MP2>
-__global__ void kernel_llround(double x_in, ResultLL* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = llround(x);
-  r->ref_val  = ::llround(x_in);
-}
-
-template <typename MP2>
-__global__ void kernel_lrint(double x_in, ResultLong* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = lrint(x);
-  r->ref_val  = ::lrint(x_in);
-}
-
-template <typename MP2>
-__global__ void kernel_lround(double x_in, ResultLong* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = lround(x);
-  r->ref_val  = ::lround(x_in);
-}
-
-// Classification kernels.
-template <typename MP2>
-__global__ void kernel_isfinite(double x_in, ResultInt* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = fpmp_isfinite(x);
-  r->ref_val  = isfinite(x_in) ? 1 : 0;
-}
-
-template <typename MP2>
-__global__ void kernel_isinf(double x_in, ResultInt* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = fpmp_isinf(x);
-  r->ref_val  = isinf(x_in) ? 1 : 0;
-}
-
-template <typename MP2>
-__global__ void kernel_isnan(double x_in, ResultInt* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = fpmp_isnan(x);
-  r->ref_val  = isnan(x_in) ? 1 : 0;
-}
-
-template <typename MP2>
-__global__ void kernel_signbit(double x_in, ResultInt* r)
-{
-  MP2 x       = MP2(x_in);
-  r->fpmp_val = fpmp_signbit(x);
-  r->ref_val  = signbit(x_in) ? 1 : 0;
-}
-
 // Mixed-signature kernels.
-template <typename MP2>
-__global__ void kernel_ldexp(double x_in, int n, Result* r)
-{
-  MP2 x       = MP2(x_in);
-  MP2 res     = ldexp(x, n);
-  r->fpmp_val = static_cast<double>(res);
-  r->ref_val  = ::ldexp(x_in, n);
-}
-
-template <typename MP2>
-__global__ void kernel_scalbn(double x_in, int n, Result* r)
-{
-  MP2 x       = MP2(x_in);
-  MP2 res     = scalbn(x, n);
-  r->fpmp_val = static_cast<double>(res);
-  r->ref_val  = ::scalbn(x_in, n);
-}
-
-template <typename MP2>
-__global__ void kernel_scalbln(double x_in, long int n, Result* r)
-{
-  MP2 x       = MP2(x_in);
-  MP2 res     = scalbln(x, n);
-  r->fpmp_val = static_cast<double>(res);
-  r->ref_val  = ::scalbln(x_in, n);
-}
-
 template <typename MP2>
 __global__ void kernel_jn(int n, double x_in, Result* r)
 {
@@ -346,79 +333,11 @@ __global__ void kernel_yn(int n, double x_in, Result* r)
   r->ref_val  = ::yn(n, x_in);
 }
 
+// ---- checks whose reference exists only in CUDA ----------------------------
+//
+// Launched from the host half, so these run on the device only.
 template <typename MP2>
-__global__ void kernel_frexp(double x_in, Result* r, ResultInt* r_exp)
-{
-  using FpType = decltype(MP2().hi());
-  MP2 x        = MP2(x_in);
-  int nptr;
-  FpType frac_hi, frac_lo;
-  cudax::__fpmp2_frexp(x.hi(), x.lo(), &frac_hi, &frac_lo, &nptr);
-  r->fpmp_val     = static_cast<double>(MP2(frac_hi, frac_lo));
-  r_exp->fpmp_val = nptr;
-  int ref_exp;
-  r->ref_val     = ::frexp(x_in, &ref_exp);
-  r_exp->ref_val = ref_exp;
-}
-
-template <typename MP2>
-__global__ void kernel_modf(double x_in, Result* r_frac, Result* r_int)
-{
-  using FpType = decltype(MP2().hi());
-  MP2 x        = MP2(x_in);
-  FpType frac_hi, frac_lo, ipart_hi, ipart_lo;
-  cudax::__fpmp2_modf(x.hi(), x.lo(), &frac_hi, &frac_lo, &ipart_hi, &ipart_lo);
-  r_frac->fpmp_val = static_cast<double>(MP2(frac_hi, frac_lo));
-  r_int->fpmp_val  = static_cast<double>(MP2(ipart_hi, ipart_lo));
-  double iref;
-  r_frac->ref_val = ::modf(x_in, &iref);
-  r_int->ref_val  = iref;
-}
-
-template <typename MP2>
-__global__ void kernel_remquo(double x_in, double y_in, Result* r, ResultInt* r_quo)
-{
-  using FpType = decltype(MP2().hi());
-  MP2 x = MP2(x_in), y = MP2(y_in);
-  int quo;
-  FpType res_hi, res_lo;
-  cudax::__fpmp2_remquo(x.hi(), x.lo(), y.hi(), y.lo(), &res_hi, &res_lo, &quo);
-  r->fpmp_val     = static_cast<double>(MP2(res_hi, res_lo));
-  r_quo->fpmp_val = quo;
-  int ref_quo;
-  r->ref_val     = ::remquo(x_in, y_in, &ref_quo);
-  r_quo->ref_val = ref_quo;
-}
-
-// Test runner helpers.
-static bool approx_eq(double a, double b, double tol)
-{
-  if (a == b)
-  {
-    return true;
-  }
-  double diff = ::cuda::std::fabs(a - b);
-  double mag  = ::cuda::std::fmax(::cuda::std::fabs(a), ::cuda::std::fabs(b));
-  if (mag == 0.0)
-  {
-    return diff < tol;
-  }
-  return (diff / mag) < tol;
-}
-
-static bool check(double fpmp_val, double ref_val, double tol)
-{
-  return approx_eq(fpmp_val, ref_val, tol);
-}
-
-static bool check_int(long long fpmp_val, long long ref_val)
-{
-  return fpmp_val == ref_val;
-}
-
-// Templated test runner — works for both fp32mp2 and fp64mp2.
-template <typename MP2>
-static bool run_tests(double tol)
+static bool test_device(double tol)
 {
   const double x_val = 1.234567890123;
   const double y_val = 2.345678901234;
@@ -426,15 +345,9 @@ static bool run_tests(double tol)
   const int n_val    = 3;
 
   Result *r1, *r2;
-  ResultInt* ri;
-  ResultLL* rll;
-  ResultLong* rl;
 
   CUDA_CHECK(cudaMallocManaged(&r1, sizeof(Result)));
   CUDA_CHECK(cudaMallocManaged(&r2, sizeof(Result)));
-  CUDA_CHECK(cudaMallocManaged(&ri, sizeof(ResultInt)));
-  CUDA_CHECK(cudaMallocManaged(&rll, sizeof(ResultLL)));
-  CUDA_CHECK(cudaMallocManaged(&rl, sizeof(ResultLong)));
 
   bool ok = true;
 
@@ -458,61 +371,19 @@ static bool run_tests(double tol)
     CUDA_CHECK(cudaDeviceSynchronize());              \
     ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
-  // Exponential / Logarithmic
-  RUN_1A(exp, x_val)
-  RUN_1A(log, x_val)
-  RUN_1A(log2, x_val)
-  RUN_1A(log10, x_val)
-  RUN_1A(log1p, x_val)
-  RUN_1A(exp2, x_val)
+  // Base-10 exponential: exp10 is in glibc and CUDA but not in ISO C++.
   RUN_1A(exp10, x_val)
-  RUN_1A(expm1, x_val)
-  RUN_1A(logb, x_val)
 
-  // Power / Root
-  RUN_1A(cbrt, x_val)
+  // Reciprocal cube root
   RUN_1A(rcbrt, x_val)
 
-  // Trigonometric
-  RUN_1A(sin, x_val)
-  RUN_1A(cos, x_val)
-  RUN_1A(tan, x_val)
-  RUN_1A(asin, 0.5)
-  RUN_1A(acos, 0.5)
-  RUN_1A(atan, x_val)
-
-  // Hyperbolic
-  RUN_1A(sinh, x_val)
-  RUN_1A(cosh, x_val)
-  RUN_1A(tanh, x_val)
-  RUN_1A(acosh, x_val)
-  RUN_1A(asinh, x_val)
-  RUN_1A(atanh, 0.5)
-
   // Error / Probability
-  RUN_1A(erf, x_val)
-  RUN_1A(erfc, x_val)
   RUN_1A(erfcinv, p_val)
   RUN_1A(erfinv, p_val)
   RUN_1A(erfcx, x_val)
   RUN_1A(normcdf, x_val)
 
-  // Gamma
-  RUN_1A(lgamma, x_val)
-  RUN_1A(tgamma, x_val)
-
-  // Rounding
-  RUN_1A(ceil, x_val)
-  RUN_1A(floor, x_val)
-  RUN_1A(trunc, x_val)
-  RUN_1A(round, x_val)
-  RUN_1A(rint, x_val)
-  RUN_1A(nearbyint, x_val)
-
-  // Absolute value
-  RUN_1A(fabs, -x_val)
-
-  // Bessel
+  // Bessel: j0/j1/y0/y1 are POSIX rather than ISO, and MSVC spells them _j0.
   RUN_1A(j0, x_val)
   RUN_1A(j1, x_val)
   RUN_1A(y0, x_val)
@@ -529,23 +400,7 @@ static bool run_tests(double tol)
   CUDA_CHECK(cudaDeviceSynchronize());
   ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
 
-  // Two-argument
-  RUN_2A(pow, x_val, y_val)
-  RUN_2A(atan2, x_val, y_val)
-  RUN_2A(fmax, x_val, y_val)
-  RUN_2A(fmin, x_val, y_val)
-  kernel_max<MP2><<<1, 1>>>(x_val, y_val, r1);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  kernel_min<MP2><<<1, 1>>>(x_val, y_val, r1);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  RUN_2A(fmod, x_val, y_val)
-  RUN_2A(remainder, x_val, y_val)
-  RUN_2A(hypot, x_val, y_val)
-  RUN_2A(copysign, x_val, y_val)
-  RUN_2A(fdim, x_val, y_val)
-  RUN_2A(nextafter, x_val, y_val)
+  // Reciprocal hypotenuse
   RUN_2A(rhypot, x_val, y_val)
 
   // Vector norm (3/4 args)
@@ -565,67 +420,13 @@ static bool run_tests(double tol)
   ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   ok = check(r2->fpmp_val, r2->ref_val, tol) && ok;
 
-  // Integer-returning
-  kernel_ilogb<MP2><<<1, 1>>>(x_val, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
-  kernel_llrint<MP2><<<1, 1>>>(x_val, rll);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(rll->fpmp_val, rll->ref_val) && ok;
-  kernel_llround<MP2><<<1, 1>>>(x_val, rll);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(rll->fpmp_val, rll->ref_val) && ok;
-  kernel_lrint<MP2><<<1, 1>>>(x_val, rl);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int((long long) rl->fpmp_val, (long long) rl->ref_val) && ok;
-  kernel_lround<MP2><<<1, 1>>>(x_val, rl);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int((long long) rl->fpmp_val, (long long) rl->ref_val) && ok;
-
-  // Classification
-  kernel_isfinite<MP2><<<1, 1>>>(x_val, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
-  kernel_isinf<MP2><<<1, 1>>>(x_val, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
-  kernel_isnan<MP2><<<1, 1>>>(x_val, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
-  kernel_signbit<MP2><<<1, 1>>>(x_val, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
-
-  // Mixed signature (fp, int)
-  kernel_ldexp<MP2><<<1, 1>>>(x_val, n_val, r1);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  kernel_scalbn<MP2><<<1, 1>>>(x_val, n_val, r1);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  kernel_scalbln<MP2><<<1, 1>>>(x_val, (long) n_val, r1);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
+  // Bessel functions taking an order
   kernel_jn<MP2><<<1, 1>>>(n_val, x_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
   ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
   kernel_yn<MP2><<<1, 1>>>(n_val, x_val, r1);
   CUDA_CHECK(cudaDeviceSynchronize());
   ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-
-  // frexp / modf / remquo
-  kernel_frexp<MP2><<<1, 1>>>(x_val, r1, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
-  kernel_modf<MP2><<<1, 1>>>(x_val, r1, r2);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  ok = check(r2->fpmp_val, r2->ref_val, tol) && ok;
-  kernel_remquo<MP2><<<1, 1>>>(x_val, y_val, r1, ri);
-  CUDA_CHECK(cudaDeviceSynchronize());
-  ok = check(r1->fpmp_val, r1->ref_val, tol) && ok;
-  ok = check_int(ri->fpmp_val, ri->ref_val) && ok;
 
 #  undef RUN_1A
 #  undef RUN_2A
@@ -634,27 +435,31 @@ static bool run_tests(double tol)
 
   cudaFree(r1);
   cudaFree(r2);
-  cudaFree(ri);
-  cudaFree(rll);
-  cudaFree(rl);
   return ok;
 }
 
 // The launches must live outside the NV_IF_TARGET(NV_IS_HOST) block in main(): nvcc's device
 // pass discards that block, so the kernel templates would never be instantiated for the device
 // and every launch would fail with cudaErrorInvalidDeviceFunction.
-bool run_all_tests()
+bool test_device_all()
 {
-  bool ok = run_tests<cudax::fp32mp2>(1e-5);
-  ok      = run_tests<cudax::fp64mp2>(1e-12) && ok;
+  bool ok = test_device<cudax::fp32mp2>(1e-5);
+  ok      = test_device<cudax::fp64mp2>(1e-12) && ok;
   return ok;
 }
 #endif // _CCCL_CUDA_COMPILATION()
 
 int main(int, char**)
 {
+  // force_include.h makes this main __host__ __device__ and runs it twice, on the
+  // host and then in a kernel, so these cover both without any launch of our own.
+  test_host_device<cudax::fp32mp2>(1e-5);
+  test_host_device<cudax::fp64mp2>(1e-12);
+
 #if _CCCL_CUDA_COMPILATION()
-  NV_IF_TARGET(NV_IS_HOST, (assert(run_all_tests());))
+  // The remaining functions have no portable host reference and so are checked
+  // through kernels, which only the host half can launch.
+  NV_IF_TARGET(NV_IS_HOST, (assert(test_device_all());))
 #endif // _CCCL_CUDA_COMPILATION()
   return 0;
 }

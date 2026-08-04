@@ -479,6 +479,27 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
  * ============================================================================
  */
 
+// Does the active binary128 backend provide erf/erfc?
+//
+// CUDA does not, as of 13.0: neither crt/device_fp128_functions.h nor libdevice
+// declares __nv_fp128_erf or __nv_fp128_erfc (the declared set stops at exp, log,
+// sin, pow, sqrt, fma and friends). libquadmath (erfq/erfcq) and 128-bit long double
+// (erfl/erfcl) do have them, so this is a property of the backend and not of the
+// function.
+//
+// The default is 0 on every backend, which keeps fp64mp2 erf and erfc at binary64
+// accuracy everywhere and so keeps the host and the device in agreement -- valuable
+// on its own, since a result that changes with the compilation pass is far worse than
+// one that is uniformly less precise. Setting it to 1 moves every backend to true
+// binary128 at once, which is the single change needed once CUDA gains the device
+// intrinsics; the host halves already resolve to their quad entry points below.
+//
+// In library mode this has to match between the library build and its consumers, like
+// the other fp128 knobs: it selects which implementation the fp64mp2 entry points get.
+#  ifndef _CCCL_FPMP_FP128_QUAD_ERF
+#    define _CCCL_FPMP_FP128_QUAD_ERF 0
+#  endif
+
 #  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
 
 #    if _CCCL_DEVICE_COMPILATION() && (defined(__aarch64__) || defined(_M_ARM64))     \
@@ -547,8 +568,14 @@ namespace cuda::experimental
 #      define _CCCL_FPMP_CBRTQ(x) \
         __nv_fp128_copysign(__nv_fp128_pow(__nv_fp128_fabs(x), (__fpmp_fp128) 1 / (__fpmp_fp128) 3), (x))
 #      define _CCCL_FPMP_ATAN2Q(y, x) ((__fpmp_fp128) atan2((double) (y), (double) (x)))
-#      define _CCCL_FPMP_ERFQ(x)      ((__fpmp_fp128) erf((double) (x)))
-#      define _CCCL_FPMP_ERFCQ(x)     ((__fpmp_fp128) erfc((double) (x)))
+// erf/erfc have no __nv_fp128_* intrinsic to call; see _CCCL_FPMP_FP128_QUAD_ERF above.
+#      if _CCCL_FPMP_FP128_QUAD_ERF
+#        define _CCCL_FPMP_ERFQ(x)  __nv_fp128_erf(x)
+#        define _CCCL_FPMP_ERFCQ(x) __nv_fp128_erfc(x)
+#      else
+#        define _CCCL_FPMP_ERFQ(x)  ((__fpmp_fp128) erf((double) (x)))
+#        define _CCCL_FPMP_ERFCQ(x) ((__fpmp_fp128) erfc((double) (x)))
+#      endif
 // ----------------------------------------------------------------------
 // Branch 2 -- HOST with libquadmath (the primary x86_64 host path).
 // Target: host compilation pass where libquadmath is present (typically

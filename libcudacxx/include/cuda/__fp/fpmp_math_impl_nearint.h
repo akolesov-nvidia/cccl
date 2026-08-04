@@ -630,27 +630,120 @@ _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL(llround)
 _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lrint)
 _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lround)
 
-// Rounding functions rint, nearbyint
+/*
+ * rint / nearbyint: round to nearest, ties to even, on the (hi, lo) pair.
+ *
+ * Both limbs participate, so neither the pair nor an intermediate double is
+ * collapsed. Two regimes, as in floor/ceil above:
+ *
+ *   |hi| >= int_scale: hi is an integer already, so only lo has a fractional
+ *     part. A tie in lo is broken on the parity of hi + floor(lo), the two
+ *     candidates being that value and one more.
+ *
+ *   |hi| <  int_scale: the fractional part of hi decides, except when hi sits
+ *     exactly on a midpoint, where lo picks the side. lo cannot create or
+ *     destroy a tie otherwise: a renormalized pair has |lo| <= ulp(hi)/2, and
+ *     both hi and the midpoints are multiples of ulp(hi), so hi + lo stays
+ *     strictly on hi's side of the nearest midpoint.
+ *
+ * The result is an integer below int_scale in the second regime, hence exact in
+ * hi with lo = 0.
+ *
+ * nearbyint is rint without the inexact exception, which this implementation
+ * never raises, so it forwards.
+ */
+template <typename _FpType = float>
+_CCCL_FPMP_CORE_API bool __fpmp2_nearint_is_odd(const _FpType __n) noexcept
+{
+  // n is an integer. n/2 and 2*floor(n/2) are both exact, so this is a parity
+  // test that also works past 2^53, where every value is even anyway.
+  const _FpType __half_n = __n * _FpType(0.5);
+  return __n != _FpType(2) * __fpmp_internal_floor<_FpType>(__half_n);
+}
+
 template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  using mp2_t      = fpmp2<_FpType>;
-  const double __r = ::rint(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-  mp2_t __result(__r);
-  *__res_hi = __result.hi();
-  *__res_lo = __result.lo();
+  // NaN check
+  if ((__x_hi != __x_hi) || (__x_lo != __x_lo))
+  {
+    _FpType __res = __x_hi + __x_lo;
+    *__res_hi     = __res;
+    *__res_lo     = __res;
+    return;
+  }
+
+  const _FpType __half      = _FpType(0.5);
+  const _FpType __abs_hi    = __fpmp_internal_fabs(__x_hi);
+  const _FpType __int_scale = __fpmp2_is_fp32_v<_FpType> ? _FpType(0x1.0p23f) : _FpType(0x1.0p52);
+
+  if (__abs_hi >= __int_scale)
+  {
+    // Compare against the midpoint rather than subtracting: x - floor(x) is not
+    // always exact (for x = -(0.5 - 2^-54) the true fraction 0.5 + 2^-54 rounds to
+    // 0.5 and fabricates a tie), while floor(x) + 1/2 is representable below
+    // int_scale and the comparison is exact.
+    const _FpType __lo_floor = __fpmp_internal_floor<_FpType>(__x_lo);
+    const _FpType __lo_mid   = __lo_floor + __half;
+    _FpType __lo_r           = __lo_floor;
+    if (__x_lo > __lo_mid)
+    {
+      __lo_r = __lo_floor + _FpType(1);
+    }
+    else if (__x_lo == __lo_mid)
+    {
+      // Tie: step to whichever of hi + lo_floor and hi + lo_floor + 1 is even.
+      const bool __sum_odd = __fpmp2_nearint_is_odd<_FpType>(__x_hi) != __fpmp2_nearint_is_odd<_FpType>(__lo_floor);
+      if (__sum_odd)
+      {
+        __lo_r = __lo_floor + _FpType(1);
+      }
+    }
+
+    _FpType __t_hi = __x_hi, __t_lo = _FpType(0);
+    __fpmp2_acc<_FpType>(__lo_r, &__t_hi, &__t_lo);
+    *__res_hi = __t_hi;
+    *__res_lo = __t_lo;
+    return;
+  }
+
+  // Same midpoint comparison as above. hi strictly on one side of mid puts x on
+  // that side too, since hi and mid are both multiples of ulp(hi) here and
+  // |lo| <= ulp(hi)/2, so lo cannot cross the midpoint - it can only break a tie.
+  const _FpType __n   = __fpmp_internal_floor<_FpType>(__x_hi);
+  const _FpType __mid = __n + __half;
+  _FpType __r         = __n;
+  if (__x_hi > __mid)
+  {
+    __r = __n + _FpType(1);
+  }
+  else if (__x_hi == __mid)
+  {
+    if (__x_lo > _FpType(0))
+    {
+      __r = __n + _FpType(1);
+    }
+    else if (__x_lo == _FpType(0) && __fpmp2_nearint_is_odd<_FpType>(__n))
+    {
+      __r = __n + _FpType(1); // exact tie, and n is the odd neighbour
+    }
+  }
+
+  if (__r == _FpType(0) && __x_hi < _FpType(0))
+  {
+    __r = -__r; // rint(-0.25) is -0.0: the sign survives rounding to zero
+  }
+
+  *__res_hi = __r;
+  *__res_lo = _FpType(0);
 }
 
 template <typename _FpType = float>
 _CCCL_FPMP_CORE_API void
 __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
-  using mp2_t      = fpmp2<_FpType>;
-  const double __r = ::nearbyint(static_cast<double>(mp2_t(__x_hi, __x_lo)));
-  mp2_t __result(__r);
-  *__res_hi = __result.hi();
-  *__res_lo = __result.lo();
+  __fpmp2_rint<_FpType>(__x_hi, __x_lo, __res_hi, __res_lo);
 }
 
 // remquo: compute remainder and part of quotient
@@ -670,45 +763,14 @@ _CCCL_FPMP_CORE_API void __fpmp2_remquo(
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
 }
-// Rounding family: fp64mp2 routes through higher precision (fp128) when
-// available; otherwise falls back to fp64 system rounding. This avoids
-// precision loss from collapsing the (hi, lo) pair into a single double.
-template <>
-_CCCL_API inline void
-__fpmp2_ceil<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(ceil, _CCCL_FPMP_CEILQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_floor<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(floor, _CCCL_FPMP_FLOORQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_trunc<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(trunc, _CCCL_FPMP_TRUNCQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_round<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(round, _CCCL_FPMP_ROUNDQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_rint<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(rint, _CCCL_FPMP_RINTQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_nearbyint<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(nearbyint, _CCCL_FPMP_NEARBYINTQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
+// Rounding family: ceil, floor, trunc and round have no <double> specialization.
+// The primary templates above are exact on the limb pair for both element types -
+// they select the integer threshold from _FpType and renormalize through
+// __fpmp2_acc - so fp64mp2 uses them directly. Routing fp64mp2 through fp128
+// instead was exact only where fp128 was available and silently collapsed the pair
+// into one double everywhere else, which is wrong rather than imprecise: the low
+// limb is what decides the answer whenever hi is integral, so ceil could return a
+// value below its own argument.
 // __fpmp2_fmax<double>, __fpmp2_fmin<double>, __fpmp2_max<double>, __fpmp2_min<double>:
 // handled by the type-agnostic primary templates above (no double round-trip).
 template <>
