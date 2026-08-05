@@ -48,23 +48,22 @@
 // class looks like; this one only selects the bodies of the fp64mp2 math functions, which
 // is why it lives here rather than with them.
 //
-// Being about bodies, it could legitimately differ between the passes of a CUDA
-// compilation. It deliberately does not: a fp64mp2 result that changes depending on
-// whether the work ran on the host or on the GPU is harder to live with than one that is
-// uniformly less precise, and a pass-invariant answer is also the only one a compile-time
-// diagnostic about accuracy could ever be built on.
+// Being about bodies, it is decided per pass. The device pass takes the quad path only
+// where fp128 arithmetic is device-callable, since those bodies go through
+// __fpmp2_to_quad; the host pass of a CUDA compilation stays on the double path, so that
+// a .cu file does not silently acquire a libquadmath dependency its host-only counterpart
+// never had. Outside CUDA the host decides alone.
 //
-// So the whole translation unit follows the device. Where fp128 arithmetic is
-// device-callable both passes take the quad path, which costs the host half a libquadmath
-// dependency; where it is not, both stay on the double path, and a .cu file does not
-// acquire that dependency for an accuracy its kernels could never match. Outside CUDA the
-// host decides alone, as there is nothing to agree with.
+// The two passes can therefore disagree on fp64mp2 accuracy. That is the price of not
+// forcing -lquadmath on every translation unit built for an architecture with device
+// fp128; define the macro explicitly to pin both passes to the same path.
 //
 // In library mode this has to match between the library build and its consumers, like the
 // other fp128 knobs.
 */
 #ifndef _CCCL_FPMP_FP128_MATH_FALLBACK
-#  if (_CCCL_FPMP_FP128_ENABLE == 1) && (!_CCCL_CUDA_COMPILATION() || (_CCCL_FPMP_FP128_DEVICE_OPS == 1))
+#  if (_CCCL_FPMP_FP128_ENABLE == 1) \
+    && (!_CCCL_CUDA_COMPILATION() || (_CCCL_DEVICE_COMPILATION() && (_CCCL_FPMP_FP128_DEVICE_OPS == 1)))
 #    define _CCCL_FPMP_FP128_MATH_FALLBACK 1
 #  else
 #    define _CCCL_FPMP_FP128_MATH_FALLBACK 0
