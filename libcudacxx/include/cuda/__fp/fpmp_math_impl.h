@@ -56,7 +56,16 @@
 //
 // The two passes can therefore disagree on fp64mp2 accuracy. That is the price of not
 // forcing -lquadmath on every translation unit built for an architecture with device
-// fp128; define the macro explicitly to pin both passes to the same path.
+// fp128. A program that needs both halves on the quad path says so with the public knob
+// CCCL_FPMP_FP128_MATH_FALLBACK from <cuda/__fp/fpmp_common.h>, which maps onto this
+// macro and is documented there:
+//
+//   nvcc -arch=sm_100 -DCCCL_FPMP_FP128_MATH_FALLBACK=1 app.cu -lquadmath
+//
+// Below sm_100 that also takes _CCCL_FPMP_FP128_DEVICE_OPS=1 and a toolchain that emits
+// fp128 there (nvcc -nvvm-version=nvvm-latest); asking for the quad path alone on such a
+// target makes the device pass fail to compile, since these bodies then need fp128
+// arithmetic the architecture does not have.
 //
 // In library mode this has to match between the library build and its consumers, like the
 // other fp128 knobs.

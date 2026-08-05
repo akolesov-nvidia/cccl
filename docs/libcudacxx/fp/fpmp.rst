@@ -566,13 +566,42 @@ Macro                                 Default Description
 ``CCCL_FPMP_EXPLICIT_CASTS``               ``1``   When ``1`` (default), lossy/narrowing conversions INTO ``fpmp2`` (``double``/``fp64mp2``/``__float128`` and ``int32``/``uint32``/``int64``/``uint64``) require explicit casts, matching CCCL's strict-cast conventions. The widening conversion OUT to ``double`` (``operator double()``) is always implicit and is not affected by this macro. Set ``0`` to restore the fully-implicit model (all conversions implicit). **Set ``0`` when** ``fpmp2`` is a near drop-in for ``double``/``float`` across a large codebase (existing call sites and mixed-type expressions compile unchanged instead of needing an explicit cast at every narrowing boundary) or for rapid prototyping where minimizing edit churn matters. **Warning:** with implicit casts the compiler silently narrows INTO ``fpmp2``, which can drop precision at unintended conversions or introduce accidental round-trips / FP64 use (accuracy/perf) with no diagnostic — keep the default ``1`` unless the migration benefit outweighs that risk. Note: explicit construction from ``double`` literals (e.g. ``fp32mp2(3.14159)``) remains ``constexpr`` (compile-time).
 ``_CCCL_FPMP_FP128_ENABLE``                 Auto    Automatically computed from the host toolchain's 128-bit floating-point support, and therefore identical in both passes of a CUDA compilation, so host code in a ``.cu`` file has the ``fp128`` interchange whatever the target architecture. Can be explicitly set to ``0`` to disable ``__float128`` support (e.g., for older compilers or compatibility).
 ``_CCCL_FPMP_FP128_DEVICE_OPS``             Auto    Automatically computed from ``__CUDA_ARCH_LIST__``: whether the ``fp128`` constructor and conversion are callable from device code, which requires every targeted architecture to be ``sm_100`` or later. When ``0`` they are host-only, and device code that reaches for quad precision is diagnosed at the call site. Set it to ``1`` explicitly on a toolchain that provides device ``fp128`` on earlier architectures.
-``_CCCL_FPMP_FP128_MATH_FALLBACK``          ``0``   When ``1``, ``fp64mp2`` math functions use quad-precision (``__float128``) for higher accuracy. Requires ``libquadmath`` linkage, slower compilation, and larger code. When ``0``, falls back to ``double`` precision—faster builds, smaller code, but reduced accuracy for transcendentals.
+``CCCL_FPMP_FP128_MATH_FALLBACK``           Auto    When ``1``, ``fp64mp2`` math functions compute in quad precision (``__float128``, ~113-bit) instead of ``double``. Requires ``libquadmath`` linkage on x86_64 GCC hosts, slower compilation, and larger code. When ``0``, every pass stays on ``double`` — faster builds, smaller code, but transcendental accuracy limited to ~53 bits. Left unset, the library decides per compilation pass, since this selects function bodies rather than declarations: a host-only build takes the quad path wherever ``fp128`` is available, while in a CUDA compilation only the device pass does, and only where every targeted architecture can run ``fp128``. That keeps a ``.cu`` file from silently acquiring a ``libquadmath`` dependency its host-only counterpart never had, at the price of the two halves differing in accuracy; see :ref:`below <libcudacxx-extended-api-fp-fpmp-quad-both-passes>` to put both on the quad path.
 ``CCCL_FPMP_LIB``                          ``0``   When ``1``, link against a precompiled FPMP library. Core arithmetic functions are declared as ``extern "C"`` symbols resolved at link time, reducing compile times and code duplication across translation units. Requires building the library separately (not provided in-tree; the CCCL FP SDK is header-only by default).
 ``CCCL_FPMP_INLINE``                       ``1``   When ``1`` (default), header-only inline mode. All functions are inlined directly into the calling code — no separate library build or link step required. Produces the fastest code (full inlining/optimization) at the cost of longer compile times in large projects. Mutually exclusive with ``CCCL_FPMP_LIB=1``.
 ``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP``     ``1``   When ``1`` (default), the ``double`` to ``fpmp2`` conversion uses integer bit manipulation to split the double mantissa into two float components without FP64 arithmetic. This avoids the slow FP64 pipeline on GPUs with limited double-precision throughput (e.g., consumer GPUs with 1:64 ratio) and applies to the FP32-based ``fp32mp2`` (``fp64mp2`` conversions are inherently FP64 either way). When ``0``, uses the standard cast-based approach. **Set ``0`` if** you hit register pressure / reduced occupancy in large kernels (the integer path uses more registers and may spill), or you target a GPU with high FP64 throughput (e.g. datacenter A100/H100, ~1:2) where the FP64 path is already cheap. Profile your specific kernel to verify.
 ``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE``     ``1``   When ``1`` (default), the ``fpmp2`` to ``double`` conversion reconstructs the double bit pattern from two float components using integer arithmetic (float-to-double bit promotion + software double-add) without FP64 operations. When ``0``, uses the standard ``(double)hi + (double)lo`` (2x F2D + DADD = 3 FP64 ops). The integer path is a large win on FP64-throttled GPUs (measured several-x faster than the FP64 casts on an L40S). **Set ``0`` if** you hit register pressure / reduced occupancy in large kernels, or you target a high-FP64 GPU where the FP64 path is already cheap. Profile your specific kernel to verify.
 ``_CCCL_FPMP_LARGE_TRIG_FP64_FALLBACK`` ``0``   Controls fp32mp2 ``sin``/``cos``/``sincos``/``tan`` behavior for large arguments (\`
 ===================================== ======= ==================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+
+.. _libcudacxx-extended-api-fp-fpmp-quad-both-passes:
+
+Quad precision on both host and device
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default a CUDA translation unit takes the binary128 path for ``fp64mp2`` math only in
+its device pass, and only where every targeted architecture can run ``fp128`` (``sm_100``
+and later); the host pass stays on ``double``. The two halves can therefore differ in
+accuracy. Programs whose host and device results have to agree to the last bits put both on
+the quad path with ``CCCL_FPMP_FP128_MATH_FALLBACK``:
+
+.. code:: bash
+
+   nvcc -arch=sm_100 -DCCCL_FPMP_FP128_MATH_FALLBACK=1 app.cu -lquadmath
+
+``-lquadmath`` is what the host half needs on x86_64 GCC, where the quad entry points
+(``expq``, ``sinq``, ...) live in that library. Hosts whose ``long double`` is IEEE
+binary128 (AArch64, PPC64LE, s390x) call libm's ``*l`` entry points instead and need no
+extra library, and a host-only build already takes the quad path wherever ``fp128`` is
+available.
+
+Two things to watch. Asking for the quad path on a target whose device cannot run ``fp128``
+makes the device pass fail to compile, since its bodies then need quad arithmetic the
+architecture does not have — such targets can only be opted in through the internal switch
+documented in ``<cuda/__fp/fpmp_math_impl.h>``, and only with a toolchain that emits
+``fp128`` for them. And every translation unit in the program must agree on the value, as
+must the library build in library mode, since it selects which implementation the
+``fp64mp2`` entry points get.
 
 Header-Only Integration
 ~~~~~~~~~~~~~~~~~~~~~~~

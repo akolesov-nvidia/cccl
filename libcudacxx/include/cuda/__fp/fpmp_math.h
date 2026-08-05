@@ -357,6 +357,24 @@
     _CCCL_FPMP_FP128_MATH_FALLBACK, defined and documented in fpmp_math_impl.h together with
     _CCCL_FPMP_FP128_QUAD_ERF, which says whether the erf family joins them. Both follow
     _CCCL_FPMP_FP128_ENABLE and _CCCL_FPMP_FP128_DEVICE_OPS from fpmp_impl.h.
+
+    Left alone, that switch is decided per compilation pass: a host-only build takes the
+    quad path wherever fp128 is available, but in a CUDA compilation only the device pass
+    does, and only where every targeted architecture can run fp128 (sm_100 and later). A
+    .cu file therefore does not silently acquire a libquadmath dependency its host-only
+    counterpart never had, at the price of the two halves differing in accuracy.
+
+    Programs whose host and device results have to agree to the last bits put both passes
+    on the quad path with the public knob CCCL_FPMP_FP128_MATH_FALLBACK:
+
+      nvcc -arch=sm_100 -DCCCL_FPMP_FP128_MATH_FALLBACK=1 app.cu -lquadmath
+
+    -lquadmath is the host side of that bargain on x86_64 GCC, where the quad entry points
+    (expq, sinq, ...) live in libquadmath; hosts whose long double is IEEE binary128
+    (AArch64, PPC64LE, s390x) call libm's *l entry points and need nothing extra. Asking
+    for it on a target whose device cannot run fp128 makes the device pass fail to compile,
+    since its bodies then need quad arithmetic the architecture does not have. Every
+    translation unit has to agree on the value, as does the library build in library mode.
 */
 #include <cuda/__fp/fpmp.h>
 #include <cuda/std/cassert>
