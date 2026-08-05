@@ -74,7 +74,7 @@ namespace cuda::experimental
  * extract 2-bit quadrant and 62-bit unsigned fraction in [0, 1).
  * Does NOT apply the >0.5 adjustment -- caller handles that.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_ph_frac(_FpType __a_hi, unsigned* __q_out, uint32_t* __frac_hi, uint32_t* __frac_lo) noexcept
 {
@@ -156,7 +156,7 @@ __internal_fpmp2_ph_frac(_FpType __a_hi, unsigned* __q_out, uint32_t* __frac_hi,
  * (after the >0.5 adjustment) to an fp32mp2 angle by multiplying
  * by pi/2 using 64 bits of pi/4.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpType* __r_hi, _FpType* __r_lo) noexcept
 {
@@ -246,7 +246,7 @@ __internal_fpmp2_frac_to_angle(uint32_t __hi, uint32_t __lo, uint32_t __s, _FpTy
  *   Fast:  |x| < 2^20 -> Cody-Waite with exact error tracking
  *   Large: |x| >= 2^20 -> Payne-Hanek (integer 2/pi table)
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
   _FpType __x_hi, _FpType __x_lo, int* __quadrant, _FpType* __r_hi, _FpType* __r_lo) noexcept
 {
@@ -420,7 +420,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_trig_reduction(
  * sin(x) = x + x^3*Q(x^2), Q(u) = Sum Taylor coefficients from -1/3! to -1/15!.
  * Upper terms (s7..s4) in single precision, lower terms (s3..s1) in fp32mp2.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_sin_kernel(_FpType __x_hi, _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -457,7 +457,7 @@ __internal_fpmp2_sin_kernel(_FpType __x_hi, _FpType __x_lo, _FpType* __res_hi, _
  * cos(x) = 1 + x^2*Q(x^2), Q(u) = Sum Taylor coefficients from -1/2! to 1/16!.
  * Upper terms (c8..c4) in single precision, lower terms (c3..c1) in fp32mp2.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_cos_kernel(_FpType __x_hi, _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -533,8 +533,10 @@ __internal_fpmp2_cos_kernel(_FpType __x_hi, _FpType __x_lo, _FpType* __res_hi, _
  * ============================================================================
  */
 
-/* ---- (kernel 1) atan on |a| <= 1, returns atan(|a|) in fp32mp2 ---- */
-template <typename _FpType = float>
+/* ---- (kernel 1) atan on |a| <= 1, returns atan(|a|) in fp32mp2 ----
+ * _FpType is unused -- the kernel is fp32mp2-only -- but keeping it a template
+ * spares every translation unit that never calls it an unused-function warning. */
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __internal_fpmp2_atan_kernel(const fp32mp2_low& __a, fp32mp2_low* __result) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -569,7 +571,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_atan_kernel(const fp32mp2_low& __a, fp
 }
 
 /* ---- (kernel 2) asin polynomial P(y); used by both asin & acos ---- */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __internal_fpmp2_asin_poly(const fpmp2<_FpType>& __y, fpmp2<_FpType>* __result) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -607,7 +609,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_asin_poly(const fpmp2<_FpType>& __y, f
  * P(y) such that, for y = 1 - |x|, acos(|x|) = sqrt(2y)*(1 + y*P(y)).
  * Same fp32mp2_low internal evaluation as the asin kernel -- no
  * per-op renormalisation, single conversion in/out around the call. */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __internal_fpmp2_acos_poly(const fpmp2<_FpType>& __y, fpmp2<_FpType>* __result) noexcept
 {
   using ffloat = fp32mp2_low;
@@ -640,7 +642,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_acos_poly(const fpmp2<_FpType>& __y, f
  * Shared argument reduction, separate sin/cos kernels on [-pi/4, pi/4],
  * quadrant-based swap and sign adjustment.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_sincos(
   const _FpType __x_hi,
   const _FpType __x_lo,
@@ -693,7 +695,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincos(
 /*
  * sin for fp32mp2: calls sincos and returns only the sine.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_sin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -704,7 +706,7 @@ __fpmp2_sin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 /*
  * cos for fp32mp2: calls sincos and returns only the cosine.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -735,7 +737,7 @@ __fpmp2_cos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * convention; signed-infinity direction follows the rounded reduced
  * argument).  Inf / NaN inputs propagate to NaN through the reduction.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_tan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -758,7 +760,7 @@ __fpmp2_tan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 }
 
 /* ---- atan(x) ---- */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_atan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -795,7 +797,7 @@ __fpmp2_atan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 }
 
 /* ---- atan2(y, x) ---- */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_atan2(
   const _FpType __y_hi,
   const _FpType __y_lo,
@@ -940,7 +942,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
 }
 
 /* ---- asin(x) ---- */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_asin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -995,7 +997,7 @@ __fpmp2_asin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 }
 
 /* ---- acos(x) ---- */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_acos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -1057,7 +1059,7 @@ __fpmp2_acos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * file; fp64mp2 routes through _CCCL_FPMP_CALL_FP64MP2_MATH with the
  * new _CCCL_FPMP_EXP10Q backend macro.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_sinpi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -1070,7 +1072,7 @@ __fpmp2_sinpi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -1083,7 +1085,7 @@ __fpmp2_cospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_sincospi(
   const _FpType __x_hi,
   const _FpType __x_lo,

@@ -69,7 +69,7 @@ namespace cuda::experimental
  *      using fp32mp2_low and the result is negated when x < 0,
  *      mirroring the erf code path.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -206,7 +206,7 @@ __fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * exp branch covers everything above.  At the crossover point we have
  * sinh(0.6554)/cosh(0.6554) = tanh(0.6554) ~= 0.575, so the exp branch
  * loses < 1 bit of precision to cancellation -- well within fp32mp2 ulp. */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -301,7 +301,7 @@ __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * positive, so addition never cancels.  At |x| = 0 the lo parts of
  * e and 1/e carry the x^2/2 correction exactly, so no separate
  * polynomial branch is needed for small |x|. */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -381,7 +381,7 @@ __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * lo-limb ulp accumulation that the `(x-1)(x+1)` / `x^2+1` chains
  * would suffer at very large |x|.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -483,7 +483,7 @@ __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 } // __fpmp2_asinh
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -587,7 +587,7 @@ __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 } // __fpmp2_acosh
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {

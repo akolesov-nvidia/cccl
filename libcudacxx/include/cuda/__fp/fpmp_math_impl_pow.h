@@ -66,7 +66,7 @@ namespace cuda::experimental
  * handles +-Inf input via its existing saturation paths.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_pow(
   const _FpType __a_hi,
   const _FpType __a_lo,
@@ -221,7 +221,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_pow(
  * No fp64 operations.  Negative inputs are supported (cbrt(-x) = -cbrt(x)).
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -370,7 +370,7 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * directly, which is why it is faster than cbrt(x) followed by a divide.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -495,7 +495,7 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 _CCCL_FPMP_MATH_PLACEHOLDER_2A(hypot)
 
 // Vector norm functions
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_norm3d(
   const _FpType __a_hi,
   const _FpType __a_lo,
@@ -518,7 +518,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_norm3d(
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_norm4d(
   const _FpType __a_hi,
   const _FpType __a_lo,
@@ -545,7 +545,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_norm4d(
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_rnorm3d(
   const _FpType __a_hi,
   const _FpType __a_lo,
@@ -568,7 +568,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_rnorm3d(
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_rnorm4d(
   const _FpType __a_hi,
   const _FpType __a_lo,
@@ -595,7 +595,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_rnorm4d(
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_rhypot(
   const _FpType __x_hi,
   const _FpType __x_lo,

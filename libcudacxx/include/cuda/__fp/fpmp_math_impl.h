@@ -416,7 +416,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
 // math function with proper hi/lo splitting via fpmp2 conversions.
 // Uses explicit fpmp2 construction/conversion to avoid NVCC name resolution issues.
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_1A(name)                                                   \
-    template <typename _FpType = float>                                                          \
+    template <typename _FpType>                                                                  \
     _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
       const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     {                                                                                            \
@@ -428,7 +428,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_2A(name)                                                                      \
-    template <typename _FpType = float>                                                                             \
+    template <typename _FpType>                                                                                     \
     _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                                        \
       const _FpType __x_hi,                                                                                         \
       const _FpType __x_lo,                                                                                         \
@@ -445,7 +445,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT(name)                                           \
-    template <typename _FpType = float>                                                         \
+    template <typename _FpType>                                                                 \
     _CCCL_FPMP_CORE_API int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
     {                                                                                           \
       using mp2_t = fpmp2<_FpType>;                                                             \
@@ -453,7 +453,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL(name)                                                      \
-    template <typename _FpType = float>                                                                   \
+    template <typename _FpType>                                                                           \
     _CCCL_FPMP_CORE_API long long int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
     {                                                                                                     \
       using mp2_t = fpmp2<_FpType>;                                                                       \
@@ -461,7 +461,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(name)                                                  \
-    template <typename _FpType = float>                                                              \
+    template <typename _FpType>                                                                      \
     _CCCL_FPMP_CORE_API long int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
     {                                                                                                \
       using mp2_t = fpmp2<_FpType>;                                                                  \
@@ -469,7 +469,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_FP_INT(name)                                                        \
-    template <typename _FpType = float>                                                                   \
+    template <typename _FpType>                                                                           \
     _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                              \
       const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     {                                                                                                     \
@@ -481,7 +481,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_FP_LINT(name)                                                            \
-    template <typename _FpType = float>                                                                        \
+    template <typename _FpType>                                                                                \
     _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                                   \
       const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     {                                                                                                          \
@@ -493,7 +493,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
     }
 
 #  define _CCCL_FPMP_MATH_PLACEHOLDER_INT_FP(name)                                                        \
-    template <typename _FpType = float>                                                                   \
+    template <typename _FpType>                                                                           \
     _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                              \
       int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
     {                                                                                                     \

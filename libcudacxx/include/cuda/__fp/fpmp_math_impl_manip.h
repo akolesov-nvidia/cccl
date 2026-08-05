@@ -32,6 +32,8 @@
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
+// modf splits the pair with trunc.
+#include <cuda/__fp/fpmp_math_impl_nearint.h>
 
 #include <cuda/std/__cccl/prologue.h>
 
@@ -76,7 +78,7 @@ namespace cuda::experimental
  * have fp64mp2 enabled.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -166,7 +168,7 @@ __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __re
  * bit-cast scaling logic.  No fp64 round-trip is required.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_scalbn(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -200,7 +202,7 @@ __fpmp2_scalbn(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __r
  * NaN, and use the sign of the original `hi` to decide whether to flip
  * `lo`.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_fabs(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -216,7 +218,7 @@ __fpmp2_fabs(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  *
  * signbit rather than a comparison against zero, so that a y of -0 is honored.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_copysign(
   const _FpType __x_hi,
   const _FpType __x_lo,
@@ -226,10 +228,9 @@ _CCCL_FPMP_CORE_API void __fpmp2_copysign(
   _FpType* __res_lo) noexcept
 {
   (void) __y_lo;
-  const bool __flip =
-    ((std::signbit) (static_cast<double>(__x_hi)) != (std::signbit) (static_cast<double>(__y_hi)));
-  *__res_hi = __flip ? -__x_hi : __x_hi;
-  *__res_lo = __flip ? -__x_lo : __x_lo;
+  const bool __flip = ((std::signbit) (static_cast<double>(__x_hi)) != (std::signbit) (static_cast<double>(__y_hi)));
+  *__res_hi         = __flip ? -__x_hi : __x_hi;
+  *__res_lo         = __flip ? -__x_lo : __x_lo;
 }
 
 /* log2, log10, exp2, exp10, expm1: dedicated fp32mp2 implementations
@@ -239,9 +240,47 @@ _CCCL_FPMP_CORE_API void __fpmp2_copysign(
  * declared below via _CCCL_FPMP_CALL_FP64MP2_MATH.  exp10 had a hand
  * fallback even on fp32mp2 prior to the dedicated implementation;
  * that version is superseded. */
-_CCCL_FPMP_MATH_PLACEHOLDER_1A(logb)
 _CCCL_FPMP_MATH_PLACEHOLDER_2A(nextafter)
-_CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT(ilogb)
+
+/*
+ * ilogb / logb: the exponent of the pair, which is the exponent of hi except in one
+ * case. Where hi is a power of two and lo has the opposite sign the value sits just
+ * below that power, so the exponent is one lower - the same correction frexp needs
+ * further down. A widened double cannot see that case, and rounds the mirror one the
+ * wrong way as well, reporting the power of two that the pair sits just short of.
+ *
+ * hi alone settles zero, infinity and NaN, so ::ilogb keeps whatever the platform
+ * reports for them, FP_ILOGB0 and its siblings included. It is asked through a double,
+ * which is exact for either element type and saves this from depending on a float
+ * overload of ilogb being declared in device code.
+ */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API int __fpmp2_ilogb(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  const int __e = ::ilogb(static_cast<double>(__x_hi));
+
+  int __hi_exp      = 0;
+  const _FpType __m = ::frexp(__x_hi, &__hi_exp);
+  const bool __below_power_of_two =
+    (__fpmp_internal_fabs(__m) == _FpType(0.5)) && (__x_lo != _FpType(0))
+    && ((std::signbit) (static_cast<double>(__x_hi)) != (std::signbit) (static_cast<double>(__x_lo)));
+
+  return __below_power_of_two ? __e - 1 : __e;
+}
+
+template <typename _FpType>
+_CCCL_FPMP_CORE_API void
+__fpmp2_logb(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+{
+  // The branch earns its keep: ilogb reports zero and the non-finite cases with ordinary
+  // integer sentinels, so widening one of those would hand back a plausible finite
+  // exponent where an infinity or a NaN belongs. ::logb has the right answers for them.
+  // Either way the result is an integer, so the low limb stays zero.
+  *__res_hi = ((std::isfinite) (static_cast<double>(__x_hi)) && __x_hi != _FpType(0))
+              ? static_cast<_FpType>(__fpmp2_ilogb<_FpType>(__x_hi, __x_lo))
+              : static_cast<_FpType>(::logb(static_cast<double>(__x_hi)));
+  *__res_lo = _FpType(0);
+}
 /* ldexp, scalbn: dedicated fp32mp2 implementations live in the
  * dedicated math section above (bit-cast 3-piece base-2 scaling,
  * no fp64 round-trip).  scalbn forwards to ldexp since FLT_RADIX
@@ -251,9 +290,9 @@ _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT(ilogb)
 /* scalbln differs from scalbn only in taking a long.  Clamping to int is exact
  * rather than lossy: every |n| past this point already saturates to infinity or
  * to zero for any finite input of either element type. */
-template <typename _FpType = float>
-_CCCL_FPMP_CORE_API void __fpmp2_scalbln(
-  const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
+template <typename _FpType>
+_CCCL_FPMP_CORE_API void
+__fpmp2_scalbln(const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
   const int __ni = (__n > 100000L) ? 100000 : ((__n < -100000L) ? -100000 : static_cast<int>(__n));
   __fpmp2_ldexp<_FpType>(__x_hi, __x_lo, __ni, __res_hi, __res_lo);
@@ -273,7 +312,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_scalbln(
  * For 0, infinity and NaN, frexp reports an exponent of 0 and returns hi unchanged,
  * and scaling lo by 2^0 leaves the pair as it was.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_frexp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo, int* __nptr) noexcept
 {
@@ -292,8 +331,22 @@ __fpmp2_frexp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __m_lo;
 }
 
-// modf: break into integer and fractional parts
-template <typename _FpType = float>
+/*
+ * modf: break the pair into its integral and fractional parts.
+ *
+ * trunc is exact on the pair and the subtraction that follows cancels exactly, so the
+ * two results still add back up to x - which is the whole contract of modf, and what a
+ * detour through a single double breaks as soon as the pair carries more than 53 bits.
+ *
+ * The accurate subtraction rather than the Dekker one: the low limbs can cancel into a
+ * fraction that needs both of its own limbs (x = 2^25 - 2^-39 leaves 1 - 2^-39), which
+ * only the variant running a two_sum on them keeps.
+ *
+ * Non-finite input is left to fall through, as elsewhere in fpmp: an infinity comes back
+ * as a NaN from the inf - inf, not as a plausible finite answer. What does need saying is
+ * that an integral x cancels to +0 where C asks for a zero carrying the sign of x.
+ */
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_modf(
   const _FpType __x_hi,
   const _FpType __x_lo,
@@ -302,23 +355,18 @@ _CCCL_FPMP_CORE_API void __fpmp2_modf(
   _FpType* __iptr_hi,
   _FpType* __iptr_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
-  double __ipart;
-  double __r = ::modf(static_cast<double>(mp2_t(__x_hi, __x_lo)), &__ipart);
-  mp2_t __result(__r), __iresult(__ipart);
-  *__res_hi  = __result.hi();
-  *__res_lo  = __result.lo();
-  *__iptr_hi = __iresult.hi();
-  *__iptr_lo = __iresult.lo();
+  __fpmp2_trunc<_FpType>(__x_hi, __x_lo, __iptr_hi, __iptr_lo);
+  __fpmp2_high_sub<_FpType>(__x_hi, __x_lo, *__iptr_hi, *__iptr_lo, __res_hi, __res_lo);
+
+  if (*__res_hi == _FpType(0))
+  {
+    *__res_hi = (std::signbit) (static_cast<double>(__x_hi)) ? -_FpType(0) : _FpType(0);
+    *__res_lo = _FpType(0);
+  }
 }
-template <>
-_CCCL_API inline void
-__fpmp2_logb<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  __fpmp2_from_double(::logb(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
-}
-// copysign, ldexp, scalbn, scalbln and frexp have no <double> specialization: the
-// primary templates above are exact on the limb pair for both element types.
+// copysign, ldexp, scalbn, scalbln, frexp, ilogb, logb and modf have no <double>
+// specialization: the primary templates above are exact on the limb pair for both
+// element types.
 template <>
 _CCCL_API inline void __fpmp2_nextafter<double>(
   const double __x_hi,
@@ -330,24 +378,6 @@ _CCCL_API inline void __fpmp2_nextafter<double>(
 {
   __fpmp2_from_double(
     ::nextafter(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline int __fpmp2_ilogb<double>(const double __x_hi, const double __x_lo) noexcept
-{
-  return ::ilogb(__fpmp2_to_double(__x_hi, __x_lo));
-}
-template <>
-_CCCL_API inline void __fpmp2_modf<double>(
-  const double __x_hi,
-  const double __x_lo,
-  double* __res_hi,
-  double* __res_lo,
-  double* __iptr_hi,
-  double* __iptr_lo) noexcept
-{
-  double __ip;
-  __fpmp2_from_double(::modf(__fpmp2_to_double(__x_hi, __x_lo), &__ip), __res_hi, __res_lo);
-  __fpmp2_from_double(__ip, __iptr_hi, __iptr_lo);
 }
 
 #endif // _CCCL_FPMP_USE_LIB

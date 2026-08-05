@@ -234,7 +234,7 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int _
  * Range reduction ensures that the Taylor series converges quickly since |r| < ln(2)/2 ~= 0.35.
  * With 14 terms and float-float arithmetic, this achieves approximately 10^-10 to 10^-11 relative accuracy.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -362,7 +362,7 @@ __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * Does not handle NaN, +-0, or negative inputs.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -504,7 +504,7 @@ __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  *   - -inf      -> NaN  (1 + (-inf) = -inf, log of negative).
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -635,7 +635,7 @@ __fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  * __fpmp2_log<float>; this wrapper only scales the result.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -678,7 +678,7 @@ __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  * trade-off as log2; see __fpmp2_log2 header comment.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -744,7 +744,7 @@ __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  *   x <= -150 the result rounds to 0 in fp32.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -834,7 +834,7 @@ __fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
  *   round to -46.
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -961,7 +961,7 @@ __fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  *   - x = 0     -> 0 (Taylor branch returns it exactly).
  * --------------------------------------------------------------------
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_expm1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {

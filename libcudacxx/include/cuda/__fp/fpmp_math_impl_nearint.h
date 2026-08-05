@@ -242,7 +242,7 @@ _CCCL_FPMP_CORE_API void __fp32mp2_fmod_kernel(
 /*
  * fmod(x, y): result has the sign of x and magnitude in [0, |y|).
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_fmod(
   const _FpType __x_hi,
   const _FpType __x_lo,
@@ -319,7 +319,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_fmod(
  * remainder(x, y): IEEE remainder, |result| <= |y|/2, round-to-nearest
  * with ties to even quotient.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_remainder(
   const _FpType __x_hi,
   const _FpType __x_lo,
@@ -463,7 +463,7 @@ _CCCL_FPMP_CORE_API void __fpmp2_remainder(
  *     round(x) = ceil (x - 0.5)  for x <  0
  * using fpmp2_acc to keep the adjustment in pair precision.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_floor(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -503,7 +503,7 @@ __fpmp2_floor(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __t_lo;
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -543,7 +543,7 @@ __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = __t_lo;
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_round(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -571,7 +571,7 @@ __fpmp2_round(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   }
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_trunc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -652,7 +652,7 @@ _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lround)
  * nearbyint is rint without the inexact exception, which this implementation
  * never raises, so it forwards.
  */
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API bool __fpmp2_nearint_is_odd(const _FpType __n) noexcept
 {
   // n is an integer. n/2 and 2*floor(n/2) are both exact, so this is a parity
@@ -661,7 +661,7 @@ _CCCL_FPMP_CORE_API bool __fpmp2_nearint_is_odd(const _FpType __n) noexcept
   return __n != _FpType(2) * __fpmp_internal_floor<_FpType>(__half_n);
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -739,7 +739,7 @@ __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = _FpType(0);
 }
 
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
@@ -747,7 +747,7 @@ __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi,
 }
 
 // remquo: compute remainder and part of quotient
-template <typename _FpType = float>
+template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_remquo(
   const _FpType __x_hi,
   const _FpType __x_lo,
