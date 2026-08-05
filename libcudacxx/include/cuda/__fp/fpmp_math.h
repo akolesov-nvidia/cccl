@@ -353,15 +353,10 @@
 
     Configuration Macros:
     -------------------------------------------------------------------------
-    - _CCCL_FPMP_FP128_ENABLE: Automatically detected from compiler/CUDA. When 1, enables
-      __float128 type support for conversions. Can be set to 0 to disable.
-    - _CCCL_FPMP_FP128_MATH_FALLBACK: Controls fp64mp2 transcendental function accuracy:
-      * When 1: Uses quad-precision (__float128) via libquadmath (host) or CUDA fp128
-        intrinsics (device). Provides ~113-bit accuracy but requires libquadmath linkage,
-        slower compilation, and larger code size.
-      * When 0 (default): Falls back to double-precision math. Faster builds, smaller
-        code, no extra library dependencies, but accuracy limited to ~53-bit mantissa
-        for transcendental functions.
+    Which of the two fp64mp2 paths above a build gets is decided by
+    _CCCL_FPMP_FP128_MATH_FALLBACK, defined and documented in fpmp_math_impl.h together with
+    _CCCL_FPMP_FP128_QUAD_ERF, which says whether the erf family joins them. Both follow
+    _CCCL_FPMP_FP128_ENABLE and _CCCL_FPMP_FP128_DEVICE_OPS from fpmp_impl.h.
 */
 #include <cuda/__fp/fpmp.h>
 #include <cuda/std/cassert>
