@@ -24,10 +24,6 @@
 /*
     fpmp_math_impl_exp.h - fpmp2 exponential and logarithmic functions (exp, log, exp2/10, expm1, log1p/2/10)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -39,10 +35,6 @@
 namespace cuda::experimental
 {
 #if !(defined _CCCL_FPMP_USE_LIB)
-
-// ---------------------------------------------------------------------------
-// exp/log fp32mp2 base-2/base-10 kernels moved verbatim from <cuda/__fp/fpmp_math_impl.h> (single-family kernels).
-// ---------------------------------------------------------------------------
 
 /*
  * --------------------------------------------------------------------
@@ -221,8 +213,14 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int _
 }
 
 /*
+ * ====================================================================
+ * exp(x) - natural exponential
+ * ====================================================================
+ */
+
+/*
  * --------------------------------------------------------------------
- * Exponential function (fp32mp2)
+ * Exponential function (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  * Compute exp(x) for float-float (fp32mp2) precision
  *
@@ -351,6 +349,24 @@ __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 
 /*
  * --------------------------------------------------------------------
+ * Exponential function (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_exp<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(exp, _CCCL_FPMP_EXPQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * log(x) - natural logarithm
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
  * Natural logarithm log(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  * Natural logarithm, fully implemented in fp32mp2.
@@ -462,6 +478,24 @@ __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
 } // __fpmp2_log
+
+/*
+ * --------------------------------------------------------------------
+ * Natural logarithm log(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_log<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(log, _CCCL_FPMP_LOGQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * log1p(x) - natural logarithm of 1 + x
+ * ====================================================================
+ */
 
 /*
  * --------------------------------------------------------------------
@@ -621,6 +655,24 @@ __fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
 /*
  * --------------------------------------------------------------------
+ * Natural logarithm of (1 + x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_log1p<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(log1p, _CCCL_FPMP_LOG1PQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * log2(x) - base-2 logarithm
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
  * Base-2 logarithm log2(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  * Composition over the dedicated fp32mp2 natural log:
@@ -670,6 +722,24 @@ __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 
 /*
  * --------------------------------------------------------------------
+ * Base-2 logarithm log2(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_log2<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(log2, _CCCL_FPMP_LOG2Q, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * log10(x) - base-10 logarithm
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
  * Base-10 logarithm log10(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  * Composition over the dedicated fp32mp2 natural log:
@@ -705,6 +775,24 @@ __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_hi       = __result.hi();
   *__res_lo       = __result.lo();
 } // __fpmp2_log10
+
+/*
+ * --------------------------------------------------------------------
+ * Base-10 logarithm log10(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_log10<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(log10, _CCCL_FPMP_LOG10Q, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * exp2(x) - base-2 exponential
+ * ====================================================================
+ */
 
 /*
  * --------------------------------------------------------------------
@@ -794,6 +882,24 @@ __fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
 } // __fpmp2_exp2
+
+/*
+ * --------------------------------------------------------------------
+ * Base-2 exponential exp2(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_exp2<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(exp2, _CCCL_FPMP_EXP2Q, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * exp10(x) - base-10 exponential
+ * ====================================================================
+ */
 
 /*
  * --------------------------------------------------------------------
@@ -928,6 +1034,35 @@ __fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
 /*
  * --------------------------------------------------------------------
+ * Base-10 exponential exp10(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_exp10<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
+  /* fp128 path: _CCCL_FPMP_EXP10Q handles every backend (libquadmath
+   * powq, CUDA double widen, host long-double powl). */
+  _CCCL_FPMP_CALL_FP64MP2_MATH(exp10, _CCCL_FPMP_EXP10Q, __x_hi, __x_lo, __res_hi, __res_lo);
+#  else
+  /* fp64 fallback: libm has no portable `exp10`; synthesize via
+   * pow(10, x).  CUDA device has the intrinsic, prefer it. */
+  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::exp10(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::pow(10.0, __xd), __res_hi, __res_lo);))
+#  endif
+}
+
+/*
+ * ====================================================================
+ * expm1(x) - exp(x) - 1
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
  * exp(x) - 1, i.e. expm1(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  * Strategy:
@@ -1054,64 +1189,16 @@ __fpmp2_expm1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo       = __result.lo();
 } // __fpmp2_expm1
 
-template <>
-_CCCL_API inline void
-__fpmp2_exp<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(exp, _CCCL_FPMP_EXPQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_log<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(log, _CCCL_FPMP_LOGQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_log2<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(log2, _CCCL_FPMP_LOG2Q, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_log10<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(log10, _CCCL_FPMP_LOG10Q, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_log1p<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(log1p, _CCCL_FPMP_LOG1PQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_exp2<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(exp2, _CCCL_FPMP_EXP2Q, __x_hi, __x_lo, __res_hi, __res_lo);
-}
+/*
+ * --------------------------------------------------------------------
+ * exp(x) - 1, i.e. expm1(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline void
 __fpmp2_expm1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(expm1, _CCCL_FPMP_EXPM1Q, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_exp10<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
-  /* fp128 path: _CCCL_FPMP_EXP10Q handles every backend (libquadmath
-   * powq, CUDA double widen, host long-double powl). */
-  _CCCL_FPMP_CALL_FP64MP2_MATH(exp10, _CCCL_FPMP_EXP10Q, __x_hi, __x_lo, __res_hi, __res_lo);
-#  else
-  /* fp64 fallback: libm has no portable `exp10`; synthesize via
-   * pow(10, x).  CUDA device has the intrinsic, prefer it. */
-  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fpmp2_from_double(::exp10(__xd), __res_hi, __res_lo);),
-                    (__fpmp2_from_double(::pow(10.0, __xd), __res_hi, __res_lo);))
-#  endif
 }
 
 #endif // _CCCL_FPMP_USE_LIB

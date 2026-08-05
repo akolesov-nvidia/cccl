@@ -24,10 +24,6 @@
 /*
     fpmp_math_impl_hyperbolic.h - fpmp2 hyperbolic functions (sinh, cosh, tanh, asinh, acosh, atanh)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -41,10 +37,15 @@ namespace cuda::experimental
 #if !(defined _CCCL_FPMP_USE_LIB)
 
 /*
+ * ====================================================================
+ * tanh(x) - hyperbolic tangent
+ * ====================================================================
+ */
+
+/*
  * --------------------------------------------------------------------
  * Hyperbolic tangent tanh(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
- *
  *   1. Saturation branch: |x| >= TANH_SAT  -> result = sign(x).
  *      Threshold chosen so that 1 - tanh(|x|) < 0.5 ulp at fp32mp2
  *      precision: with ulp_fp32mp2(1) ~ 2^-48 and
@@ -163,49 +164,37 @@ __fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 } // __fpmp2_tanh
 
 /*
- * ============================================================================
- * Hyperbolic sine/cosine: sinh, cosh (fp32mp2)                  - dedicated
- * ============================================================================
- *
- * Both functions reuse the dedicated `__fpmp2_exp<float>` once and
- * recombine its result.  All arithmetic in `fp32mp2_low`; one
- * `renormalize()` per output canonicalises the (hi, lo) form before
- * leaving the kernel -- same pattern as the rest of the dedicated
- * fp32mp2 math (sin/cos/exp/log/tanh/...).
- *
- *   cosh(x) = (e + 1/e) / 2,    e = exp(|x|)
- *
- *     The two terms `0.5*e` and `0.5/e` are both positive, so the
- *     addition incurs no cancellation at any |x|: at |x|=0 both are
- *     0.5 and the lo parts of `e` and `1/e` carry the cosh(x)-1
- *     ~= x^2/2 correction.  We compute it as a single branchless
- *     formula, with no need for a polynomial branch.
- *
- *   sinh(x) = sign(x) * (e - 1/e) / 2,    e = exp(|x|)
- *           ~= x + x * x^2 * P(x^2)         (small-|x| Taylor)
- *
- *     For |x| close to 0, e and 1/e differ only by ~2|x|, so the
- *     subtraction loses about log_2(2/(2|x|)) bits of precision.
- *     A polynomial branch covers the [0, BRANCH] interval.  The
- *     polynomial coefficients are the exact rational Taylor series
- *     P(y) = 1/3! + y/5! + y^2/7! + ... ; truncation noise of an
- *     11-coefficient table at |x| <= 0.6554 is well below fp32mp2 ulp.
- *
- * Saturation / NaN handling:
- *   - For |x| above the exp overflow boundary (~88.7), `__fpmp2_exp`
- *     returns +inf; `0.5*inf +- 0.5/inf = inf`, which is the IEEE-correct
- *     +-inf for cosh/sinh.
- *   - NaN inputs: `__fpmp2_exp` propagates the NaN through the
- *     subsequent fp32mp2 arithmetic (no explicit guard needed).
- * ============================================================================
+ * --------------------------------------------------------------------
+ * Hyperbolic tangent tanh(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_tanh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(tanh, _CCCL_FPMP_TANHQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * sinh(x) - hyperbolic sine
+ * ====================================================================
  */
 
-/* sinh(x) on fp32mp2.
+/*
+ * --------------------------------------------------------------------
+ * Hyperbolic sine sinh(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ * Reuses __fpmp2_exp<float> once and recombines its result; all arithmetic
+ * runs in fp32mp2_low, with one renormalize per output.  Past the exp
+ * overflow boundary (~88.7) exp returns +inf and the recombination gives
+ * the IEEE-correct infinity; a NaN input propagates on its own.
  *
  * Polynomial branch covers |x| <= 0.6554 (matches the tanh crossover);
  * exp branch covers everything above.  At the crossover point we have
  * sinh(0.6554)/cosh(0.6554) = tanh(0.6554) ~= 0.575, so the exp branch
- * loses < 1 bit of precision to cancellation -- well within fp32mp2 ulp. */
+ * loses < 1 bit of precision to cancellation -- well within fp32mp2 ulp.
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -294,13 +283,39 @@ __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo       = __result.lo();
 } // __fpmp2_sinh
 
-/* cosh(x) on fp32mp2.
+/*
+ * --------------------------------------------------------------------
+ * Hyperbolic sine sinh(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_sinh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(sinh, _CCCL_FPMP_SINHQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * cosh(x) - hyperbolic cosine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Hyperbolic cosine cosh(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ * Reuses __fpmp2_exp<float> once and recombines its result; all arithmetic
+ * runs in fp32mp2_low, with one renormalize per output.  Past the exp
+ * overflow boundary (~88.7) exp returns +inf and the recombination gives
+ * the IEEE-correct infinity; a NaN input propagates on its own.
  *
  * Branchless: cosh is even (cosh(-x) = cosh(x)), and the formula
  * `(e + 1/e) / 2` is well-conditioned everywhere -- both terms are
  * positive, so addition never cancels.  At |x| = 0 the lo parts of
  * e and 1/e carry the x^2/2 correction exactly, so no separate
- * polynomial branch is needed for small |x|. */
+ * polynomial branch is needed for small |x|.
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -337,7 +352,29 @@ __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = __result.lo();
 } // __fpmp2_cosh
 
-/* Inverse hyperbolic functions on fp32mp2.
+/*
+ * --------------------------------------------------------------------
+ * Hyperbolic cosine cosh(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_cosh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(cosh, _CCCL_FPMP_COSHQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * asinh(x) - inverse hyperbolic sine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Inverse hyperbolic sine asinh(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ *  Inverse hyperbolic functions on fp32mp2.
  *
  * All three implementations reduce to a single fp32mp2 log1p call,
  * with arithmetic forms chosen to avoid catastrophic cancellation
@@ -483,6 +520,29 @@ __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 } // __fpmp2_asinh
 
+/*
+ * --------------------------------------------------------------------
+ * Inverse hyperbolic sine asinh(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_asinh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(asinh, _CCCL_FPMP_ASINHQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * acosh(x) - inverse hyperbolic cosine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Inverse hyperbolic cosine acosh(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -587,6 +647,29 @@ __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 } // __fpmp2_acosh
 
+/*
+ * --------------------------------------------------------------------
+ * Inverse hyperbolic cosine acosh(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_acosh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(acosh, _CCCL_FPMP_ACOSHQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * atanh(x) - inverse hyperbolic tangent
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Inverse hyperbolic tangent atanh(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -713,38 +796,12 @@ __fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
 } // __fpmp2_atanh
-template <>
-_CCCL_API inline void
-__fpmp2_sinh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(sinh, _CCCL_FPMP_SINHQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_cosh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(cosh, _CCCL_FPMP_COSHQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_tanh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(tanh, _CCCL_FPMP_TANHQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
 
-// Additional fp64mp2 specializations (double-precision fallback for all)
-template <>
-_CCCL_API inline void
-__fpmp2_acosh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(acosh, _CCCL_FPMP_ACOSHQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_asinh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(asinh, _CCCL_FPMP_ASINHQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
+/*
+ * --------------------------------------------------------------------
+ * Inverse hyperbolic tangent atanh(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline void
 __fpmp2_atanh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept

@@ -24,10 +24,6 @@
 /*
     fpmp_math_impl_pow.h - fpmp2 power / root functions (pow, cbrt, rcbrt, hypot, norm/rnorm)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -43,8 +39,14 @@ namespace cuda::experimental
 #if !(defined _CCCL_FPMP_USE_LIB)
 
 /*
+ * ====================================================================
+ * pow(x, y) - x raised to the power y
+ * ====================================================================
+ */
+
+/*
  * --------------------------------------------------------------------
- * Power function pow(a, b) (fp32mp2) - dedicated implementation
+ * Power function pow(x, y) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  * Algorithm:
  *
@@ -189,8 +191,31 @@ _CCCL_FPMP_CORE_API void __fpmp2_pow(
 
 /*
  * --------------------------------------------------------------------
+ * Power function pow(x, y) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_pow<double>(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH_2A(pow, _CCCL_FPMP_POWQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * cbrt(x) - cube root
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
  * Cube root cbrt(x) (fp32mp2) - dedicated implementation
- * --------------------------------------------------------------------    *
+ * --------------------------------------------------------------------
  *   1. Special cases: pass +-0, +-Inf, NaN through unchanged
  *      (cbrt(x) == x for these inputs).
  *   2. Operate on |x|; cbrt is odd, sign is restored at the end.
@@ -334,7 +359,31 @@ __fpmp2_cbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 
 /*
  * --------------------------------------------------------------------
- * Reciprocal cube root rcbrt(x) = 1/cbrt(x) (fp32mp2) - dedicated impl
+ * Cube root cbrt(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_cbrt<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
+  __fpmp_fp128 __res = _CCCL_FPMP_CBRTQ(__fpmp2_to_quad(__x_hi, __x_lo));
+  __fpmp2_from_quad(__res, __res_hi, __res_lo);
+#  else
+  double __res = ::cbrt(__fpmp2_to_double(__x_hi, __x_lo));
+  __fpmp2_from_double(__res, __res_hi, __res_lo);
+#  endif
+}
+
+/*
+ * ====================================================================
+ * rcbrt(x) - reciprocal cube root
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal cube root rcbrt(x) = 1/cbrt(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  *   1. Special cases:
  *        cbrt(+-0)   = +-Inf  (result inherits the sign of x)
@@ -489,12 +538,64 @@ __fpmp2_rcbrt(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_hi = __t_hi_back;
   *__res_lo = __t_lo_back;
 } // __fpmp2_rcbrt
-/* fmod, remainder: dedicated fp32mp2 implementations live in the dedicated
- * math section above.  fp64mp2 paths stay on the explicit double
- * specializations further below. */
+
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal cube root rcbrt(x) = 1/cbrt(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_rcbrt<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::rcbrt(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(1.0 / ::cbrt(__xd), __res_hi, __res_lo);))
+}
+/* hypot has no dedicated fp32mp2 kernel: the placeholder composes it over
+ * double, and fp64mp2 takes the specialization that follows. */
+/*
+ * ====================================================================
+ * hypot(x, y) - sqrt(x^2 + y^2) without spurious overflow
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Hypotenuse hypot(x, y) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_2A(hypot)
 
-// Vector norm functions
+/*
+ * --------------------------------------------------------------------
+ * Hypotenuse hypot(x, y) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_hypot<double>(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  __fpmp2_from_double(::hypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * norm3d(a, b, c) - Euclidean norm of a 3-vector
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Vector norm norm3d(a, b, c) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_norm3d(
   const _FpType __a_hi,
@@ -518,6 +619,40 @@ _CCCL_FPMP_CORE_API void __fpmp2_norm3d(
   *__res_lo = __result.lo();
 }
 
+/*
+ * --------------------------------------------------------------------
+ * Vector norm norm3d(a, b, c) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_norm3d<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  const double __c_hi,
+  const double __c_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
+         __cd = __fpmp2_to_double(__c_hi, __c_lo);
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::norm3d(__ad, __bd, __cd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);))
+}
+
+/*
+ * ====================================================================
+ * norm4d(a, b, c, d) - Euclidean norm of a 4-vector
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Vector norm norm4d(a, b, c, d) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_norm4d(
   const _FpType __a_hi,
@@ -545,6 +680,43 @@ _CCCL_FPMP_CORE_API void __fpmp2_norm4d(
   *__res_lo = __result.lo();
 }
 
+/*
+ * --------------------------------------------------------------------
+ * Vector norm norm4d(a, b, c, d) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_norm4d<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  const double __c_hi,
+  const double __c_lo,
+  const double __d_hi,
+  const double __d_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
+         __cd = __fpmp2_to_double(__c_hi, __c_lo), __dd = __fpmp2_to_double(__d_hi, __d_lo);
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__fpmp2_from_double(::norm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);),
+    (__fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);))
+}
+
+/*
+ * ====================================================================
+ * rnorm3d(a, b, c) - reciprocal Euclidean norm of a 3-vector
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal vector norm rnorm3d(a, b, c) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_rnorm3d(
   const _FpType __a_hi,
@@ -568,6 +740,40 @@ _CCCL_FPMP_CORE_API void __fpmp2_rnorm3d(
   *__res_lo = __result.lo();
 }
 
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal vector norm rnorm3d(a, b, c) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_rnorm3d<double>(
+  const double __a_hi,
+  const double __a_lo,
+  const double __b_hi,
+  const double __b_lo,
+  const double __c_hi,
+  const double __c_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
+         __cd = __fpmp2_to_double(__c_hi, __c_lo);
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::rnorm3d(__ad, __bd, __cd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);))
+}
+
+/*
+ * ====================================================================
+ * rnorm4d(a, b, c, d) - reciprocal Euclidean norm of a 4-vector
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal vector norm rnorm4d(a, b, c, d) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_rnorm4d(
   const _FpType __a_hi,
@@ -595,139 +801,11 @@ _CCCL_FPMP_CORE_API void __fpmp2_rnorm4d(
   *__res_lo = __result.lo();
 }
 
-template <typename _FpType>
-_CCCL_FPMP_CORE_API void __fpmp2_rhypot(
-  const _FpType __x_hi,
-  const _FpType __x_lo,
-  const _FpType __y_hi,
-  const _FpType __y_lo,
-  _FpType* __res_hi,
-  _FpType* __res_lo) noexcept
-{
-  using mp2_t = fpmp2<_FpType>;
-  double __r  = 0.0;
-  NV_IF_ELSE_TARGET(
-    NV_IS_DEVICE,
-    (__r = ::rhypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));),
-    (__r = 1.0 / ::hypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));))
-  mp2_t __result(__r);
-  *__res_hi = __result.hi();
-  *__res_lo = __result.lo();
-}
-template <>
-_CCCL_API inline void __fpmp2_pow<double>(
-  const double __x_hi,
-  const double __x_lo,
-  const double __y_hi,
-  const double __y_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH_2A(pow, _CCCL_FPMP_POWQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
-}
-
-template <>
-_CCCL_API inline void
-__fpmp2_cbrt<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
-  __fpmp_fp128 __res = _CCCL_FPMP_CBRTQ(__fpmp2_to_quad(__x_hi, __x_lo));
-  __fpmp2_from_quad(__res, __res_hi, __res_lo);
-#  else
-  double __res = ::cbrt(__fpmp2_to_double(__x_hi, __x_lo));
-  __fpmp2_from_double(__res, __res_hi, __res_lo);
-#  endif
-}
-template <>
-_CCCL_API inline void __fpmp2_hypot<double>(
-  const double __x_hi,
-  const double __x_lo,
-  const double __y_hi,
-  const double __y_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  __fpmp2_from_double(::hypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void __fpmp2_rhypot<double>(
-  const double __x_hi,
-  const double __x_lo,
-  const double __y_hi,
-  const double __y_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  NV_IF_ELSE_TARGET(
-    NV_IS_DEVICE,
-    (__fpmp2_from_double(
-       ::rhypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);),
-    (__fpmp2_from_double(
-       1.0 / ::hypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);))
-}
-template <>
-_CCCL_API inline void
-__fpmp2_rcbrt<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fpmp2_from_double(::rcbrt(__xd), __res_hi, __res_lo);),
-                    (__fpmp2_from_double(1.0 / ::cbrt(__xd), __res_hi, __res_lo);))
-}
-template <>
-_CCCL_API inline void __fpmp2_norm3d<double>(
-  const double __a_hi,
-  const double __a_lo,
-  const double __b_hi,
-  const double __b_lo,
-  const double __c_hi,
-  const double __c_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
-         __cd = __fpmp2_to_double(__c_hi, __c_lo);
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fpmp2_from_double(::norm3d(__ad, __bd, __cd), __res_hi, __res_lo);),
-                    (__fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);))
-}
-template <>
-_CCCL_API inline void __fpmp2_norm4d<double>(
-  const double __a_hi,
-  const double __a_lo,
-  const double __b_hi,
-  const double __b_lo,
-  const double __c_hi,
-  const double __c_lo,
-  const double __d_hi,
-  const double __d_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
-         __cd = __fpmp2_to_double(__c_hi, __c_lo), __dd = __fpmp2_to_double(__d_hi, __d_lo);
-  NV_IF_ELSE_TARGET(
-    NV_IS_DEVICE,
-    (__fpmp2_from_double(::norm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);),
-    (__fpmp2_from_double(::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);))
-}
-template <>
-_CCCL_API inline void __fpmp2_rnorm3d<double>(
-  const double __a_hi,
-  const double __a_lo,
-  const double __b_hi,
-  const double __b_lo,
-  const double __c_hi,
-  const double __c_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  double __ad = __fpmp2_to_double(__a_hi, __a_lo), __bd = __fpmp2_to_double(__b_hi, __b_lo),
-         __cd = __fpmp2_to_double(__c_hi, __c_lo);
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fpmp2_from_double(::rnorm3d(__ad, __bd, __cd), __res_hi, __res_lo);),
-                    (__fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd), __res_hi, __res_lo);))
-}
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal vector norm rnorm4d(a, b, c, d) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline void __fpmp2_rnorm4d<double>(
   const double __a_hi,
@@ -747,6 +825,59 @@ _CCCL_API inline void __fpmp2_rnorm4d<double>(
     NV_IS_DEVICE,
     (__fpmp2_from_double(::rnorm4d(__ad, __bd, __cd, __dd), __res_hi, __res_lo);),
     (__fpmp2_from_double(1.0 / ::sqrt(__ad * __ad + __bd * __bd + __cd * __cd + __dd * __dd), __res_hi, __res_lo);))
+}
+
+/*
+ * ====================================================================
+ * rhypot(x, y) - 1 / hypot(x, y)
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal hypotenuse rhypot(x, y) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API void __fpmp2_rhypot(
+  const _FpType __x_hi,
+  const _FpType __x_lo,
+  const _FpType __y_hi,
+  const _FpType __y_lo,
+  _FpType* __res_hi,
+  _FpType* __res_lo) noexcept
+{
+  using mp2_t = fpmp2<_FpType>;
+  double __r  = 0.0;
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__r = ::rhypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));),
+    (__r = 1.0 / ::hypot(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo)));))
+  mp2_t __result(__r);
+  *__res_hi = __result.hi();
+  *__res_lo = __result.lo();
+}
+
+/*
+ * --------------------------------------------------------------------
+ * Reciprocal hypotenuse rhypot(x, y) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_rhypot<double>(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  NV_IF_ELSE_TARGET(
+    NV_IS_DEVICE,
+    (__fpmp2_from_double(
+       ::rhypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);),
+    (__fpmp2_from_double(
+       1.0 / ::hypot(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);))
 }
 
 #endif // _CCCL_FPMP_USE_LIB

@@ -25,10 +25,6 @@
     fpmp_math_impl_manip.h - fpmp2 floating-point manipulation (frexp, ldexp, modf, scalbn, ilogb, logb, nextafter,
    copysign, fabs)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -42,8 +38,14 @@ namespace cuda::experimental
 #if !(defined _CCCL_FPMP_USE_LIB)
 
 /*
+ * ====================================================================
+ * ldexp(x, n) - x * 2^n
+ * ====================================================================
+ */
+
+/*
  * --------------------------------------------------------------------
- * ldexp(x, n) = x * 2^n  (fp32mp2 dedicated)
+ * Scaling ldexp(x, n) = x * 2^n (fp32mp2 and fp64mp2) - exact on the limb pair
  * --------------------------------------------------------------------
  * Replaces the legacy fp64 round-trip with an all-fp32 implementation:
  * the 2^n factor is built directly from its biased fp32 exponent via
@@ -158,8 +160,14 @@ __fpmp2_ldexp(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __re
 }
 
 /*
+ * ====================================================================
+ * scalbn(x, n) - x * FLT_RADIX^n
+ * ====================================================================
+ */
+
+/*
  * --------------------------------------------------------------------
- * scalbn(x, n) = x * FLT_RADIX^n  (fp32mp2 dedicated)
+ * Scaling scalbn(x, n) = x * FLT_RADIX^n (fp32mp2 and fp64mp2) - forwards to ldexp
  * --------------------------------------------------------------------
  * For IEEE 754 binary formats (FLT_RADIX == 2 -- true on every
  * platform we target) `scalbn(x, n)` is bit-identical to
@@ -176,25 +184,15 @@ __fpmp2_scalbn(const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __r
 }
 
 /*
- * ============================================================================
- * Floating-Point Manipulation and Min/Max
- * ============================================================================
- * Dedicated implementations of fabs / fmin / fmax / min / max for both fp32mp2 and
- * fp64mp2 that operate directly on the (hi, lo) pair without going through
- * a lossy intermediate `double` conversion.  The same template body is
- * correct for FpType == float and FpType == double, so no separate fp64
- * specialization is needed.
- *
- * Conventions follow C99/IEEE-754:
- *   - fabs preserves NaN payload and turns -0 into +0 (via ::fabs on hi).
- *   - fmin/fmax treat NaN as missing data: if exactly one operand is NaN,
- *     the non-NaN one is returned; if both are NaN, NaN is returned.
- *   - min/max keep std::min/std::max branch semantics:
- *     ties/unordered select the first argument.
- * ============================================================================
+ * ====================================================================
+ * fabs(x) - absolute value
+ * ====================================================================
  */
 
 /*
+ * --------------------------------------------------------------------
+ * Absolute value fabs(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * fabs: |x|.  For a normalized (hi, lo) pair the value's sign is the sign
  * of `hi`, and `|hi| > |lo|`, so flipping both components when `hi` is
  * negative yields the absolute value while preserving the residual `lo`
@@ -211,6 +209,15 @@ __fpmp2_fabs(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 }
 
 /*
+ * ====================================================================
+ * copysign(x, y) - magnitude of x with the sign of y
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Sign transfer copysign(x, y) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * copysign: |x| carrying the sign of y.  Like fabs, this is exact on the pair and
  * needs no arithmetic at all: the sign of a renormalized value is the sign of its
  * high limb, so the operation is a conditional negation of both limbs.  y's low
@@ -233,16 +240,49 @@ _CCCL_FPMP_CORE_API void __fpmp2_copysign(
   *__res_lo         = __flip ? -__x_lo : __x_lo;
 }
 
-/* log2, log10, exp2, exp10, expm1: dedicated fp32mp2 implementations
- * live in the dedicated math section above (composed over the
- * dedicated fp32mp2 log/exp with ln(2)/ln(10) constants in fp32mp2;
- * expm1 has a small-|x| Taylor branch).  fp64mp2 specializations are
- * declared below via _CCCL_FPMP_CALL_FP64MP2_MATH.  exp10 had a hand
- * fallback even on fp32mp2 prior to the dedicated implementation;
- * that version is superseded. */
+/* nextafter has no dedicated fp32mp2 kernel: the placeholder composes it over
+ * double, and fp64mp2 takes the specialization that follows. */
+/*
+ * ====================================================================
+ * nextafter(x, y) - next representable value toward y
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Next representable nextafter(x, y) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_2A(nextafter)
 
 /*
+ * --------------------------------------------------------------------
+ * Next representable nextafter(x, y) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_nextafter<double>(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  __fpmp2_from_double(
+    ::nextafter(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * ilogb(x) - exponent of x as an int
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Exponent ilogb(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * ilogb / logb: the exponent of the pair, which is the exponent of hi except in one
  * case. Where hi is a power of two and lo has the opposite sign the value sits just
  * below that power, so the exponent is one lower - the same correction frexp needs
@@ -268,6 +308,17 @@ _CCCL_FPMP_CORE_API int __fpmp2_ilogb(const _FpType __x_hi, const _FpType __x_lo
   return __below_power_of_two ? __e - 1 : __e;
 }
 
+/*
+ * ====================================================================
+ * logb(x) - exponent of x as a floating-point value
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Exponent logb(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_logb(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -281,15 +332,20 @@ __fpmp2_logb(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
               : static_cast<_FpType>(::logb(static_cast<double>(__x_hi)));
   *__res_lo = _FpType(0);
 }
-/* ldexp, scalbn: dedicated fp32mp2 implementations live in the
- * dedicated math section above (bit-cast 3-piece base-2 scaling,
- * no fp64 round-trip).  scalbn forwards to ldexp since FLT_RADIX
- * is 2 on every IEEE 754 platform we support.  fp64mp2 paths stay
- * on the explicit double specializations further below for
- * symmetry. */
-/* scalbln differs from scalbn only in taking a long.  Clamping to int is exact
+/*
+ * ====================================================================
+ * scalbln(x, n) - x * FLT_RADIX^n with a long exponent
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Scaling scalbln(x, n) (fp32mp2 and fp64mp2) - forwards to ldexp
+ * --------------------------------------------------------------------
+ *  scalbln differs from scalbn only in taking a long.  Clamping to int is exact
  * rather than lossy: every |n| past this point already saturates to infinity or
- * to zero for any finite input of either element type. */
+ * to zero for any finite input of either element type.
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_scalbln(const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -299,6 +355,15 @@ __fpmp2_scalbln(const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpTyp
 }
 
 /*
+ * ====================================================================
+ * frexp(x, &n) - mantissa in [1/2, 1) and a power of two
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Decomposition frexp(x, &n) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * frexp: split into a mantissa in [1/2, 1) and a power of two.  Exact on the pair:
  * hi fixes the exponent and lo is scaled by the same power of two.
  *
@@ -332,6 +397,15 @@ __fpmp2_frexp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 }
 
 /*
+ * ====================================================================
+ * modf(x, &i) - integral and fractional parts
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Decomposition modf(x, &i) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * modf: break the pair into its integral and fractional parts.
  *
  * trunc is exact on the pair and the subtraction that follows cancels exactly, so the
@@ -363,21 +437,6 @@ _CCCL_FPMP_CORE_API void __fpmp2_modf(
     *__res_hi = (std::signbit) (static_cast<double>(__x_hi)) ? -_FpType(0) : _FpType(0);
     *__res_lo = _FpType(0);
   }
-}
-// copysign, ldexp, scalbn, scalbln, frexp, ilogb, logb and modf have no <double>
-// specialization: the primary templates above are exact on the limb pair for both
-// element types.
-template <>
-_CCCL_API inline void __fpmp2_nextafter<double>(
-  const double __x_hi,
-  const double __x_lo,
-  const double __y_hi,
-  const double __y_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  __fpmp2_from_double(
-    ::nextafter(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
 }
 
 #endif // _CCCL_FPMP_USE_LIB

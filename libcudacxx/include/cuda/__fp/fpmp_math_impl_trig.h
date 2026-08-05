@@ -24,10 +24,6 @@
 /*
     fpmp_math_impl_trig.h - fpmp2 trigonometric functions (sin, cos, tan, asin/acos/atan, atan2, sincos, *pi)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -43,15 +39,10 @@ namespace cuda::experimental
 {
 #if !(defined _CCCL_FPMP_USE_LIB)
 
-// ---------------------------------------------------------------------------
-// trig argument reduction + sin/cos/inverse kernels moved verbatim from <cuda/__fp/fpmp_math_impl.h> (single-family
-// kernels).
-// ---------------------------------------------------------------------------
-
 /*
- * ============================================================================
- * Trigonometric functions: sin, cos, sincos (fp32mp2) - dedicated
- * ============================================================================
+ * ====================================================================
+ * Internal kernels for sin, cos and sincos (fp32mp2)
+ * ====================================================================
  * Algorithm:
  *   1. Argument reduction: x = n*(pi/2) + r, |r| <= pi/4
  *      - Tiny (|x| < pi/4): no reduction
@@ -66,7 +57,7 @@ namespace cuda::experimental
  *      sin: 8 terms (x through x^15), cos: 9 terms (1 through x^16)
  *   3. Map to correct quadrant using n mod 4
  *      sincos computes both kernels; sin/cos call sincos internally
- * ============================================================================
+ * ====================================================================
  */
 
 /*
@@ -492,10 +483,9 @@ __internal_fpmp2_cos_kernel(_FpType __x_hi, _FpType __x_lo, _FpType* __res_hi, _
 }
 
 /*
- * ============================================================================
- * Inverse trigonometric functions: asin, acos, atan, atan2 (fp32mp2)
- *                                                            - dedicated
- * ============================================================================
+ * ====================================================================
+ * Internal kernels for asin, acos, atan and atan2 (fp32mp2)
+ * ====================================================================
  *
  * All four functions are built on two shared polynomial kernels evaluated
  * in fp32mp2 arithmetic.  We evaluate them in
@@ -530,7 +520,7 @@ __internal_fpmp2_cos_kernel(_FpType __x_hi, _FpType __x_lo, _FpType* __res_hi, _
  * inputs to asin/acos return NaN via the sqrt of a negative y.
  * atan(+-inf) returns +-pi/2 via the 1/x reduction (1/+-inf -> +-0).
  * atan2 handles (0,0), (+-inf,+-inf) special cases explicitly.
- * ============================================================================
+ * ====================================================================
  */
 
 /* ---- (kernel 1) atan on |a| <= 1, returns atan(|a|) in fp32mp2 ----
@@ -638,6 +628,15 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_acos_poly(const fpmp2<_FpType>& __y, f
 }
 
 /*
+ * ====================================================================
+ * sincos(x, &s, &c) - sine and cosine of the same argument
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Sine and cosine sincos(x, &s, &c) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
  * sincos for fp32mp2: compute sin(x) and cos(x) simultaneously.
  * Shared argument reduction, separate sin/cos kernels on [-pi/4, pi/4],
  * quadrant-based swap and sign adjustment.
@@ -693,6 +692,33 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincos(
 }
 
 /*
+ * --------------------------------------------------------------------
+ * Sine and cosine sincos(x, &s, &c) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_sincos<double>(
+  const double __x_hi,
+  const double __x_lo,
+  double* __sin_hi,
+  double* __sin_lo,
+  double* __cos_hi,
+  double* __cos_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(sin, _CCCL_FPMP_SINQ, __x_hi, __x_lo, __sin_hi, __sin_lo);
+  _CCCL_FPMP_CALL_FP64MP2_MATH(cos, _CCCL_FPMP_COSQ, __x_hi, __x_lo, __cos_hi, __cos_lo);
+}
+
+/*
+ * ====================================================================
+ * sin(x) - sine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Sine sin(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
  * sin for fp32mp2: calls sincos and returns only the sine.
  */
 template <typename _FpType>
@@ -704,6 +730,27 @@ __fpmp2_sin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 }
 
 /*
+ * --------------------------------------------------------------------
+ * Sine sin(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_sin<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(sin, _CCCL_FPMP_SINQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * cos(x) - cosine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Cosine cos(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
  * cos for fp32mp2: calls sincos and returns only the cosine.
  */
 template <typename _FpType>
@@ -715,6 +762,27 @@ __fpmp2_cos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 }
 
 /*
+ * --------------------------------------------------------------------
+ * Cosine cos(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_cos<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(cos, _CCCL_FPMP_COSQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * tan(x) - tangent
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Tangent tan(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
  * Algorithm (no FP64 dependency on the hot path):
  *   1. Reduce x to r in [-pi/4, pi/4] via the shared
  *      __internal_fpmp2_trig_reduction; this also returns the quadrant
@@ -759,7 +827,30 @@ __fpmp2_tan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
   *__res_lo = __result.lo();
 }
 
-/* ---- atan(x) ---- */
+/*
+ * --------------------------------------------------------------------
+ * Tangent tan(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_tan<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(tan, _CCCL_FPMP_TANQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * atan(x) - arc tangent
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Arc tangent atan(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ *  ---- atan(x) ----
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_atan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -796,7 +887,30 @@ __fpmp2_atan(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = __r.lo();
 }
 
-/* ---- atan2(y, x) ---- */
+/*
+ * --------------------------------------------------------------------
+ * Arc tangent atan(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_atan<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(atan, _CCCL_FPMP_ATANQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * atan2(y, x) - arc tangent of y/x, quadrant aware
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Arc tangent atan2(y, x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ *  ---- atan2(y, x) ----
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_atan2(
   const _FpType __y_hi,
@@ -941,7 +1055,43 @@ _CCCL_FPMP_CORE_API void __fpmp2_atan2(
   *__res_lo = __r.lo();
 }
 
-/* ---- asin(x) ---- */
+/*
+ * --------------------------------------------------------------------
+ * Arc tangent atan2(y, x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ * Note: On CUDA device, _CCCL_FPMP_ATAN2Q widens through double atan2 (no fp128 intrinsic); _CCCL_FPMP_CBRTQ is
+ * reconstructed from __nv_fp128_pow.
+ */
+template <>
+_CCCL_API inline void __fpmp2_atan2<double>(
+  const double __y_hi,
+  const double __y_lo,
+  const double __x_hi,
+  const double __x_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
+  __fpmp_fp128 __res = _CCCL_FPMP_ATAN2Q(__fpmp2_to_quad(__y_hi, __y_lo), __fpmp2_to_quad(__x_hi, __x_lo));
+  __fpmp2_from_quad(__res, __res_hi, __res_lo);
+#  else
+  double __res = ::atan2(__fpmp2_to_double(__y_hi, __y_lo), __fpmp2_to_double(__x_hi, __x_lo));
+  __fpmp2_from_double(__res, __res_hi, __res_lo);
+#  endif
+} // __fpmp2_atan2<double>
+
+/*
+ * ====================================================================
+ * asin(x) - arc sine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Arc sine asin(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ *  ---- asin(x) ----
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_asin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -996,7 +1146,30 @@ __fpmp2_asin(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = __r.lo();
 }
 
-/* ---- acos(x) ---- */
+/*
+ * --------------------------------------------------------------------
+ * Arc sine asin(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_asin<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(asin, _CCCL_FPMP_ASINQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * acos(x) - arc cosine
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Arc cosine acos(x) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
+ *  ---- acos(x) ----
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_acos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -1051,13 +1224,28 @@ __fpmp2_acos(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 }
 
 /*
- * CUDA-specific functions with host fallbacks
- *
- * Note: __fpmp2_exp10 used to live here as a `::exp10` (CUDA) /
- * `::pow(10, x)` (host) fallback.  The dedicated fp32mp2 version now
- * sits in the exponential/logarithmic family at the top of this
- * file; fp64mp2 routes through _CCCL_FPMP_CALL_FP64MP2_MATH with the
- * new _CCCL_FPMP_EXP10Q backend macro.
+ * --------------------------------------------------------------------
+ * Arc cosine acos(x) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_acos<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH(acos, _CCCL_FPMP_ACOSQ, __x_hi, __x_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * sinpi(x) - sin(pi * x)
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Sine of pi*x sinpi(x) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ * The CUDA intrinsic on the device, sin(pi * x) on the host.
  */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
@@ -1072,6 +1260,32 @@ __fpmp2_sinpi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 }
 
+/*
+ * --------------------------------------------------------------------
+ * Sine of pi*x sinpi(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_sinpi<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::sinpi(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::sin(__xd * 3.14159265358979323846), __res_hi, __res_lo);))
+}
+
+/*
+ * ====================================================================
+ * cospi(x) - cos(pi * x)
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Cosine of pi*x cospi(x) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_cospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -1085,6 +1299,32 @@ __fpmp2_cospi(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __result.lo();
 }
 
+/*
+ * --------------------------------------------------------------------
+ * Cosine of pi*x cospi(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void
+__fpmp2_cospi<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+{
+  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    (__fpmp2_from_double(::cospi(__xd), __res_hi, __res_lo);),
+                    (__fpmp2_from_double(::cos(__xd * 3.14159265358979323846), __res_hi, __res_lo);))
+}
+
+/*
+ * ====================================================================
+ * sincospi(x, &s, &c) - sin(pi * x) and cos(pi * x)
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Sine and cosine of pi*x sincospi(x, &s, &c) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_sincospi(
   const _FpType __x_hi,
@@ -1109,91 +1349,12 @@ _CCCL_FPMP_CORE_API void __fpmp2_sincospi(
   *__cos_hi = __c.hi();
   *__cos_lo = __c.lo();
 }
-template <>
-_CCCL_API inline void
-__fpmp2_sin<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(sin, _CCCL_FPMP_SINQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_cos<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(cos, _CCCL_FPMP_COSQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_asin<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(asin, _CCCL_FPMP_ASINQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_acos<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(acos, _CCCL_FPMP_ACOSQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_atan<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(atan, _CCCL_FPMP_ATANQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void __fpmp2_sincos<double>(
-  const double __x_hi,
-  const double __x_lo,
-  double* __sin_hi,
-  double* __sin_lo,
-  double* __cos_hi,
-  double* __cos_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(sin, _CCCL_FPMP_SINQ, __x_hi, __x_lo, __sin_hi, __sin_lo);
-  _CCCL_FPMP_CALL_FP64MP2_MATH(cos, _CCCL_FPMP_COSQ, __x_hi, __x_lo, __cos_hi, __cos_lo);
-}
-// Note: On CUDA device, _CCCL_FPMP_ATAN2Q widens through double atan2 (no fp128 intrinsic); _CCCL_FPMP_CBRTQ is
-// reconstructed from __nv_fp128_pow.
-template <>
-_CCCL_API inline void __fpmp2_atan2<double>(
-  const double __y_hi,
-  const double __y_lo,
-  const double __x_hi,
-  const double __x_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-#  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
-  __fpmp_fp128 __res = _CCCL_FPMP_ATAN2Q(__fpmp2_to_quad(__y_hi, __y_lo), __fpmp2_to_quad(__x_hi, __x_lo));
-  __fpmp2_from_quad(__res, __res_hi, __res_lo);
-#  else
-  double __res = ::atan2(__fpmp2_to_double(__y_hi, __y_lo), __fpmp2_to_double(__x_hi, __x_lo));
-  __fpmp2_from_double(__res, __res_hi, __res_lo);
-#  endif
-} // __fpmp2_atan2<double>
-template <>
-_CCCL_API inline void
-__fpmp2_tan<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH(tan, _CCCL_FPMP_TANQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void
-__fpmp2_sinpi<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fpmp2_from_double(::sinpi(__xd), __res_hi, __res_lo);),
-                    (__fpmp2_from_double(::sin(__xd * 3.14159265358979323846), __res_hi, __res_lo);))
-}
-template <>
-_CCCL_API inline void
-__fpmp2_cospi<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
-{
-  double __xd = __fpmp2_to_double(__x_hi, __x_lo);
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fpmp2_from_double(::cospi(__xd), __res_hi, __res_lo);),
-                    (__fpmp2_from_double(::cos(__xd * 3.14159265358979323846), __res_hi, __res_lo);))
-}
+
+/*
+ * --------------------------------------------------------------------
+ * Sine and cosine of pi*x sincospi(x, &s, &c) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline void __fpmp2_sincospi<double>(
   const double __x_hi,

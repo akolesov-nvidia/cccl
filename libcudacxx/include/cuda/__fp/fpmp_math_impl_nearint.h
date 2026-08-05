@@ -25,10 +25,6 @@
     fpmp_math_impl_nearint.h - fpmp2 nearest-integer and remainder functions (ceil/floor/trunc/round/rint, fmod,
    remainder, remquo)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -40,10 +36,6 @@
 namespace cuda::experimental
 {
 #if !(defined _CCCL_FPMP_USE_LIB)
-
-// ---------------------------------------------------------------------------
-// fmod/remainder fp32mp2 kernel moved verbatim from <cuda/__fp/fpmp_math_impl.h> (single-family kernels).
-// ---------------------------------------------------------------------------
 
 /*
  * --------------------------------------------------------------------
@@ -240,6 +232,15 @@ _CCCL_FPMP_CORE_API void __fp32mp2_fmod_kernel(
 }
 
 /*
+ * ====================================================================
+ * fmod(x, y) - floating-point remainder of x / y
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Remainder fmod(x, y) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
  * fmod(x, y): result has the sign of x and magnitude in [0, |y|).
  */
 template <typename _FpType>
@@ -316,6 +317,32 @@ _CCCL_FPMP_CORE_API void __fpmp2_fmod(
 }
 
 /*
+ * --------------------------------------------------------------------
+ * Remainder fmod(x, y) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_fmod<double>(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH_2A(fmod, _CCCL_FPMP_FMODQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * remainder(x, y) - IEEE remainder of x / y
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * IEEE remainder remainder(x, y) (fp32mp2) - dedicated implementation
+ * --------------------------------------------------------------------
  * remainder(x, y): IEEE remainder, |result| <= |y|/2, round-to-nearest
  * with ties to even quotient.
  */
@@ -448,6 +475,41 @@ _CCCL_FPMP_CORE_API void __fpmp2_remainder(
 }
 
 /*
+ * --------------------------------------------------------------------
+ * IEEE remainder remainder(x, y) (fp64mp2) - binary128 wrapper
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline void __fpmp2_remainder<double>(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  _CCCL_FPMP_CALL_FP64MP2_MATH_2A(remainder, _CCCL_FPMP_REMAINDERQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
+}
+
+/*
+ * ====================================================================
+ * floor(x) - round down to an integer
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round down floor(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
+ * ceil, floor, trunc and round have no <double> specialization.
+ * The primary templates above are exact on the limb pair for both element types -
+ * they select the integer threshold from _FpType and renormalize through
+ * __fpmp2_acc - so fp64mp2 uses them directly. Routing fp64mp2 through fp128
+ * instead was exact only where fp128 was available and silently collapsed the pair
+ * into one double everywhere else, which is wrong rather than imprecise: the low
+ * limb is what decides the answer whenever hi is integral, so ceil could return a
+ * value below its own argument.
+ *
  * floor/ceil/round: dedicated fpmp2 implementations that operate directly
  * on the (hi, lo) pair and avoid collapsing through an intermediate double.
  *
@@ -503,6 +565,17 @@ __fpmp2_floor(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_lo = __t_lo;
 }
 
+/*
+ * ====================================================================
+ * ceil(x) - round up to an integer
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round up ceil(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -543,6 +616,17 @@ __fpmp2_ceil(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = __t_lo;
 }
 
+/*
+ * ====================================================================
+ * round(x) - round to nearest, ties away from zero
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to nearest round(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_round(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -571,6 +655,17 @@ __fpmp2_round(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   }
 }
 
+/*
+ * ====================================================================
+ * trunc(x) - round toward zero
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round toward zero trunc(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_trunc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -625,14 +720,123 @@ __fpmp2_trunc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   *__res_hi = __n;
   *__res_lo = _FpType(0);
 }
+
+/*
+ * ====================================================================
+ * llrint(x) - round to nearest long long, ties to even
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long long llrint(x) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL(llrint)
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long long llrint(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline long long int __fpmp2_llrint<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::llrint(__fpmp2_to_double(__x_hi, __x_lo));
+}
+
+/*
+ * ====================================================================
+ * llround(x) - round to nearest long long, ties away from zero
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long long llround(x) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL(llround)
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long long llround(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline long long int __fpmp2_llround<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::llround(__fpmp2_to_double(__x_hi, __x_lo));
+}
+
+/*
+ * ====================================================================
+ * lrint(x) - round to nearest long, ties to even
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long lrint(x) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lrint)
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long lrint(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline long int __fpmp2_lrint<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::lrint(__fpmp2_to_double(__x_hi, __x_lo));
+}
+
+/*
+ * ====================================================================
+ * lround(x) - round to nearest long, ties away from zero
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to long lround(x) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lround)
 
 /*
- * rint / nearbyint: round to nearest, ties to even, on the (hi, lo) pair.
- *
+ * --------------------------------------------------------------------
+ * Round to long lround(x) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
+template <>
+_CCCL_API inline long int __fpmp2_lround<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::lround(__fpmp2_to_double(__x_hi, __x_lo));
+}
+
+/* Internal helper: parity of an integral value, for the rint tie-break. */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API bool __fpmp2_nearint_is_odd(const _FpType __n) noexcept
+{
+  // n is an integer. n/2 and 2*floor(n/2) are both exact, so this is a parity
+  // test that also works past 2^53, where every value is even anyway.
+  const _FpType __half_n = __n * _FpType(0.5);
+  return __n != _FpType(2) * __fpmp_internal_floor<_FpType>(__half_n);
+}
+
+/*
+ * ====================================================================
+ * rint(x) - round to nearest, ties to even
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to even rint(x) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * Both limbs participate, so neither the pair nor an intermediate double is
  * collapsed. Two regimes, as in floor/ceil above:
  *
@@ -652,15 +856,6 @@ _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(lround)
  * nearbyint is rint without the inexact exception, which this implementation
  * never raises, so it forwards.
  */
-template <typename _FpType>
-_CCCL_FPMP_CORE_API bool __fpmp2_nearint_is_odd(const _FpType __n) noexcept
-{
-  // n is an integer. n/2 and 2*floor(n/2) are both exact, so this is a parity
-  // test that also works past 2^53, where every value is even anyway.
-  const _FpType __half_n = __n * _FpType(0.5);
-  return __n != _FpType(2) * __fpmp_internal_floor<_FpType>(__half_n);
-}
-
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -739,6 +934,17 @@ __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   *__res_lo = _FpType(0);
 }
 
+/*
+ * ====================================================================
+ * nearbyint(x) - round to nearest, ties to even
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Round to even nearbyint(x) (fp32mp2 and fp64mp2) - forwards to rint
+ * --------------------------------------------------------------------
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void
 __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
@@ -746,7 +952,18 @@ __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi,
   __fpmp2_rint<_FpType>(__x_hi, __x_lo, __res_hi, __res_lo);
 }
 
-// remquo: compute remainder and part of quotient
+/*
+ * ====================================================================
+ * remquo(x, y, &q) - remainder and low bits of the quotient
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Remainder and quotient remquo(x, y, &q) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ * remquo: compute remainder and part of quotient
+ */
 template <typename _FpType>
 _CCCL_FPMP_CORE_API void __fpmp2_remquo(
   const _FpType __x_hi,
@@ -763,58 +980,12 @@ _CCCL_FPMP_CORE_API void __fpmp2_remquo(
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
 }
-// Rounding family: ceil, floor, trunc and round have no <double> specialization.
-// The primary templates above are exact on the limb pair for both element types -
-// they select the integer threshold from _FpType and renormalize through
-// __fpmp2_acc - so fp64mp2 uses them directly. Routing fp64mp2 through fp128
-// instead was exact only where fp128 was available and silently collapsed the pair
-// into one double everywhere else, which is wrong rather than imprecise: the low
-// limb is what decides the answer whenever hi is integral, so ceil could return a
-// value below its own argument.
-// __fpmp2_fmax<double>, __fpmp2_fmin<double>, __fpmp2_max<double>, __fpmp2_min<double>:
-// handled by the type-agnostic primary templates above (no double round-trip).
-template <>
-_CCCL_API inline void __fpmp2_fmod<double>(
-  const double __x_hi,
-  const double __x_lo,
-  const double __y_hi,
-  const double __y_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH_2A(fmod, _CCCL_FPMP_FMODQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline void __fpmp2_remainder<double>(
-  const double __x_hi,
-  const double __x_lo,
-  const double __y_hi,
-  const double __y_lo,
-  double* __res_hi,
-  double* __res_lo) noexcept
-{
-  _CCCL_FPMP_CALL_FP64MP2_MATH_2A(remainder, _CCCL_FPMP_REMAINDERQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
-}
-template <>
-_CCCL_API inline long long int __fpmp2_llrint<double>(const double __x_hi, const double __x_lo) noexcept
-{
-  return ::llrint(__fpmp2_to_double(__x_hi, __x_lo));
-}
-template <>
-_CCCL_API inline long long int __fpmp2_llround<double>(const double __x_hi, const double __x_lo) noexcept
-{
-  return ::llround(__fpmp2_to_double(__x_hi, __x_lo));
-}
-template <>
-_CCCL_API inline long int __fpmp2_lrint<double>(const double __x_hi, const double __x_lo) noexcept
-{
-  return ::lrint(__fpmp2_to_double(__x_hi, __x_lo));
-}
-template <>
-_CCCL_API inline long int __fpmp2_lround<double>(const double __x_hi, const double __x_lo) noexcept
-{
-  return ::lround(__fpmp2_to_double(__x_hi, __x_lo));
-}
+
+/*
+ * --------------------------------------------------------------------
+ * Remainder and quotient remquo(x, y, &q) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline void __fpmp2_remquo<double>(
   const double __x_hi,

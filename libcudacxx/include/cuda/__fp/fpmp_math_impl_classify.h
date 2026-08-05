@@ -25,10 +25,6 @@
     fpmp_math_impl_classify.h - fpmp2 classification and comparison (isfinite/isinf/isnan/signbit, fmax/fmin/max/min,
    fdim)
     ==================================================================================================
-    Per-family math implementation split out of <cuda/__fp/fpmp_math.h>. Carries the
-    dedicated fp32mp2 kernels and the fp64mp2 (<double>) specializations for this
-    family. Shared helpers, constants and the fp128 scaffolding live in
-    <cuda/__fp/fpmp_math_impl.h>, which this header includes.
 */
 
 #include <cuda/__fp/fpmp_math_impl.h>
@@ -40,6 +36,15 @@ namespace cuda::experimental
 #if !(defined _CCCL_FPMP_USE_LIB)
 
 /*
+ * ====================================================================
+ * fmax(x, y) - larger of two values
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Maximum fmax(x, y) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * fmax: max(x, y).  Lexicographic comparison on (hi, lo) -- valid because
  * normalized fpmp2 inputs satisfy |lo| < ulp(hi)/2, so `x > y` iff
  * `x_hi > y_hi || (x_hi == y_hi && x_lo > y_lo)`.  NaN handling follows
@@ -82,6 +87,15 @@ _CCCL_FPMP_CORE_API void __fpmp2_fmax(
 }
 
 /*
+ * ====================================================================
+ * fmin(x, y) - smaller of two values
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Minimum fmin(x, y) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * fmin: min(x, y).  Mirror image of fmax.
  */
 template <typename _FpType>
@@ -121,6 +135,15 @@ _CCCL_FPMP_CORE_API void __fpmp2_fmin(
 }
 
 /*
+ * ====================================================================
+ * max(x, y) - std::max-like selection
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Selection max(x, y) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * max: std::max-like selection for fpmp2 values.  Uses the same
  * lexicographic ordering as fmax, but keeps std::max semantics:
  * return y only when x < y; otherwise return x (ties/unordered -> x).
@@ -148,6 +171,15 @@ _CCCL_FPMP_CORE_API void __fpmp2_max(
 }
 
 /*
+ * ====================================================================
+ * min(x, y) - std::min-like selection
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Selection min(x, y) (fp32mp2 and fp64mp2) - exact on the limb pair
+ * --------------------------------------------------------------------
  * min: std::min-like selection for fpmp2 values.  Uses the same
  * lexicographic ordering as fmin, but keeps std::min semantics:
  * return y only when y < x; otherwise return x (ties/unordered -> x).
@@ -173,36 +205,25 @@ _CCCL_FPMP_CORE_API void __fpmp2_min(
     *__res_lo = __x_lo;
   }
 }
+
+/*
+ * ====================================================================
+ * fdim(x, y) - positive difference
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Positive difference fdim(x, y) (fp32mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 _CCCL_FPMP_MATH_PLACEHOLDER_2A(fdim)
 
-// Classification and sign functions
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_isfinite(const _FpType __x_hi, const _FpType __x_lo) noexcept
-{
-  (void) __x_lo;
-  return (std::isfinite) (static_cast<double>(__x_hi));
-}
-
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_isinf(const _FpType __x_hi, const _FpType __x_lo) noexcept
-{
-  (void) __x_lo;
-  return (std::isinf) (static_cast<double>(__x_hi));
-}
-
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_isnan(const _FpType __x_hi, const _FpType __x_lo) noexcept
-{
-  (void) __x_lo;
-  return (std::isnan) (static_cast<double>(__x_hi));
-}
-
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_signbit(const _FpType __x_hi, const _FpType __x_lo) noexcept
-{
-  (void) __x_lo;
-  return (std::signbit) (static_cast<double>(__x_hi));
-}
+/*
+ * --------------------------------------------------------------------
+ * Positive difference fdim(x, y) (fp64mp2) - double fallback
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline void __fpmp2_fdim<double>(
   const double __x_hi,
@@ -214,24 +235,102 @@ _CCCL_API inline void __fpmp2_fdim<double>(
 {
   __fpmp2_from_double(::fdim(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
 }
+
+/*
+ * ====================================================================
+ * isfinite(x), isinf(x), isnan(x), signbit(x) - classification predicates
+ * ====================================================================
+ */
+
+/*
+ * --------------------------------------------------------------------
+ * Finite test isfinite(x) (fp32mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API int __fpmp2_isfinite(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  (void) __x_lo;
+  return (std::isfinite) (static_cast<double>(__x_hi));
+}
+
+/*
+ * --------------------------------------------------------------------
+ * Finite test isfinite(x) (fp64mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline int __fpmp2_isfinite<double>(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isfinite) (__x_hi);
 }
+
+/*
+ * --------------------------------------------------------------------
+ * Infinity test isinf(x) (fp32mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API int __fpmp2_isinf(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  (void) __x_lo;
+  return (std::isinf) (static_cast<double>(__x_hi));
+}
+
+/*
+ * --------------------------------------------------------------------
+ * Infinity test isinf(x) (fp64mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline int __fpmp2_isinf<double>(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isinf) (__x_hi);
 }
+
+/*
+ * --------------------------------------------------------------------
+ * NaN test isnan(x) (fp32mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API int __fpmp2_isnan(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  (void) __x_lo;
+  return (std::isnan) (static_cast<double>(__x_hi));
+}
+
+/*
+ * --------------------------------------------------------------------
+ * NaN test isnan(x) (fp64mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline int __fpmp2_isnan<double>(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isnan) (__x_hi);
 }
+
+/*
+ * --------------------------------------------------------------------
+ * Sign-bit test signbit(x) (fp32mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
+template <typename _FpType>
+_CCCL_FPMP_CORE_API int __fpmp2_signbit(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  (void) __x_lo;
+  return (std::signbit) (static_cast<double>(__x_hi));
+}
+
+/*
+ * --------------------------------------------------------------------
+ * Sign-bit test signbit(x) (fp64mp2) - hi-limb test
+ * --------------------------------------------------------------------
+ */
 template <>
 _CCCL_API inline int __fpmp2_signbit<double>(const double __x_hi, const double __x_lo) noexcept
 {
