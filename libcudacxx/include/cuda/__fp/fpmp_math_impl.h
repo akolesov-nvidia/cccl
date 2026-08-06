@@ -757,8 +757,9 @@ namespace cuda::experimental
 // the crt header can declare the overloads under (__float128 on x86_64,
 // or _Float128 on AArch64 with GCC >= 13.1). Serves both x86_64 and
 // AArch64 devices: true binary128 via native __nv_fp128_* for every
-// function that has one; the five without a native intrinsic (cbrt,
-// atan2, erf, erfc, nearbyint) widen through double.
+// function that has one. Of the rest, cbrt is composed from the native
+// pow/fabs/copysign and so stays in binary128, while atan2 -- and erf
+// and erfc unless _CCCL_FPMP_FP128_QUAD_ERF -- widen through double.
 // ----------------------------------------------------------------------
 #    if _CCCL_DEVICE_COMPILATION() && defined(_CCCL_FPMP_CUDA_FP128_INTRINSICS) \
       && (defined(_CCCL_FLOAT128_CPP_SPELLING_ENABLED) || defined(__FLOAT128_C_SPELLING_ENABLED__))

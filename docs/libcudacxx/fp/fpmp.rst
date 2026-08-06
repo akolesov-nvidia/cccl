@@ -308,6 +308,80 @@ pulls in the core ``<cuda/fpmp>``):
    // Probability / Gaussian RNG
    auto inv_cdf = normcdfinv(a);          // Inverse normal CDF: Φ⁻¹(p)
 
+.. _libcudacxx-extended-api-fp-fpmp-math-accuracy:
+
+Math Function Accuracy
+~~~~~~~~~~~~~~~~~~~~~~
+
+How much precision a math function delivers depends on the type and, for ``fp64mp2``, on
+which backend evaluates it. ``fp32mp2`` is never limited by the backend: the functions
+without a dedicated double-float implementation are evaluated in ``double`` and split into
+the pair, and binary64 already carries more significand than a double-float holds.
+``fp64mp2`` is the interesting case, because a double-double asks for more precision than
+binary64 can express, so those functions need a binary128 backend to be evaluated in —
+see :ref:`Quad precision on both host and device <libcudacxx-extended-api-fp-fpmp-quad-both-passes>`
+for when that backend is active and how to select it explicitly. Which of the two
+``fp64mp2`` columns below applies is decided per compilation pass rather than by an option
+you have to set: a host-only build takes the binary128 column wherever ``fp128`` is
+available, while a CUDA translation unit takes it in the device pass only, and only on
+architectures that can run ``fp128``.
+
+======================================== ============ ================== ===================
+Function class                           fp32mp2      fp64mp2, binary128 fp64mp2, ``double``
+======================================== ============ ================== ===================
+Exact operations and predicates          exact        exact              exact
+Transcendentals with a binary128 backend double-float binary128          binary64
+``erf``, ``erfc``, ``normcdf``           double-float binary64           binary64
+``atan2``, on the CUDA device            double-float binary64           binary64
+Functions with no binary128 backend      double-float binary64           binary64
+======================================== ============ ================== ===================
+
+``double-float`` means the accuracy of the type itself; `Algorithm Details`_ derives the
+error bounds for the main dedicated implementations. ``binary64`` for a ``fp64mp2``
+result means only the high limb carries information and the low limb is zero: the value is
+a correctly formed double-double, but it holds no more than a ``double`` would. That is the
+one case where the type promises more than the function delivers, so it is worth spelling
+out which functions land where:
+
+-  **Exact operations**, which work on the limb pair directly and are therefore unaffected
+   by the fp128 configuration: ``ceil``, ``copysign``, ``fabs``, ``floor``, ``fmax``,
+   ``fmin``, ``frexp``, ``ilogb``, ``ldexp``, ``logb``, ``max``, ``min``, ``modf``,
+   ``nearbyint``, ``rint``, ``round``, ``scalbln``, ``scalbn``, ``trunc``, and the
+   predicates ``isfinite``, ``isinf``, ``isnan``, ``signbit``.
+
+-  **Transcendentals with a binary128 backend**, which reach full double-double accuracy
+   wherever that backend is available: ``acos``, ``acosh``, ``asin``, ``asinh``, ``atan``,
+   ``atanh``, ``cbrt``, ``cos``, ``cosh``, ``exp``, ``exp2``, ``exp10``, ``expm1``,
+   ``fmod``, ``log``, ``log2``, ``log10``, ``log1p``, ``pow``, ``remainder``, ``sin``,
+   ``sincos``, ``sinh``, ``tan``, ``tanh``, and ``atan2`` on the two host backends.
+
+-  **Functions with no binary128 backend**, which stay at binary64 for ``fp64mp2`` in every
+   configuration: ``boys_f0``, ``cospi``, ``cyl_bessel_i0``, ``cyl_bessel_i1``,
+   ``erfcinv``, ``erfcx``, ``erfinv``, ``fdim``, ``hypot``, ``j0``, ``j1``, ``jn``,
+   ``lgamma``, ``llrint``, ``llround``, ``lrint``, ``lround``, ``nextafter``, ``norm3d``,
+   ``norm4d``, ``normcdfinv``, ``rcbrt``, ``remquo``, ``rhypot``, ``rnorm3d``, ``rnorm4d``,
+   ``sincospi``, ``sinpi``, ``tgamma``, ``y0``, ``y1``, ``yn``. The integer-returning
+   members of this list (``lrint`` and friends) therefore also round through ``double``,
+   which matters above 2\ :sup:`53`.
+
+Two backend gaps produce the middle rows of the table. ``erf``, ``erfc`` and the
+``normcdf`` built on them stay at binary64 even on the quad path, because CUDA declares no
+``__nv_fp128_erf``; libquadmath and 128-bit ``long double`` do have the entry points, and a
+single internal switch documented in ``<cuda/__fp/fpmp_math_impl.h>`` moves every backend
+to binary128 the moment CUDA gains the device intrinsic. The switch defaults to off so
+that a host and a device pass of the same program agree, which is more valuable than the
+extra digits on one side only. ``atan2`` has the same shape of gap on the device alone: it
+widens through ``double`` there, while the host backends call ``atan2q`` / ``atan2l``.
+
+One more configuration collapses the binary128 column entirely: a device pass opted into the
+quad path on an architecture without the native ``__nv_fp128_*`` intrinsics has to widen
+every function through ``double``, so ``fp64mp2`` math is binary64 there even though the
+plumbing is binary128.
+
+``icdf`` exists for ``fp32mp2`` only. The Bessel functions (``j0``, ``j1``, ``jn``, ``y0``,
+``y1``, ``yn``, ``cyl_bessel_i0``, ``cyl_bessel_i1``) are device-only; a host call asserts
+and returns zero.
+
 Comparison Operations
 ~~~~~~~~~~~~~~~~~~~~~
 
