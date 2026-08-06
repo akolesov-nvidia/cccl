@@ -76,7 +76,7 @@ namespace cuda::experimental
  *   the fp32mp2 ulp floor.
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp2_kernel(fp32mp2_low __r) noexcept
+_CCCL_FPMP_CORE_API fp32mp2_low __internal_fpmp2_exp2_kernel(fp32mp2_low __r) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -118,7 +118,7 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp2_kernel(fp32mp2_low __r) noexcept
  *
  *     10^r = exp(r * ln 10) = Sum_{k>=0}  b_k * r^k,   b_k = (ln 10)^k / k!
  *
- * This is the natural companion to __fp32mp2_exp2_kernel
+ * This is the natural companion to __internal_fpmp2_exp2_kernel
  * "exp10(x) = 2^n * 10^(x - n*log10(2))" reduction.
  * Because |r| <= log10(2)/2 ~= 0.151 (vs. 0.5 for the base-2 kernel),
  * the Horner chain accumulates noticeably less rounding noise even
@@ -139,7 +139,7 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp2_kernel(fp32mp2_low __r) noexcept
  *   below the fp32mp2 ulp floor.
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp10_kernel(fp32mp2_low __r) noexcept
+_CCCL_FPMP_CORE_API fp32mp2_low __internal_fpmp2_exp10_kernel(fp32mp2_low __r) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -181,7 +181,7 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_exp10_kernel(fp32mp2_low __r) noexcept
  * intermediate multiplier overflows or denormalizes
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int __n) noexcept
+_CCCL_FPMP_CORE_API fp32mp2_low __internal_fpmp2_ldexp2(fp32mp2_low __p, int __n) noexcept
 {
   const int __k = __n >> 1; /* floor-div-by-2; signed shift on negative n */
   int __ek1     = 127 + __k;
@@ -861,10 +861,10 @@ __internal_fpmp2_exp2(const float __x_hi, const float __x_lo, float* __res_hi, f
 
   /* Step 3: 2^r via the dedicated base-2 Taylor kernel (no r * ln 2
    * detour, no internal natural-log reduction). */
-  const ffloat __u = __fp32mp2_exp2_kernel(__r);
+  const ffloat __u = __internal_fpmp2_exp2_kernel(__r);
 
   /* Step 4: multiply by 2^n via the split-exponent helper. */
-  const ffloat __result = __fp32mp2_ldexp2_internal(__u, __n);
+  const ffloat __result = __internal_fpmp2_ldexp2(__u, __n);
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
@@ -1007,10 +1007,10 @@ __internal_fpmp2_exp10(const float __x_hi, const float __x_lo, float* __res_hi, 
    * Hand off the accurate accumulator as fast ffloat -- the
    * polynomial cannot consume more than ff precision anyway. */
   const ffloat __r = ffloat(__r_acc.hi(), __r_acc.lo());
-  const ffloat __u = __fp32mp2_exp10_kernel(__r);
+  const ffloat __u = __internal_fpmp2_exp10_kernel(__r);
 
   /* Step 4: scale by 2^n via the split-exponent helper. */
-  const ffloat __result = __fp32mp2_ldexp2_internal(__u, __n);
+  const ffloat __result = __internal_fpmp2_ldexp2(__u, __n);
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();

@@ -54,7 +54,7 @@ namespace cuda::experimental
  * 1:32 or worse.
  *
  * Algorithm -- 3-piece split (vs. the 2-piece used by
- * __fp32mp2_ldexp2_internal for the bounded-n exp2/exp10 callers):
+ * __internal_fpmp2_ldexp2 for the bounded-n exp2/exp10 callers):
  *
  *   2^n  =  2^k * 2^k * 2^(n - 2k),  k = n/3
  *

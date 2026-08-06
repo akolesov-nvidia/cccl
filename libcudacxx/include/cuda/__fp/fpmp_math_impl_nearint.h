@@ -66,7 +66,7 @@ namespace cuda::experimental
 
 /* Scale a float by 2^s using two power-of-two factors, so the
  * intermediate stays in range for the |s| we feed it here. */
-_CCCL_FPMP_CORE_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
+_CCCL_FPMP_CORE_API float __internal_fpmp2_scale2_scalar(float __v, int __s) noexcept
 {
   const int __s1   = __s >> 1; /* floor(s/2) */
   const int __s2   = __s - __s1;
@@ -87,7 +87,8 @@ _CCCL_FPMP_CORE_API float __fp32mp2_scale2_scalar(float __v, int __s) noexcept
  * catastrophically amplified by the cancellation inherent to fmod when the
  * result is far smaller than the inputs.  Capturing 53 bits keeps the value
  * exactly (equivalent to the fp64 fallback's double round-trip). */
-_CCCL_FPMP_CORE_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsigned long long* __m, int* __e) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_modf_decompose(float __hi, float __lo, unsigned long long* __m, int* __e) noexcept
 {
   const uint32_t __hb = ::cuda::std::bit_cast<uint32_t>(__hi);
   int __eh;
@@ -105,8 +106,8 @@ _CCCL_FPMP_CORE_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsign
   }
 
   const int __s     = 52 - __eh;
-  const float __shi = __fp32mp2_scale2_scalar(__hi, __s); /* integer in [2^52, 2^53) */
-  const float __slo = __fp32mp2_scale2_scalar(__lo, __s); /* |slo| <= 2^28           */
+  const float __shi = __internal_fpmp2_scale2_scalar(__hi, __s); /* integer in [2^52, 2^53) */
+  const float __slo = __internal_fpmp2_scale2_scalar(__lo, __s); /* |slo| <= 2^28           */
 
   long long __mant =
     static_cast<long long>(static_cast<unsigned long long>(__shi)) + static_cast<long long>(__fpmp_fp2int_rn(__slo));
@@ -135,8 +136,8 @@ _CCCL_FPMP_CORE_API void __fp32mp2_modf_decompose(float __hi, float __lo, unsign
  * mag may carry up to 53 significant bits; it is first rounded
  * (round-half-to-even) down to the 48 bits an fp32mp2 can hold, then split
  * into two <= 24-bit halves so each casts to float exactly. */
-_CCCL_FPMP_CORE_API void
-__fp32mp2_modf_reconstruct(unsigned long long __mag, int __e, bool __neg, float* __res_hi, float* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void __internal_fpmp2_modf_reconstruct(
+  unsigned long long __mag, int __e, bool __neg, float* __res_hi, float* __res_lo) noexcept
 {
   if (__mag == 0ULL)
   {
@@ -171,8 +172,8 @@ __fp32mp2_modf_reconstruct(unsigned long long __mag, int __e, bool __neg, float*
 
   const unsigned __hipart = static_cast<unsigned>(__mag >> 24); /* < 2^24 */
   const unsigned __lopart = static_cast<unsigned>(__mag & 0xFFFFFFULL); /* < 2^24 */
-  float __rhi             = __fp32mp2_scale2_scalar(static_cast<float>(__hipart), __e + 24);
-  float __rlo             = __fp32mp2_scale2_scalar(static_cast<float>(__lopart), __e);
+  float __rhi             = __internal_fpmp2_scale2_scalar(static_cast<float>(__hipart), __e + 24);
+  float __rlo             = __internal_fpmp2_scale2_scalar(static_cast<float>(__lopart), __e);
   if (__neg)
   {
     __rhi = -__rhi;
@@ -190,7 +191,7 @@ __fp32mp2_modf_reconstruct(unsigned long long __mag, int __e, bool __neg, float*
  * remainder mantissa ia (< My), the divisor mantissa My, its
  * exponent Ey, and the low bits of the integer quotient
  * floor(ax/ay) in quo. */
-_CCCL_FPMP_CORE_API void __fp32mp2_fmod_kernel(
+_CCCL_FPMP_CORE_API void __internal_fpmp2_fmod_kernel(
   float __ax_hi,
   float __ax_lo,
   float __ay_hi,
@@ -204,8 +205,8 @@ _CCCL_FPMP_CORE_API void __fp32mp2_fmod_kernel(
   unsigned long long __my;
   int __Ex;
   int __ey;
-  __fp32mp2_modf_decompose(__ax_hi, __ax_lo, &__Mx, &__Ex);
-  __fp32mp2_modf_decompose(__ay_hi, __ay_lo, &__my, &__ey);
+  __internal_fpmp2_modf_decompose(__ax_hi, __ax_lo, &__Mx, &__Ex);
+  __internal_fpmp2_modf_decompose(__ay_hi, __ay_lo, &__my, &__ey);
 
   int __d = __Ex - __ey; /* >= 0 since ax > ay and both M in [2^52,2^53) */
   if (__d < 0)
@@ -308,8 +309,8 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_fmod(
   unsigned long long __my;
   unsigned long long __quo;
   int __ey;
-  __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
-  __fp32mp2_modf_reconstruct(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
+  __internal_fpmp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
+  __internal_fpmp2_modf_reconstruct(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
 }
 
 /*
@@ -446,7 +447,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder(
   unsigned long long __my;
   unsigned long long __quo;
   int __ey;
-  __fp32mp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
+  __internal_fpmp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
 
   const unsigned long long __two_ia = __ia << 1;
   const bool __round_up             = (__two_ia > __my) || ((__two_ia == __my) && ((__quo & 1ULL) != 0ULL));
@@ -464,7 +465,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder(
     __neg_xframe = false;
   }
 
-  __fp32mp2_modf_reconstruct(__mag, __ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
+  __internal_fpmp2_modf_reconstruct(__mag, __ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
 }
 
 /*
@@ -817,7 +818,7 @@ _CCCL_FPMP_MATH_DISPATCH_1A_RETL(lround)
 
 /* Internal helper: parity of an integral value, for the rint tie-break. */
 template <typename _FpType>
-_CCCL_FPMP_CORE_API bool __fpmp2_nearint_is_odd(const _FpType __n) noexcept
+_CCCL_FPMP_CORE_API bool __internal_fpmp2_nearint_is_odd(const _FpType __n) noexcept
 {
   // n is an integer. n/2 and 2*floor(n/2) are both exact, so this is a parity
   // test that also works past 2^53, where every value is even anyway.
@@ -887,7 +888,8 @@ __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
     else if (__x_lo == __lo_mid)
     {
       // Tie: step to whichever of hi + lo_floor and hi + lo_floor + 1 is even.
-      const bool __sum_odd = __fpmp2_nearint_is_odd<_FpType>(__x_hi) != __fpmp2_nearint_is_odd<_FpType>(__lo_floor);
+      const bool __sum_odd =
+        __internal_fpmp2_nearint_is_odd<_FpType>(__x_hi) != __internal_fpmp2_nearint_is_odd<_FpType>(__lo_floor);
       if (__sum_odd)
       {
         __lo_r = __lo_floor + _FpType(1);
@@ -917,7 +919,7 @@ __fpmp2_rint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
     {
       __r = __n + _FpType(1);
     }
-    else if (__x_lo == _FpType(0) && __fpmp2_nearint_is_odd<_FpType>(__n))
+    else if (__x_lo == _FpType(0) && __internal_fpmp2_nearint_is_odd<_FpType>(__n))
     {
       __r = __n + _FpType(1); // exact tie, and n is the odd neighbour
     }

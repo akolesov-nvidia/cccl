@@ -198,14 +198,13 @@
       (x<=0, +-inf, NaN) are handled inside __fpmp2_log.
 
     exp2(x), exp10(x) for fp32mp2:
-      Dedicated implementations following "single base-2
-      split" strategy (`__internal_accurate_expf_1p93ulp` paired with
-      MUFU.EX2 on the reduced argument).  Pseudocode:
+      Dedicated implementations following a "single base-2
+      split" strategy.  Pseudocode:
         t      = x * log2(base)        [exp2: t = x; exp10: t = x * log2 10]
         n      = round(t.hi)           [exact integer = binary exponent]
         r      = t - n                 [|r.hi| <= 0.5]
         2^r    via the inlined base-2 Taylor kernel
-               `__fp32mp2_exp2_kernel` with coefficients
+               `__internal_fpmp2_exp2_kernel` with coefficients
                a_k = (ln 2)^k / k!     [no r * ln 2 detour, no
                                         natural-log reduction inside]
         result = 2^n * 2^r             [via split-exponent helper]
