@@ -1065,7 +1065,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_atan2(
 #  endif
 } // __internal_fpmp2_atan2
 
-_CCCL_FPMP_MATH_DISPATCH_2A(atan2)
+_CCCL_FPMP_MATH_DISPATCH_2A_YX(atan2)
 
 /*
  * ====================================================================

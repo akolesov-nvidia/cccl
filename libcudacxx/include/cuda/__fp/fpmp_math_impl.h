@@ -482,6 +482,7 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
 #  undef _CCCL_FPMP_MATH_ONLY_FP32_FP64
 #  undef _CCCL_FPMP_MATH_DISPATCH_1A
 #  undef _CCCL_FPMP_MATH_DISPATCH_2A
+#  undef _CCCL_FPMP_MATH_DISPATCH_2A_YX
 #  undef _CCCL_FPMP_MATH_DISPATCH_3A
 #  undef _CCCL_FPMP_MATH_DISPATCH_4A
 #  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETINT
@@ -525,6 +526,27 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
       if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
       {                                                                                          \
         __internal_fpmp2_##name(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);             \
+      }                                                                                          \
+      else                                                                                       \
+      {                                                                                          \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name)); \
+      }                                                                                          \
+    }
+
+// Same as 2A, for a function whose first pair is the y argument (atan2).
+#  define _CCCL_FPMP_MATH_DISPATCH_2A_YX(name)                                                   \
+    template <typename _FpType>                                                                  \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
+      const _FpType __y_hi,                                                                      \
+      const _FpType __y_lo,                                                                      \
+      const _FpType __x_hi,                                                                      \
+      const _FpType __x_lo,                                                                      \
+      _FpType* __res_hi,                                                                         \
+      _FpType* __res_lo) noexcept                                                                \
+    {                                                                                            \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
+      {                                                                                          \
+        __internal_fpmp2_##name(__y_hi, __y_lo, __x_hi, __x_lo, __res_hi, __res_lo);             \
       }                                                                                          \
       else                                                                                       \
       {                                                                                          \
