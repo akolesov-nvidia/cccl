@@ -7,8 +7,9 @@
 //
 //  Verifies that the fp32mp2 / fp64mp2 accuracy variants are trivially copyable
 //  (required for cooperative_groups, __shfl, etc.) and that they correctly support
-//  construction from volatile, assignment to volatile, and assignment from
-//  volatile, preserving hi/lo through volatile round-trips.
+//  construction from volatile, assignment to volatile, assignment from volatile,
+//  assignment between two volatile objects and reading hi/lo off a volatile object,
+//  preserving hi/lo through volatile round-trips.
 //
 //===----------------------------------------------------------------------===//
 
@@ -31,7 +32,7 @@ static_assert(::cuda::std::is_trivially_copyable<cudax::fp64mp2_low>::value, "fp
 static_assert(::cuda::std::is_trivially_copyable<cudax::fp64mp2_high>::value,
               "fp64mp2_high must be trivially copyable");
 
-// Exercise the four volatile paths for one fpmp2 type. Value checks use a
+// Exercise the volatile paths for one fpmp2 type. Value checks use a
 // tolerance (the double-word truncates the source double); the bit-preserving
 // round-trip is checked exactly on hi/lo.
 template <typename mp_type>
@@ -76,6 +77,25 @@ TEST_HOST_DEVICE_FUNC void vol_ok()
     vol = src;
     mp_type dst(vol);
     assert((src.hi() == dst.hi()) && (src.lo() == dst.lo()));
+  }
+
+  // Assign one volatile object to another, e.g. a shared-memory to shared-memory copy.
+  {
+    const mp_type src(v1);
+    volatile mp_type src_vol;
+    volatile mp_type dst_vol;
+    src_vol = src;
+    dst_vol = src_vol;
+    mp_type dst(dst_vol);
+    assert((src.hi() == dst.hi()) && (src.lo() == dst.lo()));
+  }
+
+  // Read the limbs straight off a volatile object, without copying it out first.
+  {
+    const mp_type src(v2);
+    volatile mp_type vol;
+    vol = src;
+    assert((vol.hi() == src.hi()) && (vol.lo() == src.lo()));
   }
 }
 

@@ -7,8 +7,9 @@
 //
 //  Verifies that the packed (fp64emu*) and unpacked (fp64emu_unpacked*) types are
 //  trivially copyable (required for cooperative_groups, __shfl, etc.) and that
-//  they correctly support construction from volatile, assignment to volatile, and
-//  assignment from volatile, preserving values through volatile round-trips.
+//  they correctly support construction from volatile, assignment to volatile,
+//  assignment from volatile and assignment between two volatile objects, preserving
+//  values through volatile round-trips.
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,7 +29,7 @@ static_assert(cuda::std::is_trivially_copyable_v<cudax::fp64emu_unpacked>);
 static_assert(cuda::std::is_trivially_copyable_v<cudax::fp64emu_unpacked_low>);
 static_assert(cuda::std::is_trivially_copyable_v<cudax::fp64emu_unpacked_high>);
 
-// Exercise the four volatile paths for one emulated type; values are exact double
+// Exercise the volatile paths for one emulated type; values are exact double
 // bit patterns so the round-trips must be exactly preserved.
 template <class emu_type>
 TEST_HOST_DEVICE_FUNC void test()
@@ -71,6 +72,17 @@ TEST_HOST_DEVICE_FUNC void test()
     vol = src;
     emu_type dst(vol);
     assert((double) src == (double) dst);
+  }
+
+  // Assign one volatile object to another, e.g. a shared-memory to shared-memory copy.
+  {
+    const emu_type src(v2);
+    volatile emu_type src_vol;
+    volatile emu_type dst_vol;
+    src_vol = src;
+    dst_vol = src_vol;
+    emu_type dst(dst_vol);
+    assert((double) dst == v2);
   }
 }
 

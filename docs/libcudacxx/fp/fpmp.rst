@@ -360,6 +360,34 @@ Conversions
    // IEEE-compliant bit-level access
    uint64_t bits = bit_cast<uint64_t>(a);
 
+Volatile Objects
+~~~~~~~~~~~~~~~~
+
+An ``fpmp2`` object may be declared ``volatile``, which covers the legacy CUDA pattern
+of holding shared-memory scalars in volatile variables. Volatile support is limited to
+storage: loads, stores, copies between two volatile objects and reading ``hi()`` /
+``lo()``. The round-trip is bit-preserving, and the types stay trivially copyable, as
+required by ``cooperative_groups`` and ``__shfl``.
+
+A volatile object cannot be an operand. Arithmetic, comparison and the math functions
+take ``const fpmp2&``, and a volatile lvalue does not bind to it, so compute on a
+non-volatile copy and store the result back. This mirrors what the compiler does for a
+built-in ``volatile double``, where the load is volatile but the arithmetic is not.
+
+.. code:: c++
+
+   __global__ void volatile_kernel(const fp64mp2* in, fp64mp2* out) {
+       __shared__ volatile fp64mp2 tile[64];
+       tile[threadIdx.x] = in[threadIdx.x];    // store to volatile
+       __syncthreads();
+
+       fp64mp2 acc = tile[threadIdx.x];        // load into a non-volatile local
+       acc = acc * acc + fp64mp2(1.0);         // compute there, not on the volatile
+       tile[threadIdx.x] = acc;                // store the result back
+
+       out[threadIdx.x] = fp64mp2(tile[threadIdx.x]);
+   }
+
 Atomic Operations
 ~~~~~~~~~~~~~~~~~
 

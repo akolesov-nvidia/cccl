@@ -195,6 +195,16 @@ Comparisons
 All six relational operators are supported for both packed and unpacked types
 and follow IEEE-754 comparison semantics.
 
+Volatile objects
+~~~~~~~~~~~~~~~~
+
+Both the packed and unpacked types may be declared ``volatile``, for the legacy CUDA
+pattern of holding shared-memory scalars in volatile variables. As for ``fpmp2``,
+support is limited to storage: loads, stores and copies between two volatile objects,
+with a bit-preserving round-trip and trivial copyability retained. Arithmetic,
+comparison and ``bit_cast`` take ``const fpemu&`` and do not accept a volatile lvalue,
+so compute on a non-volatile copy and store the result back.
+
 Usage Examples
 --------------
 

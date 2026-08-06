@@ -289,6 +289,20 @@ public:
   }
 
   /*
+  // Accessors for volatile objects, so that reading a limb does not require copying
+  // the whole value out first. Not constexpr: a volatile read is never a constant
+  // expression.
+  */
+  [[nodiscard]] _CCCL_API _FpType hi() const volatile noexcept
+  {
+    return __mp2_hi_;
+  }
+  [[nodiscard]] _CCCL_API _FpType lo() const volatile noexcept
+  {
+    return __mp2_lo_;
+  }
+
+  /*
   // Basic constructors
   */
   // Default constructor
@@ -307,6 +321,19 @@ public:
   // Note: NVCC implicitly makes defaulted special members __host__ __device__
   */
   _CCCL_HIDE_FROM_ABI fpmp2(const fpmp2& __other) = default;
+
+  /*
+  // Volatile support: the constructor and assignment operators below, plus the
+  // volatile hi() / lo() accessors above, cover storage only, i.e. load, store and
+  // (hi, lo)-preserving round-trip, which is what the legacy pattern of keeping
+  // shared-memory scalars in volatile variables needs.
+  //
+  // A volatile object cannot be an operand of arithmetic,
+  // comparison or the math API: those take const fpmp2&, and a volatile lvalue never
+  // binds to it, not even through the converting constructor below, because
+  // reference-related types are required to bind directly. Copy into a non-volatile
+  // local, compute there, store the result back.
+  */
 
   /*
   // Copy constructor from volatile fpmp2
@@ -347,6 +374,19 @@ public:
     __mp2_hi_ = __other.__mp2_hi_;
     __mp2_lo_ = __other.__mp2_lo_;
     return *this;
+  }
+
+  /*
+  // Assignment operator from volatile to volatile fpmp2, e.g. a shared-memory to
+  // shared-memory copy
+  // Template so it is NOT a copy assignment operator per the C++ standard
+  // Returns void to avoid C++20 -Wvolatile (deprecated volatile return)
+  */
+  template <typename _Dummy = void>
+  _CCCL_API void operator=(const volatile fpmp2& __other) volatile noexcept
+  {
+    __mp2_hi_ = __other.__mp2_hi_;
+    __mp2_lo_ = __other.__mp2_lo_;
   }
 
   /*
