@@ -136,9 +136,8 @@ namespace cuda::experimental
  * Error function erf(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_erf(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -330,7 +329,7 @@ __fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_erf
+} // __internal_fpmp2_erf
 
 /*
  * --------------------------------------------------------------------
@@ -341,9 +340,8 @@ __fpmp2_erf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
  * double round trip is spelled out rather than left to _CCCL_FPMP_CALL_FP64MP2_MATH so
  * that it also applies when the fp128 math fallback is on.
  */
-template <>
-_CCCL_API inline void
-__fpmp2_erf<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_erf(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
 #  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1) && _CCCL_FPMP_FP128_QUAD_ERF
   _CCCL_FPMP_CALL_FP64MP2_MATH(erf, _CCCL_FPMP_ERFQ, __x_hi, __x_lo, __res_hi, __res_lo);
@@ -351,6 +349,8 @@ __fpmp2_erf<double>(const double __x_hi, const double __x_lo, double* __res_hi, 
   __fpmp2_from_double(::erf(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
 #  endif
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(erf)
 
 /*
  * ====================================================================
@@ -381,9 +381,8 @@ __fpmp2_erf<double>(const double __x_hi, const double __x_lo, double* __res_hi, 
  * All arithmetic is in fp32mp2 (no double-precision operations).
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_erfc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_erfc(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   /*
    * erfc(x) = erfcx(|x|) * exp(-x^2); erfcx = (1+2*x)*exp(x^2)*erfc(x)
@@ -524,16 +523,15 @@ __fpmp2_erfc(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 
   *__res_hi = __erfc_val.hi();
   *__res_lo = __erfc_val.lo();
-} // __fpmp2_erfc
+} // __internal_fpmp2_erfc
 
 /*
  * --------------------------------------------------------------------
  * Complementary error function erfc(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_erfc<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_erfc(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
 #  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1) && _CCCL_FPMP_FP128_QUAD_ERF
   _CCCL_FPMP_CALL_FP64MP2_MATH(erfc, _CCCL_FPMP_ERFCQ, __x_hi, __x_lo, __res_hi, __res_lo);
@@ -541,6 +539,8 @@ __fpmp2_erfc<double>(const double __x_hi, const double __x_lo, double* __res_hi,
   __fpmp2_from_double(::erfc(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
 #  endif
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(erfc)
 
 /*
  * ====================================================================
@@ -553,11 +553,10 @@ __fpmp2_erfc<double>(const double __x_hi, const double __x_lo, double* __res_hi,
  * Boys function boys_f0(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_INTERNAL_CUSTOM_DECL void
-__fpmp2_boys_f0(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_boys_f0(const float __a_hi, const float __a_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using ffloat = fpmp2<_FpType, _CCCL_FPMP_METHOD>;
+  using ffloat = fpmp2<float, _CCCL_FPMP_METHOD>;
 
   ffloat __a(__a_hi, __a_lo);
   ffloat __r;
@@ -695,16 +694,15 @@ __fpmp2_boys_f0(const _FpType __a_hi, const _FpType __a_lo, _FpType* __res_hi, _
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_boys_f0
+} // __internal_fpmp2_boys_f0
 
 /*
  * --------------------------------------------------------------------
  * Boys function boys_f0(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_boys_f0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_boys_f0(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __x = __fpmp2_to_double(__x_hi, __x_lo);
   double __r;
@@ -718,6 +716,8 @@ __fpmp2_boys_f0<double>(const double __x_hi, const double __x_lo, double* __res_
   }
   __fpmp2_from_double(__r, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(boys_f0)
 
 /*
  * ====================================================================
@@ -739,13 +739,12 @@ __fpmp2_boys_f0<double>(const double __x_hi, const double __x_lo, double* __res_
  * regions are branched off so the common path skips sqrt and tail
  * polynomials entirely.  All regions produce full fp32mp2 precision.
  *
- * fp64mp2 specialization uses CUDA's erfcinv on device and falls
- * back to this polynomial on host (no standard erfcinv/normcdfinv).
+ * The fp64mp2 body uses CUDA's erfcinv on device and falls back to
+ * this polynomial on host (no standard erfcinv/normcdfinv).
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_normcdfinv(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -938,16 +937,15 @@ __fpmp2_normcdfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_normcdfinv
+} // __internal_fpmp2_normcdfinv
 
 /*
  * --------------------------------------------------------------------
  * Inverse normal CDF normcdfinv(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_normcdfinv<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_normcdfinv(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   double __p = __fpmp2_to_double(__x_hi, __x_lo);
   NV_IF_ELSE_TARGET(
@@ -961,11 +959,13 @@ __fpmp2_normcdfinv<double>(const double __x_hi, const double __x_lo, double* __r
       // Not implemented yet: double precision normcdfinv fallback to float precision
       float __f_hi;
       float __f_lo;
-      __fpmp2_normcdfinv(static_cast<float>(__p), 0.0f, &__f_hi, &__f_lo);
+      __internal_fpmp2_normcdfinv(static_cast<float>(__p), 0.0f, &__f_hi, &__f_lo);
       *__res_hi = static_cast<double>(__f_hi) + static_cast<double>(__f_lo);
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(normcdfinv)
 
 /*
  * ====================================================================
@@ -1064,19 +1064,20 @@ _CCCL_FPMP_CORE_API void __fpmp2_icdf(uint64_t __x, float* __res_hi, float* __re
  * Log gamma lgamma(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_MATH_PLACEHOLDER_1A(lgamma)
+_CCCL_FPMP_MATH_FALLBACK_1A(lgamma)
 
 /*
  * --------------------------------------------------------------------
  * Log gamma lgamma(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_lgamma<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_lgamma(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   __fpmp2_from_double(::lgamma(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(lgamma)
 
 /*
  * ====================================================================
@@ -1089,19 +1090,20 @@ __fpmp2_lgamma<double>(const double __x_hi, const double __x_lo, double* __res_h
  * Gamma function tgamma(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_MATH_PLACEHOLDER_1A(tgamma)
+_CCCL_FPMP_MATH_FALLBACK_1A(tgamma)
 
 /*
  * --------------------------------------------------------------------
  * Gamma function tgamma(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_tgamma<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_tgamma(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   __fpmp2_from_double(::tgamma(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(tgamma)
 
 /*
  * ====================================================================
@@ -1116,11 +1118,10 @@ __fpmp2_tgamma<double>(const double __x_hi, const double __x_lo, double* __res_h
  * Device only: the CUDA intrinsic carries it, the host build asserts and
  * returns 0.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_j0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_j0(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::j0(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1137,9 +1138,8 @@ __fpmp2_j0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
  * Bessel j0(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_j0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_j0(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::j0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1150,6 +1150,8 @@ __fpmp2_j0<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(j0)
 
 /*
  * ====================================================================
@@ -1162,11 +1164,10 @@ __fpmp2_j0<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
  * Bessel j1(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_j1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_j1(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::j1(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1183,9 +1184,8 @@ __fpmp2_j1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
  * Bessel j1(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_j1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_j1(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::j1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1196,6 +1196,8 @@ __fpmp2_j1<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(j1)
 
 /*
  * ====================================================================
@@ -1208,11 +1210,10 @@ __fpmp2_j1<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
  * Bessel y0(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_y0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_y0(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::y0(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1229,9 +1230,8 @@ __fpmp2_y0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
  * Bessel y0(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_y0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_y0(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::y0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1242,6 +1242,8 @@ __fpmp2_y0<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(y0)
 
 /*
  * ====================================================================
@@ -1254,11 +1256,10 @@ __fpmp2_y0<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
  * Bessel y1(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_y1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_y1(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::y1(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1275,9 +1276,8 @@ __fpmp2_y1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTyp
  * Bessel y1(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_y1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_y1(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::y1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1288,6 +1288,8 @@ __fpmp2_y1<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(y1)
 
 /*
  * ====================================================================
@@ -1302,11 +1304,10 @@ __fpmp2_y1<double>(const double __x_hi, const double __x_lo, double* __res_hi, d
  * Device only: the CUDA intrinsic carries it, the host build asserts and
  * returns 0.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_cyl_bessel_i0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_cyl_bessel_i0(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::cyl_bessel_i0(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1323,9 +1324,8 @@ __fpmp2_cyl_bessel_i0(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res
  * Modified Bessel cyl_bessel_i0(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_cyl_bessel_i0<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_cyl_bessel_i0(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::cyl_bessel_i0(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1336,6 +1336,8 @@ __fpmp2_cyl_bessel_i0<double>(const double __x_hi, const double __x_lo, double* 
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(cyl_bessel_i0)
 
 /*
  * ====================================================================
@@ -1348,11 +1350,10 @@ __fpmp2_cyl_bessel_i0<double>(const double __x_hi, const double __x_lo, double* 
  * Modified Bessel cyl_bessel_i1(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_cyl_bessel_i1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_cyl_bessel_i1(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::cyl_bessel_i1(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1369,9 +1370,8 @@ __fpmp2_cyl_bessel_i1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res
  * Modified Bessel cyl_bessel_i1(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_cyl_bessel_i1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_cyl_bessel_i1(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::cyl_bessel_i1(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1382,6 +1382,8 @@ __fpmp2_cyl_bessel_i1<double>(const double __x_hi, const double __x_lo, double* 
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(cyl_bessel_i1)
 
 /*
  * ====================================================================
@@ -1396,11 +1398,10 @@ __fpmp2_cyl_bessel_i1<double>(const double __x_hi, const double __x_lo, double* 
  * Device only: the CUDA intrinsic carries it, the host build asserts and
  * returns 0.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_jn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_jn(const int __n, const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::jn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __n;
@@ -1418,9 +1419,8 @@ __fpmp2_jn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* _
  * Bessel jn(n, x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_jn<double>(int __n, const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_jn(int __n, const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::jn(__n, __fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1433,6 +1433,8 @@ __fpmp2_jn<double>(int __n, const double __x_hi, const double __x_lo, double* __
     }))
 }
 
+_CCCL_FPMP_MATH_DISPATCH_INT_FP(jn)
+
 /*
  * ====================================================================
  * yn(n, x) - Bessel function of the second kind, order n
@@ -1444,11 +1446,10 @@ __fpmp2_jn<double>(int __n, const double __x_hi, const double __x_lo, double* __
  * Bessel yn(n, x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_yn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_yn(const int __n, const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::yn(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __n;
@@ -1466,9 +1467,8 @@ __fpmp2_yn(const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* _
  * Bessel yn(n, x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_yn<double>(int __n, const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_yn(int __n, const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::yn(__n, __fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1481,6 +1481,8 @@ __fpmp2_yn<double>(int __n, const double __x_hi, const double __x_lo, double* __
     }))
 }
 
+_CCCL_FPMP_MATH_DISPATCH_INT_FP(yn)
+
 /*
  * ====================================================================
  * normcdf(x) - normal cumulative distribution function
@@ -1492,11 +1494,10 @@ __fpmp2_yn<double>(int __n, const double __x_hi, const double __x_lo, double* __
  * Normal CDF normcdf(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_normcdf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_normcdf(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __xd = static_cast<double>(mp2_t(__x_hi, __x_lo));
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::normcdf(__xd);), (__r = 0.5 * ::erfc(-__xd * 0.70710678118654752440);))
@@ -1510,9 +1511,8 @@ __fpmp2_normcdf(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _
  * Normal CDF normcdf(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_normcdf<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_normcdf(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
 #  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1) && _CCCL_FPMP_FP128_QUAD_ERF
   // N(x) = erfc(-x/sqrt(2))/2 carried entirely in binary128, so the scaling and the
@@ -1530,6 +1530,8 @@ __fpmp2_normcdf<double>(const double __x_hi, const double __x_lo, double* __res_
 #  endif
 }
 
+_CCCL_FPMP_MATH_DISPATCH_1A(normcdf)
+
 // (rcbrt: dedicated fp32mp2 implementation defined above; see __fpmp2_rcbrt.)
 
 /*
@@ -1545,11 +1547,10 @@ __fpmp2_normcdf<double>(const double __x_hi, const double __x_lo, double* __res_
  * Device only: the CUDA intrinsic carries it, the host build asserts and
  * returns 0.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_erfcinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_erfcinv(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::erfcinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1566,9 +1567,8 @@ __fpmp2_erfcinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _
  * Inverse complementary error function erfcinv(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_erfcinv<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_erfcinv(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::erfcinv(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1579,6 +1579,8 @@ __fpmp2_erfcinv<double>(const double __x_hi, const double __x_lo, double* __res_
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(erfcinv)
 
 /*
  * ====================================================================
@@ -1591,11 +1593,10 @@ __fpmp2_erfcinv<double>(const double __x_hi, const double __x_lo, double* __res_
  * Inverse error function erfinv(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_erfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_erfinv(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::erfinv(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1612,9 +1613,8 @@ __fpmp2_erfinv(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _F
  * Inverse error function erfinv(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_erfinv<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_erfinv(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::erfinv(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1625,6 +1625,8 @@ __fpmp2_erfinv<double>(const double __x_hi, const double __x_lo, double* __res_h
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(erfinv)
 
 /*
  * ====================================================================
@@ -1637,11 +1639,10 @@ __fpmp2_erfinv<double>(const double __x_hi, const double __x_lo, double* __res_h
  * Scaled complementary error function erfcx(x) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_erfcx(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_erfcx(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  using mp2_t = fpmp2<_FpType>;
+  using mp2_t = fpmp2<float>;
   double __r  = 0.0;
   NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__r = ::erfcx(static_cast<double>(mp2_t(__x_hi, __x_lo)));), ({
                       (void) __x_hi;
@@ -1658,9 +1659,8 @@ __fpmp2_erfcx(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
  * Scaled complementary error function erfcx(x) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_erfcx<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_erfcx(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE, (__fpmp2_from_double(::erfcx(__fpmp2_to_double(__x_hi, __x_lo)), __res_hi, __res_lo);), ({
@@ -1671,6 +1671,8 @@ __fpmp2_erfcx<double>(const double __x_hi, const double __x_lo, double* __res_hi
       *__res_lo = 0.0;
     }))
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(erfcx)
 
 #endif // _CCCL_FPMP_USE_LIB
 } // namespace cuda::experimental

@@ -232,9 +232,8 @@ _CCCL_FPMP_CORE_API fp32mp2_low __fp32mp2_ldexp2_internal(fp32mp2_low __p, int _
  * Range reduction ensures that the Taylor series converges quickly since |r| < ln(2)/2 ~= 0.35.
  * With 14 terms and float-float arithmetic, this achieves approximately 10^-10 to 10^-11 relative accuracy.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_exp(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -345,19 +344,20 @@ __fpmp2_exp(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_exp
+} // __internal_fpmp2_exp
 
 /*
  * --------------------------------------------------------------------
  * Exponential function (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_exp<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_exp(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(exp, _CCCL_FPMP_EXPQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(exp)
 
 /*
  * ====================================================================
@@ -378,9 +378,8 @@ __fpmp2_exp<double>(const double __x_hi, const double __x_lo, double* __res_hi, 
  * Does not handle NaN, +-0, or negative inputs.
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_log(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   using ffloat = fp32mp2_low;
 
@@ -477,19 +476,20 @@ __fpmp2_log(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpTy
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_log
+} // __internal_fpmp2_log
 
 /*
  * --------------------------------------------------------------------
  * Natural logarithm log(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_log<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_log(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(log, _CCCL_FPMP_LOGQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(log)
 
 /*
  * ====================================================================
@@ -538,13 +538,9 @@ __fpmp2_log<double>(const double __x_hi, const double __x_lo, double* __res_hi, 
  *   - -inf      -> NaN  (1 + (-inf) = -inf, log of negative).
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_log1p(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_log1p is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation: any NaN component -> NaN result. */
@@ -651,19 +647,20 @@ __fpmp2_log1p(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
   /* Forward to dedicated fp32mp2 log. */
   __fpmp2_log<float>(__sum.hi(), __sum.lo(), __res_hi, __res_lo);
-} // __fpmp2_log1p
+} // __internal_fpmp2_log1p
 
 /*
  * --------------------------------------------------------------------
  * Natural logarithm of (1 + x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_log1p<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_log1p(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(log1p, _CCCL_FPMP_LOG1PQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(log1p)
 
 /*
  * ====================================================================
@@ -687,13 +684,9 @@ __fpmp2_log1p<double>(const double __x_hi, const double __x_lo, double* __res_hi
  * __fpmp2_log<float>; this wrapper only scales the result.
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_log2(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_log2 is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* 1/ln(2) ~= 1.4426950408889634073599... */
@@ -718,19 +711,20 @@ __fpmp2_log2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   ffloat __result = renormalize(ffloat(__l_hi, __l_lo) * __inv_ln2);
   *__res_hi       = __result.hi();
   *__res_lo       = __result.lo();
-} // __fpmp2_log2
+} // __internal_fpmp2_log2
 
 /*
  * --------------------------------------------------------------------
  * Base-2 logarithm log2(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_log2<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_log2(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(log2, _CCCL_FPMP_LOG2Q, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(log2)
 
 /*
  * ====================================================================
@@ -748,13 +742,9 @@ __fpmp2_log2<double>(const double __x_hi, const double __x_lo, double* __res_hi,
  * trade-off as log2; see __fpmp2_log2 header comment.
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_log10(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_log10 is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* 1/ln(10) ~= 0.4342944819032518276511289... */
@@ -774,19 +764,20 @@ __fpmp2_log10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   ffloat __result = renormalize(ffloat(__l_hi, __l_lo) * __inv_ln10);
   *__res_hi       = __result.hi();
   *__res_lo       = __result.lo();
-} // __fpmp2_log10
+} // __internal_fpmp2_log10
 
 /*
  * --------------------------------------------------------------------
  * Base-10 logarithm log10(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_log10<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_log10(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(log10, _CCCL_FPMP_LOG10Q, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(log10)
 
 /*
  * ====================================================================
@@ -832,13 +823,9 @@ __fpmp2_log10<double>(const double __x_hi, const double __x_lo, double* __res_hi
  *   x <= -150 the result rounds to 0 in fp32.
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_exp2(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_exp2 is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation: short-circuit so the lo limb propagates too. */
@@ -881,19 +868,20 @@ __fpmp2_exp2(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_exp2
+} // __internal_fpmp2_exp2
 
 /*
  * --------------------------------------------------------------------
  * Base-2 exponential exp2(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_exp2<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_exp2(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(exp2, _CCCL_FPMP_EXP2Q, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(exp2)
 
 /*
  * ====================================================================
@@ -940,13 +928,9 @@ __fpmp2_exp2<double>(const double __x_hi, const double __x_lo, double* __res_hi,
  *   round to -46.
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_exp10(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_exp10 is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
   using afloat = fp32mp2_high;
 
@@ -1030,16 +1014,15 @@ __fpmp2_exp10(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_exp10
+} // __internal_fpmp2_exp10
 
 /*
  * --------------------------------------------------------------------
  * Base-10 exponential exp10(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_exp10<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_exp10(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
 #  if (_CCCL_FPMP_FP128_MATH_FALLBACK == 1)
   /* fp128 path: _CCCL_FPMP_EXP10Q handles every backend (libquadmath
@@ -1054,6 +1037,8 @@ __fpmp2_exp10<double>(const double __x_hi, const double __x_lo, double* __res_hi
                     (__fpmp2_from_double(::pow(10.0, __xd), __res_hi, __res_lo);))
 #  endif
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(exp10)
 
 /*
  * ====================================================================
@@ -1096,13 +1081,9 @@ __fpmp2_exp10<double>(const double __x_hi, const double __x_lo, double* __res_hi
  *   - x = 0     -> 0 (Taylor branch returns it exactly).
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_expm1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_expm1(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_expm1 is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation: any NaN component -> NaN result. */
@@ -1187,19 +1168,20 @@ __fpmp2_expm1(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   ffloat __result = sub<fpmp2_accuracy::high>(ffloat(__e_hi, __e_lo), ffloat(1.0f));
   *__res_hi       = __result.hi();
   *__res_lo       = __result.lo();
-} // __fpmp2_expm1
+} // __internal_fpmp2_expm1
 
 /*
  * --------------------------------------------------------------------
  * exp(x) - 1, i.e. expm1(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_expm1<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_expm1(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(expm1, _CCCL_FPMP_EXPM1Q, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(expm1)
 
 #endif // _CCCL_FPMP_USE_LIB
 } // namespace cuda::experimental

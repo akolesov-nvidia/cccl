@@ -70,13 +70,9 @@ namespace cuda::experimental
  *      using fp32mp2_low and the result is negated when x < 0,
  *      mirroring the erf code path.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_tanh(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_tanh is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* optimal crossover between polynomial and exp paths. */
@@ -161,19 +157,20 @@ __fpmp2_tanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   ffloat __result = renormalize(__x + __x * (__a2 * __q));
   *__res_hi       = __result.hi();
   *__res_lo       = __result.lo();
-} // __fpmp2_tanh
+} // __internal_fpmp2_tanh
 
 /*
  * --------------------------------------------------------------------
  * Hyperbolic tangent tanh(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_tanh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_tanh(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(tanh, _CCCL_FPMP_TANHQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(tanh)
 
 /*
  * ====================================================================
@@ -195,13 +192,9 @@ __fpmp2_tanh<double>(const double __x_hi, const double __x_lo, double* __res_hi,
  * sinh(0.6554)/cosh(0.6554) = tanh(0.6554) ~= 0.575, so the exp branch
  * loses < 1 bit of precision to cancellation -- well within fp32mp2 ulp.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_sinh(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_sinh is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   constexpr float __branch_point = 0.6554117f;
@@ -281,19 +274,20 @@ __fpmp2_sinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
   ffloat __result = renormalize(__x + __x * (__a2 * __q));
   *__res_hi       = __result.hi();
   *__res_lo       = __result.lo();
-} // __fpmp2_sinh
+} // __internal_fpmp2_sinh
 
 /*
  * --------------------------------------------------------------------
  * Hyperbolic sine sinh(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_sinh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_sinh(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(sinh, _CCCL_FPMP_SINHQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(sinh)
 
 /*
  * ====================================================================
@@ -316,13 +310,9 @@ __fpmp2_sinh<double>(const double __x_hi, const double __x_lo, double* __res_hi,
  * e and 1/e carry the x^2/2 correction exactly, so no separate
  * polynomial branch is needed for small |x|.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_cosh(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_cosh is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation. */
@@ -350,19 +340,20 @@ __fpmp2_cosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpT
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_cosh
+} // __internal_fpmp2_cosh
 
 /*
  * --------------------------------------------------------------------
  * Hyperbolic cosine cosh(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_cosh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_cosh(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(cosh, _CCCL_FPMP_COSHQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(cosh)
 
 /*
  * ====================================================================
@@ -418,13 +409,9 @@ __fpmp2_cosh<double>(const double __x_hi, const double __x_lo, double* __res_hi,
  * lo-limb ulp accumulation that the `(x-1)(x+1)` / `x^2+1` chains
  * would suffer at very large |x|.
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_asinh(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_asinh is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation. */
@@ -518,19 +505,20 @@ __fpmp2_asinh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
   }
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_asinh
+} // __internal_fpmp2_asinh
 
 /*
  * --------------------------------------------------------------------
  * Inverse hyperbolic sine asinh(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_asinh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_asinh(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(asinh, _CCCL_FPMP_ASINHQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(asinh)
 
 /*
  * ====================================================================
@@ -543,13 +531,9 @@ __fpmp2_asinh<double>(const double __x_hi, const double __x_lo, double* __res_hi
  * Inverse hyperbolic cosine acosh(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_acosh(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_acosh is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation. */
@@ -645,19 +629,20 @@ __fpmp2_acosh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_acosh
+} // __internal_fpmp2_acosh
 
 /*
  * --------------------------------------------------------------------
  * Inverse hyperbolic cosine acosh(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_acosh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_acosh(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(acosh, _CCCL_FPMP_ACOSHQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(acosh)
 
 /*
  * ====================================================================
@@ -670,13 +655,9 @@ __fpmp2_acosh<double>(const double __x_hi, const double __x_lo, double* __res_hi
  * Inverse hyperbolic tangent atanh(x) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
 _CCCL_FPMP_CORE_API void
-__fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept
+__internal_fpmp2_atanh(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
-  static_assert(__fpmp2_is_fp32_v<_FpType>,
-                "dedicated __fpmp2_atanh is fp32mp2 only; fp64mp2 has its own specialization");
-
   using ffloat = fp32mp2_low;
 
   /* NaN propagation. */
@@ -795,19 +776,20 @@ __fpmp2_atanh(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _Fp
 
   *__res_hi = __result.hi();
   *__res_lo = __result.lo();
-} // __fpmp2_atanh
+} // __internal_fpmp2_atanh
 
 /*
  * --------------------------------------------------------------------
  * Inverse hyperbolic tangent atanh(x) (fp64mp2) - binary128 wrapper
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void
-__fpmp2_atanh<double>(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_atanh(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
   _CCCL_FPMP_CALL_FP64MP2_MATH(atanh, _CCCL_FPMP_ATANHQ, __x_hi, __x_lo, __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A(atanh)
 
 #endif // _CCCL_FPMP_USE_LIB
 } // namespace cuda::experimental

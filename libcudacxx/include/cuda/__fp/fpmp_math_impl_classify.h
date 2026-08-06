@@ -217,15 +217,14 @@ _CCCL_FPMP_CORE_API void __fpmp2_min(
  * Positive difference fdim(x, y) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_MATH_PLACEHOLDER_2A(fdim)
+_CCCL_FPMP_MATH_FALLBACK_2A(fdim)
 
 /*
  * --------------------------------------------------------------------
  * Positive difference fdim(x, y) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void __fpmp2_fdim<double>(
+_CCCL_FPMP_CORE_API void __internal_fpmp2_fdim(
   const double __x_hi,
   const double __x_lo,
   const double __y_hi,
@@ -235,6 +234,8 @@ _CCCL_API inline void __fpmp2_fdim<double>(
 {
   __fpmp2_from_double(::fdim(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_2A(fdim)
 
 /*
  * ====================================================================
@@ -247,8 +248,7 @@ _CCCL_API inline void __fpmp2_fdim<double>(
  * Finite test isfinite(x) (fp32mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_isfinite(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_isfinite(const float __x_hi, const float __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isfinite) (static_cast<double>(__x_hi));
@@ -259,20 +259,20 @@ _CCCL_FPMP_CORE_API int __fpmp2_isfinite(const _FpType __x_hi, const _FpType __x
  * Finite test isfinite(x) (fp64mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline int __fpmp2_isfinite<double>(const double __x_hi, const double __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_isfinite(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isfinite) (__x_hi);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A_RETINT(isfinite)
 
 /*
  * --------------------------------------------------------------------
  * Infinity test isinf(x) (fp32mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_isinf(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_isinf(const float __x_hi, const float __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isinf) (static_cast<double>(__x_hi));
@@ -283,20 +283,20 @@ _CCCL_FPMP_CORE_API int __fpmp2_isinf(const _FpType __x_hi, const _FpType __x_lo
  * Infinity test isinf(x) (fp64mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline int __fpmp2_isinf<double>(const double __x_hi, const double __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_isinf(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isinf) (__x_hi);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A_RETINT(isinf)
 
 /*
  * --------------------------------------------------------------------
  * NaN test isnan(x) (fp32mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_isnan(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_isnan(const float __x_hi, const float __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isnan) (static_cast<double>(__x_hi));
@@ -307,20 +307,20 @@ _CCCL_FPMP_CORE_API int __fpmp2_isnan(const _FpType __x_hi, const _FpType __x_lo
  * NaN test isnan(x) (fp64mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline int __fpmp2_isnan<double>(const double __x_hi, const double __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_isnan(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::isnan) (__x_hi);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A_RETINT(isnan)
 
 /*
  * --------------------------------------------------------------------
  * Sign-bit test signbit(x) (fp32mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <typename _FpType>
-_CCCL_FPMP_CORE_API int __fpmp2_signbit(const _FpType __x_hi, const _FpType __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_signbit(const float __x_hi, const float __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::signbit) (static_cast<double>(__x_hi));
@@ -331,12 +331,13 @@ _CCCL_FPMP_CORE_API int __fpmp2_signbit(const _FpType __x_hi, const _FpType __x_
  * Sign-bit test signbit(x) (fp64mp2) - hi-limb test
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline int __fpmp2_signbit<double>(const double __x_hi, const double __x_lo) noexcept
+_CCCL_FPMP_CORE_API int __internal_fpmp2_signbit(const double __x_hi, const double __x_lo) noexcept
 {
   (void) __x_lo;
   return (std::signbit) (__x_hi);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_1A_RETINT(signbit)
 
 #endif // _CCCL_FPMP_USE_LIB
 } // namespace cuda::experimental

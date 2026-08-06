@@ -240,8 +240,8 @@ _CCCL_FPMP_CORE_API void __fpmp2_copysign(
   *__res_lo         = __flip ? -__x_lo : __x_lo;
 }
 
-/* nextafter has no dedicated fp32mp2 kernel: the placeholder composes it over
- * double, and fp64mp2 takes the specialization that follows. */
+/* nextafter has no dedicated fp32mp2 kernel: the fallback macro composes it over
+ * double, and the fp64mp2 body follows. */
 /*
  * ====================================================================
  * nextafter(x, y) - next representable value toward y
@@ -253,15 +253,14 @@ _CCCL_FPMP_CORE_API void __fpmp2_copysign(
  * Next representable nextafter(x, y) (fp32mp2) - double fallback
  * --------------------------------------------------------------------
  */
-_CCCL_FPMP_MATH_PLACEHOLDER_2A(nextafter)
+_CCCL_FPMP_MATH_FALLBACK_2A(nextafter)
 
 /*
  * --------------------------------------------------------------------
  * Next representable nextafter(x, y) (fp64mp2) - double fallback
  * --------------------------------------------------------------------
  */
-template <>
-_CCCL_API inline void __fpmp2_nextafter<double>(
+_CCCL_FPMP_CORE_API void __internal_fpmp2_nextafter(
   const double __x_hi,
   const double __x_lo,
   const double __y_hi,
@@ -272,6 +271,8 @@ _CCCL_API inline void __fpmp2_nextafter<double>(
   __fpmp2_from_double(
     ::nextafter(__fpmp2_to_double(__x_hi, __x_lo), __fpmp2_to_double(__y_hi, __y_lo)), __res_hi, __res_lo);
 }
+
+_CCCL_FPMP_MATH_DISPATCH_2A(nextafter)
 
 /*
  * ====================================================================

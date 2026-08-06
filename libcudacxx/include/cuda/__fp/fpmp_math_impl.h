@@ -399,122 +399,289 @@ __fpmp_poly_eval(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _Type
 
 /*
  * ============================================================================
- * Transcendental Math Function Placeholders (fp32mp2)
+ * Math function fallback bodies (fp32mp2)
  * ============================================================================
- * Placeholder implementations that delegate to standard double-precision
- * system functions with proper hi/lo splitting.
+ * fp32mp2 implementations that delegate to the standard double-precision system
+ * function with proper hi/lo splitting. Each defines the __internal_fpmp2_<name>
+ * overload taking float; the fp64mp2 overload and the entry point sit next to
+ * the invocation (see the dispatch macros below).
  * ============================================================================
  */
 
-/* Defensive #undef for all placeholder macros: protect against the
- * (unlikely) case that something earlier in the translation unit
- * already defined them.  Matching #undef block follows the last
- * placeholder definition below to avoid leaking these macros into
- * downstream includes. */
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_2A
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_FP_INT
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_FP_LINT
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_INT_FP
+/* Defensive #undef for all fallback macros: protect against the (unlikely) case
+ * that something earlier in the translation unit already defined them. They stay
+ * defined for the per-family headers to invoke and are undefined again at the end
+ * of the include block in fpmp_math.h. */
+#  undef _CCCL_FPMP_MATH_FALLBACK_1A
+#  undef _CCCL_FPMP_MATH_FALLBACK_2A
+#  undef _CCCL_FPMP_MATH_FALLBACK_1A_RETLL
+#  undef _CCCL_FPMP_MATH_FALLBACK_1A_RETL
 
-// Helper macro: placeholder implementation that delegates to a standard double-precision
-// math function with proper hi/lo splitting via fpmp2 conversions.
 // Uses explicit fpmp2 construction/conversion to avoid NVCC name resolution issues.
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_1A(name)                                                   \
-    template <typename _FpType>                                                                  \
-    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
-      const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
-    {                                                                                            \
-      using mp2_t = fpmp2<_FpType>;                                                              \
-      double __r  = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                          \
-      mp2_t __result(__r);                                                                       \
-      *__res_hi = __result.hi();                                                                 \
-      *__res_lo = __result.lo();                                                                 \
+#  define _CCCL_FPMP_MATH_FALLBACK_1A(name)                                              \
+    _CCCL_FPMP_CORE_API void __internal_fpmp2_##name(                                    \
+      const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept \
+    {                                                                                    \
+      using mp2_t = fpmp2<float>;                                                        \
+      double __r  = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                  \
+      mp2_t __result(__r);                                                               \
+      *__res_hi = __result.hi();                                                         \
+      *__res_lo = __result.lo();                                                         \
     }
 
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_2A(name)                                                                      \
-    template <typename _FpType>                                                                                     \
-    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                                        \
-      const _FpType __x_hi,                                                                                         \
-      const _FpType __x_lo,                                                                                         \
-      const _FpType __y_hi,                                                                                         \
-      const _FpType __y_lo,                                                                                         \
-      _FpType* __res_hi,                                                                                            \
-      _FpType* __res_lo) noexcept                                                                                   \
+#  define _CCCL_FPMP_MATH_FALLBACK_2A(name)                                                                         \
+    _CCCL_FPMP_CORE_API void __internal_fpmp2_##name(                                                               \
+      const float __x_hi,                                                                                           \
+      const float __x_lo,                                                                                           \
+      const float __y_hi,                                                                                           \
+      const float __y_lo,                                                                                           \
+      float* __res_hi,                                                                                              \
+      float* __res_lo) noexcept                                                                                     \
     {                                                                                                               \
-      using mp2_t = fpmp2<_FpType>;                                                                                 \
+      using mp2_t = fpmp2<float>;                                                                                   \
       double __r  = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), static_cast<double>(mp2_t(__y_hi, __y_lo))); \
       mp2_t __result(__r);                                                                                          \
       *__res_hi = __result.hi();                                                                                    \
       *__res_lo = __result.lo();                                                                                    \
     }
 
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT(name)                                           \
-    template <typename _FpType>                                                                 \
-    _CCCL_FPMP_CORE_API int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
-    {                                                                                           \
-      using mp2_t = fpmp2<_FpType>;                                                             \
-      return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                                \
-    }
-
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL(name)                                                      \
-    template <typename _FpType>                                                                           \
-    _CCCL_FPMP_CORE_API long long int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
-    {                                                                                                     \
-      using mp2_t = fpmp2<_FpType>;                                                                       \
-      return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                                          \
-    }
-
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL(name)                                                  \
-    template <typename _FpType>                                                                      \
-    _CCCL_FPMP_CORE_API long int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
-    {                                                                                                \
-      using mp2_t = fpmp2<_FpType>;                                                                  \
-      return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                                     \
-    }
-
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_FP_INT(name)                                                        \
-    template <typename _FpType>                                                                           \
-    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                              \
-      const _FpType __x_hi, const _FpType __x_lo, int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept \
-    {                                                                                                     \
-      using mp2_t = fpmp2<_FpType>;                                                                       \
-      double __r  = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n);                              \
-      mp2_t __result(__r);                                                                                \
-      *__res_hi = __result.hi();                                                                          \
-      *__res_lo = __result.lo();                                                                          \
-    }
-
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_FP_LINT(name)                                                            \
-    template <typename _FpType>                                                                                \
-    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                                   \
-      const _FpType __x_hi, const _FpType __x_lo, long int __n, _FpType* __res_hi, _FpType* __res_lo) noexcept \
+#  define _CCCL_FPMP_MATH_FALLBACK_1A_RETLL(name)                                                              \
+    _CCCL_FPMP_CORE_API long long int __internal_fpmp2_##name(const float __x_hi, const float __x_lo) noexcept \
     {                                                                                                          \
-      using mp2_t = fpmp2<_FpType>;                                                                            \
-      double __r  = ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)), __n);                                   \
-      mp2_t __result(__r);                                                                                     \
-      *__res_hi = __result.hi();                                                                               \
-      *__res_lo = __result.lo();                                                                               \
+      using mp2_t = fpmp2<float>;                                                                              \
+      return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                                               \
     }
 
-#  define _CCCL_FPMP_MATH_PLACEHOLDER_INT_FP(name)                                                        \
-    template <typename _FpType>                                                                           \
-    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                              \
-      int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
+#  define _CCCL_FPMP_MATH_FALLBACK_1A_RETL(name)                                                          \
+    _CCCL_FPMP_CORE_API long int __internal_fpmp2_##name(const float __x_hi, const float __x_lo) noexcept \
     {                                                                                                     \
-      using mp2_t = fpmp2<_FpType>;                                                                       \
-      double __r  = ::name(__n, static_cast<double>(mp2_t(__x_hi, __x_lo)));                              \
-      mp2_t __result(__r);                                                                                \
-      *__res_hi = __result.hi();                                                                          \
-      *__res_lo = __result.lo();                                                                          \
+      using mp2_t = fpmp2<float>;                                                                         \
+      return ::name(static_cast<double>(mp2_t(__x_hi, __x_lo)));                                          \
     }
 
 /*
  * ============================================================================
- * Double precision (fp64mp2) template specializations
+ * Per-type dispatch for the math implementations
+ * ============================================================================
+ * A math function that needs a dedicated implementation per element type is
+ * written as two non-template overloads named __internal_fpmp2_<name>, one
+ * taking float (fp32mp2) and one taking double (fp64mp2), followed by the entry
+ * point __fpmp2_<name> generated by one of the macros below. The two
+ * implementations therefore sit side by side as peers, and every entry point
+ * rejects an unsupported element type with the same message.
+ *
+ * Functions that are exact on the limb pair (floor, ldexp, copysign, ...) serve
+ * both element types from a single template and do not use these macros.
+ *
+ * The suffix names the signature layout: 1A / 2A / 3A / 4A count the (hi, lo)
+ * input pairs, RET* gives a return type other than a pair, INT_FP puts an int
+ * argument first, 2OUT returns two pairs and QUO appends the remquo quotient.
+ * ============================================================================
+ */
+
+#  undef _CCCL_FPMP_MATH_ONLY_FP32_FP64
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A
+#  undef _CCCL_FPMP_MATH_DISPATCH_2A
+#  undef _CCCL_FPMP_MATH_DISPATCH_3A
+#  undef _CCCL_FPMP_MATH_DISPATCH_4A
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETINT
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETLL
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETL
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_2OUT
+#  undef _CCCL_FPMP_MATH_DISPATCH_INT_FP
+#  undef _CCCL_FPMP_MATH_DISPATCH_2A_QUO
+
+#  define _CCCL_FPMP_MATH_ONLY_FP32_FP64(name) \
+    "__fpmp2_" #name " is implemented for float (fp32mp2) and double (fp64mp2) only"
+
+// The dispatch is written as if constexpr rather than a plain call guarded by a
+// static_assert so that an unsupported element type produces this one message
+// instead of trailing it with an overload-resolution failure.
+#  define _CCCL_FPMP_MATH_DISPATCH_1A(name)                                                      \
+    template <typename _FpType>                                                                  \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
+      const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
+    {                                                                                            \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
+      {                                                                                          \
+        __internal_fpmp2_##name(__x_hi, __x_lo, __res_hi, __res_lo);                             \
+      }                                                                                          \
+      else                                                                                       \
+      {                                                                                          \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name)); \
+      }                                                                                          \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_2A(name)                                                      \
+    template <typename _FpType>                                                                  \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
+      const _FpType __x_hi,                                                                      \
+      const _FpType __x_lo,                                                                      \
+      const _FpType __y_hi,                                                                      \
+      const _FpType __y_lo,                                                                      \
+      _FpType* __res_hi,                                                                         \
+      _FpType* __res_lo) noexcept                                                                \
+    {                                                                                            \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
+      {                                                                                          \
+        __internal_fpmp2_##name(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);             \
+      }                                                                                          \
+      else                                                                                       \
+      {                                                                                          \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name)); \
+      }                                                                                          \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_3A(name)                                                          \
+    template <typename _FpType>                                                                      \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                         \
+      const _FpType __a_hi,                                                                          \
+      const _FpType __a_lo,                                                                          \
+      const _FpType __b_hi,                                                                          \
+      const _FpType __b_lo,                                                                          \
+      const _FpType __c_hi,                                                                          \
+      const _FpType __c_lo,                                                                          \
+      _FpType* __res_hi,                                                                             \
+      _FpType* __res_lo) noexcept                                                                    \
+    {                                                                                                \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                              \
+      {                                                                                              \
+        __internal_fpmp2_##name(__a_hi, __a_lo, __b_hi, __b_lo, __c_hi, __c_lo, __res_hi, __res_lo); \
+      }                                                                                              \
+      else                                                                                           \
+      {                                                                                              \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name));     \
+      }                                                                                              \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_4A(name)                                                                          \
+    template <typename _FpType>                                                                                      \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                                         \
+      const _FpType __a_hi,                                                                                          \
+      const _FpType __a_lo,                                                                                          \
+      const _FpType __b_hi,                                                                                          \
+      const _FpType __b_lo,                                                                                          \
+      const _FpType __c_hi,                                                                                          \
+      const _FpType __c_lo,                                                                                          \
+      const _FpType __d_hi,                                                                                          \
+      const _FpType __d_lo,                                                                                          \
+      _FpType* __res_hi,                                                                                             \
+      _FpType* __res_lo) noexcept                                                                                    \
+    {                                                                                                                \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                                              \
+      {                                                                                                              \
+        __internal_fpmp2_##name(__a_hi, __a_lo, __b_hi, __b_lo, __c_hi, __c_lo, __d_hi, __d_lo, __res_hi, __res_lo); \
+      }                                                                                                              \
+      else                                                                                                           \
+      {                                                                                                              \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name));                     \
+      }                                                                                                              \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_1A_RETINT(name)                                               \
+    template <typename _FpType>                                                                  \
+    _CCCL_FPMP_CORE_API int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept  \
+    {                                                                                            \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
+      {                                                                                          \
+        return __internal_fpmp2_##name(__x_hi, __x_lo);                                          \
+      }                                                                                          \
+      else                                                                                       \
+      {                                                                                          \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name)); \
+        return 0;                                                                                \
+      }                                                                                          \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_1A_RETLL(name)                                                         \
+    template <typename _FpType>                                                                           \
+    _CCCL_FPMP_CORE_API long long int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
+    {                                                                                                     \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                                   \
+      {                                                                                                   \
+        return __internal_fpmp2_##name(__x_hi, __x_lo);                                                   \
+      }                                                                                                   \
+      else                                                                                                \
+      {                                                                                                   \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name));          \
+        return 0;                                                                                         \
+      }                                                                                                   \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_1A_RETL(name)                                                     \
+    template <typename _FpType>                                                                      \
+    _CCCL_FPMP_CORE_API long int __fpmp2_##name(const _FpType __x_hi, const _FpType __x_lo) noexcept \
+    {                                                                                                \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                              \
+      {                                                                                              \
+        return __internal_fpmp2_##name(__x_hi, __x_lo);                                              \
+      }                                                                                              \
+      else                                                                                           \
+      {                                                                                              \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name));     \
+        return 0;                                                                                    \
+      }                                                                                              \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_1A_2OUT(name)                                                 \
+    template <typename _FpType>                                                                  \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
+      const _FpType __x_hi,                                                                      \
+      const _FpType __x_lo,                                                                      \
+      _FpType* __sin_hi,                                                                         \
+      _FpType* __sin_lo,                                                                         \
+      _FpType* __cos_hi,                                                                         \
+      _FpType* __cos_lo) noexcept                                                                \
+    {                                                                                            \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
+      {                                                                                          \
+        __internal_fpmp2_##name(__x_hi, __x_lo, __sin_hi, __sin_lo, __cos_hi, __cos_lo);         \
+      }                                                                                          \
+      else                                                                                       \
+      {                                                                                          \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name)); \
+      }                                                                                          \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_INT_FP(name)                                                                 \
+    template <typename _FpType>                                                                                 \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                                    \
+      const int __n, const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi, _FpType* __res_lo) noexcept \
+    {                                                                                                           \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                                         \
+      {                                                                                                         \
+        __internal_fpmp2_##name(__n, __x_hi, __x_lo, __res_hi, __res_lo);                                       \
+      }                                                                                                         \
+      else                                                                                                      \
+      {                                                                                                         \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name));                \
+      }                                                                                                         \
+    }
+
+#  define _CCCL_FPMP_MATH_DISPATCH_2A_QUO(name)                                                  \
+    template <typename _FpType>                                                                  \
+    _CCCL_FPMP_CORE_API void __fpmp2_##name(                                                     \
+      const _FpType __x_hi,                                                                      \
+      const _FpType __x_lo,                                                                      \
+      const _FpType __y_hi,                                                                      \
+      const _FpType __y_lo,                                                                      \
+      _FpType* __res_hi,                                                                         \
+      _FpType* __res_lo,                                                                         \
+      int* __quo) noexcept                                                                       \
+    {                                                                                            \
+      if constexpr (__fpmp2_is_supported_fp_v<_FpType>)                                          \
+      {                                                                                          \
+        __internal_fpmp2_##name(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, __quo);      \
+      }                                                                                          \
+      else                                                                                       \
+      {                                                                                          \
+        static_assert(__fpmp2_is_supported_fp_v<_FpType>, _CCCL_FPMP_MATH_ONLY_FP32_FP64(name)); \
+      }                                                                                          \
+    }
+
+/*
+ * ============================================================================
+ * Double precision (fp64mp2) math backend
  * ============================================================================
  */
 

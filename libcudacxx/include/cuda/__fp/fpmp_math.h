@@ -344,11 +344,11 @@
     - Delegate to standard double-precision system functions
     - Intended as API stubs; they do not provide full multi-precision accuracy yet
 
-    fp64mp2 specializations:
+    fp64mp2 implementations:
     - When _CCCL_FPMP_FP128_MATH_FALLBACK=1, route through __float128 (libquadmath
       on host, CUDA fp128 intrinsics on device) for ~113-bit accuracy.
     - When _CCCL_FPMP_FP128_MATH_FALLBACK=0, fall back to double-precision math.
-    - normcdfinv<double> uses CUDA erfcinv on device, the fp32mp2 polynomial
+    - The fp64mp2 normcdfinv uses CUDA erfcinv on device, the fp32mp2 polynomial
       on host (no standard erfcinv available).
 
     Configuration Macros:
@@ -394,16 +394,23 @@
 #  include <cuda/__fp/fpmp_math_impl_pow.h>
 #  include <cuda/__fp/fpmp_math_impl_special.h>
 #  include <cuda/__fp/fpmp_math_impl_trig.h>
-/* Cleanup: undefine the placeholder factory macros so they don't
+/* Cleanup: undefine the fallback-body and dispatch factory macros so they don't
  * leak into headers/translation units that include this file. */
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_2A
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETINT
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETLL
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_1A_RETL
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_FP_INT
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_FP_LINT
-#  undef _CCCL_FPMP_MATH_PLACEHOLDER_INT_FP
+#  undef _CCCL_FPMP_MATH_FALLBACK_1A
+#  undef _CCCL_FPMP_MATH_FALLBACK_2A
+#  undef _CCCL_FPMP_MATH_FALLBACK_1A_RETLL
+#  undef _CCCL_FPMP_MATH_FALLBACK_1A_RETL
+#  undef _CCCL_FPMP_MATH_ONLY_FP32_FP64
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A
+#  undef _CCCL_FPMP_MATH_DISPATCH_2A
+#  undef _CCCL_FPMP_MATH_DISPATCH_3A
+#  undef _CCCL_FPMP_MATH_DISPATCH_4A
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETINT
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETLL
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_RETL
+#  undef _CCCL_FPMP_MATH_DISPATCH_1A_2OUT
+#  undef _CCCL_FPMP_MATH_DISPATCH_INT_FP
+#  undef _CCCL_FPMP_MATH_DISPATCH_2A_QUO
 #endif // !_CCCL_FPMP_USE_LIB
 
 #if (defined _CCCL_FPMP_USE_LIB)
