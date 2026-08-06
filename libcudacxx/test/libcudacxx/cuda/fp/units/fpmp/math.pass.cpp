@@ -78,7 +78,7 @@ TEST_FUNC void test_host_device(double tol)
 
   // assert per check rather than an accumulated flag, so a failure names the
   // function that broke instead of just the test.
-#define CHECK_1A(name, xv) assert(check(static_cast<double>(name(MP2(xv))), ::name(xv), tol))
+#define CHECK_1A(name, xv)     assert(check(static_cast<double>(name(MP2(xv))), ::name(xv), tol))
 #define CHECK_2A(name, xv, yv) assert(check(static_cast<double>(name(MP2(xv), MP2(yv))), ::name(xv, yv), tol))
 
   // Exponential / logarithmic
@@ -168,9 +168,9 @@ TEST_FUNC void test_host_device(double tol)
 
   // Functions returning a second result through a pointer
   {
-    int e = 0;
-    const MP2 frac = frexp(MP2(x_val), &e);
-    int ref_e      = 0;
+    int e            = 0;
+    const MP2 frac   = frexp(MP2(x_val), &e);
+    int ref_e        = 0;
     const double ref = ::frexp(x_val, &ref_e);
     assert(check(static_cast<double>(frac), ref, tol));
     assert(check_int(e, ref_e));
@@ -184,7 +184,7 @@ TEST_FUNC void test_host_device(double tol)
     assert(check(static_cast<double>(ipart), ref_ipart, tol));
   }
   {
-    int quo = 0;
+    int quo          = 0;
     const MP2 res    = remquo(MP2(x_val), MP2(y_val), &quo);
     int ref_quo      = 0;
     const double ref = ::remquo(x_val, y_val, &ref_quo);
