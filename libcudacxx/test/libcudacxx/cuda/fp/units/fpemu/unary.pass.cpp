@@ -27,6 +27,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fpemu>
 #include <cuda/std/cassert>
 
@@ -35,7 +38,7 @@
 namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 // Hide a value from the optimizer; see the note above.
-TEST_FUNC double opaque(double __v)
+TEST_HOST_DEVICE_FUNC double opaque(double __v)
 {
   volatile double __t = __v;
   return __t;
@@ -43,7 +46,7 @@ TEST_FUNC double opaque(double __v)
 
 // Equality of two emulated values through their double image.
 template <class T>
-TEST_FUNC bool same(const T& __a, const T& __b)
+TEST_HOST_DEVICE_FUNC bool same(const T& __a, const T& __b)
 {
   return static_cast<double>(__a) == static_cast<double>(__b);
 }
@@ -59,7 +62,7 @@ TEST_FUNC bool same(const T& __a, const T& __b)
 // packed low returns the smallest normal instead of zero for 1.0 - 1.0, and mid
 // perturbs 1.0 when a negligible operand is subtracted from it.
 template <class T>
-TEST_FUNC void test_incdec(bool __correctly_rounded)
+TEST_HOST_DEVICE_FUNC void test_incdec(bool __correctly_rounded)
 {
   const T start(opaque(2.5));
   const T one(opaque(1.0));
@@ -133,7 +136,7 @@ TEST_FUNC void test_incdec(bool __correctly_rounded)
 
 // ---- unary minus ---------------------------------------------------------
 template <class T>
-TEST_FUNC void test_neg(bool __correctly_rounded)
+TEST_HOST_DEVICE_FUNC void test_neg(bool __correctly_rounded)
 {
   const T x(opaque(2.5));
   assert(static_cast<double>(-x) == -2.5);
@@ -158,7 +161,7 @@ TEST_FUNC void test_neg(bool __correctly_rounded)
 // Compared against the corresponding binary operator, so whatever the mode
 // rounds to, the test still means "+= is +".
 template <class T>
-TEST_FUNC void test_compound(bool __correctly_rounded)
+TEST_HOST_DEVICE_FUNC void test_compound(bool __correctly_rounded)
 {
   const T a(opaque(6.25));
   const T b(opaque(1.5));
@@ -219,14 +222,14 @@ TEST_FUNC void test_compound(bool __correctly_rounded)
 }
 
 template <class T>
-TEST_FUNC void test_type(bool __correctly_rounded = true)
+TEST_HOST_DEVICE_FUNC void test_type(bool __correctly_rounded = true)
 {
   test_incdec<T>(__correctly_rounded);
   test_neg<T>(__correctly_rounded);
   test_compound<T>(__correctly_rounded);
 }
 
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   // Packed. def == high are the correctly rounded modes; low and mid run the
   // same operators with the accuracy-dependent checks relaxed.

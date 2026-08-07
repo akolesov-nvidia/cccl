@@ -14,6 +14,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
@@ -154,7 +157,7 @@ TEST_HOST_DEVICE_FUNC double draw(cuda::std::minstd_rand& rng, const double* spe
 // Exhaustively divides every ordered pair of the representative special values
 // and checks each surface against the correctly-rounded reference, then repeats
 // the check over a deterministic pseudo-random sweep.
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   const double specials[] = {
     0.0,

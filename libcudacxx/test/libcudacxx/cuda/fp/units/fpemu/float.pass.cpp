@@ -20,6 +20,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
@@ -103,7 +106,7 @@ TEST_HOST_DEVICE_FUNC bool d2f_ok(double v)
 }
 
 // float -> double widening over every value class (incl. subnormals / NaN / Inf).
-TEST_FUNC void test_f2d()
+TEST_HOST_DEVICE_FUNC void test_f2d()
 {
   const float vals[] = {
     0.0f,
@@ -155,7 +158,7 @@ TEST_FUNC void test_f2d()
 }
 
 // double -> float narrowing (round-to-nearest-even) over every value class.
-TEST_FUNC void test_d2f()
+TEST_HOST_DEVICE_FUNC void test_d2f()
 {
   const double vals[] = {
     0.0,

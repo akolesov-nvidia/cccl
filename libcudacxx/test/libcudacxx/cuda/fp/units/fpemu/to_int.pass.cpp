@@ -18,6 +18,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
@@ -302,7 +305,7 @@ TEST_HOST_DEVICE_FUNC double draw(cuda::std::minstd_rand& rng, const double* spe
 // Converts the representative special values (fractional ties, type-boundary
 // magnitudes, subnormals, +/-inf and NaN) and checks each surface against the
 // saturating reference.
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   const double specials[] = {
     0.0,

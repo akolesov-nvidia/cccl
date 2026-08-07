@@ -13,6 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fpemu>
 #include <cuda/std/bit>
 #include <cuda/std/cassert>
@@ -56,7 +59,7 @@ TEST_HOST_DEVICE_FUNC void check_all(const T (&vals)[N])
 // Converts a spread of boundary integers (type limits, 2^53 rounding thresholds,
 // power-of-two edges) of every supported width and checks each against the native
 // cast to double.
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   const int32_t int32_vals[] = {
     0,
