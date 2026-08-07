@@ -16,12 +16,15 @@
 //
 //  This is primarily a compile-time guard, which is why fpemu is included first
 //  (the order that puts its declarations in scope before fp64_tool's bodies) and
-//  why the arithmetic runs in a TEST_FUNC: the shadowed calls exist only in the
+//  why the arithmetic runs in a TEST_HOST_DEVICE_FUNC: the shadowed calls exist only in the
 //  device paths, so they have to be instantiated to be checked. The runtime
 //  assertions catch the quieter failure mode where a wrong-but-viable overload is
 //  selected and the arithmetic silently changes.
 //
 //===----------------------------------------------------------------------===//
+
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
 
 // Include order is load-bearing here; see above.
 #include <cuda/fpemu>
@@ -37,7 +40,7 @@ namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (lat
 // Every fp64_tool operation whose device path calls one of the captured names.
 // With the default mantissa width fp64_tool is a drop-in for double, so the
 // expected values are exact.
-TEST_FUNC bool check_fptool()
+TEST_HOST_DEVICE_FUNC bool check_fptool()
 {
   const cudax::fp64_tool a(3.0);
   const cudax::fp64_tool b(4.0);
@@ -72,7 +75,7 @@ TEST_FUNC bool check_fptool()
 // fpemu's own types. Only add and sub are exercised, because nvc++ 26.3 cannot
 // compile fpemu's mul/fma/div paths at all -- it hits "Unhandled builtin
 // function" on the __umul64hi inside fpemu's __mul_128 and inside cuda::mul_hi.
-TEST_FUNC bool check_fpemu()
+TEST_HOST_DEVICE_FUNC bool check_fpemu()
 {
   const double dx = 1.2345;
   const double dy = 2.3456;
@@ -94,7 +97,7 @@ TEST_FUNC bool check_fpemu()
 }
 
 // Values crossing between the two libraries, so both are live in one expression.
-TEST_FUNC bool check_mixed()
+TEST_HOST_DEVICE_FUNC bool check_mixed()
 {
   const double dx = 6.25;
   const double dy = 1.5;
@@ -112,7 +115,7 @@ TEST_FUNC bool check_mixed()
   return ok;
 }
 
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   assert(check_fptool());
   assert(check_fpemu());

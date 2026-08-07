@@ -223,8 +223,8 @@
 //=============================================================================
 
 // Function decorators come from CCCL directly (see <cuda/std/__cccl/...>):
-//   _CCCL_API inline   — public host/device entry points (hidden from ABI)
-//   _CCCL_TRIVIAL_API  — force-inlined internal helpers (hot paths)
+//   _CCCL_HOST_DEVICE_API inline   — public host/device entry points (hidden from ABI)
+//   _CCCL_TRIVIAL_HOST_DEVICE_API  — force-inlined internal helpers (hot paths)
 //   _CCCL_HOST_DEVICE / _CCCL_HOST — plain execution-space qualifiers, used on
 //                        the static setters that must keep internal linkage.
 
@@ -355,7 +355,7 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 //! @note This function is only compiled when _CCCL_FP64_TOOL_ENABLE is defined
 //! @note Thread-safe: no shared state is modified
 #if defined _CCCL_FP64_TOOL_ENABLE
-_CCCL_TRIVIAL_API void __fp64_tool_callback(fpbits64& __v) noexcept
+_CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
 {
   (void) __v; /* Suppress unused parameter warning when no reduction is configured */
   //-------------------------------------------------------------------------
@@ -520,7 +520,7 @@ public:
   //=========================================================================
 
   //! @brief Default constructor: initializes to zero
-  _CCCL_API constexpr fp64_tool() noexcept
+  _CCCL_HOST_DEVICE_API constexpr fp64_tool() noexcept
       : __bits_{0u}
   {}
 
@@ -528,27 +528,27 @@ public:
   //! @param raw The raw IEEE 754 bit pattern
   //!
   //! Example: fp64_tool(fpbits64_raw, 0x3FF0000000000000ULL) creates 1.0
-  _CCCL_API constexpr fp64_tool(fpbits64_raw_tag, fpbits64 __raw) noexcept
+  _CCCL_HOST_DEVICE_API constexpr fp64_tool(fpbits64_raw_tag, fpbits64 __raw) noexcept
       : __bits_{__raw}
   {}
 
   //! @brief Copy constructor
-  _CCCL_API fp64_tool(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool(const fp64_tool& __o) noexcept
       : __bits_{__o.__bits_}
   {}
 
   //! @brief Copy constructor from volatile (for atomic operations)
-  _CCCL_API fp64_tool(const volatile fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool(const volatile fp64_tool& __o) noexcept
       : __bits_{__o.__bits_}
   {}
 
   //! @brief Construct from double (implicit conversion)
-  _CCCL_API fp64_tool(double __d) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool(double __d) noexcept
       : __bits_{::cuda::std::bit_cast<fpbits64>(__d)}
   {}
 
   //! @brief Construct from float (implicit conversion with promotion)
-  _CCCL_API fp64_tool(float __f) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool(float __f) noexcept
       : __bits_{::cuda::std::bit_cast<fpbits64>(static_cast<double>(__f))}
   {}
 
@@ -557,7 +557,7 @@ public:
   //! portably (LP64 and LLP64). Excludes bool / character types by design.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API fp64_tool(_Tp __i) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool(_Tp __i) noexcept
       : __bits_{::cuda::std::bit_cast<fpbits64>(static_cast<double>(__i))}
   {}
 
@@ -566,14 +566,14 @@ public:
   //=========================================================================
 
   //! @brief Copy assignment
-  _CCCL_API fp64_tool& operator=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator=(const fp64_tool& __o) noexcept
   {
     __bits_ = __o.__bits_;
     return *this;
   }
 
   //! @brief Volatile copy assignment (for atomic operations)
-  _CCCL_API volatile fp64_tool& operator=(const fp64_tool& __o) volatile noexcept
+  _CCCL_HOST_DEVICE_API volatile fp64_tool& operator=(const fp64_tool& __o) volatile noexcept
   {
     __bits_ = __o.__bits_;
     return *this;
@@ -584,13 +584,13 @@ public:
   //=========================================================================
 
   //! @brief Convert to double (implicit, preserves full precision)
-  _CCCL_API operator double() const noexcept
+  _CCCL_HOST_DEVICE_API operator double() const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_);
   }
 
   //! @brief Convert to float (explicit, may lose precision)
-  _CCCL_API explicit operator float() const noexcept
+  _CCCL_HOST_DEVICE_API explicit operator float() const noexcept
   {
     return static_cast<float>(::cuda::std::bit_cast<double>(__bits_));
   }
@@ -599,7 +599,7 @@ public:
   //! Covers int / long / long long + unsigned uniformly; excludes bool / char.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_API explicit operator _Tp() const noexcept
+  _CCCL_HOST_DEVICE_API explicit operator _Tp() const noexcept
   {
     return static_cast<_Tp>(::cuda::std::bit_cast<double>(__bits_));
   }
@@ -618,7 +618,7 @@ public:
   //! 1. Apply callback to both operands
   //! 2. Perform native FP64 addition
   //! 3. Apply callback to result
-  _CCCL_API fp64_tool operator+(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator+(const fp64_tool& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
@@ -634,7 +634,7 @@ public:
   }
 
   //! @brief Subtraction with precision callbacks
-  _CCCL_API fp64_tool operator-(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator-(const fp64_tool& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
@@ -650,7 +650,7 @@ public:
   }
 
   //! @brief Multiplication with precision callbacks
-  _CCCL_API fp64_tool operator*(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator*(const fp64_tool& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
@@ -666,7 +666,7 @@ public:
   }
 
   //! @brief Division with precision callbacks
-  _CCCL_API fp64_tool operator/(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator/(const fp64_tool& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
     _CCCL_FP64_TOOL_CALLBACK(__a);
@@ -683,7 +683,7 @@ public:
 
   //! @brief Unary negation (sign flip)
   //! @note No precision callback - just flips the sign bit
-  _CCCL_API fp64_tool operator-() const noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator-() const noexcept
   {
     return fp64_tool(fpbits64_raw, __bits_ ^ (1ULL << 63));
   }
@@ -693,28 +693,28 @@ public:
   //=========================================================================
 
   //! @brief Add and assign
-  _CCCL_API fp64_tool& operator+=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator+=(const fp64_tool& __o) noexcept
   {
     *this = *this + __o;
     return *this;
   }
 
   //! @brief Subtract and assign
-  _CCCL_API fp64_tool& operator-=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator-=(const fp64_tool& __o) noexcept
   {
     *this = *this - __o;
     return *this;
   }
 
   //! @brief Multiply and assign
-  _CCCL_API fp64_tool& operator*=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator*=(const fp64_tool& __o) noexcept
   {
     *this = *this * __o;
     return *this;
   }
 
   //! @brief Divide and assign
-  _CCCL_API fp64_tool& operator/=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator/=(const fp64_tool& __o) noexcept
   {
     *this = *this / __o;
     return *this;
@@ -725,21 +725,21 @@ public:
   //=========================================================================
 
   //! @brief Pre-increment
-  _CCCL_API fp64_tool& operator++() noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator++() noexcept
   {
     *this = *this + fp64_tool(1.0);
     return *this;
   }
 
   //! @brief Pre-decrement
-  _CCCL_API fp64_tool& operator--() noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool& operator--() noexcept
   {
     *this = *this - fp64_tool(1.0);
     return *this;
   }
 
   //! @brief Post-increment
-  _CCCL_API fp64_tool operator++(int) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator++(int) noexcept
   {
     auto __t = *this;
     ++(*this);
@@ -747,7 +747,7 @@ public:
   }
 
   //! @brief Post-decrement
-  _CCCL_API fp64_tool operator--(int) noexcept
+  _CCCL_HOST_DEVICE_API fp64_tool operator--(int) noexcept
   {
     auto __t = *this;
     --(*this);
@@ -759,37 +759,37 @@ public:
   //=========================================================================
 
   //! @brief Equality comparison
-  _CCCL_API bool operator==(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator==(const fp64_tool& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) == ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Inequality comparison
-  _CCCL_API bool operator!=(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator!=(const fp64_tool& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) != ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Less than comparison
-  _CCCL_API bool operator<(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator<(const fp64_tool& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) < ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Greater than comparison
-  _CCCL_API bool operator>(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator>(const fp64_tool& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) > ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Less than or equal comparison
-  _CCCL_API bool operator<=(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator<=(const fp64_tool& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) <= ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Greater than or equal comparison
-  _CCCL_API bool operator>=(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator>=(const fp64_tool& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) >= ::cuda::std::bit_cast<double>(__y.__bits_);
   }
@@ -809,7 +809,7 @@ private:
 //! @return Square root of x with precision callbacks applied
 //!
 //! @note Uses __dsqrt_rn intrinsic on CUDA, ::sqrt on host
-_CCCL_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
 {
   fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
   _CCCL_FP64_TOOL_CALLBACK(__a);
@@ -831,7 +831,7 @@ _CCCL_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
 //! @return (x * y) + z with precision callbacks applied to all operands and result
 //!
 //! @note Uses __fma_rn intrinsic on CUDA, ::fma on host
-_CCCL_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const fp64_tool& __z) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const fp64_tool& __z) noexcept
 {
   fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
   fpbits64 __b = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__y));
@@ -865,56 +865,56 @@ _CCCL_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator+(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator+(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x + fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator+(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator+(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) + __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator-(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator-(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x - fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator-(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator-(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) - __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator*(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator*(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x * fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator*(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator*(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) * __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator/(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator/(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x / fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline fp64_tool operator/(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp64_tool operator/(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) / __y;
 }
@@ -927,84 +927,84 @@ _CCCL_API inline fp64_tool operator/(_Tp __x, const fp64_tool& __y) noexcept
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator==(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator==(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x == fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator==(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator==(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) == __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator!=(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator!=(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x != fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator!=(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator!=(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) != __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator<(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x < fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator<(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) < __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator>(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x > fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator>(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) > __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator<=(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<=(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x <= fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator<=(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<=(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) <= __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator>=(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>=(const fp64_tool& __x, _Tp __y) noexcept
 {
   return __x >= fp64_tool(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_API inline bool operator>=(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>=(_Tp __x, const fp64_tool& __y) noexcept
 {
   return fp64_tool(static_cast<double>(__x)) >= __y;
 }

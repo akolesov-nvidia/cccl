@@ -16,6 +16,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fptool>
 #include <cuda/std/cassert>
 #include <cuda/std/cmath>
@@ -24,7 +27,7 @@
 
 namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
-TEST_FUNC bool test_incdec()
+TEST_HOST_DEVICE_FUNC bool test_incdec()
 {
   bool ok = true;
 
@@ -75,7 +78,7 @@ TEST_FUNC bool test_incdec()
   return ok;
 }
 
-TEST_FUNC bool test_neg()
+TEST_HOST_DEVICE_FUNC bool test_neg()
 {
   bool ok = true;
 
@@ -98,7 +101,7 @@ TEST_FUNC bool test_neg()
   return ok;
 }
 
-TEST_FUNC bool test_compound()
+TEST_HOST_DEVICE_FUNC bool test_compound()
 {
   bool ok = true;
 
@@ -148,7 +151,7 @@ TEST_FUNC bool test_compound()
   return ok;
 }
 
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   assert(test_incdec());
   assert(test_neg());
