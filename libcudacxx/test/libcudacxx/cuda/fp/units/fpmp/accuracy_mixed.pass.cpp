@@ -13,6 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: force-tile
+// error: calling a __host__ __device__ function in tile is not allowed
+
 #include <cuda/fpmp>
 #include <cuda/std/cassert>
 #include <cuda/std/type_traits>
@@ -90,7 +93,7 @@ TEST_HOST_DEVICE_FUNC void run_test()
          == (double) cudax::mad<cudax::fpmp2_accuracy::low>(ff(s), a, b));
 }
 
-TEST_FUNC void test()
+TEST_HOST_DEVICE_FUNC void test()
 {
   run_test();
 }
