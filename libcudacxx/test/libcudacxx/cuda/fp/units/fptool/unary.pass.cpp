@@ -6,7 +6,7 @@
 //  Unit test: fp_custom increment, decrement, negation and compound assignment.
 //
 //  Only += was reachable from the existing fptool test, so the rest of this
-//  surface was never instantiated. With the default mantissa width fp_custom is
+//  surface was never instantiated. At the native field sizes fp64_custom is
 //  a drop-in for double, so every result below is compared against the same
 //  expression in double and must match exactly.
 //
@@ -32,40 +32,40 @@ TEST_HOST_DEVICE_FUNC bool test_incdec()
   bool ok = true;
 
   {
-    cudax::fp_custom x(2.5);
-    cudax::fp_custom ret = ++x;
-    ok                   = ok && static_cast<double>(x) == 3.5; // side effect
-    ok                   = ok && static_cast<double>(ret) == 3.5; // prefix returns the new value
+    cudax::fp64_custom<> x(2.5);
+    cudax::fp64_custom<> ret = ++x;
+    ok                       = ok && static_cast<double>(x) == 3.5; // side effect
+    ok                       = ok && static_cast<double>(ret) == 3.5; // prefix returns the new value
   }
   {
-    cudax::fp_custom x(2.5);
-    cudax::fp_custom ret = --x;
-    ok                   = ok && static_cast<double>(x) == 1.5;
-    ok                   = ok && static_cast<double>(ret) == 1.5;
+    cudax::fp64_custom<> x(2.5);
+    cudax::fp64_custom<> ret = --x;
+    ok                       = ok && static_cast<double>(x) == 1.5;
+    ok                       = ok && static_cast<double>(ret) == 1.5;
   }
   {
-    cudax::fp_custom x(2.5);
-    cudax::fp_custom ret = x++;
-    ok                   = ok && static_cast<double>(x) == 3.5;
-    ok                   = ok && static_cast<double>(ret) == 2.5; // postfix returns the old value
+    cudax::fp64_custom<> x(2.5);
+    cudax::fp64_custom<> ret = x++;
+    ok                       = ok && static_cast<double>(x) == 3.5;
+    ok                       = ok && static_cast<double>(ret) == 2.5; // postfix returns the old value
   }
   {
-    cudax::fp_custom x(2.5);
-    cudax::fp_custom ret = x--;
-    ok                   = ok && static_cast<double>(x) == 1.5;
-    ok                   = ok && static_cast<double>(ret) == 2.5;
+    cudax::fp64_custom<> x(2.5);
+    cudax::fp64_custom<> ret = x--;
+    ok                       = ok && static_cast<double>(x) == 1.5;
+    ok                       = ok && static_cast<double>(ret) == 2.5;
   }
 
   // Prefix returns a reference to the object, not a copy.
   {
-    cudax::fp_custom x(2.5);
+    cudax::fp64_custom<> x(2.5);
     ++(++x);
     ok = ok && static_cast<double>(x) == 4.5;
   }
 
   // Crossing zero and coming back.
   {
-    cudax::fp_custom x(0.5);
+    cudax::fp64_custom<> x(0.5);
     --x;
     ok = ok && static_cast<double>(x) == -0.5;
     --x;
@@ -82,19 +82,19 @@ TEST_HOST_DEVICE_FUNC bool test_neg()
 {
   bool ok = true;
 
-  const cudax::fp_custom x(2.5);
+  const cudax::fp64_custom<> x(2.5);
   ok = ok && static_cast<double>(-x) == -2.5;
   ok = ok && static_cast<double>(-(-x)) == 2.5;
   ok = ok && static_cast<double>(x) == 2.5; // operand untouched
 
-  const cudax::fp_custom y(-4.0);
+  const cudax::fp64_custom<> y(-4.0);
   ok = ok && static_cast<double>(-y) == 4.0;
 
   // A sign-bit flip, so it also has to work on zero and on a non-dyadic value.
-  ok = ok && ::cuda::std::signbit(static_cast<double>(-cudax::fp_custom(0.0)));
-  ok = ok && !::cuda::std::signbit(static_cast<double>(-cudax::fp_custom(-0.0)));
+  ok = ok && ::cuda::std::signbit(static_cast<double>(-cudax::fp64_custom<>(0.0)));
+  ok = ok && !::cuda::std::signbit(static_cast<double>(-cudax::fp64_custom<>(-0.0)));
 
-  const cudax::fp_custom z(0.1);
+  const cudax::fp64_custom<> z(0.1);
   ok = ok && static_cast<double>(-z) == -static_cast<double>(z);
   ok = ok && static_cast<double>(z + (-z)) == 0.0;
 
@@ -109,40 +109,40 @@ TEST_HOST_DEVICE_FUNC bool test_compound()
   const double db = 1.5;
 
   {
-    cudax::fp_custom x(da);
-    x += cudax::fp_custom(db);
+    cudax::fp64_custom<> x(da);
+    x += cudax::fp64_custom<>(db);
     ok = ok && static_cast<double>(x) == da + db;
   }
   {
-    cudax::fp_custom x(da);
-    x -= cudax::fp_custom(db);
+    cudax::fp64_custom<> x(da);
+    x -= cudax::fp64_custom<>(db);
     ok = ok && static_cast<double>(x) == da - db;
   }
   {
-    cudax::fp_custom x(da);
-    x *= cudax::fp_custom(db);
+    cudax::fp64_custom<> x(da);
+    x *= cudax::fp64_custom<>(db);
     ok = ok && static_cast<double>(x) == da * db;
   }
   {
-    cudax::fp_custom x(da);
-    x /= cudax::fp_custom(db);
+    cudax::fp64_custom<> x(da);
+    x /= cudax::fp64_custom<>(db);
     ok = ok && static_cast<double>(x) == da / db;
   }
 
   // The returned reference must be the object itself.
   {
-    cudax::fp_custom x(1.0);
-    (x += cudax::fp_custom(2.0)) += cudax::fp_custom(4.0);
+    cudax::fp64_custom<> x(1.0);
+    (x += cudax::fp64_custom<>(2.0)) += cudax::fp64_custom<>(4.0);
     ok = ok && static_cast<double>(x) == 7.0;
   }
 
   // Accumulation must match double step for step.
   {
-    cudax::fp_custom x(0.0);
+    cudax::fp64_custom<> x(0.0);
     double ref = 0.0;
     for (int i = 1; i <= 16; ++i)
     {
-      x += cudax::fp_custom(1.0 / static_cast<double>(i));
+      x += cudax::fp64_custom<>(1.0 / static_cast<double>(i));
       ref += 1.0 / static_cast<double>(i);
     }
     ok = ok && static_cast<double>(x) == ref;

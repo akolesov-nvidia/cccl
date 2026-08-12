@@ -38,31 +38,31 @@
 namespace cudax = cuda::experimental; // FP SDK lives in cuda::experimental (later cuda::)
 
 // Every fp_custom operation whose device path calls one of the captured names.
-// With the default mantissa width fp_custom is a drop-in for double, so the
+// At the native field sizes fp64_custom is a drop-in for double, so the
 // expected values are exact.
 TEST_HOST_DEVICE_FUNC bool check_fptool()
 {
-  const cudax::fp_custom a(3.0);
-  const cudax::fp_custom b(4.0);
-  const cudax::fp_custom c(0.5);
+  const cudax::fp64_custom<> a(3.0);
+  const cudax::fp64_custom<> b(4.0);
+  const cudax::fp64_custom<> c(0.5);
 
   bool ok = true;
 
   ok = ok && static_cast<double>(a + b) == 7.0; // __dadd_rn
   ok = ok && static_cast<double>(a - b) == -1.0; // __dsub_rn
   ok = ok && static_cast<double>(a * b) == 12.0; // __dmul_rn
-  ok = ok && static_cast<double>(b / cudax::fp_custom(2.0)) == 2.0; // __ddiv_rn
-  ok = ok && static_cast<double>(sqrt(cudax::fp_custom(16.0))) == 4.0; // __dsqrt_rn
+  ok = ok && static_cast<double>(b / cudax::fp64_custom<>(2.0)) == 2.0; // __ddiv_rn
+  ok = ok && static_cast<double>(sqrt(cudax::fp64_custom<>(16.0))) == 4.0; // __dsqrt_rn
   ok = ok && static_cast<double>(fma(a, b, c)) == 12.5; // __fma_rn
 
   // The compound and inc/dec operators reach the same intrinsics through the
   // binary operators.
   {
-    cudax::fp_custom x(1.0);
+    cudax::fp64_custom<> x(1.0);
     x += a;
     x -= c;
     x *= b;
-    x /= cudax::fp_custom(2.0);
+    x /= cudax::fp64_custom<>(2.0);
     ++x;
     --x;
     ok = ok && static_cast<double>(x) == 7.0;
@@ -102,15 +102,16 @@ TEST_HOST_DEVICE_FUNC bool check_mixed()
   const double dx = 6.25;
   const double dy = 1.5;
 
-  const cudax::fp64emu emu_sum    = cudax::fp64emu(dx) + cudax::fp64emu(dy);
-  const cudax::fp_custom tool_sum = cudax::fp_custom(dx) + cudax::fp_custom(dy);
+  const cudax::fp64emu emu_sum        = cudax::fp64emu(dx) + cudax::fp64emu(dy);
+  const cudax::fp64_custom<> tool_sum = cudax::fp64_custom<>(dx) + cudax::fp64_custom<>(dy);
 
   bool ok = static_cast<double>(tool_sum) == dx + dy;
   ok      = ok && static_cast<double>(emu_sum) == static_cast<double>(tool_sum);
 
   // Feed an fpemu result into fp_custom and back.
-  const cudax::fp_custom round_trip = cudax::fp_custom(static_cast<double>(emu_sum)) * cudax::fp_custom(2.0);
-  ok                                = ok && static_cast<double>(round_trip) == 2.0 * (dx + dy);
+  const cudax::fp64_custom<> round_trip =
+    cudax::fp64_custom<>(static_cast<double>(emu_sum)) * cudax::fp64_custom<>(2.0);
+  ok = ok && static_cast<double>(round_trip) == 2.0 * (dx + dy);
 
   return ok;
 }
