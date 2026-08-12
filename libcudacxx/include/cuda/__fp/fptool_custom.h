@@ -68,6 +68,7 @@
 //!   - **Underflow**: Values too small for reduced exponent → Zero (±0)
 //!
 //! In both cases the sign is preserved, and the clamped result skips mantissa reduction.
+//! NaN and infinity are never clamped.
 //!
 //! ## Common Precision Configurations
 //!
@@ -337,6 +338,7 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 //! 1. **Exponent reduction** (if CCCL_FPTOOL_CUSTOM_EXPONENT_BITS < 11):
 //!    - Values outside the reduced exponent range become infinity or zero
 //!    - Preserves the sign bit
+//!    - NaN and infinity pass through unchanged
 //!
 //! 2. **Mantissa reduction** (if CCCL_FPTOOL_CUSTOM_MANTISSA_BITS < 52):
 //!    - Excess mantissa bits are removed using IEEE 754 round-to-nearest-even
@@ -371,8 +373,17 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
     _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int64_t __new_bias    = (1LL << (__exponent_bits - 1)) - 1;
     _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int64_t __max_encoded = (1LL << __exponent_bits) - 2;
 
-    uint64_t __bits        = __v;
-    uint64_t __exp_bits    = (__bits & __exp_mask) >> 52;
+    uint64_t __bits     = __v;
+    uint64_t __exp_bits = (__bits & __exp_mask) >> 52;
+
+    /* Infinity and NaN carry an all-ones exponent, which must not be mistaken
+     * for a large finite exponent and clamped: that would turn NaN into INF.
+     */
+    if (__exp_bits == 0x7FF)
+    {
+      return;
+    }
+
     int64_t __unbiased_exp = (int64_t) __exp_bits - __original_bias;
     int64_t __new_exp_bits = __unbiased_exp + __new_bias;
 
@@ -408,7 +419,11 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
   _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __mantissa_bits = CCCL_FPTOOL_CUSTOM_MANTISSA_BITS;
 #    endif
 
-  /* Calculate how many low bits to discard */
+  /* Calculate how many low bits to discard. In runtime mode this can be zero
+   * (full precision requested), and rounding must then be skipped entirely:
+   * the masks below would shift by -1. In compile-time mode the count is a
+   * constant of at least 1, so the guard folds away.
+   */
   const int __reduce_mantissa_bits = 52 - __mantissa_bits;
 
   //---------------------------------------------------------------------
@@ -423,7 +438,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
    * - If discarded bits == 0.5: round to nearest even
    */
   uint64_t __exponent = (__v >> 52) & 0x7FF;
-  if (__exponent != 0x7FF)
+  if (__reduce_mantissa_bits > 0 && __exponent != 0x7FF)
   { /* Skip NaN and Infinity */
     /* __half_mask: bit at position (bits_to_remove - 1), represents 0.5 */
     uint64_t __half_mask = 1ULL << (__reduce_mantissa_bits - 1);
