@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDA___FP_FP64_TOOL_H
-#define _CUDA___FP_FP64_TOOL_H
+#ifndef _CUDA___FP_FPTOOL_CUSTOM_H
+#define _CUDA___FP_FPTOOL_CUSTOM_H
 
 #include <cuda/std/detail/__config>
 
@@ -26,42 +26,42 @@
 #include <cuda/std/__type_traits/is_arithmetic.h>
 #include <cuda/std/__type_traits/is_integer.h>
 
-//! @file fp64_tool.h
-//! @brief FP64 Precision Emulation Tool - A drop-in double replacement with configurable precision
+//! @file fptool_custom.h
+//! @brief fp_custom - a drop-in `double` replacement with configurable precision
 //!
-//! This header-only library provides a `fp64_tool` class that wraps native double-precision
+//! This header-only library provides a `fp_custom` class that wraps native double-precision
 //! floating-point operations while allowing compile-time precision reduction. It's designed
 //! for:
 //!
 //!   - **Algorithm sensitivity analysis**: Test how algorithms behave with reduced precision
 //!   - **Mixed-precision research**: Emulate lower-precision formats (float, bfloat16, etc.)
 //!   - **CUDA/CPU compatibility**: Works identically on both host and device code
-//!   - **Drop-in replacement**: Use `fp64_tool` where you would use `double`
+//!   - **Drop-in replacement**: Use `fp_custom` where you would use `double`
 //!
 //! ## Quick Start
 //!
 //! ```cpp
-//! #define CCCL_FP64_TOOL_MANTISSA_BITS 23  // Emulate float precision (52 bits -> 23 bits)
-//! #include "fp64_tool.h"
+//! #define CCCL_FPTOOL_CUSTOM_MANTISSA_BITS 23  // Emulate float precision (52 bits -> 23 bits)
+//! #include <cuda/fptool>
 //!
-//! fp64_tool a = 1.5, b = 2.5;
-//! fp64_tool result = a + b;  // Precision callbacks applied automatically
+//! fp_custom a = 1.5, b = 2.5;
+//! fp_custom result = a + b;  // Precision callbacks applied automatically
 //! double native = result;      // Convert back to native double
 //! ```
 //!
 //! ## Configuration Macros (define BEFORE including this header)
 //!
-//! | Macro                        | Default   | Description                                    |
-//! |------------------------------|-----------|------------------------------------------------|
-//! | `CCCL_FP64_TOOL_MANTISSA_BITS`    | 52        | Number of mantissa bits to preserve (1-52)     |
-//! | `CCCL_FP64_TOOL_EXPONENT_BITS`    | 11        | Number of exponent bits to preserve (1-11)     |
-//! | `FP64_TOOL_IEEE_ROUNDING`    | default   | Use IEEE 754 round-to-nearest-even             |
-//! | `CCCL_FP64_TOOL_ROUND_TO_NEAREST` | -         | Simple round-to-nearest                        |
-//! | `CCCL_FP64_TOOL_TRUNCATION`       | -         | Simple truncation (floor toward zero)          |
-//! | `CCCL_FP64_TOOL_NO_UNDERFLOW`     | -         | Preserve underflowing values (no flush to zero)|
-//! | `CCCL_FP64_TOOL_NO_OVERFLOW`      | -         | Preserve overflowing values (no clamp to INF)  |
-//! | `CCCL_FP64_TOOL_DISABLE`          | undefined | Disable precision emulation                    |
-//! | `CCCL_FP64_TOOL_RUNTIME_SIZE`     | undefined | Enable runtime precision control (see below)   |
+//! | Macro                                 | Default   | Description                                     |
+//! |---------------------------------------|-----------|-------------------------------------------------|
+//! | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS`    | 52        | Number of mantissa bits to preserve (1-52)      |
+//! | `CCCL_FPTOOL_CUSTOM_EXPONENT_BITS`    | 11        | Number of exponent bits to preserve (1-11)      |
+//! | `CCCL_FPTOOL_CUSTOM_IEEE_ROUNDING`    | default   | Use IEEE 754 round-to-nearest-even              |
+//! | `CCCL_FPTOOL_CUSTOM_ROUND_TO_NEAREST` | -         | Simple round-to-nearest                         |
+//! | `CCCL_FPTOOL_CUSTOM_TRUNCATION`       | -         | Simple truncation (floor toward zero)           |
+//! | `CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW`     | -         | Preserve underflowing values (no flush to zero) |
+//! | `CCCL_FPTOOL_CUSTOM_NO_OVERFLOW`      | -         | Preserve overflowing values (no clamp to INF)   |
+//! | `CCCL_FPTOOL_CUSTOM_DISABLE`          | undefined | Disable precision emulation                     |
+//! | `CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE`     | undefined | Enable runtime precision control (see below)    |
 //!
 //! ## Underflow/Overflow Control
 //!
@@ -71,21 +71,21 @@
 //!   - **Underflow**: Values too small for reduced exponent → Zero (±0)
 //!
 //! Defining these macros changes this behavior:
-//!   - `CCCL_FP64_TOOL_NO_OVERFLOW`: Keep original FP64 value when it would overflow
-//!   - `CCCL_FP64_TOOL_NO_UNDERFLOW`: Keep original FP64 value when it would underflow
+//!   - `CCCL_FPTOOL_CUSTOM_NO_OVERFLOW`: Keep original FP64 value when it would overflow
+//!   - `CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW`: Keep original FP64 value when it would underflow
 //!
 //! This is useful for algorithms that need extended dynamic range while still
 //! emulating reduced mantissa precision.
 //!
 //! ## Common Precision Configurations
 //!
-//! | Format   | Mantissa | Exponent | Configuration                                          |
-//! |----------|----------|----------|--------------------------------------------------------|
-//! | FP64     | 52       | 11       | Default (no callbacks applied)                         |
-//! | FP32     | 23       | 8        | `CCCL_FP64_TOOL_MANTISSA_BITS=23, CCCL_FP64_TOOL_EXPONENT_BITS=8`|
-//! | BF16     | 7        | 8        | `CCCL_FP64_TOOL_MANTISSA_BITS=7, CCCL_FP64_TOOL_EXPONENT_BITS=8` |
-//! | FP16     | 10       | 5        | `CCCL_FP64_TOOL_MANTISSA_BITS=10, CCCL_FP64_TOOL_EXPONENT_BITS=5`|
-//! | TF32     | 10       | 8        | `CCCL_FP64_TOOL_MANTISSA_BITS=10, CCCL_FP64_TOOL_EXPONENT_BITS=8`|
+//! | Format | Mantissa | Exponent | Configuration                                                             |
+//! |--------|----------|----------|---------------------------------------------------------------------------|
+//! | FP64   | 52       | 11       | Default (no callbacks applied)                                            |
+//! | FP32   | 23       | 8        | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS=23, CCCL_FPTOOL_CUSTOM_EXPONENT_BITS=8` |
+//! | BF16   | 7        | 8        | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS=7, CCCL_FPTOOL_CUSTOM_EXPONENT_BITS=8`  |
+//! | FP16   | 10       | 5        | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS=10, CCCL_FPTOOL_CUSTOM_EXPONENT_BITS=5` |
+//! | TF32   | 10       | 8        | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS=10, CCCL_FPTOOL_CUSTOM_EXPONENT_BITS=8` |
 //!
 //! ## How It Works
 //!
@@ -100,25 +100,25 @@
 //! ## Runtime Precision Control
 //!
 //! By default, mantissa and exponent sizes are compile-time constants. Defining
-//! `CCCL_FP64_TOOL_RUNTIME_SIZE` before including this header enables changing them
-//! at runtime without recompilation. The `CCCL_FP64_TOOL_MANTISSA_BITS` and
-//! `CCCL_FP64_TOOL_EXPONENT_BITS` macros then set the initial values only.
+//! `CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE` before including this header enables changing them
+//! at runtime without recompilation. The `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS` and
+//! `CCCL_FPTOOL_CUSTOM_EXPONENT_BITS` macros then set the initial values only.
 //!
 //! ```cpp
-//! #define CCCL_FP64_TOOL_RUNTIME_SIZE
-//! #define CCCL_FP64_TOOL_MANTISSA_BITS 52   // initial mantissa (full precision)
-//! #define CCCL_FP64_TOOL_EXPONENT_BITS 11   // initial exponent (full range)
-//! #include "fp64_tool.h"
+//! #define CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE
+//! #define CCCL_FPTOOL_CUSTOM_MANTISSA_BITS 52   // initial mantissa (full precision)
+//! #define CCCL_FPTOOL_CUSTOM_EXPONENT_BITS 11   // initial exponent (full range)
+//! #include <cuda/fptool>
 //! ```
 //!
 //! ### Setter Functions
 //!
 //! | Function                                  | Target | Description                        |
 //! |-------------------------------------------|--------|------------------------------------|
-//! | `fp64_tool_set_host_mantissa_size(int)`    | CPU    | Set mantissa bits on host (1-52)   |
-//! | `fp64_tool_set_host_exponent_size(int)`    | CPU    | Set exponent bits on host (1-11)   |
-//! | `fp64_tool_set_device_mantissa_size(int)`  | GPU    | Set mantissa bits on device (1-52) |
-//! | `fp64_tool_set_device_exponent_size(int)`  | GPU    | Set exponent bits on device (1-11) |
+//! | `fp_custom_set_host_mantissa_size(int)`   | CPU    | Set mantissa bits on host (1-52)   |
+//! | `fp_custom_set_host_exponent_size(int)`   | CPU    | Set exponent bits on host (1-11)   |
+//! | `fp_custom_set_device_mantissa_size(int)` | GPU    | Set mantissa bits on device (1-52) |
+//! | `fp_custom_set_device_exponent_size(int)` | GPU    | Set exponent bits on device (1-11) |
 //!
 //! Host and device sizes are independent — changing one does not affect the other.
 //! The device setters use `cudaMemcpyToSymbol` when called from host code; a
@@ -130,12 +130,12 @@
 //!
 //! ```cpp
 //! // Full precision initially
-//! fp64_tool a = 1.0, b = 1e-15;
+//! fp_custom a = 1.0, b = 1e-15;
 //! double full = (double)(a + b);       // preserves small term
 //!
 //! // Switch to float-like precision at runtime
-//! fp64_tool_set_host_mantissa_size(23);
-//! fp64_tool c = 1.0, d = 1e-15;
+//! fp_custom_set_host_mantissa_size(23);
+//! fp_custom c = 1.0, d = 1e-15;
 //! double reduced = (double)(c + d);    // small term lost → 1.0
 //! ```
 //!
@@ -172,8 +172,8 @@
 //!   - 23: FP32/float precision
 //!   - 10: FP16/TF32 precision
 //!   - 7:  BF16 precision
-#ifndef CCCL_FP64_TOOL_MANTISSA_BITS
-#  define CCCL_FP64_TOOL_MANTISSA_BITS 52
+#ifndef CCCL_FPTOOL_CUSTOM_MANTISSA_BITS
+#  define CCCL_FPTOOL_CUSTOM_MANTISSA_BITS 52
 #endif
 
 //! @brief Number of exponent bits to preserve (1-11)
@@ -183,39 +183,39 @@
 //!   - 11: Full FP64 range (no reduction)
 //!   - 8:  FP32/BF16/TF32 range
 //!   - 5:  FP16 range
-#ifndef CCCL_FP64_TOOL_EXPONENT_BITS
-#  define CCCL_FP64_TOOL_EXPONENT_BITS 11
+#ifndef CCCL_FPTOOL_CUSTOM_EXPONENT_BITS
+#  define CCCL_FPTOOL_CUSTOM_EXPONENT_BITS 11
 #endif
 
-#if defined(CCCL_FP64_TOOL_RUNTIME_SIZE)
-#  define _CCCL_FP64_TOOL_RUNTIME_SIZE 1
+#if defined(CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE)
+#  define _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE 1
 #else
-#  define _CCCL_FP64_TOOL_RUNTIME_SIZE 0
+#  define _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE 0
 #endif
 
 /* Internal flags: auto-detect if reduction is needed */
-#if _CCCL_FP64_TOOL_RUNTIME_SIZE || CCCL_FP64_TOOL_EXPONENT_BITS < 11
-#  define _CCCL_FP64_TOOL_REDUCE_EXPONENT
-#  ifndef _CCCL_FP64_TOOL_ENABLE
-#    define _CCCL_FP64_TOOL_ENABLE
+#if _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE || CCCL_FPTOOL_CUSTOM_EXPONENT_BITS < 11
+#  define _CCCL_FPTOOL_CUSTOM_REDUCE_EXPONENT
+#  ifndef _CCCL_FPTOOL_CUSTOM_ENABLE
+#    define _CCCL_FPTOOL_CUSTOM_ENABLE
 #  endif
 #endif
-#if _CCCL_FP64_TOOL_RUNTIME_SIZE || CCCL_FP64_TOOL_MANTISSA_BITS < 52
-#  define _CCCL_FP64_TOOL_REDUCE_MANTISSA
-#  ifndef _CCCL_FP64_TOOL_ENABLE
-#    define _CCCL_FP64_TOOL_ENABLE
+#if _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE || CCCL_FPTOOL_CUSTOM_MANTISSA_BITS < 52
+#  define _CCCL_FPTOOL_CUSTOM_REDUCE_MANTISSA
+#  ifndef _CCCL_FPTOOL_CUSTOM_ENABLE
+#    define _CCCL_FPTOOL_CUSTOM_ENABLE
 #  endif
 #endif
 
 // Master switch for precision emulation disabling
-#if defined CCCL_FP64_TOOL_DISABLE
-#  undef _CCCL_FP64_TOOL_ENABLE
+#if defined CCCL_FPTOOL_CUSTOM_DISABLE
+#  undef _CCCL_FPTOOL_CUSTOM_ENABLE
 #endif
 
-#if defined CCCL_FP64_TOOL_RUNTIME_SIZE
-#  define _CCCL_FP64_TOOL_CONST_QUALIFIER const
+#if defined CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE
+#  define _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER const
 #else
-#  define _CCCL_FP64_TOOL_CONST_QUALIFIER constexpr
+#  define _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER constexpr
 #endif
 
 //=============================================================================
@@ -244,8 +244,8 @@ using fpbits64 = uint64_t;
 //!
 //! Used to disambiguate constructors that take raw bit patterns from those
 //! that take numeric values. Example:
-//!   fp64_tool(fpbits64_raw, 0x3FF0000000000000ULL)  // 1.0 from bits
-//!   fp64_tool(1.0)                                   // 1.0 from value
+//!   fp_custom(fpbits64_raw, 0x3FF0000000000000ULL)  // 1.0 from bits
+//!   fp_custom(1.0)                                   // 1.0 from value
 struct fpbits64_raw_tag
 {
   explicit fpbits64_raw_tag() = default;
@@ -254,79 +254,79 @@ struct fpbits64_raw_tag
 //! @brief Global instance of the raw bit construction tag
 inline constexpr fpbits64_raw_tag fpbits64_raw{};
 
-#if defined(CCCL_FP64_TOOL_RUNTIME_SIZE)
+#if defined(CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE)
 
 // Global device variables (shared across all threads) - must be non-static for CUDA
 // On device: __device__ variables are in global memory, shared across all threads
 // On host: static variables for normal C++ behavior
 #  if _CCCL_CUDA_COMPILATION()
-[[maybe_unused]] __device__ static int __fp64_tool_device_mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
-[[maybe_unused]] __device__ static int __fp64_tool_device_exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
+[[maybe_unused]] __device__ static int __fp_custom_device_mantissa_bits = CCCL_FPTOOL_CUSTOM_MANTISSA_BITS;
+[[maybe_unused]] __device__ static int __fp_custom_device_exponent_bits = CCCL_FPTOOL_CUSTOM_EXPONENT_BITS;
 #  endif
 
-[[maybe_unused]] static int __fp64_tool_host_mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
-[[maybe_unused]] static int __fp64_tool_host_exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
+[[maybe_unused]] static int __fp_custom_host_mantissa_bits = CCCL_FPTOOL_CUSTOM_MANTISSA_BITS;
+[[maybe_unused]] static int __fp_custom_host_exponent_bits = CCCL_FPTOOL_CUSTOM_EXPONENT_BITS;
 
 // Readers for the active copy: device code sees the __device__ variables, host
 // code the static ones.
-[[maybe_unused]] static _CCCL_HOST_DEVICE int __fp64_tool_mantissa_bits() noexcept
+[[maybe_unused]] static _CCCL_HOST_DEVICE int __fp_custom_mantissa_bits() noexcept
 {
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return __fp64_tool_device_mantissa_bits;), (return __fp64_tool_host_mantissa_bits;))
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return __fp_custom_device_mantissa_bits;), (return __fp_custom_host_mantissa_bits;))
 }
 
-[[maybe_unused]] static _CCCL_HOST_DEVICE int __fp64_tool_exponent_bits() noexcept
+[[maybe_unused]] static _CCCL_HOST_DEVICE int __fp_custom_exponent_bits() noexcept
 {
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return __fp64_tool_device_exponent_bits;), (return __fp64_tool_host_exponent_bits;))
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return __fp_custom_device_exponent_bits;), (return __fp_custom_host_exponent_bits;))
 }
 
 // Device-side setter (can be called from __device__ or __global__ functions)
 // Only thread 0 in block 0 sets the value to avoid race conditions
 #  if _CCCL_CUDA_COMPILATION()
-[[maybe_unused]] __device__ static void __fp64_tool_set_device_mantissa_size(int __new_size)
+[[maybe_unused]] __device__ static void __fp_custom_set_device_mantissa_size(int __new_size)
 {
   if (threadIdx.x == 0 && blockIdx.x == 0)
   {
-    __fp64_tool_device_mantissa_bits = __new_size;
+    __fp_custom_device_mantissa_bits = __new_size;
   }
 }
-[[maybe_unused]] __device__ static void __fp64_tool_set_device_exponent_size(int __new_size)
+[[maybe_unused]] __device__ static void __fp_custom_set_device_exponent_size(int __new_size)
 {
   if (threadIdx.x == 0 && blockIdx.x == 0)
   {
-    __fp64_tool_device_exponent_bits = __new_size;
+    __fp_custom_device_exponent_bits = __new_size;
   }
 }
 #  endif
 
 // Device setter - works on both host and device
 #  if _CCCL_CUDA_COMPILATION()
-[[maybe_unused]] static _CCCL_HOST_DEVICE void fp64_tool_set_device_mantissa_size(int __new_size) noexcept
+[[maybe_unused]] static _CCCL_HOST_DEVICE void fp_custom_set_device_mantissa_size(int __new_size) noexcept
 {
   NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fp64_tool_set_device_mantissa_size(__new_size);),
-                    (cudaMemcpyToSymbol(__fp64_tool_device_mantissa_bits, &__new_size, sizeof(int));))
+                    (__fp_custom_set_device_mantissa_size(__new_size);),
+                    (cudaMemcpyToSymbol(__fp_custom_device_mantissa_bits, &__new_size, sizeof(int));))
 }
 
-[[maybe_unused]] static _CCCL_HOST_DEVICE void fp64_tool_set_device_exponent_size(int __new_size) noexcept
+[[maybe_unused]] static _CCCL_HOST_DEVICE void fp_custom_set_device_exponent_size(int __new_size) noexcept
 {
   NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    (__fp64_tool_set_device_exponent_size(__new_size);),
-                    (cudaMemcpyToSymbol(__fp64_tool_device_exponent_bits, &__new_size, sizeof(int));))
+                    (__fp_custom_set_device_exponent_size(__new_size);),
+                    (cudaMemcpyToSymbol(__fp_custom_device_exponent_bits, &__new_size, sizeof(int));))
 }
 #  endif
 
 // Host setter - works on host only
 #  if !_CCCL_CUDA_COMPILATION()
-[[maybe_unused]] static _CCCL_HOST void fp64_tool_set_host_mantissa_size(int __new_size) noexcept
+[[maybe_unused]] static _CCCL_HOST void fp_custom_set_host_mantissa_size(int __new_size) noexcept
 {
   // On host (non-CUDA): direct assignment
-  __fp64_tool_host_mantissa_bits = __new_size;
+  __fp_custom_host_mantissa_bits = __new_size;
 }
 
-[[maybe_unused]] static _CCCL_HOST void fp64_tool_set_host_exponent_size(int __new_size) noexcept
+[[maybe_unused]] static _CCCL_HOST void fp_custom_set_host_exponent_size(int __new_size) noexcept
 {
   // On host (non-CUDA): direct assignment
-  __fp64_tool_host_exponent_bits = __new_size;
+  __fp_custom_host_exponent_bits = __new_size;
 }
 #  endif
 
@@ -342,34 +342,34 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 //! reduced precision. It's called before and after each arithmetic operation.
 //!
 //! The reduction happens in two phases:
-//! 1. **Exponent reduction** (if CCCL_FP64_TOOL_EXPONENT_BITS < 11):
+//! 1. **Exponent reduction** (if CCCL_FPTOOL_CUSTOM_EXPONENT_BITS < 11):
 //!    - Values outside the reduced exponent range become infinity or zero
 //!    - Preserves the sign bit
 //!
-//! 2. **Mantissa reduction** (if CCCL_FP64_TOOL_MANTISSA_BITS < 52):
+//! 2. **Mantissa reduction** (if CCCL_FPTOOL_CUSTOM_MANTISSA_BITS < 52):
 //!    - Excess mantissa bits are removed via truncation or rounding
 //!    - Three rounding modes available: truncation, round-to-nearest, IEEE 754
 //!
 //! @param v  Reference to the bit pattern to modify (modified in place)
 //!
-//! @note This function is only compiled when _CCCL_FP64_TOOL_ENABLE is defined
+//! @note This function is only compiled when _CCCL_FPTOOL_CUSTOM_ENABLE is defined
 //! @note Thread-safe: no shared state is modified
-#if defined _CCCL_FP64_TOOL_ENABLE
-_CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
+#if defined _CCCL_FPTOOL_CUSTOM_ENABLE
+_CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
 {
   (void) __v; /* Suppress unused parameter warning when no reduction is configured */
   //-------------------------------------------------------------------------
   // Phase 1: Exponent Range Reduction
   //-------------------------------------------------------------------------
-#  if defined(_CCCL_FP64_TOOL_REDUCE_EXPONENT)
+#  if defined(_CCCL_FPTOOL_CUSTOM_REDUCE_EXPONENT)
 /* Only check overflow/underflow if at least one clamping mode is enabled */
-#    if !defined(CCCL_FP64_TOOL_NO_OVERFLOW) || !defined(CCCL_FP64_TOOL_NO_UNDERFLOW)
+#    if !defined(CCCL_FPTOOL_CUSTOM_NO_OVERFLOW) || !defined(CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW)
   {
 /* Get the exponent bits for the device or host */
-#      if _CCCL_FP64_TOOL_RUNTIME_SIZE
-    _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = __fp64_tool_exponent_bits();
+#      if _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE
+    _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __exponent_bits = __fp_custom_exponent_bits();
 #      else
-    _CCCL_FP64_TOOL_CONST_QUALIFIER int __exponent_bits = CCCL_FP64_TOOL_EXPONENT_BITS;
+    _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __exponent_bits = CCCL_FPTOOL_CUSTOM_EXPONENT_BITS;
 #      endif
 
     /* IEEE 754 double-precision bit layout:
@@ -377,10 +377,10 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
      * [62:52] - 11-bit exponent (bias 1023)
      * [51:0]  - 52-bit mantissa (implicit leading 1)
      */
-    constexpr uint64_t __exp_mask                         = 0x7FFULL << 52; // Bits 52-62
-    constexpr int64_t __original_bias                     = 1023; // FP64 exponent bias
-    _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __new_bias    = (1LL << (__exponent_bits - 1)) - 1;
-    _CCCL_FP64_TOOL_CONST_QUALIFIER int64_t __max_encoded = (1LL << __exponent_bits) - 2;
+    constexpr uint64_t __exp_mask                             = 0x7FFULL << 52; // Bits 52-62
+    constexpr int64_t __original_bias                         = 1023; // FP64 exponent bias
+    _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int64_t __new_bias    = (1LL << (__exponent_bits - 1)) - 1;
+    _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int64_t __max_encoded = (1LL << __exponent_bits) - 2;
 
     uint64_t __bits        = __v;
     uint64_t __exp_bits    = (__bits & __exp_mask) >> 52;
@@ -388,7 +388,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
     int64_t __new_exp_bits = __unbiased_exp + __new_bias;
 
 /* Check for overflow/underflow in reduced exponent range */
-#      if !defined(CCCL_FP64_TOOL_NO_OVERFLOW)
+#      if !defined(CCCL_FPTOOL_CUSTOM_NO_OVERFLOW)
     if (__new_exp_bits > __max_encoded)
     {
       /* Overflow: clamp to FP64 infinity (preserve sign) */
@@ -399,7 +399,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
     }
 #      endif
 
-#      if !defined(CCCL_FP64_TOOL_NO_UNDERFLOW)
+#      if !defined(CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW)
     if (__new_exp_bits < 1)
     {
       /* Underflow: flush to signed zero */
@@ -411,23 +411,23 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
     /* Normal range: fall through to mantissa reduction */
   }
 #    endif /* !NO_OVERFLOW || !NO_UNDERFLOW */
-#  endif /* _CCCL_FP64_TOOL_REDUCE_EXPONENT */
+#  endif /* _CCCL_FPTOOL_CUSTOM_REDUCE_EXPONENT */
 
   //-------------------------------------------------------------------------
   // Phase 2: Mantissa Precision Reduction
   //-------------------------------------------------------------------------
-#  if defined(_CCCL_FP64_TOOL_REDUCE_MANTISSA)
+#  if defined(_CCCL_FPTOOL_CUSTOM_REDUCE_MANTISSA)
 /* Get the mantissa bits for the device or host */
-#    if _CCCL_FP64_TOOL_RUNTIME_SIZE
-  _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = __fp64_tool_mantissa_bits();
+#    if _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE
+  _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __mantissa_bits = __fp_custom_mantissa_bits();
 #    else
-  _CCCL_FP64_TOOL_CONST_QUALIFIER int __mantissa_bits = CCCL_FP64_TOOL_MANTISSA_BITS;
+  _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __mantissa_bits = CCCL_FPTOOL_CUSTOM_MANTISSA_BITS;
 #    endif
 
   /* Calculate how many low bits to discard */
   const int __reduce_mantissa_bits = 52 - __mantissa_bits;
 
-#    if defined(CCCL_FP64_TOOL_TRUNCATION)
+#    if defined(CCCL_FPTOOL_CUSTOM_TRUNCATION)
   //---------------------------------------------------------------------
   // Mode A: Simple Truncation (round toward zero)
   //---------------------------------------------------------------------
@@ -435,7 +435,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
   __v >>= __reduce_mantissa_bits;
   __v <<= __reduce_mantissa_bits;
 
-#    elif defined(CCCL_FP64_TOOL_ROUND_TO_NEAREST)
+#    elif defined(CCCL_FPTOOL_CUSTOM_ROUND_TO_NEAREST)
   //---------------------------------------------------------------------
   // Mode B: Round to Nearest (biased - always rounds 0.5 up)
   //---------------------------------------------------------------------
@@ -445,7 +445,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
   __v >>= __reduce_mantissa_bits;
   __v <<= __reduce_mantissa_bits;
 
-#    else /* FP64_TOOL_IEEE_ROUNDING (default) */
+#    else /* CCCL_FPTOOL_CUSTOM_IEEE_ROUNDING (default) */
   //---------------------------------------------------------------------
   // Mode C: IEEE 754 Round-to-Nearest-Even (banker's rounding)
   //---------------------------------------------------------------------
@@ -476,19 +476,19 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
     __v <<= __reduce_mantissa_bits;
   }
 #    endif /* rounding mode selection */
-#  endif /* _CCCL_FP64_TOOL_REDUCE_MANTISSA */
+#  endif /* _CCCL_FPTOOL_CUSTOM_REDUCE_MANTISSA */
 
-} /* __fp64_tool_callback */
+} /* __fp_custom_callback */
 
 //! @brief Macro to invoke the precision callback
-#  define _CCCL_FP64_TOOL_CALLBACK(v) __fp64_tool_callback(v)
+#  define _CCCL_FPTOOL_CUSTOM_CALLBACK(v) __fp_custom_callback(v)
 
-#else /* !_CCCL_FP64_TOOL_ENABLE */
+#else /* !_CCCL_FPTOOL_CUSTOM_ENABLE */
 
 //! @brief No-op when precision emulation is disabled
-#  define _CCCL_FP64_TOOL_CALLBACK(v)
+#  define _CCCL_FPTOOL_CUSTOM_CALLBACK(v)
 
-#endif /* _CCCL_FP64_TOOL_ENABLE */
+#endif /* _CCCL_FPTOOL_CUSTOM_ENABLE */
 
 //=============================================================================
 // SECTION 5: Main Class Definition
@@ -511,8 +511,15 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp64_tool_callback(fpbits64& __v) noexcept
 //! - Alignment: 8 bytes
 //! - Stores raw IEEE 754 bit pattern
 //!
+//! ## Usage
+//! @code
+//! using Real = cuda::experimental::fp_custom;  // or double for production
+//! Real x = 1.5, y = 2.5;
+//! Real result = x + y;
+//! @endcode
+//!
 //! @note The class is trivially copyable and can be used in CUDA kernels
-class fp64_tool
+class fp_custom
 {
 public:
   //=========================================================================
@@ -520,35 +527,35 @@ public:
   //=========================================================================
 
   //! @brief Default constructor: initializes to zero
-  _CCCL_HOST_DEVICE_API constexpr fp64_tool() noexcept
+  _CCCL_HOST_DEVICE_API constexpr fp_custom() noexcept
       : __bits_{0u}
   {}
 
   //! @brief Raw bit constructor (use fpbits64_raw tag)
   //! @param raw The raw IEEE 754 bit pattern
   //!
-  //! Example: fp64_tool(fpbits64_raw, 0x3FF0000000000000ULL) creates 1.0
-  _CCCL_HOST_DEVICE_API constexpr fp64_tool(fpbits64_raw_tag, fpbits64 __raw) noexcept
+  //! Example: fp_custom(fpbits64_raw, 0x3FF0000000000000ULL) creates 1.0
+  _CCCL_HOST_DEVICE_API constexpr fp_custom(fpbits64_raw_tag, fpbits64 __raw) noexcept
       : __bits_{__raw}
   {}
 
   //! @brief Copy constructor
-  _CCCL_HOST_DEVICE_API fp64_tool(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom(const fp_custom& __o) noexcept
       : __bits_{__o.__bits_}
   {}
 
   //! @brief Copy constructor from volatile (for atomic operations)
-  _CCCL_HOST_DEVICE_API fp64_tool(const volatile fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom(const volatile fp_custom& __o) noexcept
       : __bits_{__o.__bits_}
   {}
 
   //! @brief Construct from double (implicit conversion)
-  _CCCL_HOST_DEVICE_API fp64_tool(double __d) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom(double __d) noexcept
       : __bits_{::cuda::std::bit_cast<fpbits64>(__d)}
   {}
 
   //! @brief Construct from float (implicit conversion with promotion)
-  _CCCL_HOST_DEVICE_API fp64_tool(float __f) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom(float __f) noexcept
       : __bits_{::cuda::std::bit_cast<fpbits64>(static_cast<double>(__f))}
   {}
 
@@ -557,7 +564,7 @@ public:
   //! portably (LP64 and LLP64). Excludes bool / character types by design.
   _CCCL_TEMPLATE(class _Tp)
   _CCCL_REQUIRES(::cuda::std::__cccl_is_integer_v<_Tp>)
-  _CCCL_HOST_DEVICE_API fp64_tool(_Tp __i) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom(_Tp __i) noexcept
       : __bits_{::cuda::std::bit_cast<fpbits64>(static_cast<double>(__i))}
   {}
 
@@ -566,14 +573,14 @@ public:
   //=========================================================================
 
   //! @brief Copy assignment
-  _CCCL_HOST_DEVICE_API fp64_tool& operator=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator=(const fp_custom& __o) noexcept
   {
     __bits_ = __o.__bits_;
     return *this;
   }
 
   //! @brief Volatile copy assignment (for atomic operations)
-  _CCCL_HOST_DEVICE_API volatile fp64_tool& operator=(const fp64_tool& __o) volatile noexcept
+  _CCCL_HOST_DEVICE_API volatile fp_custom& operator=(const fp_custom& __o) volatile noexcept
   {
     __bits_ = __o.__bits_;
     return *this;
@@ -618,74 +625,74 @@ public:
   //! 1. Apply callback to both operands
   //! 2. Perform native FP64 addition
   //! 3. Apply callback to result
-  _CCCL_HOST_DEVICE_API fp64_tool operator+(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator+(const fp_custom& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
-    _CCCL_FP64_TOOL_CALLBACK(__a);
-    _CCCL_FP64_TOOL_CALLBACK(__b);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__a);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__b);
     fpbits64 __r{};
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
          ::__dadd_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) + ::cuda::std::bit_cast<double>(__b));))
-    _CCCL_FP64_TOOL_CALLBACK(__r);
-    return fp64_tool(fpbits64_raw, __r);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__r);
+    return fp_custom(fpbits64_raw, __r);
   }
 
   //! @brief Subtraction with precision callbacks
-  _CCCL_HOST_DEVICE_API fp64_tool operator-(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator-(const fp_custom& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
-    _CCCL_FP64_TOOL_CALLBACK(__a);
-    _CCCL_FP64_TOOL_CALLBACK(__b);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__a);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__b);
     fpbits64 __r{};
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
          ::__dsub_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) - ::cuda::std::bit_cast<double>(__b));))
-    _CCCL_FP64_TOOL_CALLBACK(__r);
-    return fp64_tool(fpbits64_raw, __r);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__r);
+    return fp_custom(fpbits64_raw, __r);
   }
 
   //! @brief Multiplication with precision callbacks
-  _CCCL_HOST_DEVICE_API fp64_tool operator*(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator*(const fp_custom& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
-    _CCCL_FP64_TOOL_CALLBACK(__a);
-    _CCCL_FP64_TOOL_CALLBACK(__b);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__a);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__b);
     fpbits64 __r{};
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
          ::__dmul_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) * ::cuda::std::bit_cast<double>(__b));))
-    _CCCL_FP64_TOOL_CALLBACK(__r);
-    return fp64_tool(fpbits64_raw, __r);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__r);
+    return fp_custom(fpbits64_raw, __r);
   }
 
   //! @brief Division with precision callbacks
-  _CCCL_HOST_DEVICE_API fp64_tool operator/(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator/(const fp_custom& __y) const noexcept
   {
     fpbits64 __a = __bits_, __b = __y.__bits_;
-    _CCCL_FP64_TOOL_CALLBACK(__a);
-    _CCCL_FP64_TOOL_CALLBACK(__b);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__a);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__b);
     fpbits64 __r{};
     NV_IF_ELSE_TARGET(
       NV_IS_DEVICE,
       (__r = ::cuda::std::bit_cast<fpbits64>(
          ::__ddiv_rn(::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b)));),
       (__r = ::cuda::std::bit_cast<fpbits64>(::cuda::std::bit_cast<double>(__a) / ::cuda::std::bit_cast<double>(__b));))
-    _CCCL_FP64_TOOL_CALLBACK(__r);
-    return fp64_tool(fpbits64_raw, __r);
+    _CCCL_FPTOOL_CUSTOM_CALLBACK(__r);
+    return fp_custom(fpbits64_raw, __r);
   }
 
   //! @brief Unary negation (sign flip)
   //! @note No precision callback - just flips the sign bit
-  _CCCL_HOST_DEVICE_API fp64_tool operator-() const noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator-() const noexcept
   {
-    return fp64_tool(fpbits64_raw, __bits_ ^ (1ULL << 63));
+    return fp_custom(fpbits64_raw, __bits_ ^ (1ULL << 63));
   }
 
   //=========================================================================
@@ -693,28 +700,28 @@ public:
   //=========================================================================
 
   //! @brief Add and assign
-  _CCCL_HOST_DEVICE_API fp64_tool& operator+=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator+=(const fp_custom& __o) noexcept
   {
     *this = *this + __o;
     return *this;
   }
 
   //! @brief Subtract and assign
-  _CCCL_HOST_DEVICE_API fp64_tool& operator-=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator-=(const fp_custom& __o) noexcept
   {
     *this = *this - __o;
     return *this;
   }
 
   //! @brief Multiply and assign
-  _CCCL_HOST_DEVICE_API fp64_tool& operator*=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator*=(const fp_custom& __o) noexcept
   {
     *this = *this * __o;
     return *this;
   }
 
   //! @brief Divide and assign
-  _CCCL_HOST_DEVICE_API fp64_tool& operator/=(const fp64_tool& __o) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator/=(const fp_custom& __o) noexcept
   {
     *this = *this / __o;
     return *this;
@@ -725,21 +732,21 @@ public:
   //=========================================================================
 
   //! @brief Pre-increment
-  _CCCL_HOST_DEVICE_API fp64_tool& operator++() noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator++() noexcept
   {
-    *this = *this + fp64_tool(1.0);
+    *this = *this + fp_custom(1.0);
     return *this;
   }
 
   //! @brief Pre-decrement
-  _CCCL_HOST_DEVICE_API fp64_tool& operator--() noexcept
+  _CCCL_HOST_DEVICE_API fp_custom& operator--() noexcept
   {
-    *this = *this - fp64_tool(1.0);
+    *this = *this - fp_custom(1.0);
     return *this;
   }
 
   //! @brief Post-increment
-  _CCCL_HOST_DEVICE_API fp64_tool operator++(int) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator++(int) noexcept
   {
     auto __t = *this;
     ++(*this);
@@ -747,7 +754,7 @@ public:
   }
 
   //! @brief Post-decrement
-  _CCCL_HOST_DEVICE_API fp64_tool operator--(int) noexcept
+  _CCCL_HOST_DEVICE_API fp_custom operator--(int) noexcept
   {
     auto __t = *this;
     --(*this);
@@ -759,37 +766,37 @@ public:
   //=========================================================================
 
   //! @brief Equality comparison
-  _CCCL_HOST_DEVICE_API bool operator==(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator==(const fp_custom& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) == ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Inequality comparison
-  _CCCL_HOST_DEVICE_API bool operator!=(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator!=(const fp_custom& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) != ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Less than comparison
-  _CCCL_HOST_DEVICE_API bool operator<(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator<(const fp_custom& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) < ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Greater than comparison
-  _CCCL_HOST_DEVICE_API bool operator>(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator>(const fp_custom& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) > ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Less than or equal comparison
-  _CCCL_HOST_DEVICE_API bool operator<=(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator<=(const fp_custom& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) <= ::cuda::std::bit_cast<double>(__y.__bits_);
   }
 
   //! @brief Greater than or equal comparison
-  _CCCL_HOST_DEVICE_API bool operator>=(const fp64_tool& __y) const noexcept
+  _CCCL_HOST_DEVICE_API bool operator>=(const fp_custom& __y) const noexcept
   {
     return ::cuda::std::bit_cast<double>(__bits_) >= ::cuda::std::bit_cast<double>(__y.__bits_);
   }
@@ -809,16 +816,16 @@ private:
 //! @return Square root of x with precision callbacks applied
 //!
 //! @note Uses __dsqrt_rn intrinsic on CUDA, ::sqrt on host
-_CCCL_HOST_DEVICE_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom sqrt(const fp_custom& __x) noexcept
 {
   fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
-  _CCCL_FP64_TOOL_CALLBACK(__a);
+  _CCCL_FPTOOL_CUSTOM_CALLBACK(__a);
   fpbits64 __r{};
   NV_IF_ELSE_TARGET(NV_IS_DEVICE,
                     (__r = ::cuda::std::bit_cast<fpbits64>(::__dsqrt_rn(::cuda::std::bit_cast<double>(__a)));),
                     (__r = ::cuda::std::bit_cast<fpbits64>(::sqrt(::cuda::std::bit_cast<double>(__a)));))
-  _CCCL_FP64_TOOL_CALLBACK(__r);
-  return fp64_tool(fpbits64_raw, __r);
+  _CCCL_FPTOOL_CUSTOM_CALLBACK(__r);
+  return fp_custom(fpbits64_raw, __r);
 }
 
 //! @brief Fused multiply-add with precision callbacks
@@ -831,14 +838,14 @@ _CCCL_HOST_DEVICE_API inline fp64_tool sqrt(const fp64_tool& __x) noexcept
 //! @return (x * y) + z with precision callbacks applied to all operands and result
 //!
 //! @note Uses __fma_rn intrinsic on CUDA, ::fma on host
-_CCCL_HOST_DEVICE_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool& __y, const fp64_tool& __z) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom fma(const fp_custom& __x, const fp_custom& __y, const fp_custom& __z) noexcept
 {
   fpbits64 __a = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__x));
   fpbits64 __b = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__y));
   fpbits64 __c = ::cuda::std::bit_cast<fpbits64>(static_cast<double>(__z));
-  _CCCL_FP64_TOOL_CALLBACK(__a);
-  _CCCL_FP64_TOOL_CALLBACK(__b);
-  _CCCL_FP64_TOOL_CALLBACK(__c);
+  _CCCL_FPTOOL_CUSTOM_CALLBACK(__a);
+  _CCCL_FPTOOL_CUSTOM_CALLBACK(__b);
+  _CCCL_FPTOOL_CUSTOM_CALLBACK(__c);
   fpbits64 __r{};
   NV_IF_ELSE_TARGET(
     NV_IS_DEVICE,
@@ -846,8 +853,8 @@ _CCCL_HOST_DEVICE_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool
        ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));),
     (__r = ::cuda::std::bit_cast<fpbits64>(::fma(
        ::cuda::std::bit_cast<double>(__a), ::cuda::std::bit_cast<double>(__b), ::cuda::std::bit_cast<double>(__c)));))
-  _CCCL_FP64_TOOL_CALLBACK(__r);
-  return fp64_tool(fpbits64_raw, __r);
+  _CCCL_FPTOOL_CUSTOM_CALLBACK(__r);
+  return fp_custom(fpbits64_raw, __r);
 }
 
 //=============================================================================
@@ -855,177 +862,163 @@ _CCCL_HOST_DEVICE_API inline fp64_tool fma(const fp64_tool& __x, const fp64_tool
 //=============================================================================
 
 //! @name Mixed-Type Arithmetic Operators
-//! @brief Operators for combining fp64_tool with native arithmetic types
+//! @brief Operators for combining fp_custom with native arithmetic types
 //!
 //! These templates enable natural expressions like:
-//!   fp64_tool x = 1.5;
-//!   auto y = x + 2.0;   // fp64_tool + double
-//!   auto z = 3 * x;     // int * fp64_tool
+//!   fp_custom x = 1.5;
+//!   auto y = x + 2.0;   // fp_custom + double
+//!   auto z = 3 * x;     // int * fp_custom
 //! @{
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator+(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator+(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x + fp64_tool(static_cast<double>(__y));
+  return __x + fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator+(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator+(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) + __y;
+  return fp_custom(static_cast<double>(__x)) + __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator-(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator-(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x - fp64_tool(static_cast<double>(__y));
+  return __x - fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator-(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator-(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) - __y;
+  return fp_custom(static_cast<double>(__x)) - __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator*(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator*(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x * fp64_tool(static_cast<double>(__y));
+  return __x * fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator*(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator*(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) * __y;
+  return fp_custom(static_cast<double>(__x)) * __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator/(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator/(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x / fp64_tool(static_cast<double>(__y));
+  return __x / fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline fp64_tool operator/(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline fp_custom operator/(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) / __y;
+  return fp_custom(static_cast<double>(__x)) / __y;
 }
 
 //! @}
 
 //! @name Mixed-Type Comparison Operators
-//! @brief Comparison operators for fp64_tool with native arithmetic types
+//! @brief Comparison operators for fp_custom with native arithmetic types
 //! @{
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator==(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator==(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x == fp64_tool(static_cast<double>(__y));
+  return __x == fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator==(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator==(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) == __y;
+  return fp_custom(static_cast<double>(__x)) == __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator!=(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator!=(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x != fp64_tool(static_cast<double>(__y));
+  return __x != fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator!=(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator!=(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) != __y;
+  return fp_custom(static_cast<double>(__x)) != __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator<(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x < fp64_tool(static_cast<double>(__y));
+  return __x < fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator<(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) < __y;
+  return fp_custom(static_cast<double>(__x)) < __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator>(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x > fp64_tool(static_cast<double>(__y));
+  return __x > fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator>(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) > __y;
+  return fp_custom(static_cast<double>(__x)) > __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator<=(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<=(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x <= fp64_tool(static_cast<double>(__y));
+  return __x <= fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator<=(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator<=(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) <= __y;
+  return fp_custom(static_cast<double>(__x)) <= __y;
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator>=(const fp64_tool& __x, _Tp __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>=(const fp_custom& __x, _Tp __y) noexcept
 {
-  return __x >= fp64_tool(static_cast<double>(__y));
+  return __x >= fp_custom(static_cast<double>(__y));
 }
 
 _CCCL_TEMPLATE(typename _Tp)
 _CCCL_REQUIRES(::cuda::std::is_arithmetic_v<_Tp>)
-_CCCL_HOST_DEVICE_API inline bool operator>=(_Tp __x, const fp64_tool& __y) noexcept
+_CCCL_HOST_DEVICE_API inline bool operator>=(_Tp __x, const fp_custom& __y) noexcept
 {
-  return fp64_tool(static_cast<double>(__x)) >= __y;
+  return fp_custom(static_cast<double>(__x)) >= __y;
 }
 
 //! @}
-
-//=============================================================================
-// SECTION 8: Type Aliases
-//=============================================================================
-
-//! @brief Convenient type alias for fp64_tool
-//!
-//! Use this as a drop-in replacement for `double` in your code:
-//! @code
-//! using Real = fp64_tool;  // or double for production
-//! Real x = 1.5, y = 2.5;
-//! Real result = x + y;
-//! @endcode
-using fp64_tool = fp64_tool;
 } // namespace cuda::experimental
 
 #include <cuda/std/__cccl/epilogue.h>
 
-#endif // _CUDA___FP_FP64_TOOL_H
+#endif // _CUDA___FP_FPTOOL_CUSTOM_H

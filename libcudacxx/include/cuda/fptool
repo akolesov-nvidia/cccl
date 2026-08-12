@@ -21,7 +21,7 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__fp/fp64_tool.h>
+#include <cuda/__fp/fptool_custom.h>
 
 #endif // _CUDA_FPTOOL
 
