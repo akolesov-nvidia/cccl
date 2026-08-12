@@ -51,31 +51,23 @@
 //!
 //! ## Configuration Macros (define BEFORE including this header)
 //!
-//! | Macro                                 | Default   | Description                                     |
-//! |---------------------------------------|-----------|-------------------------------------------------|
-//! | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS`    | 52        | Number of mantissa bits to preserve (1-52)      |
-//! | `CCCL_FPTOOL_CUSTOM_EXPONENT_BITS`    | 11        | Number of exponent bits to preserve (1-11)      |
-//! | `CCCL_FPTOOL_CUSTOM_IEEE_ROUNDING`    | default   | Use IEEE 754 round-to-nearest-even              |
-//! | `CCCL_FPTOOL_CUSTOM_ROUND_TO_NEAREST` | -         | Simple round-to-nearest                         |
-//! | `CCCL_FPTOOL_CUSTOM_TRUNCATION`       | -         | Simple truncation (floor toward zero)           |
-//! | `CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW`     | -         | Preserve underflowing values (no flush to zero) |
-//! | `CCCL_FPTOOL_CUSTOM_NO_OVERFLOW`      | -         | Preserve overflowing values (no clamp to INF)   |
-//! | `CCCL_FPTOOL_CUSTOM_DISABLE`          | undefined | Disable precision emulation                     |
-//! | `CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE`     | undefined | Enable runtime precision control (see below)    |
+//! | Macro                              | Default   | Description                                  |
+//! |------------------------------------|-----------|----------------------------------------------|
+//! | `CCCL_FPTOOL_CUSTOM_MANTISSA_BITS` | 52        | Number of mantissa bits to preserve (1-52)   |
+//! | `CCCL_FPTOOL_CUSTOM_EXPONENT_BITS` | 11        | Number of exponent bits to preserve (1-11)   |
+//! | `CCCL_FPTOOL_CUSTOM_DISABLE`       | undefined | Disable precision emulation                  |
+//! | `CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE`  | undefined | Enable runtime precision control (see below) |
 //!
-//! ## Underflow/Overflow Control
+//! Mantissa reduction always uses IEEE 754 round-to-nearest-even.
+//!
+//! ## Underflow/Overflow Behavior
 //!
 //! When exponent bits are reduced (e.g., from 11 to 8 for FP32 emulation), values outside
-//! the new dynamic range will normally be clamped:
+//! the new dynamic range are clamped:
 //!   - **Overflow**: Values too large for reduced exponent → Infinity (±INF)
 //!   - **Underflow**: Values too small for reduced exponent → Zero (±0)
 //!
-//! Defining these macros changes this behavior:
-//!   - `CCCL_FPTOOL_CUSTOM_NO_OVERFLOW`: Keep original FP64 value when it would overflow
-//!   - `CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW`: Keep original FP64 value when it would underflow
-//!
-//! This is useful for algorithms that need extended dynamic range while still
-//! emulating reduced mantissa precision.
+//! In both cases the sign is preserved, and the clamped result skips mantissa reduction.
 //!
 //! ## Common Precision Configurations
 //!
@@ -166,8 +158,8 @@
 
 //! @brief Number of mantissa bits to preserve (1-52)
 //!
-//! FP64 has 52 explicit mantissa bits. Setting this lower truncates/rounds
-//! the mantissa to simulate reduced precision. Common values:
+//! FP64 has 52 explicit mantissa bits. Setting this lower rounds the mantissa
+//! to simulate reduced precision. Common values:
 //!   - 52: Full FP64 precision (no reduction)
 //!   - 23: FP32/float precision
 //!   - 10: FP16/TF32 precision
@@ -347,8 +339,8 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 //!    - Preserves the sign bit
 //!
 //! 2. **Mantissa reduction** (if CCCL_FPTOOL_CUSTOM_MANTISSA_BITS < 52):
-//!    - Excess mantissa bits are removed via truncation or rounding
-//!    - Three rounding modes available: truncation, round-to-nearest, IEEE 754
+//!    - Excess mantissa bits are removed using IEEE 754 round-to-nearest-even
+//!    - NaN and infinity are left untouched
 //!
 //! @param v  Reference to the bit pattern to modify (modified in place)
 //!
@@ -357,20 +349,17 @@ inline constexpr fpbits64_raw_tag fpbits64_raw{};
 #if defined _CCCL_FPTOOL_CUSTOM_ENABLE
 _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
 {
-  (void) __v; /* Suppress unused parameter warning when no reduction is configured */
   //-------------------------------------------------------------------------
   // Phase 1: Exponent Range Reduction
   //-------------------------------------------------------------------------
 #  if defined(_CCCL_FPTOOL_CUSTOM_REDUCE_EXPONENT)
-/* Only check overflow/underflow if at least one clamping mode is enabled */
-#    if !defined(CCCL_FPTOOL_CUSTOM_NO_OVERFLOW) || !defined(CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW)
   {
 /* Get the exponent bits for the device or host */
-#      if _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE
+#    if _CCCL_FPTOOL_CUSTOM_RUNTIME_SIZE
     _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __exponent_bits = __fp_custom_exponent_bits();
-#      else
+#    else
     _CCCL_FPTOOL_CUSTOM_CONST_QUALIFIER int __exponent_bits = CCCL_FPTOOL_CUSTOM_EXPONENT_BITS;
-#      endif
+#    endif
 
     /* IEEE 754 double-precision bit layout:
      * [63]    - Sign bit
@@ -387,8 +376,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
     int64_t __unbiased_exp = (int64_t) __exp_bits - __original_bias;
     int64_t __new_exp_bits = __unbiased_exp + __new_bias;
 
-/* Check for overflow/underflow in reduced exponent range */
-#      if !defined(CCCL_FPTOOL_CUSTOM_NO_OVERFLOW)
+    /* Check for overflow/underflow in reduced exponent range */
     if (__new_exp_bits > __max_encoded)
     {
       /* Overflow: clamp to FP64 infinity (preserve sign) */
@@ -397,9 +385,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
       __v                               = (__bits & __sign_mask) | __fp64_inf_exp;
       return; /* INF doesn't need mantissa reduction */
     }
-#      endif
 
-#      if !defined(CCCL_FPTOOL_CUSTOM_NO_UNDERFLOW)
     if (__new_exp_bits < 1)
     {
       /* Underflow: flush to signed zero */
@@ -407,10 +393,8 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
       __v                            = __bits & __sign_mask;
       return; /* Zero doesn't need mantissa reduction */
     }
-#      endif
     /* Normal range: fall through to mantissa reduction */
   }
-#    endif /* !NO_OVERFLOW || !NO_UNDERFLOW */
 #  endif /* _CCCL_FPTOOL_CUSTOM_REDUCE_EXPONENT */
 
   //-------------------------------------------------------------------------
@@ -427,27 +411,8 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
   /* Calculate how many low bits to discard */
   const int __reduce_mantissa_bits = 52 - __mantissa_bits;
 
-#    if defined(CCCL_FPTOOL_CUSTOM_TRUNCATION)
   //---------------------------------------------------------------------
-  // Mode A: Simple Truncation (round toward zero)
-  //---------------------------------------------------------------------
-  /* Just shift out the low bits and shift back (zeros the low bits) */
-  __v >>= __reduce_mantissa_bits;
-  __v <<= __reduce_mantissa_bits;
-
-#    elif defined(CCCL_FPTOOL_CUSTOM_ROUND_TO_NEAREST)
-  //---------------------------------------------------------------------
-  // Mode B: Round to Nearest (biased - always rounds 0.5 up)
-  //---------------------------------------------------------------------
-  /* Add half the quantization step before truncating */
-  /* Incorrect for Infs and NaNs */
-  __v += 1ULL << (__reduce_mantissa_bits - 1);
-  __v >>= __reduce_mantissa_bits;
-  __v <<= __reduce_mantissa_bits;
-
-#    else /* CCCL_FPTOOL_CUSTOM_IEEE_ROUNDING (default) */
-  //---------------------------------------------------------------------
-  // Mode C: IEEE 754 Round-to-Nearest-Even (banker's rounding)
+  // IEEE 754 Round-to-Nearest-Even (banker's rounding)
   //---------------------------------------------------------------------
   /* This is the default rounding mode in IEEE 754 and produces
    * statistically unbiased results for random data.
@@ -475,7 +440,6 @@ _CCCL_TRIVIAL_HOST_DEVICE_API void __fp_custom_callback(fpbits64& __v) noexcept
     __v >>= __reduce_mantissa_bits;
     __v <<= __reduce_mantissa_bits;
   }
-#    endif /* rounding mode selection */
 #  endif /* _CCCL_FPTOOL_CUSTOM_REDUCE_MANTISSA */
 
 } /* __fp_custom_callback */
