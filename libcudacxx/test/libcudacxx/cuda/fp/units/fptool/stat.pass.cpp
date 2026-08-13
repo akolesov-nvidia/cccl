@@ -299,6 +299,19 @@ void check_slot_sampled(const cudax::fpmp2_stat_value& slot)
   assert(slot.zero_count == 0ull);
 }
 
+// Atomic accumulation must reach the same total as the wrapped type, return the old
+// value the same way, and be counted. One thread per lane adds its own value.
+constexpr int atomic_threads = 32;
+
+__global__ void atomic_kernel(base_t* base_total, stat_t* stat_total, float* base_olds, float* stat_olds)
+{
+  const int lane      = static_cast<int>(threadIdx.x);
+  const float summand = 1.0f + static_cast<float>(lane) / 3.0f;
+
+  base_olds[lane] = atomicAdd(base_total, base_t(summand)).hi();
+  stat_olds[lane] = atomicAdd(stat_total, stat_t(summand)).hi();
+}
+
 // An inexact quotient needs both limbs, so its summary must carry a gap sample. In a
 // normalized double-float |lo| <= ulp(hi)/2, which puts the exponents at least
 // digits(float) = 24 places apart.
@@ -380,6 +393,37 @@ void test_device_record()
   assert(after_gap.arg[0].zero_lo_count == 1ull);
   assert(after_gap.arg[1].zero_lo_count == 1ull);
   assert(after_gap.result.zero_lo_count == 0ull);
+
+  { // atomics: same total as the wrapped type, and counted
+    base_t* base_total = nullptr;
+    stat_t* stat_total = nullptr;
+    float* base_olds   = nullptr;
+    float* stat_olds   = nullptr;
+    assert(cudaMallocManaged(&base_total, sizeof(base_t)) == cudaSuccess);
+    assert(cudaMallocManaged(&stat_total, sizeof(stat_t)) == cudaSuccess);
+    assert(cudaMallocManaged(&base_olds, atomic_threads * sizeof(float)) == cudaSuccess);
+    assert(cudaMallocManaged(&stat_olds, atomic_threads * sizeof(float)) == cudaSuccess);
+    *base_total = base_t(0.0f);
+    *stat_total = stat_t(0.0f);
+
+    assert(cudax::fpmp2_stat_reset_device_data() == cudaSuccess);
+    atomic_kernel<<<1, atomic_threads>>>(base_total, stat_total, base_olds, stat_olds);
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+
+    assert(base_total->hi() == stat_total->hi());
+    assert(base_total->lo() == stat_total->lo());
+
+    cudax::fpmp2_stat_data after_atomics{};
+    assert(cudax::fpmp2_stat_read_device_data(&after_atomics) == cudaSuccess);
+    assert(after_atomics.add_count == static_cast<unsigned long long int>(atomic_threads));
+    assert(after_atomics.ops_count == static_cast<unsigned long long int>(atomic_threads));
+
+    assert(cudaFree(base_total) == cudaSuccess);
+    assert(cudaFree(stat_total) == cudaSuccess);
+    assert(cudaFree(base_olds) == cudaSuccess);
+    assert(cudaFree(stat_olds) == cudaSuccess);
+  }
 
   assert(cudaFree(sink) == cudaSuccess);
 }

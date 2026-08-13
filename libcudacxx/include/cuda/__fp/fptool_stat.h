@@ -49,8 +49,8 @@
 //!
 //! ## What Is Collected
 //!
-//! Each binary `+`, `-`, `*`, `/` - including the compound assignments, `++`, `--` and
-//! the mixed value/scalar overloads - increments the matching operation counter and
+//! Each binary `+`, `-`, `*`, `/` - including the compound assignments, `++`, `--`, the
+//! mixed value/scalar overloads and `atomicAdd`/`atomicSub` - increments its counter and
 //! summarizes its two operands and its result into `fpmp2_stat_data::arg[0]`, `arg[1]`
 //! and `result`. A summary (`fpmp2_stat_value`) records the exponent range of the `hi`
 //! limb, how often the value or its `lo` limb was zero, how often infinities and NaNs
@@ -1033,6 +1033,32 @@ _CCCL_REQUIRES(
 }
 
 #if _CCCL_CUDA_COMPILATION()
+// === atomics ===
+// Atomic accumulation into a shared or global value, mirroring the fpmp2 overloads and
+// returning the old value as they do. These are instrumented, since they perform the
+// arithmetic the counters are about, with one caveat: the result summary is the sum
+// recomputed from the returned old value rather than one observed inside the atomic, so
+// a value that another thread's update changed in between is summarized as this thread
+// computed it.
+
+template <class _FpType, fpmp2_accuracy _TypeAcc>
+_CCCL_DEVICE_API inline fpmp2_stat<_FpType, _TypeAcc>
+atomicAdd(fpmp2_stat<_FpType, _TypeAcc>* __address, const fpmp2_stat<_FpType, _TypeAcc>& __val) noexcept
+{
+  const fpmp2<_FpType, _TypeAcc> __old = atomicAdd(&__address->as_fpmp2(), __val.as_fpmp2());
+  __fpmp2_stat_note_binop<__fpmp2_stat_binop::__add>(__old, __val.as_fpmp2(), __old + __val.as_fpmp2());
+  return fpmp2_stat<_FpType, _TypeAcc>(__old);
+}
+
+template <class _FpType, fpmp2_accuracy _TypeAcc>
+_CCCL_DEVICE_API inline fpmp2_stat<_FpType, _TypeAcc>
+atomicSub(fpmp2_stat<_FpType, _TypeAcc>* __address, const fpmp2_stat<_FpType, _TypeAcc>& __val) noexcept
+{
+  const fpmp2<_FpType, _TypeAcc> __old = atomicSub(&__address->as_fpmp2(), __val.as_fpmp2());
+  __fpmp2_stat_note_binop<__fpmp2_stat_binop::__sub>(__old, __val.as_fpmp2(), __old - __val.as_fpmp2());
+  return fpmp2_stat<_FpType, _TypeAcc>(__old);
+}
+
 // === warp shuffles ===
 // Overloads of CUDA's __shfl_sync family, mirroring the fpmp2 ones so that a kernel
 // written against the wrapped type keeps compiling after the swap. Thread-cooperation
