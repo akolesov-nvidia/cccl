@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef _CUDA_FPTOOL
-#define _CUDA_FPTOOL
+#ifndef _CUDA_FPTOOL_MATH
+#define _CUDA_FPTOOL_MATH
 
 #include <cuda/std/detail/__config>
 
@@ -21,14 +21,17 @@
 #  pragma system_header
 #endif // no system header
 
-// fp_custom: a drop-in `double` with a configurable exponent and mantissa size.
-#include <cuda/__fp/fptool_custom.h>
-// fpmp2_stat: a drop-in fpmp2 that counts the arithmetic it performs.
+// Math functions for the analysis types of <cuda/fptool> (exp, log, pow, sin, cos, ...).
 //
-// The math functions for fpmp2_stat live in a separate umbrella header,
-// <cuda/fptool_math>, because they rest on <cuda/fpmp_math>, so translation units that
-// only need the core types do not pay its compile-time cost.
+// This pulls in the core <cuda/fptool> umbrella as well, so including
+// <cuda/fptool_math> alone is sufficient to get the full fptool API. Translation units
+// that do not need math functions should include <cuda/fptool> instead to avoid the
+// additional compile-time cost of the fpmp math header underneath.
+//
+// fp_custom needs no counterpart here: its math functions come from the standard
+// spellings on `double` and live in <cuda/__fp/fptool_custom.h> itself.
+#include <cuda/__fp/fptool_custom.h>
 #include <cuda/__fp/fptool_stat.h>
+#include <cuda/__fp/fptool_stat_math.h>
 
-#endif // _CUDA_FPTOOL
-
+#endif // _CUDA_FPTOOL_MATH
