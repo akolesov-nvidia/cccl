@@ -289,9 +289,9 @@ __global__ void counting_kernel(float* sink)
 void check_slot_sampled(const cudax::fpmp2_stat_value& slot)
 {
   assert(slot.min_exp <= slot.max_exp);
-  assert(slot.min_hi_lo_mantissa_gap <= slot.max_hi_lo_mantissa_gap
-         || (slot.min_hi_lo_mantissa_gap == cuda::std::numeric_limits<int>::max()
-             && slot.max_hi_lo_mantissa_gap == cuda::std::numeric_limits<int>::min()));
+  assert(slot.min_hi_lo_gap <= slot.max_hi_lo_gap
+         || (slot.min_hi_lo_gap == cuda::std::numeric_limits<int>::max()
+             && slot.max_hi_lo_gap == cuda::std::numeric_limits<int>::min()));
   // The operands are small exact values, so nothing degenerate should appear.
   assert(slot.nan_count == 0ull);
   assert(slot.inf_count == 0ull);
@@ -313,8 +313,8 @@ __global__ void atomic_kernel(base_t* base_total, stat_t* stat_total, float* bas
 }
 
 // An inexact quotient needs both limbs, so its summary must carry a gap sample. In a
-// normalized double-float |lo| <= ulp(hi)/2, which puts the exponents at least
-// digits(float) = 24 places apart.
+// normalized double-float |lo| <= ulp(hi)/2, so the reported gap - the exponent difference
+// with the mantissa width taken out - must be at least zero.
 __global__ void gap_kernel(float* sink)
 {
   const stat_t third = stat_t(1.0f) / stat_t(3.0f);
@@ -347,8 +347,8 @@ void test_device_record()
   // Armed ranges: empty, so the first sample replaces both ends.
   assert(after_reset.result.min_exp == sentinel_max);
   assert(after_reset.result.max_exp == sentinel_min);
-  assert(after_reset.result.min_hi_lo_mantissa_gap == sentinel_max);
-  assert(after_reset.result.max_hi_lo_mantissa_gap == sentinel_min);
+  assert(after_reset.result.min_hi_lo_gap == sentinel_max);
+  assert(after_reset.result.max_hi_lo_gap == sentinel_min);
 
   counting_kernel<<<1, 1>>>(sink);
   assert(cudaGetLastError() == cudaSuccess);
@@ -387,8 +387,10 @@ void test_device_record()
   assert(cudax::fpmp2_stat_read_device_data(&after_gap) == cudaSuccess);
 
   assert(after_gap.div_count == 1ull);
-  assert(after_gap.result.min_hi_lo_mantissa_gap <= after_gap.result.max_hi_lo_mantissa_gap);
-  assert(after_gap.result.min_hi_lo_mantissa_gap >= cuda::std::numeric_limits<float>::digits);
+  assert(after_gap.result.min_hi_lo_gap <= after_gap.result.max_hi_lo_gap);
+  // The gap is measured against a tightly normalized pair, so def accuracy - which
+  // renormalizes - must never report an overlap.
+  assert(after_gap.result.min_hi_lo_gap >= 0);
   // The operands 1 and 3 are exact, so their own lo limbs are zero.
   assert(after_gap.arg[0].zero_lo_count == 1ull);
   assert(after_gap.arg[1].zero_lo_count == 1ull);

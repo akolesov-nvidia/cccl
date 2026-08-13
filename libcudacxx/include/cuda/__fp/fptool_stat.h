@@ -54,8 +54,10 @@
 //! summarizes its two operands and its result into `fpmp2_stat_data::arg[0]`, `arg[1]`
 //! and `result`. A summary (`fpmp2_stat_value`) records the exponent range of the `hi`
 //! limb, how often the value or its `lo` limb was zero, how often infinities and NaNs
-//! appeared, and the range of the exponent gap between the `hi` and `lo` limbs, which
-//! tells how much of the double-word precision the computation actually uses.
+//! appeared, and the range of the gap between the `hi` and `lo` limbs, which tells how much
+//! of the double-word precision the computation actually uses: the gap is 0 or 1 for a
+//! normalized pair, negative where the limbs overlap and larger where precision is held in
+//! reserve.
 //!
 //! `sqrt`, `rsqrt`, `fma`, `mad`, `renormalize` and the math functions from
 //! `<cuda/fptool_math>` are not counted: they are composites whose internal operations
@@ -80,7 +82,7 @@
 //! mode each translation unit gets its own device copy, and a reset or read then only
 //! sees the copy belonging to its own translation unit.
 //!
-//! @note The exponent gap sample (`min_hi_lo_mantissa_gap_sample_hi` / `_lo`) is best-effort
+//! @note The limb gap sample (`min_hi_lo_gap_sample_hi` / `_lo`) is best-effort
 //! under concurrency: a thread with a larger gap never overwrites it, but two threads
 //! lowering the minimum at once may leave the sample of either one.
 //! @note Instrumentation costs a handful of atomics per operation, so a `_stat` type is
@@ -143,23 +145,34 @@ struct fpmp2_stat_value
   unsigned long long int nan_count;
   //! @brief Values whose limbs were infinities of opposite signs, whose sum is a NaN
   unsigned long long int infnan_count;
-  //! @brief Largest `exp(hi) - exp(lo)` seen, `numeric_limits<int>::min()` until a value
+  //! @brief Largest gap between the limbs seen, `numeric_limits<int>::min()` until a value
   //! is sampled
   //!
-  //! A normalized double-word continues the mantissa of `hi` in `lo`, so the gap is the
-  //! mantissa size of the base type. A larger gap means zero bits in between, i.e. the
-  //! value spans more magnitude than the format's contiguous precision.
-  int max_hi_lo_mantissa_gap;
-  //! @brief Smallest `exp(hi) - exp(lo)` seen, `numeric_limits<int>::max()` until a value
+  //! The gap is `exp(hi) - exp(lo) - digits`, i.e. the raw exponent difference with the
+  //! mantissa width of the base type taken out, so it says how far the pair is from being
+  //! tightly normalized rather than how wide the format is:
+  //!
+  //! - `0` or `1`: normalized. A normalized `lo` is at most half an ulp of `hi`, which puts
+  //!   its exponent exactly `digits` places below, so no bits are wasted and none overlap.
+  //! - negative: the limbs overlap, so the pair carries fewer significant bits than its two
+  //!   limbs suggest. Only the `low` accuracy level, which skips renormalization, produces
+  //!   this.
+  //! - much greater than `1`: `lo` sits well below half an ulp of `hi`, so the second limb
+  //!   is barely carrying anything and the pair has that many bits of accuracy in reserve.
+  //!
+  //! @note A subnormal `lo` overstates the gap, because a subnormal's exponent field is
+  //! pinned at the format minimum instead of reporting the leading bit's position.
+  int max_hi_lo_gap;
+  //! @brief Smallest gap between the limbs seen, `numeric_limits<int>::max()` until a value
   //! is sampled
   //!
-  //! A gap below the mantissa size means the limbs overlap, i.e. the pair is not
-  //! normalized, which the `low` accuracy level allows.
-  int min_hi_lo_mantissa_gap;
-  //! @brief `hi` limb of a value that lowered `min_hi_lo_mantissa_gap`, for inspection
-  double min_hi_lo_mantissa_gap_sample_hi;
+  //! Defined as for `max_hi_lo_gap`. This is the interesting end of the range: a negative
+  //! minimum reports that unnormalized pairs occurred, and how badly the limbs overlapped.
+  int min_hi_lo_gap;
+  //! @brief `hi` limb of a value that lowered `min_hi_lo_gap`, for inspection
+  double min_hi_lo_gap_sample_hi;
   //! @brief `lo` limb of the same value
-  double min_hi_lo_mantissa_gap_sample_lo;
+  double min_hi_lo_gap_sample_lo;
 };
 
 //! @brief The record a `_stat` type fills in on the device
@@ -199,10 +212,10 @@ enum class __fpmp2_stat_binop
 [[nodiscard]] _CCCL_HOST_DEVICE_API constexpr fpmp2_stat_value __fpmp2_stat_cleared_value() noexcept
 {
   fpmp2_stat_value __slot{};
-  __slot.max_exp                = ::cuda::std::numeric_limits<int>::min();
-  __slot.min_exp                = ::cuda::std::numeric_limits<int>::max();
-  __slot.max_hi_lo_mantissa_gap = ::cuda::std::numeric_limits<int>::min();
-  __slot.min_hi_lo_mantissa_gap = ::cuda::std::numeric_limits<int>::max();
+  __slot.max_exp       = ::cuda::std::numeric_limits<int>::min();
+  __slot.min_exp       = ::cuda::std::numeric_limits<int>::max();
+  __slot.max_hi_lo_gap = ::cuda::std::numeric_limits<int>::min();
+  __slot.min_hi_lo_gap = ::cuda::std::numeric_limits<int>::max();
   return __slot;
 }
 
@@ -345,15 +358,21 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
 
     if (!__lo_is_zero)
     {
-      const int __gap      = __p_hi.__exp - __p_lo.__exp;
-      const int __prev_min = ::atomicMin(&__slot->min_hi_lo_mantissa_gap, __gap);
-      ::atomicMax(&__slot->max_hi_lo_mantissa_gap, __gap);
+      // Measured against a tightly normalized pair rather than as a raw exponent
+      // difference: a normalized `lo` is at most half an ulp of `hi`, which puts its
+      // exponent `digits` places below, so subtracting `digits` makes 0 the tight case and
+      // a negative value an overlap. See the field documentation.
+      constexpr int __digits = ::cuda::std::numeric_limits<_FpType>::digits;
+
+      const int __gap      = __p_hi.__exp - __p_lo.__exp - __digits;
+      const int __prev_min = ::atomicMin(&__slot->min_hi_lo_gap, __gap);
+      ::atomicMax(&__slot->max_hi_lo_gap, __gap);
 
       // Best-effort sample of the tightest pair seen, see the note in the file comment.
       if (__gap < __prev_min)
       {
-        __slot->min_hi_lo_mantissa_gap_sample_hi = static_cast<double>(__hi);
-        __slot->min_hi_lo_mantissa_gap_sample_lo = static_cast<double>(__lo);
+        __slot->min_hi_lo_gap_sample_hi = static_cast<double>(__hi);
+        __slot->min_hi_lo_gap_sample_lo = static_cast<double>(__lo);
       }
     }
   }
