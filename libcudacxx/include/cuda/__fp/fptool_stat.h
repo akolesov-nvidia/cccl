@@ -59,6 +59,10 @@
 //! normalized pair, negative where the limbs overlap and larger where precision is held in
 //! reserve.
 //!
+//! Each of the three slots receives exactly one value per counted operation, so
+//! `ops_count` is the total to divide by when turning a count into a share, as in
+//! `zero_lo_count / ops_count`.
+//!
 //! `sqrt`, `rsqrt`, `fma`, `mad`, `renormalize` and the math functions from
 //! `<cuda/fptool_math>` are not counted: they are composites whose internal operations
 //! would swamp the counters. `arg[2]` is reserved for a future ternary operation.
