@@ -53,10 +53,10 @@
 //! mixed value/scalar overloads and `atomicAdd`/`atomicSub` - increments its counter and
 //! summarizes its two operands and its result into `fpmp2_stat_data::arg[0]`, `arg[1]`
 //! and `result`. A summary (`fpmp2_stat_value`) records the exponent range of the `hi`
-//! limb, how often the value or its `lo` limb was zero, how often infinities and NaNs
-//! appeared, and the range of the gap between the `hi` and `lo` limbs, which tells how much
-//! of the double-word precision the computation actually uses: the gap is 0 or 1 for a
-//! normalized pair, negative where the limbs overlap and larger where precision is held in
+//! limb, how often the value or its `lo` limb was zero, how often infinities, NaNs and
+//! subnormals appeared, and the range of the gap between the `hi` and `lo` limbs, which tells
+//! how much of the double-word precision the computation actually uses: the gap is 0 or 1 for
+//! a normalized pair, negative where the limbs overlap and larger where precision is held in
 //! reserve.
 //!
 //! Each of the three slots receives exactly one value per counted operation, so
@@ -95,6 +95,7 @@
 #include <cuda/__fp/fpmp.h>
 #include <cuda/__fp/fpmp_limits.h>
 #include <cuda/std/__bit/bit_cast.h>
+#include <cuda/std/__bit/countl.h>
 #include <cuda/std/__concepts/concept_macros.h>
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__type_traits/is_arithmetic.h>
@@ -149,6 +150,18 @@ struct fpmp2_stat_value
   unsigned long long int nan_count;
   //! @brief Values whose limbs were infinities of opposite signs, whose sum is a NaN
   unsigned long long int infnan_count;
+  //! @brief Values with a subnormal `hi` or `lo`, counted once per value
+  //!
+  //! A non-zero count says the computation reached the bottom of the exponent range, where
+  //! precision degrades gradually. It matters for two reasons beyond the usual performance
+  //! concern: the `low` and `mid` accuracy levels support the normal range only, so any
+  //! subnormal means such a configuration is being used outside its domain; and a subnormal
+  //! `lo` costs the pair its tail, since `lo` normally sits `digits` binades below `hi` and
+  //! cannot go there once it is subnormal.
+  //!
+  //! `lo` reaches that limit long before `hi` does, so this counter usually reports the
+  //! precision loss rather than a subnormal result.
+  unsigned long long int denorm_count;
   //! @brief Largest gap between the limbs seen, `numeric_limits<int>::min()` until a value
   //! is sampled
   //!
@@ -164,8 +177,9 @@ struct fpmp2_stat_value
   //! - much greater than `1`: `lo` sits well below half an ulp of `hi`, so the second limb
   //!   is barely carrying anything and the pair has that many bits of accuracy in reserve.
   //!
-  //! @note A subnormal `lo` overstates the gap, because a subnormal's exponent field is
-  //! pinned at the format minimum instead of reporting the leading bit's position.
+  //! Subnormal limbs are measured by their leading significant bit, as `ilogb` would report
+  //! them, so a subnormal `lo` does not fake an overlap. It does mean the pair lost part of
+  //! its tail, which `denorm_count` reports.
   int max_hi_lo_gap;
   //! @brief Smallest gap between the limbs seen, `numeric_limits<int>::max()` until a value
   //! is sampled
@@ -282,8 +296,14 @@ _CCCL_HOST_API inline cudaError_t fpmp2_stat_read_device_data(fpmp2_stat_data* _
 struct __fpmp2_stat_parts
 {
   // Unbiased exponent, i.e. the encoded field minus the bias. Zero and subnormals share
-  // the lowest value, -bias, and infinity and NaN the highest one.
+  // the lowest value, -bias, and infinity and NaN the highest one. Use it to classify a
+  // limb, not to measure it.
   int __exp;
+  // What ilogb would report: the position of the leading significant bit. Identical to
+  // __exp for normal values, but a subnormal's encoded field is pinned at its minimum and
+  // says nothing about the magnitude, so the leading mantissa bit has to be located.
+  // Meaningless for zero, infinity and NaN, which the callers exclude.
+  int __exp_ilogb;
   bool __mant_is_zero;
   bool __exp_is_max;
   bool __sign;
@@ -304,9 +324,18 @@ template <class _FpType>
 
   const _UInt __bits = ::cuda::std::bit_cast<_UInt>(__x);
   const int __exp    = static_cast<int>((__bits >> __mant_size) & static_cast<_UInt>(__exp_max));
+  const _UInt __mant = __bits & ((_UInt{1} << __mant_size) - _UInt{1});
+
+  // A subnormal is `mant * 2^(1 - bias - mant_size)`, so its leading bit sits at
+  // `msb(mant) + 1 - bias - mant_size`. The count is computed unconditionally, which is one
+  // instruction, rather than behind a branch that would practically never be taken.
+  const int __msb        = static_cast<int>(8 * sizeof(_UInt)) - 1 - ::cuda::std::countl_zero(__mant);
+  const bool __is_denorm = __exp == 0 && __mant != _UInt{0};
+  const int __exp_ilogb  = __is_denorm ? (__msb + 1 - __bias - __mant_size) : (__exp - __bias);
 
   return {__exp - __bias,
-          (__bits & ((_UInt{1} << __mant_size) - _UInt{1})) == _UInt{0},
+          __exp_ilogb,
+          __mant == _UInt{0},
           __exp == __exp_max,
           (__bits >> (8 * sizeof(_UInt) - 1)) != _UInt{0}};
 }
@@ -330,6 +359,10 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
   const bool __is_inf = (__p_hi.__exp_is_max && __p_hi.__mant_is_zero) //
                      || (__p_lo.__exp_is_max && __p_lo.__mant_is_zero);
   const bool __is_finite = !__p_hi.__exp_is_max && !__p_lo.__exp_is_max;
+  // A subnormal is the minimum exponent field with a non-zero mantissa, which is what the
+  // zero tests above rule out. Either limb counts.
+  const bool __is_denorm = (__p_hi.__exp == __exp_min && !__p_hi.__mant_is_zero) //
+                        || (__p_lo.__exp == __exp_min && !__p_lo.__mant_is_zero);
 
   if (__is_nan)
   {
@@ -346,6 +379,10 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
   {
     ::atomicAdd(&__slot->infnan_count, 1ull);
   }
+  if (__is_denorm)
+  {
+    ::atomicAdd(&__slot->denorm_count, 1ull);
+  }
   if (__is_zero)
   {
     ::atomicAdd(&__slot->zero_count, 1ull);
@@ -357,8 +394,8 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
 
   if (__is_finite && !__is_zero)
   {
-    ::atomicMax(&__slot->max_exp, __p_hi.__exp);
-    ::atomicMin(&__slot->min_exp, __p_hi.__exp);
+    ::atomicMax(&__slot->max_exp, __p_hi.__exp_ilogb);
+    ::atomicMin(&__slot->min_exp, __p_hi.__exp_ilogb);
 
     if (!__lo_is_zero)
     {
@@ -368,7 +405,7 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
       // a negative value an overlap. See the field documentation.
       constexpr int __digits = ::cuda::std::numeric_limits<_FpType>::digits;
 
-      const int __gap      = __p_hi.__exp - __p_lo.__exp - __digits;
+      const int __gap      = __p_hi.__exp_ilogb - __p_lo.__exp_ilogb - __digits;
       const int __prev_min = ::atomicMin(&__slot->min_hi_lo_gap, __gap);
       ::atomicMax(&__slot->max_hi_lo_gap, __gap);
 

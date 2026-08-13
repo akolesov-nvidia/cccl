@@ -297,6 +297,7 @@ void check_slot_sampled(const cudax::fpmp2_stat_value& slot)
   assert(slot.inf_count == 0ull);
   assert(slot.infnan_count == 0ull);
   assert(slot.zero_count == 0ull);
+  assert(slot.denorm_count == 0ull);
 }
 
 // Atomic accumulation must reach the same total as the wrapped type, return the old
@@ -319,6 +320,18 @@ __global__ void gap_kernel(float* sink)
 {
   const stat_t third = stat_t(1.0f) / stat_t(3.0f);
   *sink              = third.lo();
+}
+
+// Subnormals must be recognized and must not distort the exponent or gap measurements,
+// which is why a subnormal limb is measured by its leading bit rather than by its encoded
+// exponent field. The product underflows into the subnormal range; the quotient keeps a
+// normal hi whose tail cannot stay normal, since a normalized lo sits `digits` binades
+// lower. Both are one operation each.
+__global__ void denorm_kernel(float* sink)
+{
+  const stat_t product = stat_t(1e-30f) * stat_t(1e-12f); // about 1e-42, subnormal
+  const stat_t tail    = stat_t(1e-35f) / stat_t(3.0f); // hi about 3.3e-36, lo subnormal
+  *sink                = product.hi() + tail.lo();
 }
 
 void test_device_record()
@@ -395,6 +408,32 @@ void test_device_record()
   assert(after_gap.arg[0].zero_lo_count == 1ull);
   assert(after_gap.arg[1].zero_lo_count == 1ull);
   assert(after_gap.result.zero_lo_count == 0ull);
+  // Nothing here comes near the bottom of the exponent range.
+  assert(after_gap.result.denorm_count == 0ull);
+
+  { // subnormals: recognized, and measured by their leading bit
+    assert(cudax::fpmp2_stat_reset_device_data() == cudaSuccess);
+    denorm_kernel<<<1, 1>>>(sink);
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+
+    cudax::fpmp2_stat_data after_denorm{};
+    assert(cudax::fpmp2_stat_read_device_data(&after_denorm) == cudaSuccess);
+
+    // The two results are subnormal; all four operands are ordinary values.
+    assert(after_denorm.result.denorm_count == 2ull);
+    assert(after_denorm.arg[0].denorm_count == 0ull);
+    assert(after_denorm.arg[1].denorm_count == 0ull);
+    // Underflow must reach the subnormal range rather than flush to zero.
+    assert(after_denorm.result.zero_count == 0ull);
+    // A subnormal lo would fake an overlap if it were measured by its encoded exponent
+    // field, which is pinned at the format minimum: the quotient is normalized, so the gap
+    // must come out non-negative all the same.
+    assert(after_denorm.result.min_hi_lo_gap >= 0);
+    // Subnormal exponents lie below the smallest normal one, which the pinned field could
+    // never report.
+    assert(after_denorm.result.min_exp < cuda::std::numeric_limits<float>::min_exponent - 1);
+  }
 
   { // atomics: same total as the wrapped type, and counted
     base_t* base_total = nullptr;
