@@ -140,6 +140,9 @@
 //! device that sharing needs relocatable device code (`-rdc=true`); in whole-program mode
 //! each translation unit necessarily gets its own device copy.
 //!
+//! Under NVRTC only the device accessors exist, since a JIT compilation has no host side.
+//! They are then reached from device code, where they touch the variable directly.
+//!
 //! @note There is a small performance cost compared to fixed sizes because the sizes are
 //! read from memory instead of being folded into the code.
 //! @note Thread Safety: All operations are thread-safe (no shared mutable state) unless a
@@ -221,11 +224,16 @@ struct __fp_custom_native_sizes<_Float64> : __fp_custom_native_sizes<double>
 //
 // They are the only mutable namespace-scope variables in this library; everything else
 // at namespace scope is an immutable _CCCL_GLOBAL_CONSTANT or a constexpr trait.
+//
+// NVRTC compiles device code only, so the host half of the state and of the accessors
+// does not exist there; the device half below is what a JIT-compiled kernel uses.
+#if !_CCCL_COMPILER(NVRTC)
 template <typename _FpType>
 int __fp_custom_host_mantissa_size = __fp_custom_native_sizes<_FpType>::__mant_size;
 
 template <typename _FpType>
 int __fp_custom_host_exponent_size = __fp_custom_native_sizes<_FpType>::__exp_size;
+#endif // !_CCCL_COMPILER(NVRTC)
 
 #if _CCCL_CUDA_COMPILATION()
 template <typename _FpType>
@@ -234,6 +242,8 @@ _CCCL_DEVICE int __fp_custom_device_mantissa_size = __fp_custom_native_sizes<_Fp
 template <typename _FpType>
 _CCCL_DEVICE int __fp_custom_device_exponent_size = __fp_custom_native_sizes<_FpType>::__exp_size;
 #endif // _CCCL_CUDA_COMPILATION()
+
+#if !_CCCL_COMPILER(NVRTC)
 
 //! @brief Set the mantissa size used by host code (0-52)
 template <typename _FpType = double>
@@ -266,6 +276,8 @@ template <typename _FpType = double>
 {
   return __fp_custom_host_exponent_size<_FpType>;
 }
+
+#endif // !_CCCL_COMPILER(NVRTC)
 
 #if _CCCL_CUDA_COMPILATION()
 
