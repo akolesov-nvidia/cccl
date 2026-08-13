@@ -80,7 +80,7 @@
 //! mode each translation unit gets its own device copy, and a reset or read then only
 //! sees the copy belonging to its own translation unit.
 //!
-//! @note The exponent gap sample (`min_hi_lo_mantissa_gap_hi` / `_lo`) is best-effort
+//! @note The exponent gap sample (`min_hi_lo_mantissa_gap_sample_hi` / `_lo`) is best-effort
 //! under concurrency: a thread with a larger gap never overwrites it, but two threads
 //! lowering the minimum at once may leave the sample of either one.
 //! @note Instrumentation costs a handful of atomics per operation, so a `_stat` type is
@@ -117,11 +117,21 @@ namespace cuda::experimental
 //! of finite non-zero values only. The two sentinel-initialized ranges say "no sample
 //! yet" through an empty range, i.e. `min > max`; `fpmp2_stat_reset_device_data()` arms
 //! them.
+//!
+//! The field types are the ones the device-side atomics take, which is also what makes
+//! them the portable choice here: `unsigned long long int` is what `atomicAdd` accepts
+//! and what `%llu` prints, and it is at least 64 bits by the standard and exactly 64 on
+//! every platform CUDA supports. (`uint64_t` would not do: it is `unsigned long` on LP64
+//! platforms, a distinct type for which no `atomicAdd` overload exists.) The exponents
+//! are `int`, the type of `ilogb`, of `numeric_limits<>::min_exponent` and of
+//! `atomicMin`/`atomicMax`, and identical to `int32_t` wherever CCCL builds.
 struct fpmp2_stat_value
 {
-  //! @brief Largest exponent of `hi` seen, `INT_MIN` until a value is sampled
+  //! @brief Largest exponent of `hi` seen, `numeric_limits<int>::min()` until a value is
+  //! sampled
   int max_exp;
-  //! @brief Smallest exponent of `hi` seen, `INT_MAX` until a value is sampled
+  //! @brief Smallest exponent of `hi` seen, `numeric_limits<int>::max()` until a value is
+  //! sampled
   int min_exp;
   //! @brief Values whose `hi` and `lo` limbs were both zero
   unsigned long long int zero_count;
@@ -133,21 +143,23 @@ struct fpmp2_stat_value
   unsigned long long int nan_count;
   //! @brief Values whose limbs were infinities of opposite signs, whose sum is a NaN
   unsigned long long int infnan_count;
-  //! @brief Largest `exp(hi) - exp(lo)` seen, `INT_MIN` until a value is sampled
+  //! @brief Largest `exp(hi) - exp(lo)` seen, `numeric_limits<int>::min()` until a value
+  //! is sampled
   //!
   //! A normalized double-word continues the mantissa of `hi` in `lo`, so the gap is the
   //! mantissa size of the base type. A larger gap means zero bits in between, i.e. the
   //! value spans more magnitude than the format's contiguous precision.
   int max_hi_lo_mantissa_gap;
-  //! @brief Smallest `exp(hi) - exp(lo)` seen, `INT_MAX` until a value is sampled
+  //! @brief Smallest `exp(hi) - exp(lo)` seen, `numeric_limits<int>::max()` until a value
+  //! is sampled
   //!
   //! A gap below the mantissa size means the limbs overlap, i.e. the pair is not
   //! normalized, which the `low` accuracy level allows.
   int min_hi_lo_mantissa_gap;
-  //! @brief `hi` of a value that lowered `min_hi_lo_mantissa_gap`, for inspection
-  double min_hi_lo_mantissa_gap_hi;
-  //! @brief `lo` of the same value
-  double min_hi_lo_mantissa_gap_lo;
+  //! @brief `hi` limb of a value that lowered `min_hi_lo_mantissa_gap`, for inspection
+  double min_hi_lo_mantissa_gap_sample_hi;
+  //! @brief `lo` limb of the same value
+  double min_hi_lo_mantissa_gap_sample_lo;
 };
 
 //! @brief The record a `_stat` type fills in on the device
@@ -340,8 +352,8 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
       // Best-effort sample of the tightest pair seen, see the note in the file comment.
       if (__gap < __prev_min)
       {
-        __slot->min_hi_lo_mantissa_gap_hi = static_cast<double>(__hi);
-        __slot->min_hi_lo_mantissa_gap_lo = static_cast<double>(__lo);
+        __slot->min_hi_lo_mantissa_gap_sample_hi = static_cast<double>(__hi);
+        __slot->min_hi_lo_mantissa_gap_sample_lo = static_cast<double>(__lo);
       }
     }
   }
