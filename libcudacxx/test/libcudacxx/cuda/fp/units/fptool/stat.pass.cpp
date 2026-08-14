@@ -334,6 +334,64 @@ __global__ void denorm_kernel(float* sink)
   *sink                = product.hi() + tail.lo();
 }
 
+// One operation of each classified kind, plus the cases that must not be classified. The
+// operand magnitudes are chosen so that float limbs reach the ends of their range.
+__global__ void event_kernel(float* sink)
+{
+  float acc = 0.0f;
+
+  // full cancellation: equal and opposite, so the difference is an exact zero
+  acc += (stat_t(1.375f) + stat_t(-1.375f)).hi();
+  acc += (stat_t(1.375f) - stat_t(1.375f)).hi();
+
+  // partial cancellation: 24 of 46 significand bits go, and the result is not zero
+  acc += (stat_t(1.0f) - stat_t(0.99999994f)).hi();
+
+  // a routine 1-bit drop, which must not count as cancellation
+  acc += (stat_t(1.0f) - stat_t(0.6f)).hi();
+  // nor must an addition that keeps its magnitude
+  acc += (stat_t(1.0f) + stat_t(1.0f)).hi();
+
+  // complete underflow: too small for even a subnormal
+  acc += (stat_t(1e-30f) * stat_t(1e-30f)).hi();
+  acc += (stat_t(1e-30f) / stat_t(1e30f)).hi();
+
+  // overflow, which an fpmp2 pair reports as a NaN rather than an infinity
+  acc += static_cast<float>(fpmp_isnan(stat_t(1e30f) * stat_t(1e30f)));
+  acc += static_cast<float>(fpmp_isnan(stat_t(3e38f) + stat_t(3e38f)));
+
+  // division by zero is non-finite too, but one operand is zero, so it is not an overflow
+  acc += static_cast<float>(fpmp_isfinite(stat_t(1.0f) / stat_t(0.0f)));
+  // and a zero operand passing through is not an underflow
+  acc += (stat_t(0.0f) * stat_t(3.0f)).hi();
+
+  *sink = acc;
+}
+
+void test_event_counters()
+{
+  float* sink = nullptr;
+  assert(cudaMalloc(&sink, sizeof(float)) == cudaSuccess);
+  assert(cudax::fpmp2_stat_reset_device_data() == cudaSuccess);
+
+  event_kernel<<<1, 1>>>(sink);
+  assert(cudaGetLastError() == cudaSuccess);
+  assert(cudaDeviceSynchronize() == cudaSuccess);
+
+  cudax::fpmp2_stat_data d{};
+  assert(cudax::fpmp2_stat_read_device_data(&d) == cudaSuccess);
+
+  assert(d.full_cancel_count == 2ull);
+  assert(d.partial_cancel_count == 1ull);
+  assert(d.underflow_count == 2ull);
+  assert(d.overflow_count == 2ull);
+
+  // The classified operations are a subset of the counted ones.
+  assert(d.full_cancel_count + d.partial_cancel_count + d.underflow_count + d.overflow_count < d.ops_count);
+
+  assert(cudaFree(sink) == cudaSuccess);
+}
+
 void test_device_record()
 {
   const int sentinel_max = cuda::std::numeric_limits<int>::max();
@@ -357,6 +415,10 @@ void test_device_record()
   assert(after_reset.sub_count == 0ull);
   assert(after_reset.mul_count == 0ull);
   assert(after_reset.div_count == 0ull);
+  assert(after_reset.full_cancel_count == 0ull);
+  assert(after_reset.partial_cancel_count == 0ull);
+  assert(after_reset.underflow_count == 0ull);
+  assert(after_reset.overflow_count == 0ull);
   // Armed ranges: empty, so the first sample replaces both ends.
   assert(after_reset.result.min_exp == sentinel_max);
   assert(after_reset.result.max_exp == sentinel_min);
@@ -376,6 +438,11 @@ void test_device_record()
   assert(after_run.div_count == expected_div);
   assert(after_run.ops_count == expected_ops);
   assert(after_run.ops_count == after_run.add_count + after_run.sub_count + after_run.mul_count + after_run.div_count);
+  // Ordinary arithmetic on small exact values is none of the classified events.
+  assert(after_run.full_cancel_count == 0ull);
+  assert(after_run.partial_cancel_count == 0ull);
+  assert(after_run.underflow_count == 0ull);
+  assert(after_run.overflow_count == 0ull);
 
   check_slot_sampled(after_run.arg[0]);
   check_slot_sampled(after_run.arg[1]);
@@ -476,6 +543,7 @@ int main(int, char**)
   test_parity();
 #if _CCCL_CUDA_COMPILATION()
   test_device_record();
+  test_event_counters();
 #endif // _CCCL_CUDA_COMPILATION()
   return 0;
 }

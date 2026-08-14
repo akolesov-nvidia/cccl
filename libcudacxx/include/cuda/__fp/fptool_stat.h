@@ -63,6 +63,22 @@
 //! `ops_count` is the total to divide by when turning a count into a share, as in
 //! `zero_lo_count / ops_count`.
 //!
+//! Four further counters classify the operation as a whole rather than its values, which
+//! takes the operands and the result together. They apply where both operands were finite
+//! and non-zero, so that a degenerate result cannot simply be an operand passing through:
+//!
+//! | Counter                | Operation | Result                                       |
+//! |------------------------|-----------|----------------------------------------------|
+//! | `full_cancel_count`    | `+` `-`   | exact zero, i.e. the operands cancelled      |
+//! | `partial_cancel_count` | `+` `-`   | more than half the significand cancelled     |
+//! | `underflow_count`      | `*` `/`   | exact zero, i.e. too small to represent      |
+//! | `overflow_count`       | any       | non-finite                                   |
+//!
+//! The split between cancellation and underflow needs no heuristic, because the operation
+//! decides it: the difference of two distinct values is a non-zero multiple of the smaller
+//! one's ulp and so never rounds to zero, which makes an additive zero proof of exact
+//! cancellation, while multiplication and division have nothing to cancel at all.
+//!
 //! `sqrt`, `rsqrt`, `fma`, `mad`, `renormalize` and the math functions from
 //! `<cuda/fptool_math>` are not counted: they are composites whose internal operations
 //! would swamp the counters. `arg[2]` is reserved for a future ternary operation.
@@ -209,6 +225,37 @@ struct fpmp2_stat_data
   unsigned long long int mul_count;
   //! @brief Instrumented divisions, including `/=`
   unsigned long long int div_count;
+  //! @brief Additive operations that cancelled completely, i.e. returned an exact zero
+  //!
+  //! Only an additive operation can land here. The difference of two distinct values is a
+  //! non-zero multiple of the smaller one's ulp and so can never round to zero, which makes
+  //! an additive zero proof that the operands were equal and opposite. Such a result is
+  //! exact, so this counter reports a loss of information rather than a loss of accuracy.
+  unsigned long long int full_cancel_count;
+  //! @brief Additive operations that lost more than half of the significand, without
+  //! reaching zero
+  //!
+  //! Measured as `max(ilogb(hi) of the operands) - ilogb(hi) of the result`, the number of
+  //! leading bits that cancelled, against a threshold of `digits / 2` - 23 bits of 46 for
+  //! `fp32mp2`, 52 of 104 for `fp64mp2`. This is the damaging form of cancellation: unlike a
+  //! complete one it is inexact, and it is invisible in `full_cancel_count` because the
+  //! result is not zero.
+  unsigned long long int partial_cancel_count;
+  //! @brief Operations whose non-zero operands produced an exact zero, other than additive
+  //! ones
+  //!
+  //! Complete underflow: the result was too small to represent at all. Multiplication and
+  //! division have nothing to cancel, so this is the only way they reach zero from non-zero
+  //! operands. Gradual underflow, where precision degrades but the result survives, is
+  //! reported by `fpmp2_stat_value::denorm_count` instead.
+  unsigned long long int underflow_count;
+  //! @brief Operations whose finite non-zero operands produced a non-finite result
+  //!
+  //! Counts NaN as well as infinity, because an `fpmp2` overflow usually produces a NaN: the
+  //! `hi` limb goes infinite and the tail is then computed as `inf - inf`. That is
+  //! unambiguous, since ordinary arithmetic on finite non-zero operands can produce neither.
+  //! Division by zero is excluded, as one of its operands is zero.
+  unsigned long long int overflow_count;
   //! @brief Operand summaries: `arg[0]` and `arg[1]` are the binary operands, `arg[2]`
   //! is reserved for a future ternary operation
   fpmp2_stat_value arg[3];
@@ -341,10 +388,22 @@ template <class _FpType>
 }
 
 #if _CCCL_CUDA_COMPILATION()
+// What one accumulated value was, for the caller to classify the operation as a whole. The
+// slot summaries answer questions about values; these three answer questions about an
+// operation, which needs its operands and its result together.
+struct __fpmp2_stat_summary
+{
+  // ilogb of the hi limb, meaningful only for a finite non-zero value.
+  int __exp;
+  bool __is_zero;
+  bool __is_finite;
+};
+
 // Folds one fpmp2 value into a slot. Device-only: the updates are atomic because every
 // thread of a grid writes the same slot.
 template <class _FpType>
-_CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _FpType __hi, _FpType __lo) noexcept
+_CCCL_DEVICE_API inline __fpmp2_stat_summary
+__fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _FpType __hi, _FpType __lo) noexcept
 {
   const __fpmp2_stat_parts __p_hi = __fpmp2_stat_split(__hi);
   const __fpmp2_stat_parts __p_lo = __fpmp2_stat_split(__lo);
@@ -417,6 +476,8 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _
       }
     }
   }
+
+  return {__p_hi.__exp_ilogb, __is_zero, __is_finite};
 }
 
 // Records one instrumented binary operation: the counters plus the three value slots.
@@ -444,9 +505,40 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_note_binop(
     ::atomicAdd(&__data.div_count, 1ull);
   }
 
-  __fpmp2_stat_accumulate(&__data.arg[0], __x.hi(), __x.lo());
-  __fpmp2_stat_accumulate(&__data.arg[1], __y.hi(), __y.lo());
-  __fpmp2_stat_accumulate(&__data.result, __r.hi(), __r.lo());
+  const __fpmp2_stat_summary __s_x = __fpmp2_stat_accumulate(&__data.arg[0], __x.hi(), __x.lo());
+  const __fpmp2_stat_summary __s_y = __fpmp2_stat_accumulate(&__data.arg[1], __y.hi(), __y.lo());
+  const __fpmp2_stat_summary __s_r = __fpmp2_stat_accumulate(&__data.result, __r.hi(), __r.lo());
+
+  // Cancellation, underflow and overflow are only meaningful where both operands were
+  // ordinary values: otherwise a zero or a non-finite result may just be an operand passing
+  // through. The guard also excludes division by zero, whose divisor is zero.
+  if (__s_x.__is_finite && !__s_x.__is_zero && __s_y.__is_finite && !__s_y.__is_zero)
+  {
+    constexpr bool __is_additive = _Kind == __fpmp2_stat_binop::__add || _Kind == __fpmp2_stat_binop::__sub;
+
+    if (!__s_r.__is_finite)
+    {
+      ::atomicAdd(&__data.overflow_count, 1ull);
+    }
+    else if (__s_r.__is_zero)
+    {
+      // Only an additive operation can reach zero by cancelling; a multiplicative one has
+      // nothing to cancel, so its zero is an underflow. See the field documentation.
+      ::atomicAdd(__is_additive ? &__data.full_cancel_count : &__data.underflow_count, 1ull);
+    }
+    else if (__is_additive)
+    {
+      // Leading bits lost. Only an effective subtraction can push the result below both
+      // operands, so no sign test is needed: a same-sign addition cannot make this positive.
+      constexpr int __threshold = ::cuda::std::numeric_limits<fpmp2<_FpType, _TypeAcc>>::digits / 2;
+
+      const int __larger = (__s_x.__exp > __s_y.__exp) ? __s_x.__exp : __s_y.__exp;
+      if (__larger - __s_r.__exp > __threshold)
+      {
+        ::atomicAdd(&__data.partial_cancel_count, 1ull);
+      }
+    }
+  }
 }
 #endif // _CCCL_CUDA_COMPILATION()
 
