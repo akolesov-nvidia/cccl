@@ -161,11 +161,15 @@ namespace cuda::experimental
 //! `atomicMin`/`atomicMax`, and identical to `int32_t` wherever CCCL builds.
 struct fpmp2_stat_value
 {
-  //! @brief Largest exponent of `hi` seen, `numeric_limits<int>::min()` until a value is
-  //! sampled
+  //! @brief Largest exponent seen, `numeric_limits<int>::min()` until a value is sampled
+  //!
+  //! `ilogb` of the limb that leads the pair, which is `hi` for anything a renormalizing
+  //! accuracy level produces. An unnormalized pair may be led by `lo`, including one whose
+  //! `hi` is zero, and is measured by `lo` accordingly.
   int max_exp;
-  //! @brief Smallest exponent of `hi` seen, `numeric_limits<int>::max()` until a value is
-  //! sampled
+  //! @brief Smallest exponent seen, `numeric_limits<int>::max()` until a value is sampled
+  //!
+  //! Defined as for `max_exp`.
   int min_exp;
   //! @brief Values whose `hi` and `lo` limbs were both zero
   unsigned long long int zero_count;
@@ -222,6 +226,11 @@ struct fpmp2_stat_value
   //! Subnormal limbs are measured by their leading significant bit, as `ilogb` would report
   //! them, so a subnormal `lo` does not fake an overlap. It does mean the pair lost part of
   //! its tail, which `denorm_count` reports.
+  //!
+  //! Only pairs with two non-zero limbs are sampled. A gap places one limb against the
+  //! other, so a value with either limb zero has none to report: `zero_lo_count` covers the
+  //! ordinary case of a missing tail, and a pair whose `hi` alone is zero - which needs an
+  //! unnormalized value - is measured by `lo` in the exponent range instead.
   int max_hi_lo_gap;
   //! @brief Smallest gap between the limbs seen, `numeric_limits<int>::max()` until a value
   //! is sampled
@@ -258,14 +267,22 @@ struct fpmp2_stat_data
   //! an additive zero proof that the operands were equal and opposite. Such a result is
   //! exact, so this counter reports a loss of information rather than a loss of accuracy.
   unsigned long long int full_cancel_count;
-  //! @brief Additive operations that lost more than half of the significand, without
-  //! reaching zero
+  //! @brief Additive operations whose result fell more than half the significand below its
+  //! operands, without reaching zero
   //!
-  //! Measured as `max(ilogb(hi) of the operands) - ilogb(hi) of the result`, the number of
-  //! leading bits that cancelled, against a threshold of `digits / 2` - 23 bits of 46 for
-  //! `fp32mp2`, 52 of 104 for `fp64mp2`. This is the damaging form of cancellation: unlike a
-  //! complete one it is inexact, and it is invisible in `full_cancel_count` because the
-  //! result is not zero.
+  //! Measured as `max(ilogb of the operands) - ilogb of the result`, the number of leading
+  //! bits that cancelled, against a threshold of `digits / 2` - 23 bits of 46 for `fp32mp2`,
+  //! 52 of 104 for `fp64mp2`. It is invisible in `full_cancel_count` because the result is
+  //! not zero.
+  //!
+  //! What the count reports is the drop in magnitude, which is not the same as bits gone
+  //! from the representation. A cancellation this deep usually leaves fewer surviving bits
+  //! than a single limb holds, so the result comes back with a zero `lo` and the pair really
+  //! has lost half its width; at one bit past the threshold, though, the tail can still need
+  //! the second limb, and then the pair keeps its full width relative to its new, smaller
+  //! magnitude. Either way the operation is worth counting, because the accuracy the
+  //! operands carried into it is what the cancellation exposes - see the note on reading the
+  //! cancellation counters in the file comment.
   unsigned long long int partial_cancel_count;
   //! @brief Operations whose non-zero operands produced an exact zero, other than additive
   //! ones
@@ -419,7 +436,10 @@ template <class _FpType>
 // operation, which needs its operands and its result together.
 struct __fpmp2_stat_summary
 {
-  // ilogb of the hi limb, meaningful only for a finite non-zero value.
+  // ilogb of the pair, i.e. of whichever limb leads it. That is `hi` for any pair a
+  // renormalizing accuracy level can produce, but an unnormalized one may be led by `lo`,
+  // and `hi` may even be zero while the pair is not. Meaningful only for a finite non-zero
+  // value.
   int __exp;
   bool __is_zero;
   bool __is_finite;
@@ -477,12 +497,26 @@ __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _FpType __hi, _FpType __lo) no
     ::atomicAdd(&__slot->zero_lo_count, 1ull);
   }
 
+  // The exponent of the pair is the one of the limb that leads it. `hi` leads any pair the
+  // renormalizing levels produce, but `low` skips renormalization and the two-limb
+  // constructor accepts anything, so `lo` may lead - and `hi` may be zero while the pair is
+  // not. `__exp_ilogb` of a zero limb is the pinned minimum, which says nothing about a
+  // magnitude, so it must not be allowed to stand in for one.
+  int __pair_exp = __p_hi.__exp_ilogb;
+  if (__hi_is_zero || (!__lo_is_zero && __p_lo.__exp_ilogb > __p_hi.__exp_ilogb))
+  {
+    __pair_exp = __p_lo.__exp_ilogb;
+  }
+
   if (__is_finite && !__is_zero)
   {
-    ::atomicMax(&__slot->max_exp, __p_hi.__exp_ilogb);
-    ::atomicMin(&__slot->min_exp, __p_hi.__exp_ilogb);
+    ::atomicMax(&__slot->max_exp, __pair_exp);
+    ::atomicMin(&__slot->min_exp, __pair_exp);
 
-    if (!__lo_is_zero)
+    // The gap describes how the two limbs are placed relative to each other, which needs
+    // both of them: with `hi` zero there is no leading limb to measure a tail against, and
+    // the pinned exponent of that zero would fake an arbitrarily deep overlap.
+    if (!__hi_is_zero && !__lo_is_zero)
     {
       // Measured against a tightly normalized pair rather than as a raw exponent
       // difference: a normalized `lo` is at most half an ulp of `hi`, which puts its
@@ -508,7 +542,7 @@ __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _FpType __hi, _FpType __lo) no
     }
   }
 
-  return {__p_hi.__exp_ilogb, __is_zero, __is_finite};
+  return {__pair_exp, __is_zero, __is_finite};
 }
 
 // Records one instrumented binary operation: the counters plus the three value slots.
@@ -559,8 +593,20 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_note_binop(
     }
     else if (__is_additive)
     {
-      // Leading bits lost. Only an effective subtraction can push the result below both
-      // operands, so no sign test is needed: a same-sign addition cannot make this positive.
+      // How far the result fell below its operands, in binades. Only an effective subtraction
+      // can push it below both, so no sign test is needed: a same-sign addition cannot make
+      // this positive.
+      //
+      // Magnitudes are all this looks at - the exponent of each value's leading limb, never
+      // what the limbs contain. That is the whole of the measurement: the operation itself is
+      // exact, and what a cancellation costs is the accuracy the operands brought into it,
+      // which is relative to a magnitude that just dropped by this many bits.
+      //
+      // Crossing half the pair's significand is therefore the point where a double-word value
+      // stops being worth more than a single limb, and it is also where the result stops
+      // needing its second limb: past this threshold what survives fits in `hi` and `lo` comes
+      // back zero, while a result that still carries bits in `lo` has by that token lost less
+      // than half and does not count.
       constexpr int __threshold = ::cuda::std::numeric_limits<fpmp2<_FpType, _TypeAcc>>::digits / 2;
 
       const int __larger = (__s_x.__exp > __s_y.__exp) ? __s_x.__exp : __s_y.__exp;

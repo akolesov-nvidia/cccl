@@ -349,6 +349,19 @@ __global__ void overlap_kernel(float* sink)
   *sink = s.hi();
 }
 
+// A pair whose hi cancels to exactly zero while lo survives, so the pair is not zero and its
+// magnitude is lo's. Reachable through the two-limb constructor at any accuracy level, and
+// through arithmetic at the low one. Only five leading bits are lost here, far short of the
+// digits / 2 threshold, so measuring such a pair by its hi limb - whose exponent field is
+// pinned for a zero - would both misplace the exponent and invent a deep cancellation.
+__global__ void zero_hi_kernel(float* sink)
+{
+  const stat_low_t a = stat_low_t(1.0f, ldexpf(1.0f, -5));
+  const stat_low_t b = stat_low_t(1.0f, 0.0f);
+  const stat_low_t r = a - b;
+  *sink              = r.hi() + r.lo();
+}
+
 // One operation of each classified kind, plus the cases that must not be classified. The
 // operand magnitudes are chosen so that float limbs reach the ends of their range.
 __global__ void event_kernel(float* sink)
@@ -534,6 +547,29 @@ void test_device_record()
     // The point of the counter: without it a negative minimum could stand for a single value.
     assert(after_overlap.result.overlap_count > 0ull);
     assert(after_overlap.result.overlap_count <= after_overlap.ops_count);
+  }
+
+  { // a pair led by lo, its hi being zero: measured by lo, and not a deep cancellation
+    assert(cudax::fpmp2_stat_reset_device_data() == cudaSuccess);
+    zero_hi_kernel<<<1, 1>>>(sink);
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+
+    cudax::fpmp2_stat_data after_zero_hi{};
+    assert(cudax::fpmp2_stat_read_device_data(&after_zero_hi) == cudaSuccess);
+
+    assert(after_zero_hi.sub_count == 1ull);
+    // The pair is 2^-5 with nothing in hi, so both ends of the range must report that and
+    // not the pinned exponent field of the zero limb.
+    assert(after_zero_hi.result.min_exp == -5);
+    assert(after_zero_hi.result.max_exp == -5);
+    assert(after_zero_hi.result.zero_count == 0ull);
+    // Five bits short of the operands against a threshold of digits / 2.
+    assert(after_zero_hi.partial_cancel_count == 0ull);
+    assert(after_zero_hi.full_cancel_count == 0ull);
+    // No gap to report with one limb zero, so the range stays armed and empty.
+    assert(after_zero_hi.result.overlap_count == 0ull);
+    assert(after_zero_hi.result.min_hi_lo_gap > after_zero_hi.result.max_hi_lo_gap);
   }
 
   { // atomics: same total as the wrapped type, and counted
