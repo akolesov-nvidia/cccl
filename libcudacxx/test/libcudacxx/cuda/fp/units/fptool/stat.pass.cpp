@@ -298,6 +298,8 @@ void check_slot_sampled(const cudax::fpmp2_stat_value& slot)
   assert(slot.infnan_count == 0ull);
   assert(slot.zero_count == 0ull);
   assert(slot.denorm_count == 0ull);
+  // def accuracy renormalizes, so no pair may have overlapping limbs.
+  assert(slot.overlap_count == 0ull);
 }
 
 // Atomic accumulation must reach the same total as the wrapped type, return the old
@@ -332,6 +334,19 @@ __global__ void denorm_kernel(float* sink)
   const stat_t product = stat_t(1e-30f) * stat_t(1e-12f); // about 1e-42, subnormal
   const stat_t tail    = stat_t(1e-35f) / stat_t(3.0f); // hi about 3.3e-36, lo subnormal
   *sink                = product.hi() + tail.lo();
+}
+
+// Overlapping limbs, which only the low accuracy level produces: it skips renormalization,
+// so a chain of additions leaves pairs whose lo limb reaches up into hi's range. The gap
+// range alone would say only how bad the worst pair was, which is why a count goes with it.
+__global__ void overlap_kernel(float* sink)
+{
+  stat_low_t s = stat_low_t(1.0f);
+  for (int i = 0; i < 8; ++i)
+  {
+    s = s + stat_low_t(1.0f / 3.0f);
+  }
+  *sink = s.hi();
 }
 
 // One operation of each classified kind, plus the cases that must not be classified. The
@@ -419,6 +434,7 @@ void test_device_record()
   assert(after_reset.partial_cancel_count == 0ull);
   assert(after_reset.underflow_count == 0ull);
   assert(after_reset.overflow_count == 0ull);
+  assert(after_reset.result.overlap_count == 0ull);
   // Armed ranges: empty, so the first sample replaces both ends.
   assert(after_reset.result.min_exp == sentinel_max);
   assert(after_reset.result.max_exp == sentinel_min);
@@ -471,6 +487,7 @@ void test_device_record()
   // The gap is measured against a tightly normalized pair, so def accuracy - which
   // renormalizes - must never report an overlap.
   assert(after_gap.result.min_hi_lo_gap >= 0);
+  assert(after_gap.result.overlap_count == 0ull);
   // The operands 1 and 3 are exact, so their own lo limbs are zero.
   assert(after_gap.arg[0].zero_lo_count == 1ull);
   assert(after_gap.arg[1].zero_lo_count == 1ull);
@@ -497,9 +514,26 @@ void test_device_record()
     // field, which is pinned at the format minimum: the quotient is normalized, so the gap
     // must come out non-negative all the same.
     assert(after_denorm.result.min_hi_lo_gap >= 0);
+    assert(after_denorm.result.overlap_count == 0ull);
     // Subnormal exponents lie below the smallest normal one, which the pinned field could
     // never report.
     assert(after_denorm.result.min_exp < cuda::std::numeric_limits<float>::min_exponent - 1);
+  }
+
+  { // low accuracy: overlap must be both bounded and counted
+    assert(cudax::fpmp2_stat_reset_device_data() == cudaSuccess);
+    overlap_kernel<<<1, 1>>>(sink);
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+
+    cudax::fpmp2_stat_data after_overlap{};
+    assert(cudax::fpmp2_stat_read_device_data(&after_overlap) == cudaSuccess);
+
+    assert(after_overlap.add_count == 8ull);
+    assert(after_overlap.result.min_hi_lo_gap < 0);
+    // The point of the counter: without it a negative minimum could stand for a single value.
+    assert(after_overlap.result.overlap_count > 0ull);
+    assert(after_overlap.result.overlap_count <= after_overlap.ops_count);
   }
 
   { // atomics: same total as the wrapped type, and counted

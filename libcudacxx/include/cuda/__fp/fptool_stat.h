@@ -56,8 +56,8 @@
 //! limb, how often the value or its `lo` limb was zero, how often infinities, NaNs and
 //! subnormals appeared, and the range of the gap between the `hi` and `lo` limbs, which tells
 //! how much of the double-word precision the computation actually uses: the gap is 0 or 1 for
-//! a normalized pair, negative where the limbs overlap and larger where precision is held in
-//! reserve.
+//! a normalized pair, negative where the limbs overlap - which `overlap_count` counts -
+//! and larger where precision is held in reserve.
 //!
 //! Each of the three slots receives exactly one value per counted operation, so
 //! `ops_count` is the total to divide by when turning a count into a share, as in
@@ -78,6 +78,13 @@
 //! decides it: the difference of two distinct values is a non-zero multiple of the smaller
 //! one's ulp and so never rounds to zero, which makes an additive zero proof of exact
 //! cancellation, while multiplication and division have nothing to cancel at all.
+//!
+//! Read the cancellation counters as occurrences, not as damage. The subtraction itself is
+//! exact, so a cancelling operation loses no accuracy of its own; what makes cancellation
+//! harmful is rounding already present in the operands, which is not visible from one
+//! operation. Algorithms that cancel deliberately - compensated summation above all, whose
+//! whole purpose is to extract a small residual from two nearly equal values - therefore run
+//! up large counts while being at their most accurate.
 //!
 //! `sqrt`, `rsqrt`, `fma`, `mad`, `renormalize` and the math functions from
 //! `<cuda/fptool_math>` are not counted: they are composites whose internal operations
@@ -141,6 +148,10 @@ namespace cuda::experimental
 //! yet" through an empty range, i.e. `min > max`; `fpmp2_stat_reset_device_data()` arms
 //! them.
 //!
+//! A range says what the worst case was, never how often it happened, so the counter beside
+//! it carries the frequency: `overlap_count` for `min_hi_lo_gap` and `denorm_count` for
+//! the bottom of the exponent range.
+//!
 //! The field types are the ones the device-side atomics take, which is also what makes
 //! them the portable choice here: `unsigned long long int` is what `atomicAdd` accepts
 //! and what `%llu` prints, and it is at least 64 bits by the standard and exactly 64 on
@@ -178,6 +189,17 @@ struct fpmp2_stat_value
   //! `lo` reaches that limit long before `hi` does, so this counter usually reports the
   //! precision loss rather than a subnormal result.
   unsigned long long int denorm_count;
+  //! @brief Values whose limbs overlapped, i.e. whose gap was negative
+  //!
+  //! How often what `min_hi_lo_gap` reports as the worst case actually happened. The two
+  //! answer different questions and a diagnosis needs both: a minimum of -3 could be one
+  //! value in a billion or every second one, which call for opposite responses. Only the
+  //! `low` accuracy level, which skips renormalization, produces overlap at all, so this is
+  //! the counter that says whether such a configuration needs `renormalize` after all.
+  //!
+  //! Nothing to do with `denorm_count` above, which is about how small the limbs became; this
+  //! one is about how the two of them are placed with respect to each other.
+  unsigned long long int overlap_count;
   //! @brief Largest gap between the limbs seen, `numeric_limits<int>::min()` until a value
   //! is sampled
   //!
@@ -471,6 +493,11 @@ __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _FpType __hi, _FpType __lo) no
       const int __gap      = __p_hi.__exp_ilogb - __p_lo.__exp_ilogb - __digits;
       const int __prev_min = ::atomicMin(&__slot->min_hi_lo_gap, __gap);
       ::atomicMax(&__slot->max_hi_lo_gap, __gap);
+
+      if (__gap < 0)
+      {
+        ::atomicAdd(&__slot->overlap_count, 1ull);
+      }
 
       // Best-effort sample of the tightest pair seen, see the note in the file comment.
       if (__gap < __prev_min)
