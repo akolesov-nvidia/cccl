@@ -412,6 +412,35 @@ static_assert(sizeof(__fpmp_fp128) == 16, "__fpmp_fp128 must be a 128-bit floati
 #  endif
 #endif
 
+/*
+// Which exact two-sum formulation __fpmp_two_sum uses. Experimental knob for hardware
+// sweeps; both formulations return an exact (hi, lo) pair.
+//   0 - Knuth/Moller 2Sum, six additions, no assumption on the operands (default)
+//   1 - order the operands by magnitude with a branchless select, then Dekker's
+//       three-addition Fast2Sum, whose ordering precondition the select establishes
+//
+// Method 1 trades three additions for a compare and two selects, which issue on a
+// different pipe on some parts: three adds plus three ALU ops for float, three adds plus
+// five for double, against six adds either way. Measured in isolation it is faster where
+// the FP pipe is the bottleneck (an A100), but across the fpmp benchmarks, for both
+// fp32mp2 and fp64mp2, it showed no consistent win, because the select sits at the head of
+// the dependency chain and nothing can start until the swap resolves. Hence the default 0.
+//
+// The two also differ in the sign of a zero low part: where the operands cancel exactly,
+// 2Sum yields +0 and Fast2Sum yields -0. Both are exact, so this only matters to code that
+// reads the sign of a zero. For non-finite operands or an overflowing sum the low part is
+// meaningless either way and the NaN payloads differ, as they already do between the host
+// and the device.
+//
+// e.g. compile with -D_CCCL_FPMP_TWO_SUM_METHOD=1.
+*/
+#ifndef _CCCL_FPMP_TWO_SUM_METHOD
+#  define _CCCL_FPMP_TWO_SUM_METHOD 0
+#endif
+#if _CCCL_FPMP_TWO_SUM_METHOD != 0 && _CCCL_FPMP_TWO_SUM_METHOD != 1
+#  error "_CCCL_FPMP_TWO_SUM_METHOD must be 0 (2Sum) or 1 (swap + Fast2Sum)"
+#endif
+
 /*********************************************************************
  * Internal utilities
  *********************************************************************/
@@ -895,10 +924,12 @@ __fpmp_fast_two_sum(const _FpType __x, const _FpType __y, _FpType* const __res_l
 
 // Add 2 floats, returning the answer exactly in 'hi' and 'lo' parts.
 // This makes no assumptions on the magnitudes of |x| and |y|.
+// _CCCL_FPMP_TWO_SUM_METHOD picks the formulation, see its definition for the trade-offs.
 template <typename _FpType>
 _CCCL_TRIVIAL_HOST_DEVICE_API _FpType
 __fpmp_two_sum(const _FpType __x, const _FpType __y, _FpType* const __res_lo) noexcept
 {
+#if _CCCL_FPMP_TWO_SUM_METHOD == 0
   _FpType __res_hi  = __fpmp_add_rn(__x, __y);
   _FpType __a_prime = __fpmp_sub_rn(__res_hi, __y);
   _FpType __b_prime = __fpmp_sub_rn(__res_hi, __a_prime);
@@ -906,6 +937,12 @@ __fpmp_two_sum(const _FpType __x, const _FpType __y, _FpType* const __res_lo) no
   _FpType __delta_b = __fpmp_sub_rn(__y, __b_prime);
   *__res_lo         = __fpmp_add_rn(__delta_a, __delta_b);
   return __res_hi;
+#else // ^^^ 2Sum ^^^ / vvv swap + Fast2Sum vvv
+  const bool __swap       = __fpmp_internal_fabs(__x) < __fpmp_internal_fabs(__y);
+  const _FpType __larger  = __swap ? __y : __x;
+  const _FpType __smaller = __swap ? __x : __y;
+  return __fpmp_fast_two_sum(__larger, __smaller, __res_lo);
+#endif // _CCCL_FPMP_TWO_SUM_METHOD != 0
 }
 
 // double -> (hi, lo) conversions (plain versions)
