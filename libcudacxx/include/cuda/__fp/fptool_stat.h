@@ -87,9 +87,9 @@
 //! whole purpose is to extract a small residual from two nearly equal values - therefore run
 //! up large counts while being at their most accurate.
 //!
-//! `sqrt`, `rsqrt`, `fma`, `mad`, `renormalize` and the math functions from
-//! `<cuda/fptool_math>` are not counted: they are composites whose internal operations
-//! would swamp the counters. `arg[2]` is reserved for a future ternary operation.
+//! `sqrt`, `rsqrt`, `fma`, `mad`, `renormalize` and the math functions are not counted:
+//! they are composites whose internal operations would swamp the counters. `arg[2]` is
+//! reserved for a future ternary operation.
 //!
 //! ## Collection Is Device-Only
 //!

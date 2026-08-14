@@ -30,7 +30,7 @@
 // UNSUPPORTED: force-tile
 // error: calling a __host__ __device__ function in tile is not allowed
 
-#include <cuda/fptool_math>
+#include <cuda/fptool>
 #include <cuda/std/cassert>
 #include <cuda/std/cstring>
 #include <cuda/std/limits>
