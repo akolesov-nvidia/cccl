@@ -187,6 +187,10 @@ struct fpmp2_stat_value
   //!
   //! - `0` or `1`: normalized. A normalized `lo` is at most half an ulp of `hi`, which puts
   //!   its exponent exactly `digits` places below, so no bits are wasted and none overlap.
+  //!   The two differ by where in that bound the tail landed: `0` is the tie, `|lo|` exactly
+  //!   half an ulp of `hi`, which needs a set bit exactly `digits` places below the leading
+  //!   one and so shows up for values with few significant bits; `1` is anything strictly
+  //!   below, which is what an inexact division or a value with a dense significand gives.
   //! - negative: the limbs overlap, so the pair carries fewer significant bits than its two
   //!   limbs suggest. Only the `low` accuracy level, which skips renormalization, produces
   //!   this.
