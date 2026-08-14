@@ -56,8 +56,9 @@
 //! limb, how often the value or its `lo` limb was zero, how often infinities, NaNs and
 //! subnormals appeared, and the range of the gap between the `hi` and `lo` limbs, which tells
 //! how much of the double-word precision the computation actually uses: the gap is 0 or 1 for
-//! a normalized pair, negative where the limbs overlap - which `overlap_count` counts -
-//! and larger where precision is held in reserve.
+//! a normalized pair, negative where the limbs overlap - which `overlap_count` counts, and
+//! `invert_count` for the dangerous extreme of a `lo` that outweighs its `hi` - and larger
+//! where precision is held in reserve.
 //!
 //! Each of the three slots receives exactly one value per counted operation, so
 //! `ops_count` is the total to divide by when turning a count into a share, as in
@@ -149,8 +150,8 @@ namespace cuda::experimental
 //! them.
 //!
 //! A range says what the worst case was, never how often it happened, so the counter beside
-//! it carries the frequency: `overlap_count` for `min_hi_lo_gap` and `denorm_count` for
-//! the bottom of the exponent range.
+//! it carries the frequency: `overlap_count` and `invert_count` for `min_hi_lo_gap` and
+//! `denorm_count` for the bottom of the exponent range.
 //!
 //! The field types are the ones the device-side atomics take, which is also what makes
 //! them the portable choice here: `unsigned long long int` is what `atomicAdd` accepts
@@ -204,6 +205,27 @@ struct fpmp2_stat_value
   //! Nothing to do with `denorm_count` above, which is about how small the limbs became; this
   //! one is about how the two of them are placed with respect to each other.
   unsigned long long int overlap_count;
+  //! @brief Values whose limbs were inverted, i.e. `|lo| > |hi|`
+  //!
+  //! The worst thing a pair can be, and the reason to watch it separately from
+  //! `overlap_count`: the tail no longer describes a correction to the head but outweighs it,
+  //! so anything that reads the pair through its `hi` limb - a comparison, a conversion, a
+  //! sign test, a branch on magnitude - reaches the wrong answer, and every later operation
+  //! inherits it. A pair whose `hi` is zero while `lo` is not is the extreme of this.
+  //!
+  //! Every inverted pair with two non-zero limbs also counts as an overlap, since inverting
+  //! implies a gap of at most `-digits`. The reverse does not hold: an overlap of a few bits
+  //! is untidy but still describes the value correctly, which is why this counter is worth
+  //! reading on its own. It is also the only counter that names the `hi`-is-zero case, whose
+  //! gap is deliberately not sampled.
+  //!
+  //! Equal magnitudes are not counted, `|lo| > |hi|` being strict. Such a pair is degenerate
+  //! in its own way - opposite signs make it an exact zero written in two non-zero limbs - and
+  //! shows up at the bottom of the gap range.
+  //!
+  //! Only the `low` accuracy level, which skips renormalization, can produce this through
+  //! arithmetic; the two-limb constructor can produce it at any level.
+  unsigned long long int invert_count;
   //! @brief Largest gap between the limbs seen, `numeric_limits<int>::min()` until a value
   //! is sampled
   //!
@@ -394,6 +416,12 @@ struct __fpmp2_stat_parts
   // says nothing about the magnitude, so the leading mantissa bit has to be located.
   // Meaningless for zero, infinity and NaN, which the callers exclude.
   int __exp_ilogb;
+  // The encoding with the sign bit cleared, widened to the largest limb type. IEEE-754 lays
+  // out exponent above mantissa, so for same-typed limbs this orders magnitudes exactly as a
+  // floating-point comparison of absolute values would, subnormals included, and answers
+  // "which limb is larger" in one integer compare. Not meaningful for NaN, which the callers
+  // exclude.
+  ::cuda::std::uint64_t __mag;
   bool __mant_is_zero;
   bool __exp_is_max;
   bool __sign;
@@ -423,11 +451,14 @@ template <class _FpType>
   const bool __is_denorm = __exp == 0 && __mant != _UInt{0};
   const int __exp_ilogb  = __is_denorm ? (__msb + 1 - __bias - __mant_size) : (__exp - __bias);
 
+  constexpr _UInt __sign_mask = _UInt{1} << (8 * sizeof(_UInt) - 1);
+
   return {__exp - __bias,
           __exp_ilogb,
+          static_cast<::cuda::std::uint64_t>(__bits & static_cast<_UInt>(~__sign_mask)),
           __mant == _UInt{0},
           __exp == __exp_max,
-          (__bits >> (8 * sizeof(_UInt) - 1)) != _UInt{0}};
+          (__bits & __sign_mask) != _UInt{0}};
 }
 
 #if _CCCL_CUDA_COMPILATION()
@@ -512,6 +543,14 @@ __fpmp2_stat_accumulate(fpmp2_stat_value* __slot, _FpType __hi, _FpType __lo) no
   {
     ::atomicMax(&__slot->max_exp, __pair_exp);
     ::atomicMin(&__slot->min_exp, __pair_exp);
+
+    // A tail heavier than the head it corrects, which includes a zero `hi` carrying a
+    // non-zero `lo`. One integer compare of the sign-cleared encodings, no branch needed to
+    // exclude a zero `lo`: its magnitude is zero and cannot exceed anything.
+    if (__p_lo.__mag > __p_hi.__mag)
+    {
+      ::atomicAdd(&__slot->invert_count, 1ull);
+    }
 
     // The gap describes how the two limbs are placed relative to each other, which needs
     // both of them: with `hi` zero there is no leading limb to measure a tail against, and

@@ -298,8 +298,9 @@ void check_slot_sampled(const cudax::fpmp2_stat_value& slot)
   assert(slot.infnan_count == 0ull);
   assert(slot.zero_count == 0ull);
   assert(slot.denorm_count == 0ull);
-  // def accuracy renormalizes, so no pair may have overlapping limbs.
+  // def accuracy renormalizes, so no pair may have overlapping limbs, let alone inverted ones.
   assert(slot.overlap_count == 0ull);
+  assert(slot.invert_count == 0ull);
 }
 
 // Atomic accumulation must reach the same total as the wrapped type, return the old
@@ -357,6 +358,18 @@ __global__ void overlap_kernel(float* sink)
 __global__ void zero_hi_kernel(float* sink)
 {
   const stat_low_t a = stat_low_t(1.0f, ldexpf(1.0f, -5));
+  const stat_low_t b = stat_low_t(1.0f, 0.0f);
+  const stat_low_t r = a - b;
+  *sink              = r.hi() + r.lo();
+}
+
+// Inverted limbs, the worst shape a pair can take: the tail outweighs the head, so reading the
+// value through hi answers with the wrong magnitude and the wrong sign. Both limbs are non-zero
+// here, unlike in zero_hi_kernel, so the pair is also an overlap and must be counted as both.
+// The subtrahend is ordinary, which keeps the count attributable to one operand slot.
+__global__ void invert_kernel(float* sink)
+{
+  const stat_low_t a = stat_low_t(ldexpf(-1.0f, -20), 1.0f);
   const stat_low_t b = stat_low_t(1.0f, 0.0f);
   const stat_low_t r = a - b;
   *sink              = r.hi() + r.lo();
@@ -570,6 +583,29 @@ void test_device_record()
     // No gap to report with one limb zero, so the range stays armed and empty.
     assert(after_zero_hi.result.overlap_count == 0ull);
     assert(after_zero_hi.result.min_hi_lo_gap > after_zero_hi.result.max_hi_lo_gap);
+    // The one counter that does name this shape: lo outweighs a hi of zero.
+    assert(after_zero_hi.result.invert_count == 1ull);
+  }
+
+  { // inverted limbs: counted as both an inversion and an overlap
+    assert(cudax::fpmp2_stat_reset_device_data() == cudaSuccess);
+    invert_kernel<<<1, 1>>>(sink);
+    assert(cudaGetLastError() == cudaSuccess);
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+
+    cudax::fpmp2_stat_data after_invert{};
+    assert(cudax::fpmp2_stat_read_device_data(&after_invert) == cudaSuccess);
+
+    assert(after_invert.sub_count == 1ull);
+    // The first operand is the inverted one, hi = -2^-20 against lo = 1.
+    assert(after_invert.arg[0].invert_count == 1ull);
+    // Inverting puts lo at or above hi, which is a gap of at most -digits, so an inverted
+    // pair is always an overlap too.
+    assert(after_invert.arg[0].overlap_count == 1ull);
+    assert(after_invert.arg[0].min_hi_lo_gap <= -cuda::std::numeric_limits<float>::digits);
+    // The ordinary subtrahend must not be counted, and the pair is measured by lo.
+    assert(after_invert.arg[1].invert_count == 0ull);
+    assert(after_invert.arg[0].max_exp == 0);
   }
 
   { // atomics: same total as the wrapped type, and counted
