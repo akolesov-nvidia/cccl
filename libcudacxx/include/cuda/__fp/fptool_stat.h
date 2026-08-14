@@ -603,10 +603,12 @@ _CCCL_DEVICE_API inline void __fpmp2_stat_note_binop(
       // which is relative to a magnitude that just dropped by this many bits.
       //
       // Crossing half the pair's significand is therefore the point where a double-word value
-      // stops being worth more than a single limb, and it is also where the result stops
-      // needing its second limb: past this threshold what survives fits in `hi` and `lo` comes
-      // back zero, while a result that still carries bits in `lo` has by that token lost less
-      // than half and does not count.
+      // stops being worth more than a single limb. It is also where the survivors stop needing
+      // the second limb, so a faithful operation returns a zero `lo` past this threshold and
+      // keeps a non-zero one below it. That is an observation about the arithmetic, not
+      // something the test relies on: a malformed pair - garbage in `lo`, or limbs that
+      // overlap - cannot change the count, and is reported by `overlap_count`, `denorm_count`
+      // and the non-finite counters of its slot instead.
       constexpr int __threshold = ::cuda::std::numeric_limits<fpmp2<_FpType, _TypeAcc>>::digits / 2;
 
       const int __larger = (__s_x.__exp > __s_y.__exp) ? __s_x.__exp : __s_y.__exp;
