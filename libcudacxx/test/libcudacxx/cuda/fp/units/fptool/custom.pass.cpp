@@ -352,19 +352,21 @@ static_assert(::cuda::std::is_convertible_v<float, cudax::fp64_custom<11, 23>>, 
 static_assert(::cuda::std::is_convertible_v<float, cudax::fp64_custom<8, 52>>, "");
 static_assert(::cuda::std::is_convertible_v<float, fp_reduced>, "");
 
-// A long double is not implicitly convertible at either setting, and for a different reason
-// than the rank rule: it reaches the double constructor and the deleted 128-bit integer ones
-// by a conversion apiece, so the call is ambiguous rather than explicit. What a long double
-// source should do here is still open; asserting it holds either way pins today's behavior.
-static_assert(!::cuda::std::is_convertible_v<long double, fp_reduced>, "");
-static_assert(!::cuda::std::is_convertible_v<long double, cudax::fp64_custom<8, 23>>, "");
+// A long double is a source the class does not rank, and it arrives on the double
+// constructor's deduced parameter, so it follows that constructor's explicitness exactly:
+// implicit into a format that holds a double, a cast into anything narrower. What a long
+// double source should do here is still open; asserting it pins today's behavior.
+static_assert(::cuda::std::is_convertible_v<long double, cudax::fp64_custom<>>, "");
 
 // The narrowing side is what CCCL_FP_CUSTOM_EXPLICIT_CASTS gates, so it is asserted at both
 // settings: a cast by default, implicit where a codebase written against double is being
 // moved onto the type. Nothing above this point changes with it.
 #if CCCL_FP_CUSTOM_EXPLICIT_CASTS == 1
 
-// A double, and an integer with it, reaches a format that holds binary32 only by cast.
+// A double, and an integer with it, reaches a format that holds binary32 only by cast, and a
+// long double with them.
+static_assert(!::cuda::std::is_convertible_v<long double, fp_reduced>, "");
+static_assert(!::cuda::std::is_convertible_v<long double, cudax::fp64_custom<8, 23>>, "");
 static_assert(!::cuda::std::is_convertible_v<double, cudax::fp64_custom<8, 23>>, "");
 static_assert(!::cuda::std::is_convertible_v<int, cudax::fp64_custom<8, 23>>, "");
 static_assert(!::cuda::std::is_convertible_v<bool, cudax::fp64_custom<8, 23>>, "");
@@ -390,6 +392,8 @@ static_assert(!::cuda::std::is_convertible_v<float, cudax::fp64_custom<cudax::fp
 
 // Every source named above is implicit here, which is the whole of the setting's effect:
 // the sources are unchanged, and so are the formats.
+static_assert(::cuda::std::is_convertible_v<long double, fp_reduced>, "");
+static_assert(::cuda::std::is_convertible_v<long double, cudax::fp64_custom<8, 23>>, "");
 static_assert(::cuda::std::is_convertible_v<double, cudax::fp64_custom<8, 23>>, "");
 static_assert(::cuda::std::is_convertible_v<int, cudax::fp64_custom<8, 23>>, "");
 static_assert(::cuda::std::is_convertible_v<bool, cudax::fp64_custom<8, 23>>, "");

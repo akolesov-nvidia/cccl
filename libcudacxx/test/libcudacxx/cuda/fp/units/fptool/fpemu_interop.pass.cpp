@@ -14,6 +14,10 @@
 //  compile as soon as both headers are included. fp_custom therefore spells them
 //  ::__dadd_rn.
 //
+//  The binary32 half of fp_custom calls ::__fadd_rn and friends, which fpemu does
+//  not declare today and which are qualified for the same reason: so that it makes
+//  no difference if it starts to.
+//
 //  This is primarily a compile-time guard, which is why fpemu is included first
 //  (the order that puts its declarations in scope before fp_custom's bodies) and
 //  why the arithmetic runs in a TEST_HOST_DEVICE_FUNC: the shadowed calls exist only in the
@@ -71,6 +75,27 @@ TEST_HOST_DEVICE_FUNC bool check_fptool()
   return ok;
 }
 
+// The same set of operations over a float base, which reaches the ::__f*_rn family
+// instead. At the native field sizes fp32_custom is a drop-in for float, so these
+// expected values are exact too.
+TEST_HOST_DEVICE_FUNC bool check_fptool_fp32()
+{
+  const cudax::fp32_custom<> a(3.0f);
+  const cudax::fp32_custom<> b(4.0f);
+  const cudax::fp32_custom<> c(0.5f);
+
+  bool ok = true;
+
+  ok = ok && static_cast<float>(a + b) == 7.0f; // __fadd_rn
+  ok = ok && static_cast<float>(a - b) == -1.0f; // __fsub_rn
+  ok = ok && static_cast<float>(a * b) == 12.0f; // __fmul_rn
+  ok = ok && static_cast<float>(b / cudax::fp32_custom<>(2.0f)) == 2.0f; // __fdiv_rn
+  ok = ok && static_cast<float>(sqrt(cudax::fp32_custom<>(16.0f))) == 4.0f; // __fsqrt_rn
+  ok = ok && static_cast<float>(fma(a, b, c)) == 12.5f; // __fmaf_rn
+
+  return ok;
+}
+
 // The other direction: fpemu's intrinsic-named overloads must still be found for
 // fpemu's own types. Only add and sub are exercised, because nvc++ 26.3 cannot
 // compile fpemu's mul/fma/div paths at all -- it hits "Unhandled builtin
@@ -119,6 +144,7 @@ TEST_HOST_DEVICE_FUNC bool check_mixed()
 TEST_HOST_DEVICE_FUNC void test()
 {
   assert(check_fptool());
+  assert(check_fptool_fp32());
   assert(check_fpemu());
   assert(check_mixed());
 }
