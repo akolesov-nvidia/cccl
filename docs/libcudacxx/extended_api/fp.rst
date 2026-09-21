@@ -8,6 +8,7 @@ FP Component
    :maxdepth: 1
 
    fp/fpmp
+   fp/fpemu
 
 The FP component provides floating-point types that give you arithmetic the hardware does not
 offer directly: more precision than a ``double``, ``double`` precision without FP64 units, less
@@ -35,11 +36,11 @@ At a high level, the component provides:
      - CCCL 3.6.0
      - CUDA 13.6
 
-   * - fpemu
+   * - :ref:`fpemu <libcudacxx-extended-api-fp-fpemu>`
      - ``<cuda/fpemu>``
      - IEEE-754 double precision emulated with integer and single-precision operations, for
-       targets where FP64 is slow or absent: ``fp64emu``, and ``fp64emu_unpacked`` for chains
-       of operations
+       targets where FP64 throughput is rationed: ``fp64emu``, and ``fp64emu_unpacked`` for
+       chains of operations
      - CCCL 3.6.0
      - CUDA 13.6
 

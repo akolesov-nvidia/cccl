@@ -21,94 +21,10 @@ FP64, so a float pair can be both more precise than ``float`` and faster than na
 Above ``double``, there is usually no IEEE-754 binary128 hardware at all, and a double pair
 reaches 104 significand bits out of FP64 operations for far less than a software binary128 costs.
 
-Where this pays off
--------------------
-
-The figures below come from a midpoint-rule π integration — 2^26 terms, five arithmetic operations
-per term, no memory traffic worth speaking of — so they price arithmetic pipelines rather than
-bandwidth, and every type runs identical code. "Correct digits" means correct decimal digits of
-the computed integral, and the per-thread partial sums are reduced in ``fp64mp2`` rather than in
-the type being measured, so the figure reports the arithmetic in the loop rather than the
-summation after it. Native ``double`` is measured in the same run, as the baseline each row is
-reported against.
-
-.. seealso::
-   :ref:`fpmp examples <libcudacxx-extended-api-fp-fpmp-example>` — the program behind these
-   figures, which selects the type it measures from the build line.
-
-**Below** ``double``\ **, where FP64 throughput is rationed.** On these parts native FP64 runs at a
-small fraction of FP32, and a float pair rides the units that are plentiful. Accuracy is a property
-of the arithmetic rather than of the GPU — the three parts below agree on it to the last digit
-reported — so it is one column for all of them:
-
-.. list-table::
-   :widths: 22 16 21 21 20
-   :header-rows: 1
-
-   * - **Type**
-     - **Correct digits**
-     - **RTX 6000 Ada**
-     - **RTX PRO 6000 Blackwell**
-     - **B300**
-
-   * - ``float``
-     - 9.6
-     - 28.2×
-     - 25.4×
-     - 32.3×
-
-   * - ``fp32mp2``, ``low``
-     - 14.9
-     - **15.8×**
-     - **11.5×**
-     - **16.0×**
-
-   * - ``fp32mp2``, ``mid``
-     - 15.1
-     - **9.9×**
-     - **8.6×**
-     - **10.8×**
-
-   * - ``fp32mp2``, ``high``
-     - 15.1
-     - **6.1×**
-     - **5.5×**
-     - **6.7×**
-
-   * - ``double``
-     - 16.3
-     - 1.0×
-     - 1.0×
-     - 1.0×
-
-Each GPU column is speed relative to native ``double`` on that part, which is why the ``double``
-row reads 1.0× in all of them. The pair comes within about a digit of ``double`` at several times
-its throughput, and on this workload the choice between the three levels costs more in speed than
-it returns in accuracy: ``low`` is within 0.2 digits of ``high`` while running two to two and a
-half times faster, because what separates the levels is the trailing limb and this integration is
-not sensitive to it. A workload that is sensitive to it will see the levels separate, which is the
-reason to measure a given computation rather than to assume, and the reason the program above takes
-its type from the build line.
-
-Plain ``float`` is not an alternative, and not merely because it is 6.7 digits behind. Its accuracy
-*peaks* near 10 digits at around 2^20 terms and then gets worse as terms are added — 10.2 digits at
-2^20 against 8.9 at 2^28 — because with 24 significand bits it can no longer place the grid points,
-so the refinement it is being asked for is finer than the format can resolve. ``double`` over the
-same range improves steadily, 13.6 digits to 17.3. That divergence is the wall these types exist to
-get past.
-
-**Above** ``double``\ **.** The same program run with ``fp64mp2`` reaches 17.2 digits where
-``double`` reaches 16.3, and takes roughly five times ``double``'s time on all three parts above: a
-pair operation is a run of operations on the limbs, and on these parts those are the rationed FP64
-ones.
-The digits past ``double`` are therefore bought at a real price, unlike the ones below it, and how
-bearable that price is follows from the FP64 throughput underneath.
-
-**Retiring 80-bit CPU code.** Computations written for x87 double-extended — ``long double`` on
-Linux/x86 — carry a 64-bit significand. ``fp64mp2`` carries 104 by the counting used below, so
-precision survives that move with room to spare. What does not survive is exponent range, which
-stays ``double``'s ±10^308 rather than x87's ±10^4932. Where the 80-bit format was chosen for its
-mantissa, this is a substitution; where it was chosen for its range, the code needs rescaling.
+On the parts :ref:`measured below <libcudacxx-extended-api-fp-fpmp-performance>`, that comes to an
+``fp32mp2`` within about a digit of ``double`` at six to sixteen times its throughput, depending on
+the accuracy level asked for, and an ``fp64mp2`` a digit past ``double`` for roughly five times its
+time.
 
 The types
 ---------
@@ -181,6 +97,15 @@ IEEE-754, so ``is_iec559`` is ``false``:
 
 The minimum exponent is raised relative to the component type because both halves have to stay
 normal for the pair to carry its full significand.
+
+Retiring 80-bit CPU code
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Computations written for x87 double-extended — ``long double`` on Linux/x86 — carry a 64-bit
+significand. ``fp64mp2`` carries 104 by the counting just given, so precision survives that move
+with room to spare. What does not survive is exponent range, which stays ``double``'s ±10^308
+rather than x87's ±10^4932. Where the 80-bit format was chosen for its mantissa, this is a
+substitution; where it was chosen for its range, the code needs rescaling.
 
 .. _libcudacxx-extended-api-fp-fpmp-accuracy:
 
@@ -460,6 +385,91 @@ math dependency on hosts that need one.
 .. seealso::
    :doc:`Full fpmp specification <fpmp_spec>` — the measured accuracy, special-value behavior and
    performance of every function, per type and accuracy level, which this page does not repeat.
+
+.. _libcudacxx-extended-api-fp-fpmp-performance:
+
+Measured performance
+--------------------
+
+The figures below come from a midpoint-rule π integration — 2^26 terms, five arithmetic operations
+per term, no memory traffic worth speaking of — so they price arithmetic pipelines rather than
+bandwidth, and every type runs identical code. "Correct digits" means correct decimal digits of
+the computed integral, and the per-thread partial sums are reduced in ``fp64mp2`` rather than in
+the type being measured, so the figure reports the arithmetic in the loop rather than the
+summation after it. Native ``double`` is measured in the same run, as the baseline each row is
+reported against.
+
+.. seealso::
+   :ref:`fpmp examples <libcudacxx-extended-api-fp-fpmp-example>` — the program behind these
+   figures, which selects the type it measures from the build line.
+
+**Below** ``double``\ **, where FP64 throughput is rationed.** On these parts native FP64 runs at a
+small fraction of FP32, and a float pair rides the units that are plentiful. Accuracy is a property
+of the arithmetic rather than of the GPU — the three parts below agree on it to the last digit
+reported — so it is one column for all of them:
+
+.. list-table::
+   :widths: 22 16 21 21 20
+   :header-rows: 1
+
+   * - **Type**
+     - **Correct digits**
+     - **RTX 6000 Ada**
+     - **RTX PRO 6000 Blackwell**
+     - **B300**
+
+   * - ``float``
+     - 9.6
+     - 28.2×
+     - 25.4×
+     - 32.3×
+
+   * - ``fp32mp2``, ``low``
+     - 14.9
+     - **15.8×**
+     - **11.5×**
+     - **16.0×**
+
+   * - ``fp32mp2``, ``mid``
+     - 15.1
+     - **9.9×**
+     - **8.6×**
+     - **10.8×**
+
+   * - ``fp32mp2``, ``high``
+     - 15.1
+     - **6.1×**
+     - **5.5×**
+     - **6.7×**
+
+   * - ``double``
+     - 16.3
+     - 1.0×
+     - 1.0×
+     - 1.0×
+
+Each GPU column is speed relative to native ``double`` on that part, which is why the ``double``
+row reads 1.0× in all of them. The pair comes within about a digit of ``double`` at several times
+its throughput, and on this workload the choice between the three levels costs more in speed than
+it returns in accuracy: ``low`` is within 0.2 digits of ``high`` while running two to two and a
+half times faster, because what separates the levels is the trailing limb and this integration is
+not sensitive to it. A workload that is sensitive to it will see the levels separate, which is the
+reason to measure a given computation rather than to assume, and the reason the program linked
+above takes its type from the build line.
+
+Plain ``float`` is not an alternative, and not merely because it is 6.7 digits behind. Its accuracy
+*peaks* near 10 digits at around 2^20 terms and then gets worse as terms are added — 10.2 digits at
+2^20 against 8.9 at 2^28 — because with 24 significand bits it can no longer place the grid points,
+so the refinement it is being asked for is finer than the format can resolve. ``double`` over the
+same range improves steadily, 13.6 digits to 17.3. That divergence is the wall these types exist to
+get past.
+
+**Above** ``double``\ **.** The same program run with ``fp64mp2`` reaches 17.2 digits where
+``double`` reaches 16.3, and takes roughly five times ``double``'s time on all three parts above: a
+pair operation is a run of operations on the limbs, and on these parts those are the rationed FP64
+ones.
+The digits past ``double`` are therefore bought at a real price, unlike the ones below it, and how
+bearable that price is follows from the FP64 throughput underneath.
 
 References
 ----------
