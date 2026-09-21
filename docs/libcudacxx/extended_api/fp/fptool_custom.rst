@@ -307,8 +307,8 @@ storage — load, store and a bit-preserving round-trip. A volatile lvalue is no
 into a non-volatile local first. The type stays trivially copyable, the same size and alignment as a
 ``double``, and ``bit_cast`` through ``double`` is the sanctioned route to the raw bits.
 
-Two gaps worth knowing
-~~~~~~~~~~~~~~~~~~~~~~
+The math-function gap
+~~~~~~~~~~~~~~~~~~~~~
 
 Only **sqrt and fma** have reducing implementations. They are also redeclared in ``cuda::std``, so
 the qualified spellings select the reducing version rather than narrowing through
@@ -319,9 +319,6 @@ Every other math function does not. There is no ``fabs``, ``exp``, ``log``, ``si
 ``operator double()`` and computes at **full FP64 precision, silently**. In a sensitivity study that
 is a real trap: the emulated format quietly stops applying for that part of the expression. Where an
 algorithm leans on transcendentals, check what is actually being reduced before trusting the answer.
-
-There is also no ``numeric_limits`` specialization, so generic code that queries limits will not see
-the emulated format's.
 
 .. _libcudacxx-extended-api-fp-fptool-custom-pi:
 

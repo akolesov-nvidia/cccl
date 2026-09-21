@@ -114,11 +114,11 @@ reduces the precision the core produces without discarding the range handling at
 
 What stepping down does **not** cost is exponent range, and that is what makes ``low`` more useful
 than its precision alone suggests. The format is still binary64, so a ``low`` value reaches to
-about ±10^308 where a ``float`` stops at ±10^38, while its arithmetic works on the top 24 bits of
-the significand — ``float``'s width. That combination, ``float`` precision over ``double``'s
-range, is what the level is for: a power series, say, whose terms are perfectly well served by
-24 bits of significand but whose intermediate products or factorials leave ``float``'s exponent
-behind long before the sum has converged. Running the series in ``fp64emu_low`` keeps those
+about ±10\ :sup:`308` where a ``float`` stops at ±10\ :sup:`38`, while its arithmetic works on the
+top 24 bits of the significand — ``float``'s width. That combination, ``float`` precision over
+``double``'s range, is what the level is for: a power series, say, whose terms are perfectly well
+served by 24 bits of significand but whose intermediate products or factorials leave ``float``'s
+exponent behind long before the sum has converged. Running the series in ``fp64emu_low`` keeps those
 intermediates in range at the cheapest arithmetic the component offers — up to 2.3× native
 ``double``, the fastest rows in the table :ref:`below
 <libcudacxx-extended-api-fp-fpemu-performance>` — rather than paying for double precision that the
@@ -151,9 +151,6 @@ underneath is swapped:
 
     cudax::fp64emu x = 2.0;   // implicit, as it would be to double
     auto r           = sqrt(x);   // unqualified: ADL finds the fpemu overload
-
-``cuda::std::numeric_limits`` is **not** specialized for these types. Generic code that queries
-limits should do so through ``double``, which is what both representations hold.
 
 Construction and conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -265,12 +262,12 @@ compute on a non-volatile copy and store the result back.
 Measured performance
 --------------------
 
-The figures below come from a midpoint-rule π integration — 2^26 terms, five arithmetic operations
-per term, no memory traffic worth speaking of — so they price arithmetic pipelines rather than
-bandwidth, and every type runs identical code. "Correct digits" means correct decimal digits of the
-computed integral. Native ``double`` is measured in the same run, as the baseline each row is
-reported against, and accuracy is a property of the arithmetic rather than of the GPU, so it is one
-column for all three parts:
+The figures below come from a midpoint-rule π integration — 2\ :sup:`26` terms, five arithmetic
+operations per term, no memory traffic worth speaking of — so they price arithmetic pipelines
+rather than bandwidth, and every type runs identical code. "Correct digits" means correct decimal
+digits of the computed integral. Native ``double`` is measured in the same run, as the baseline
+each row is reported against, and accuracy is a property of the arithmetic rather than of the GPU,
+so it is one column for all three parts:
 
 .. seealso::
    :ref:`fpemu examples <libcudacxx-extended-api-fp-fpemu-example>` — the program behind these
@@ -349,8 +346,8 @@ What this benchmark can and cannot separate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The accuracy column above is one integration at one term count, and the levels do not all behave
-the same way as the chain of operations gets longer. Rerunning it from 2^22 to 2^28 terms, which
-lengthens each thread's accumulation from 32 iterations to 2048:
+the same way as the chain of operations gets longer. Rerunning it from 2\ :sup:`22` to
+2\ :sup:`28` terms, which lengthens each thread's accumulation from 32 iterations to 2048:
 
 - ``low`` stays at 7.4 digits throughout. Its per-operation error is large enough to swamp
   everything else immediately, so the result does not depend on how long the chain is. That error
@@ -359,12 +356,13 @@ lengthens each thread's accumulation from 32 iterations to 2048:
   and a bias accumulates across a summation where rounding errors largely cancel. It is why
   ``low`` lands below the 9.6 digits that ``float`` — narrower arithmetic — reports in the same
   integration, and the term sweep separates the two mechanisms cleanly: ``float``'s error changes
-  sign and grows with the term count, from +2.9e−10 at 2^22 to −4.0e−9 at 2^28, while ``low``'s
-  stays pinned at −1.2e−7. Where the terms are few, or where their errors are independent for
-  another reason, the two behave alike.
-- Packed ``mid`` *degrades* with chain length, from 16.0 digits at 2^22 to 13.0 at 2^28 — close to
-  0.6 digits per 4× terms, which is a per-operation error accumulating in proportion to the number
-  of operations. Its 13.6 above is a property of this chain length, not of the type.
+  sign and grows with the term count, from +2.9e−10 at 2\ :sup:`22` to −4.0e−9 at 2\ :sup:`28`,
+  while ``low``'s stays pinned at −1.2e−7. Where the terms are few, or where their errors are
+  independent for another reason, the two behave alike.
+- Packed ``mid`` *degrades* with chain length, from 16.0 digits at 2\ :sup:`22` to 13.0 at
+  2\ :sup:`28` — close to 0.6 digits per 4× terms, which is a per-operation error accumulating in
+  proportion to the number of operations. Its 13.6 above is a property of this chain length, not
+  of the type.
 - Unpacked ``mid`` does not degrade that way; it tracks the high-accuracy results, because its
   1–2 ulp error lands in the guard bits below the stored significand rather than in the value that
   survives.

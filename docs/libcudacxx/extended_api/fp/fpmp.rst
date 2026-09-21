@@ -42,13 +42,13 @@ The types
    * - ``fp32mp2``
      - float-float
      - 46 bits = 2×24 − 2
-     - ``float``'s, ~±10^38
+     - ``float``'s, ~±10\ :sup:`38`
      - 8 bytes
 
    * - ``fp64mp2``
      - double-double
      - 104 bits = 2×53 − 2
-     - ``double``'s, ~±10^308
+     - ``double``'s, ~±10\ :sup:`308`
      - 16 bytes
 
 Significand counts on this page always **include the implicit leading bit**, the convention
@@ -88,12 +88,12 @@ IEEE-754, so ``is_iec559`` is ``false``:
      - -968 / 1024
 
    * - ``epsilon()``
-     - 2^-45
-     - 2^-103
+     - 2\ :sup:`-45`
+     - 2\ :sup:`-103`
 
    * - ``min()`` / ``max()``
-     - 2^-102 / ``FLT_MAX``
-     - 2^-969 / ``DBL_MAX``
+     - 2\ :sup:`-102` / ``FLT_MAX``
+     - 2\ :sup:`-969` / ``DBL_MAX``
 
 The minimum exponent is raised relative to the component type because both halves have to stay
 normal for the pair to carry its full significand.
@@ -103,9 +103,9 @@ Retiring 80-bit CPU code
 
 Computations written for x87 double-extended — ``long double`` on Linux/x86 — carry a 64-bit
 significand. ``fp64mp2`` carries 104 by the counting just given, so precision survives that move
-with room to spare. What does not survive is exponent range, which stays ``double``'s ±10^308
-rather than x87's ±10^4932. Where the 80-bit format was chosen for its mantissa, this is a
-substitution; where it was chosen for its range, the code needs rescaling.
+with room to spare. What does not survive is exponent range, which stays ``double``'s
+±10\ :sup:`308` rather than x87's ±10\ :sup:`4932`. Where the 80-bit format was chosen for its
+mantissa, this is a substitution; where it was chosen for its range, the code needs rescaling.
 
 .. _libcudacxx-extended-api-fp-fpmp-accuracy:
 
@@ -396,11 +396,11 @@ math dependency on hosts that need one.
 Measured performance
 --------------------
 
-The figures below come from a midpoint-rule π integration — 2^26 terms, five arithmetic operations
-per term, no memory traffic worth speaking of — so they price arithmetic pipelines rather than
-bandwidth, and every type runs identical code. "Correct digits" means correct decimal digits of
-the computed integral, and the per-thread partial sums are reduced in ``fp64mp2`` rather than in
-the type being measured, so the figure reports the arithmetic in the loop rather than the
+The figures below come from a midpoint-rule π integration — 2\ :sup:`26` terms, five arithmetic
+operations per term, no memory traffic worth speaking of — so they price arithmetic pipelines
+rather than bandwidth, and every type runs identical code. "Correct digits" means correct decimal
+digits of the computed integral, and the per-thread partial sums are reduced in ``fp64mp2`` rather
+than in the type being measured, so the figure reports the arithmetic in the loop rather than the
 summation after it. Native ``double`` is measured in the same run, as the baseline each row is
 reported against.
 
@@ -463,11 +463,11 @@ reason to measure a given computation rather than to assume, and the reason the 
 above takes its type from the build line.
 
 Plain ``float`` is not an alternative, and not merely because it is 6.7 digits behind. Its accuracy
-*peaks* near 10 digits at around 2^20 terms and then gets worse as terms are added — 10.2 digits at
-2^20 against 8.9 at 2^28 — because with 24 significand bits it can no longer place the grid points,
-so the refinement it is being asked for is finer than the format can resolve. ``double`` over the
-same range improves steadily, 13.6 digits to 17.3. That divergence is the wall these types exist to
-get past.
+*peaks* near 10 digits at around 2\ :sup:`20` terms and then gets worse as terms are added — 10.2
+digits at 2\ :sup:`20` against 8.9 at 2\ :sup:`28` — because with 24 significand bits it can no
+longer place the grid points, so the refinement it is being asked for is finer than the format can
+resolve. ``double`` over the same range improves steadily, 13.6 digits to 17.3. That divergence is
+the wall these types exist to get past.
 
 **Above** ``double``\ **.** The same program run with ``fp64mp2`` reaches 17.2 digits where
 ``double`` reaches 16.3, and takes roughly five times ``double``'s time on all three parts above: a
