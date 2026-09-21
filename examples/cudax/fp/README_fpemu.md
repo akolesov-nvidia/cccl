@@ -104,8 +104,11 @@ Selected per type, and available for both representations (`fp64emu_high`, `fp64
 
 Note that the default is the IEEE-correct level, so the type is safe to reach for without
 knowing this table — the lower levels are opt-in. Note also that stepping down costs special
-values as well as precision: `mid` and `low` handle the normal range only, and do not carry
-the subnormal, NaN and infinity handling that `high` does.
+values as well as precision: in the packed form `mid` and `low` handle the normal range only,
+and do not carry the subnormal, NaN and infinity handling that `high` does. The unpacked form
+is better behaved here, its shared pack and unpack routines being full-range at every accuracy
+level, so stepping down there lowers the precision of the core without discarding the range
+handling at the boundary.
 
 What stepping down does **not** cost is exponent range, which is what makes `low` more useful
 than its precision alone suggests. The format is still binary64, so a `low` value reaches to
@@ -116,8 +119,9 @@ significand, but whose intermediate products leave `float`'s exponent behind lon
 sum converges — and it is the cheapest arithmetic the component offers.
 
 The four rounding modes `rn` (nearest), `rz` (toward zero), `ru` (toward +∞) and `rd`
-(toward −∞) are available at every accuracy level, through the intrinsic spellings in the
-operations table below; the operators themselves round to nearest, as they do for `double`.
+(toward −∞) are available at every accuracy level through the intrinsic spellings in the
+operations table below, but **for the packed form only** — the unpacked form offers `_rn` and
+nothing else. The operators themselves round to nearest in both, as they do for `double`.
 
 Using the types
 ---------------
@@ -148,15 +152,21 @@ auto r = sqrt(x);            // unqualified: ADL finds the fpemu overload
 |---|---|---|
 | `double` → | implicit | cast required |
 | `float` → | implicit | cast required |
-| `int32_t` → | implicit | cast required |
-| `int64_t` → | cast required | cast required |
+| any standard integer → | implicit, at every width | cast required |
 | → `double` | implicit | implicit |
 | → `float` | cast required | cast required |
+| → a standard integer | cast required, truncating | cast required, truncating |
 
 The packed form is deliberately as permissive as `double` itself, which is what makes it a
-drop-in. The unpacked form asks for the cast everywhere, since entering it is a change of
-representation rather than just of type — the practical consequence in real code is that
-`acc += 0.5` needs to become `acc += cudax::fp64emu_unpacked{0.5}`.
+drop-in — including the integer constructors, which are implicit at 64 bits as well as 32, on
+the same principle that makes `long` to `double` implicit despite its potential loss. The
+unpacked form asks for the cast everywhere, since entering it is a change of representation
+rather than just of type — the practical consequence in real code is that `acc += 0.5` needs to
+become `acc += cudax::fp64emu_unpacked{0.5}`.
+
+`__int128` and `__uint128` are `= delete`d in both directions, and `__float128` on the way in,
+rather than being absent, so the diagnostic names the rule. Only the default constructors are
+`constexpr`, so a value cannot be built at compile time.
 
 ### Operations
 
@@ -164,18 +174,20 @@ representation rather than just of type — the practical consequence in real co
 |---|---|---|
 | Add, subtract, multiply, divide | `+`, `-`, `*`, `/` and compound forms | `__dadd_<rm>`, `__dsub_<rm>`, `__dmul_<rm>`, `__ddiv_<rm>` |
 | Fused multiply-add | `fma()` | `__fma_<rm>` |
-| Square root | `sqrt()` | |
-| Multiply-add | `mad()` | |
+| Square root | `sqrt()` | `__dsqrt_<rm>` |
+| Multiply-add | `mad()` | `__mad_rn` |
 | Dot product | `dot()` | |
 | Complex multiply | `cmul()` | |
 
 The CUDA-style intrinsic spellings take these types as operands and deduce the accuracy level
 from them, so existing intrinsic call sites port across unchanged. The `<rm>` suffix is one of
-`rn`, `rz`, `ru`, `rd`, which is how a rounding mode other than nearest is selected.
+`rn`, `rz`, `ru`, `rd`, which is how a rounding mode other than nearest is selected; `mad` is
+the exception, `__mad_rn` being its only spelling.
 
 All six comparisons follow IEEE-754 semantics, for both representations. Mixed-type
 arithmetic works directly, so an `fpemu` value combines with a built-in scalar without a cast
-on the scalar side.
+on the scalar side. Note that `cmul()` returns `void` and writes its real and imaginary
+results through two reference parameters, so it is not an expression-style call.
 
 There are **no transcendental math functions** for `fpemu` — no `exp`, `log` or
 trigonometry. Arithmetic, `fma` and `sqrt` are the surface. This is the main functional

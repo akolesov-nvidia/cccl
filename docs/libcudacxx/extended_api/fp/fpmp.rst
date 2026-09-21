@@ -151,6 +151,11 @@ invariant the rest of the interface is written against. ``low`` omits that step 
 carry overlapping limbs, and a chain of them drifts further from the invariant as it goes. That is
 what ``renormalize`` is for, and why it is needed with ``low`` and not with the other two.
 
+.. seealso::
+   :ref:`fpmp2_stat <libcudacxx-extended-api-fp-fptool-stat>` — the instrumented counterparts of
+   these types, which **measure the limb gap and count overlaps** on real data. They are how to
+   find out whether ``low`` is safe for a particular computation rather than assuming it.
+
 The level can also be chosen per operation instead of per type, which is the point of the
 accuracy-explicit functions:
 

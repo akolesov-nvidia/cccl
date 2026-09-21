@@ -9,6 +9,7 @@ FP Component
 
    fp/fpmp
    fp/fpemu
+   fp/fptool
 
 The FP component provides floating-point types that give you arithmetic the hardware does not
 offer directly: more precision than a ``double``, ``double`` precision without FP64 units, less
@@ -44,7 +45,7 @@ At a high level, the component provides:
      - CCCL 3.6.0
      - CUDA 13.6
 
-   * - fptool
+   * - :ref:`fptool <libcudacxx-extended-api-fp-fptool>`
      - ``<cuda/fptool>``
      - Instrumentation rather than new arithmetic: any narrower format emulated on native FP64
        (``fp64_custom<E, M>``), and ``fpmp2`` with a record of the operations it performed
@@ -109,13 +110,15 @@ the IEEE one, so conversions into it are written out rather than implicit; and r
 therefore no longer bit-identical to ``double`` across a chain, even at the highest accuracy
 level.
 
-**Less precision, on purpose.** ``fp64_custom<E, M>`` rounds to a narrower format after every
-operation. This is how to find out whether an algorithm survives BF16, and whether it is the
-mantissa or the dynamic range that matters.
+**Less precision, on purpose.**
+:ref:`fp64_custom\<E, M\> <libcudacxx-extended-api-fp-fptool-custom>` rounds to a narrower format
+after every operation. This is how to find out whether an algorithm survives BF16, and whether it
+is the mantissa or the dynamic range that matters.
 
-**To know what the arithmetic is currently doing.** ``fp32mp2_stat`` and ``fp64mp2_stat`` compute
-identical results to ``fp32mp2`` and ``fp64mp2`` and record what the operations did, including
-whether the second limb is carrying anything at all.
+**To know what the arithmetic is currently doing.**
+:ref:`fp32mp2_stat and fp64mp2_stat <libcudacxx-extended-api-fp-fptool-stat>` compute identical
+results to ``fp32mp2`` and ``fp64mp2`` and record what the operations did, including whether the
+second limb is carrying anything at all.
 
 Accuracy levels
 ---------------

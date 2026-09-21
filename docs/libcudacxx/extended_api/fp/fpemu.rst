@@ -106,8 +106,11 @@ Selected per type, and available for both representations — ``fp64emu_high``, 
 The default is the IEEE-correct level, so the type is safe to reach for without knowing this table;
 the lower levels are opt-in. This is the opposite of the ``fpmp`` convention, where the default is
 the middle level — worth knowing if you use both. Stepping down costs special values as well as
-precision: ``mid`` and ``low`` handle the normal range only, and do not carry the subnormal, NaN
-and infinity handling that ``high`` does.
+precision: in the packed form ``mid`` and ``low`` handle the normal range only, and do not carry
+the subnormal, NaN and infinity handling that ``high`` does. The unpacked form is better behaved
+here, because the pack and unpack routines it shares across every operation are full-range at
+every accuracy level — denormals normalized, infinities and NaNs encoded — so stepping down there
+reduces the precision the core produces without discarding the range handling at the boundary.
 
 What stepping down does **not** cost is exponent range, and that is what makes ``low`` more useful
 than its precision alone suggests. The format is still binary64, so a ``low`` value reaches to
@@ -124,9 +127,11 @@ what limits it in a long accumulation; the measurements
 :ref:`below <libcudacxx-extended-api-fp-fpemu-what-the-benchmark-separates>` show the effect.
 
 The four rounding modes ``rn`` (nearest), ``rz`` (toward zero), ``ru`` (toward +∞) and ``rd``
-(toward −∞) are available at every accuracy level, through the intrinsic spellings listed under
-:ref:`Operations <libcudacxx-extended-api-fp-fpemu-operations>` — the operators themselves round
-to nearest, as they do for ``double``.
+(toward −∞) are available at every accuracy level through the intrinsic spellings listed under
+:ref:`Operations <libcudacxx-extended-api-fp-fpemu-operations>` — but **for the packed form only**.
+The unpacked form offers ``_rn`` and nothing else, so a computation that needs directed rounding
+needs the packed representation. The operators themselves round to nearest in both, as they do for
+``double``.
 
 Using the types
 ---------------
@@ -169,12 +174,8 @@ Construction and conversion
      - implicit
      - **cast required**
 
-   * - from ``int32_t``
-     - implicit
-     - **cast required**
-
-   * - from ``int64_t``
-     - **cast required**
+   * - from any standard integer type
+     - implicit, at every width
      - **cast required**
 
    * - to ``double``
@@ -185,10 +186,21 @@ Construction and conversion
      - **cast required**
      - **cast required**
 
+   * - to a standard integer type
+     - **cast required**, truncating
+     - **cast required**, truncating
+
 The packed form is deliberately as permissive as ``double`` itself, which is what makes it a
-drop-in. The unpacked form asks for the cast everywhere, since entering it is a change of
-representation rather than only of type; the practical consequence is that ``acc += 0.5`` becomes
+drop-in — including the integer constructors, which are implicit at 64 bits as well as 32, on the
+same principle that makes ``long`` to ``double`` implicit despite its potential loss. The unpacked
+form asks for the cast everywhere, since entering it is a change of representation rather than
+only of type; the practical consequence is that ``acc += 0.5`` becomes
 ``acc += cudax::fp64emu_unpacked{0.5}``.
+
+``__int128`` and ``__uint128`` are ``= delete``\ d in both directions, and ``__float128`` on the way
+in, rather than being absent — so the diagnostic names the rule instead of failing obscurely. Note
+also that only the default constructors are ``constexpr``: the converting constructors call into the
+emulation, so a value cannot be built at compile time.
 
 .. _libcudacxx-extended-api-fp-fpemu-operations:
 
@@ -213,11 +225,11 @@ Operations
 
    * - Square root
      - ``sqrt()``
-     -
+     - ``__dsqrt_<rm>``
 
    * - Multiply-add
      - ``mad()``
-     -
+     - ``__mad_rn``
 
    * - Dot product
      - ``dot()``
@@ -229,12 +241,14 @@ Operations
 
 All six comparisons follow IEEE-754 semantics, for both representations. Mixed-type arithmetic
 works directly, so an ``fpemu`` value combines with a built-in scalar without a cast on the scalar
-side.
+side. Note that ``cmul()`` returns ``void`` and writes its real and imaginary results through two
+reference parameters, so it is not an expression-style call like the others.
 
 The CUDA-style intrinsic spellings in the third column take these types as operands and deduce the
 accuracy level from them, so existing intrinsic call sites port across unchanged. Their ``<rm>``
 suffix is where a rounding mode other than nearest is asked for, as described
-:ref:`above <libcudacxx-extended-api-fp-fpemu-accuracy>`.
+:ref:`above <libcudacxx-extended-api-fp-fpemu-accuracy>`. ``mad`` is the exception with no such
+suffix — ``__mad_rn`` is its only spelling, for both representations.
 
 There is **no transcendental math header** for ``fpemu`` — no ``exp``, ``log`` or trigonometry.
 Arithmetic, ``fma`` and ``sqrt`` are the surface. That is the main functional difference from the
