@@ -11,9 +11,9 @@ FP Component
    fp/fpemu
    fp/fptool
 
-The FP component provides floating-point types that give you arithmetic the hardware does not
-offer directly: more precision than a ``double``, ``double`` precision without FP64 units, less
-precision than any hardware implements, or the same arithmetic with a record of what it did.
+The FP component provides floating-point types that give arithmetic the hardware does not offer
+directly: more precision than a ``double``, ``double`` precision without FP64 units, configurable
+reduced precision and range, and a tool for collecting statistics on the arithmetic as it runs.
 Every type works in both host and device code from the same source, so a computation written
 against one of them needs no separate host implementation.
 
@@ -48,7 +48,7 @@ At a high level, the component provides:
    * - :ref:`fptool <libcudacxx-extended-api-fp-fptool>`
      - ``<cuda/fptool>``
      - Instrumentation rather than new arithmetic: any narrower format emulated on native FP64
-       (``fp64_custom<E, M>``), and ``fpmp2`` with a record of the operations it performed
+       (``fp64_custom``), and ``fpmp2`` with a record of the operations it performed
        (``fp32mp2_stat``, ``fp64mp2_stat``)
      - CCCL 3.6.0
      - CUDA 13.6
@@ -62,33 +62,46 @@ Precision is decided by the hardware, and the hardware is not obliged to offer t
 algorithm needs at a price the algorithm can pay. The component exists because that gap opens in
 four different directions.
 
-**Below FP64.** On many recent parts the FP64 pipelines are a fraction of the FP32 ones, so a
+**Above FP32.** On many recent parts the FP64 pipelines are a fraction of the FP32 ones, so a
 computation that needs more than ``float`` can pay an order of magnitude for asking for
 ``double``. The ratio is a property of the part rather than of the code, and it is measured per
-platform in the :doc:`fpmp specification <fp/fpmp_spec>`. Where it is
-steep, ``fp32mp2`` does the same work on the FP32 units the part has in abundance.
+platform in the :doc:`fpmp specification <fp/fpmp_spec>`. Where it is steep, the way to more
+precision is to build it out of the units the part has in abundance rather than to queue for the
+scarce ones: ``fp32mp2`` reaches 46 significand bits on the FP32 pipelines, and ``fp64emu``
+reaches ``double``'s full 53 with its exact semantics, on the FP32 and integer pipelines.
 
 **Above FP64.** There is typically no IEEE-754 binary128 hardware at all, and a fully
 IEEE-correct software binary128 is expensive. ``fp64mp2`` reaches 104 significand bits
 (2×53 − 2) out of ordinary FP64 operations, which covers many of the uses a quad-precision type
-would be reached for.
+would be reached for — cheaply on a part whose FP64 rate is close to its FP32 rate, less so on one
+where FP64 is rationed, since FP64 throughput is what it spends.
 
-**Below FP32.** Hardware implements a handful of narrow formats and no more, which makes the
-question "how little precision does this algorithm actually need?" difficult to ask. Answering
-it is what ``fp64_custom<E, M>`` is for: it rounds to an arbitrary exponent and mantissa width
-after every operation, so a computation runs as though the hardware had that format, and the
-exponent and mantissa can be varied independently to find out which of the two matters.
+**Narrower than FP64, on purpose.** Hardware implements a handful of narrow formats and no more,
+which makes the question "how much precision does this algorithm actually need?" difficult to
+ask. Answering it is what ``fp64_custom<E, M>`` is for, where ``E`` is the width of the exponent
+field and ``M`` the width of the mantissa field — so ``fp64_custom<8, 23>`` is FP32 and
+``fp64_custom<8, 7>`` is BF16. It emulates the format by rounding to those two widths after every
+operation, so a computation runs as though the hardware had it, however narrow and whether or not
+any hardware implements it. The widths are chosen independently, which is what separates an
+algorithm that needs precision from one that needs dynamic range.
 
-**Alongside the arithmetic.** When a result is wrong, native arithmetic keeps no record of how it
-got that way. The ``_stat`` types compute bit-identical results to their ``fpmp2`` counterparts
-while recording operation counts, cancellation and overflow events, and what the operands looked
-like.
+**Alongside the arithmetic.** When a result is not what was expected, native arithmetic keeps no
+record of how it got that way. The ``_stat`` types compute bit-identical results to their
+``fpmp2`` counterparts while recording operation counts, cancellation and overflow events, and
+what the operands looked like.
 
-Which one do I want?
+Which one do I need?
 --------------------
 
 **More precision than** ``double``. ``fp64mp2``, a double-double reaching 104 significand bits
-(2×53 − 2) out of FP64 operations.
+(2×53 − 2) out of FP64 operations, and carrying them in the value itself.
+
+Where the extra precision is wanted only *between* operations rather than in the stored result,
+``fp64emu_unpacked`` is the lighter answer: it computes on 62 significand bits — binary64's 53
+plus 9 guard bits — and rounds to ``double`` once, at the pack, rather than after every operation.
+That is the x87 double-extended arrangement, and it is why a chain of unpacked operations lands
+closer to the exact answer than the same chain in ``double``. It buys far less than ``fp64mp2``
+does, but at a small fraction of the cost.
 
 **Roughly** ``double`` **precision, but FP64 is slow on the target.** Two answers, and the choice
 turns on what you need from ``double``:
@@ -101,16 +114,14 @@ turns on what you need from ``double``:
 ``fp64emu`` comes in two representations. The packed one is the drop-in: 8 bytes holding the
 same bit pattern a ``double`` holds, implicit conversion from the built-in types, and results
 identical to ``double`` at the highest accuracy level. ``fp64emu_unpacked`` instead keeps sign,
-exponent and mantissa in separate fields, which avoids re-packing between operations and extends
-the 53-bit significand by 9 bits, so a chain of operations runs on 62 significand bits and rounds
-to the storage format once, at the pack, rather than after every operation. That makes it both
-faster and more accurate than the packed form over a run of operations. The costs are 16 bytes
-per value instead of 8, which can cost occupancy where many values are live; a layout that is not
-the IEEE one, so conversions into it are written out rather than implicit; and results that are
-therefore no longer bit-identical to ``double`` across a chain, even at the highest accuracy
-level.
+exponent and mantissa in separate fields, which is what avoids the re-packing between operations
+and buys the deferred rounding described above, making it both faster and more accurate than the
+packed form over a run of operations. The costs are 16 bytes per value instead of 8, which can
+cost occupancy where many values are live; a layout that is not the IEEE one, so conversions into
+it are written out rather than implicit; and results that are therefore no longer bit-identical to
+``double`` across a chain, even at the highest accuracy level.
 
-**Less precision, on purpose.**
+**Less precision, on purpose — to find out how much is enough.**
 :ref:`fp64_custom\<E, M\> <libcudacxx-extended-api-fp-fptool-custom>` rounds to a narrower format
 after every operation. This is how to find out whether an algorithm survives BF16, and whether it
 is the mantissa or the dynamic range that matters.
@@ -124,12 +135,12 @@ Accuracy levels
 ---------------
 
 ``fpmp`` and ``fpemu`` each come at three accuracy levels — ``low``, ``mid`` and ``high`` —
-selected through a template parameter or through the named aliases, such as ``fp32mp2_high`` and
-``fp64emu_low``, with each step trading speed against accuracy per operation. The unsuffixed name
-takes a default that differs between the two: ``mid`` for ``fpmp``, and ``high`` for ``fpemu``, so
-emulated ``double`` is IEEE-correct unless asked otherwise. ``fp64_custom`` has no levels, since
-its accuracy is set by the exponent and mantissa widths. What each level does, and what it costs,
-is covered on the sub-component pages.
+selected through a template parameter or through the named aliases, such as ``fp32mp2_low``,
+``fp64emu_mid`` and ``fp64emu_high``, with each step trading speed against accuracy per operation.
+The unsuffixed name takes a default that differs between the two: ``mid`` for ``fpmp``, and
+``high`` for ``fpemu``, so emulated ``double`` is IEEE-correct unless asked otherwise.
+``fp64_custom`` has no levels, since its accuracy is set by the exponent and mantissa widths.
+What each level does, and what it costs, is covered on the sub-component pages.
 
 One source for host and device
 ------------------------------
@@ -176,11 +187,11 @@ rationed and ``fp64mp2`` where the algorithm needs more than ``double``.
 Namespace and stability
 -----------------------
 
-The component lives in the ``cuda::experimental`` namespace, which will be promoted to ``cuda::``
-later. The standard-named math functions are found by argument-dependent lookup, so they can be
-called unqualified and a body of ``double`` code keeps its call sites. The component's own
-functions, which have no ``double`` counterpart, are found the same way, but the sub-component
-pages spell out the namespace on them to mark them as belonging to the component:
+The component lives in the ``cuda::experimental`` namespace. The standard-named math functions
+are found by argument-dependent lookup, so they can be called unqualified and a body of
+``double`` code keeps its call sites. The component's own functions, which have no ``double``
+counterpart, are found the same way, but the sub-component pages spell out the namespace on them
+to mark them as belonging to the component:
 
 .. code-block:: cuda
 

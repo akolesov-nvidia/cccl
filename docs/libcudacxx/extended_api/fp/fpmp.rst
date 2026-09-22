@@ -12,14 +12,24 @@ fpmp: Arithmetic on Pairs of Floats
 
 An ``fpmp2`` value represents a number as the unevaluated sum of two IEEE-754 floats,
 ``value = hi + lo``, which roughly doubles the available mantissa. The pair is stored directly in
-the object and every operation is an error-free transformation on the two limbs, so the extra
+the object, and each operation is built from error-free transformations — primitives such as
+``two_sum`` that recover the rounding error of a single hardware operation exactly — so the extra
 precision comes from arithmetic the hardware already does fast rather than from a wider format the
-hardware does not have.
+hardware does not have. The exactness belongs to those primitives rather than to the operation
+composed from them: a pair addition or multiply carries a small error of its own, and how small is
+what the :ref:`accuracy levels <libcudacxx-extended-api-fp-fpmp-accuracy>` choose between.
 
 That matters in two places. Below ``double``, GPUs typically have far more FP32 throughput than
 FP64, so a float pair can be both more precise than ``float`` and faster than native ``double``.
 Above ``double``, there is usually no IEEE-754 binary128 hardware at all, and a double pair
-reaches 104 significand bits out of FP64 operations for far less than a software binary128 costs.
+reaches 104 significand bits out of ordinary FP64 operations.
+
+Which of the two applies is decided by one number, the rate at which the part runs FP64 against
+FP32, and the :doc:`specification <fpmp_spec>` lists it for every platform measured — 1:2 on B200
+against 1:32 on B300 and RTX PRO 6000 Blackwell. ``fp64mp2`` spends FP64 throughput, so it is the
+cheap route to quad-like precision on a part where FP64 runs close to FP32, and a costly one where
+FP64 is rationed: a software binary128 is integer code and is not competing for the units
+``fp64mp2`` needs. ``fp32mp2`` is the mirror image, and wins exactly where ``fp64mp2`` struggles.
 
 On the parts :ref:`measured below <libcudacxx-extended-api-fp-fpmp-performance>`, that comes to an
 ``fp32mp2`` within about a digit of ``double`` at six to sixteen times its throughput, depending on
@@ -147,9 +157,10 @@ across levels — comparing them means printing ``hi`` and ``lo`` separately.
 And the levels differ in the *state* they leave the result in, not only in its accuracy. ``mid``
 and ``high`` finish every operation with a normalization step, so each result comes back with its
 limbs non-overlapping — ``|lo| <= ulp(hi)/2``, which for ``fp32mp2`` is ``2^-24 * |hi|`` — the
-invariant the rest of the interface is written against. ``low`` omits that step — it is most of what makes it fast — so its results can
-carry overlapping limbs, and a chain of them drifts further from the invariant as it goes. That is
-what ``renormalize`` is for, and why it is needed with ``low`` and not with the other two.
+invariant the rest of the interface is written against. ``low`` omits that step — it is most of
+what makes it fast — so its results can carry overlapping limbs, and a chain of them drifts
+further from the invariant as it goes. That is what the ``renormalize()`` function is for, and why
+it is needed with ``low`` and not with the other two.
 
 .. seealso::
    :ref:`fpmp2_stat <libcudacxx-extended-api-fp-fptool-stat>` — the instrumented counterparts of
