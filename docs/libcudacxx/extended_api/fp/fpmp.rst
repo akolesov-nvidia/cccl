@@ -160,7 +160,9 @@ limbs non-overlapping — ``|lo| <= ulp(hi)/2``, which for ``fp32mp2`` is ``2^-2
 invariant the rest of the interface is written against. ``low`` omits that step — it is most of
 what makes it fast — so its results can carry overlapping limbs, and a chain of them drifts
 further from the invariant as it goes. That is what the ``renormalize()`` function is for, and why
-it is needed with ``low`` and not with the other two.
+it is needed with ``low`` and not with the other two. Converting a value up to ``mid`` or ``high``
+restores the invariant on its own, so what is left for the explicit call is a value that stays at
+``low`` — see :ref:`changing the accuracy level <libcudacxx-extended-api-fp-fpmp-level-change>`.
 
 .. seealso::
    :ref:`fpmp2_stat <libcudacxx-extended-api-fp-fptool-stat>` — the instrumented counterparts of
@@ -284,6 +286,36 @@ churn matters more than the diagnostics. The conversion still takes the accurate
 when it is allowed through — the macro decides whether the conversion is written out, not how
 precisely it is done.
 
+.. _libcudacxx-extended-api-fp-fpmp-level-change:
+
+Changing the accuracy level
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Moving a value between accuracy levels is a conversion of its own, and always written out, in
+both directions — the level is part of the type, and it selects the algorithms downstream
+arithmetic will use, so it does not change by accident:
+
+.. code-block:: cuda
+
+    cudax::fp32mp2_low fast = ...;
+    cudax::fp32mp2     safe(fast);      // explicit; renormalizes on the way
+
+Conversion **out of** ``low`` renormalizes. The reason is the state ``low`` leaves its results
+in: they can carry overlapping limbs, while the ``mid`` and ``high`` algorithms are written
+against the non-overlap invariant on their inputs. Handing them an overlapping pair compiles
+without complaint and quietly returns a worse answer, so the conversion repairs the invariant
+rather than leaving it to be remembered. That makes the mixed-accuracy pattern — ``low`` for the
+bulk of the work, a higher level across a critical stretch — correct as written.
+
+The step is one ``fast_two_sum`` and it is exact, so it changes how the number is stored and
+never the number itself. Conversions in the other direction, **into** ``low``, are a plain limb
+copy: the pair already satisfies the invariant, and moving into ``low`` is a deliberate step into
+the fast regime. Where a pure retag is wanted, with no arithmetic at all, construct from the
+limbs instead — ``fp32mp2{x.hi(), x.lo()}``.
+
+One consequence worth knowing: because the conversion out of ``low`` is arithmetic rather than a
+copy, it is not usable in a constant expression, while the level changes that copy still are.
+
 Operations
 ----------
 
@@ -293,7 +325,8 @@ directly, so an ``fpmp2`` combines with a built-in scalar without a cast on the 
 
 ``renormalize(x)`` restores the non-overlap invariant, ``|lo| <= ulp(hi)/2``, which only ``low``
 accuracy can leave broken; see :ref:`accuracy levels <libcudacxx-extended-api-fp-fpmp-accuracy>`
-above.
+above. Converting up out of ``low`` applies it automatically, so the explicit call is for
+repairing a value that stays at ``low`` accuracy.
 
 ``<cuda/fpmp_math>`` adds the rest of the math surface. Much of it is implemented directly in
 float-float arithmetic for ``fp32mp2``, with no FP64 operation anywhere, which is the point on
