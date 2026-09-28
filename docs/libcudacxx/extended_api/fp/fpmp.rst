@@ -273,6 +273,21 @@ So ``fp64mp2 acc = 0;`` and ``fp32mp2 t = some_float;`` compile as expected, whi
 implicit. The cast is ``constexpr``, so full-precision coefficient tables can be built at compile
 time.
 
+Quad interchange sits outside that table. ``fp64mp2`` converts both ways with the library's
+128-bit type ``__fpmp_fp128`` — ``__float128`` on x86, IEEE ``long double`` on aarch64. Both
+directions are explicit, and both are deleted on ``fp32mp2``: a double-float holds about 48
+significand bits, fewer than a ``double``, so ``double`` is its interchange type and a quad image
+is asked for through one — ``(__fpmp_fp128) (double) x`` — which is exact for any pair meeting the
+double-float contract.
+
+On GCC, ``_Float128`` is frequently a *second* binary128 type: the same format as
+``__fpmp_fp128``, but a distinct type with no implicit conversion between the two spellings. The
+same explicit conversions therefore exist for ``_Float128`` wherever it is not already
+``__fpmp_fp128``, so a ``static_cast<_Float128>`` of an ``fp64mp2`` compiles on aarch64 as well as
+on x86. This second spelling requires GCC 13, the first release to accept the token in C++; Clang
+offers no distinct type — it either rejects the token or aliases it to ``long double`` — so there
+the ``__fpmp_fp128`` conversions are the only ones.
+
 The same rule reaches the scalar accumulate path: ``+=`` and ``-=`` have an optimized overload
 taking a single component, worth about six operations over a full pair addition, and it is
 constrained the same way. ``acc += 1.5f`` on an ``fp32mp2`` is fine; ``acc += 1.5`` is not,
