@@ -30,7 +30,7 @@ At a high level, the component provides:
      - **CUDA Toolkit Availability**
 
    * - :ref:`fpmp <libcudacxx-extended-api-fp-fpmp>`
-     - ``<cuda/fpmp>``, ``<cuda/fpmp_math>``
+     - ``<cuda/fpmp>``
      - Double-word arithmetic built from pairs of IEEE floats, reaching more mantissa than the
        hardware has: ``fp32mp2`` (46 significand bits = 2×24 − 2) and ``fp64mp2``
        (104 = 2×53 − 2)

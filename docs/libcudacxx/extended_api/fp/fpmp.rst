@@ -193,11 +193,9 @@ Using the types
 
 .. code-block:: cuda
 
-    #include <cuda/fpmp>       // types, operators, sqrt, rsqrt, fma, mad
-    #include <cuda/fpmp_math>  // adds exp, log, trig, pow, ...; also pulls in <cuda/fpmp>
+    #include <cuda/fpmp>   // types, operators, sqrt, rsqrt, fma, mad, and the math functions
 
-Include only ``<cuda/fpmp>`` where the transcendentals are not needed — the math header costs
-compile time.
+One header carries the whole interface, the transcendental math functions included.
 
 The component lives in ``cuda::experimental``, to be promoted to ``cuda::`` later. Two spellings
 then appear, and the convention below is worth following even though, for most of these functions,
@@ -328,14 +326,14 @@ accuracy can leave broken; see :ref:`accuracy levels <libcudacxx-extended-api-fp
 above. Converting up out of ``low`` applies it automatically, so the explicit call is for
 repairing a value that stays at ``low`` accuracy.
 
-``<cuda/fpmp_math>`` adds the rest of the math surface. Much of it is implemented directly in
+The rest of the math surface arrives with the same header. Much of it is implemented directly in
 float-float arithmetic for ``fp32mp2``, with no FP64 operation anywhere, which is the point on
 hardware where FP64 is rationed:
 
 - **Exponentials and logarithms** — ``exp``, ``exp2``, ``exp10``, ``expm1``, ``log``, ``log2``,
   ``log10``, ``log1p``
-- **Powers and roots** — ``pow``, ``cbrt``, ``rcbrt``; ``sqrt`` and ``rsqrt`` come with the core
-  header
+- **Powers and roots** — ``pow``, ``cbrt``, ``rcbrt``, alongside the ``sqrt`` and ``rsqrt``
+  already named above
 - **Trigonometric** — ``sin``, ``cos``, ``tan``, ``sincos``, ``asin``, ``acos``, ``atan``,
   ``atan2``
 - **Hyperbolic** — ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``

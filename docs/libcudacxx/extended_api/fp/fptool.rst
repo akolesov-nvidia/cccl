@@ -69,11 +69,9 @@ Using the header
 
     #include <cuda/fptool>
 
-One header carries both tools and their math functions. ``<cuda/fpmp>`` splits its math off into a
-second header because it is a production type that most translation units use for arithmetic
-alone; these are analysis types that a few translation units pick up temporarily, so a second
-umbrella would buy them little. The one consequence to know is that including it costs about a
-fifth more than the types alone, since the statistics math wrappers rest on ``<cuda/fpmp_math>``.
+One header carries both tools and their math functions, as ``<cuda/fpmp>`` does. The one
+consequence to know is that including it costs about a fifth more than the types alone, since the
+statistics math wrappers rest on the fpmp math surface.
 
 Both tools work in host and device code from the same source, but with an asymmetry that matters
 in opposite directions:

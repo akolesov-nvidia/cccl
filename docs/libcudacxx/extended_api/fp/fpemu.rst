@@ -247,9 +247,9 @@ suffix is where a rounding mode other than nearest is asked for, as described
 :ref:`above <libcudacxx-extended-api-fp-fpemu-accuracy>`. ``mad`` is the exception with no such
 suffix — ``__mad_rn`` is its only spelling, for both representations.
 
-There is **no transcendental math header** for ``fpemu`` — no ``exp``, ``log`` or trigonometry.
-Arithmetic, ``fma`` and ``sqrt`` are the surface. That is the main functional difference from the
-``fpmp`` types, which have ``<cuda/fpmp_math>``.
+There are **no transcendental math functions** for ``fpemu`` — no ``exp``, ``log`` or
+trigonometry. Arithmetic, ``fma`` and ``sqrt`` are the surface. That is the main functional
+difference from the ``fpmp`` types, whose header carries a full math API.
 
 Objects of both representations may be declared ``volatile``, for the legacy CUDA pattern of
 holding shared-memory scalars in volatile variables. As for ``fpmp2``, support is limited to

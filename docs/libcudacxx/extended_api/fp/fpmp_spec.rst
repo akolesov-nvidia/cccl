@@ -14,7 +14,7 @@ Overview
 
 This document is the per-function reference for the ``fpmp`` multi-precision types of the CCCL FP component: measured accuracy, special-value behavior and GPU performance, for every function the two types implement.
 
-The types live in namespace ``cuda::experimental``, abbreviated ``cudax::`` here and in the examples. Arithmetic comes in with ``<cuda/fpmp>`` and the math functions with ``<cuda/fpmp_math>``. Names appear unqualified in the tables below for width; every one of them is a ``cudax::`` name.
+The types live in namespace ``cuda::experimental``, abbreviated ``cudax::`` here and in the examples. Arithmetic and the math functions both come in with ``<cuda/fpmp>``. Names appear unqualified in the tables below for width; every one of them is a ``cudax::`` name.
 
 Each function is reported at three accuracy levels, ``low``, ``def`` and ``high``. ``def`` is the default selector and is equal to ``mid``, not to ``high``; ``mid`` is the name to use in code (``cudax::fpmp2_accuracy::mid``).
 
@@ -53,7 +53,7 @@ Significand counts include the implicit leading bit, the convention ``cuda::std:
 Function Families
 -----------------
 
-The math functions are organized into families that mirror the CUDA C++ mathematical standard library taxonomy (CUDA C++ Programming Guide, "Mathematical Functions"). Each family lives in a dedicated implementation header (``fpmp_math_impl_<family>.h``) that contains both the ``fp32mp2`` implementation and the ``fp64mp2`` specialization for its functions. Shared kernels and constants live in ``fpmp_math_impl.h``. Include ``<cuda/fpmp_math>``, which pulls in all family headers and provides the overloaded ``fpmp2`` API wrappers (template declarations, ``float``/``double`` specializations, the freestanding API, and library-mode declarations). Basic arithmetic (``add``, ``sub``, ``mul``, ``div``, ``fma``, ``mad``) and ``sqrt``/``rsqrt`` come with ``<cuda/fpmp>`` instead. Functions that CUDA lists as "non-standard" are folded into their natural standard family.
+The math functions are organized into families that mirror the CUDA C++ mathematical standard library taxonomy (CUDA C++ Programming Guide, "Mathematical Functions"). Each family lives in a dedicated implementation header (``fpmp_math_impl_<family>.h``) that contains both the ``fp32mp2`` implementation and the ``fp64mp2`` specialization for its functions. Shared kernels and constants live in ``fpmp_math_impl.h``. Include ``<cuda/fpmp>``, which pulls in all family headers and provides the overloaded ``fpmp2`` API wrappers (template declarations, ``float``/``double`` specializations, the freestanding API, and library-mode declarations), along with the basic arithmetic (``add``, ``sub``, ``mul``, ``div``, ``fma``, ``mad``) and ``sqrt``/``rsqrt``. Functions that CUDA lists as "non-standard" are folded into their natural standard family.
 
 The implementation headers named below are internal and sit under ``cuda/__fp/``; they are listed to show how the implementation is partitioned, not as headers to include directly.
 
