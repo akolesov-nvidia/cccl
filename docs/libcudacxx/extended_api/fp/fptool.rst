@@ -60,10 +60,27 @@ So the shape of a study is: reach for one of these to answer a question, read th
 it back. Both are designed for that — ``fp64_custom`` is a drop-in for ``double`` and the ``_stat``
 types are drop-ins for the ``fpmp2`` types they wrap, so in each case the change is to a type
 alias and the algorithm is left alone. Keeping that alias behind a build flag is the arrangement
-worth copying.
+worth copying — and the header itself is behind one, ``CCCL_ENABLE_FPTOOL``, so that a leftover
+include cannot quietly carry the tools into a shipping build.
 
 Using the header
 ----------------
+
+The feature is opt-in, for the reason above. Both tools keep mutable state at namespace scope —
+``fp64_custom``'s runtime field sizes and the ``_stat`` counter record — and because those are
+variable templates, one copy is shared by every translation unit that includes the header. That
+sharing is what makes the tools work, and it is also why an ``#include`` left behind after a study
+is not free: the state, and for ``_stat`` the atomic traffic on every operation, go into the
+binary with it. So ``<cuda/fptool>`` refuses to compile until a project asks for it:
+
+.. code-block:: bash
+
+    nvcc -DCCCL_ENABLE_FPTOOL ...
+
+.. important::
+   Define it for the whole project rather than per file. The state above is shared across
+   translation units, so a build where only some of them have opted in is the one configuration to
+   avoid. This is the same rule the other :ref:`CCCL configuration macros <cccl-config>` follow.
 
 .. code-block:: cuda
 

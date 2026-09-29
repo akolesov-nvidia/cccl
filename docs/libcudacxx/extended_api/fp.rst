@@ -49,11 +49,14 @@ At a high level, the component provides:
      - ``<cuda/fptool>``
      - Instrumentation rather than new arithmetic: any narrower format emulated on native FP64
        (``fp64_custom``), and ``fpmp2`` with a record of the operations it performed
-       (``fp32mp2_stat``, ``fp64mp2_stat``)
+       (``fp32mp2_stat``, ``fp64mp2_stat``). Opt-in, behind ``CCCL_ENABLE_FPTOOL``
      - CCCL 3.6.0
      - CUDA 13.6
 
 The first two rows and ``fp64_custom`` change the arithmetic; the ``_stat`` types only observe it.
+The first two are also available by including their header and nothing else, where ``fptool`` has
+to be asked for: it is a diagnostic instrument whose types keep state at namespace scope, so
+``<cuda/fptool>`` does not compile until ``CCCL_ENABLE_FPTOOL`` is defined.
 
 Why the component exists
 ------------------------

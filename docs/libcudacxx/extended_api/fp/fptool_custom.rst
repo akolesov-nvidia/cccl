@@ -220,6 +220,15 @@ device-code accessors exist, a JIT compilation having no host side.
 Using the type
 --------------
 
+The header is opt-in, because the runtime sizes above are mutable variables at namespace scope
+with one copy shared by every translation unit. Define ``CCCL_ENABLE_FPTOOL`` for the whole
+project — see :ref:`the component page <libcudacxx-extended-api-fp-fptool>` for why it has to be
+the whole project:
+
+.. code-block:: bash
+
+    nvcc -DCCCL_ENABLE_FPTOOL ...
+
 .. code-block:: cuda
 
     #include <cuda/fptool>     // one header for the whole feature

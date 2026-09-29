@@ -155,6 +155,16 @@ plain ``fpmp2`` and never reach the record.
 Running a measurement
 ---------------------
 
+The header is opt-in, because the counter record is a mutable object at namespace scope with one
+copy shared by every translation unit, and every instrumented operation updates it. Define
+``CCCL_ENABLE_FPTOOL`` for the whole project — see
+:ref:`the component page <libcudacxx-extended-api-fp-fptool>` for why it has to be the whole
+project:
+
+.. code-block:: bash
+
+    nvcc -DCCCL_ENABLE_FPTOOL ...
+
 .. code-block:: cuda
 
     #include <cuda/fptool>
