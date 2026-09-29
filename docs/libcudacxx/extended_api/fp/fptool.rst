@@ -36,11 +36,11 @@ rewrite was faithful.
        numerical events on the device
 
 The difference between them is worth stating plainly, because it decides how each is used:
-**``fp64_custom`` changes the arithmetic, and the ``_stat`` types only observe it.** One is there
-to make results worse in a controlled way, so you can see how much worse the algorithm tolerates.
-The other is there to leave results alone — bit-identical to the type it wraps, by construction —
-so that an instrumented run can be compared against a plain one, and a difference between them
-means a race or an uninitialized value rather than a rounding change.
+**``fp64_custom`` changes the arithmetic, and the ``fpmp2_stat`` types only observe it.** One is
+there to make results worse in a controlled way, so you can see how much worse the algorithm
+tolerates. The other is there to leave results alone — bit-identical to the type it wraps, by
+construction — so that an instrumented run can be compared against a plain one, and a difference
+between them means a race or an uninitialized value rather than a rounding change.
 
 Neither is a type to ship in
 ----------------------------
@@ -53,24 +53,24 @@ Both are diagnostics, and both cost rather than save:
   every reduced format costs about 10% over plain ``double``. What it buys is the answer to
   "would this work in BF16", on hardware that has no BF16 arithmetic, for a format that no
   hardware need ever implement.
-- an instrumented ``_stat`` run is **two to three orders of magnitude slower** than the plain
+- an instrumented ``fpmp2_stat`` run is **two to three orders of magnitude slower** than the plain
   type, every operation updating one device-wide record through atomics.
 
 So the shape of a study is: reach for one of these to answer a question, read the answer, and put
-it back. Both are designed for that — ``fp64_custom`` is a drop-in for ``double`` and the ``_stat``
-types are drop-ins for the ``fpmp2`` types they wrap, so in each case the change is to a type
-alias and the algorithm is left alone. Keeping that alias behind a build flag is the arrangement
-worth copying — and the header itself is behind one, ``CCCL_ENABLE_FPTOOL``, so that a leftover
-include cannot quietly carry the tools into a shipping build.
+it back. Both are designed for that — ``fp64_custom`` is a drop-in for ``double`` and the
+``fpmp2_stat`` types are drop-ins for the ``fpmp2`` types they wrap, so in each case the change
+is to a type alias and the algorithm is left alone. Keeping that alias behind a build flag is the
+arrangement worth copying — and the header itself is behind one, ``CCCL_ENABLE_FPTOOL``, so that
+a leftover include cannot quietly carry the tools into a shipping build.
 
 Using the header
 ----------------
 
 The feature is opt-in, for the reason above. Both tools keep mutable state at namespace scope —
-``fp64_custom``'s runtime field sizes and the ``_stat`` counter record — and because those are
-variable templates, one copy is shared by every translation unit that includes the header. That
+``fp64_custom``'s runtime field sizes and the ``fpmp2_stat`` counter record — and because those
+are variable templates, one copy is shared by every translation unit that includes the header. That
 sharing is what makes the tools work, and it is also why an ``#include`` left behind after a study
-is not free: the state, and for ``_stat`` the atomic traffic on every operation, go into the
+is not free: the state, and for ``fpmp2_stat`` the atomic traffic on every operation, go into the
 binary with it. So ``<cuda/fptool>`` refuses to compile until a project asks for it:
 
 .. code-block:: bash
@@ -95,7 +95,7 @@ in opposite directions:
 
 - ``fp64_custom`` keeps **independent host and device sizes**, deliberately, so a full-precision
   host reference can run alongside a reduced device computation.
-- ``_stat`` collection is **device-only**. The same source compiles and runs on the host, where
+- ``fpmp2_stat`` collection is **device-only**. The same source compiles and runs on the host, where
   the wrapper is a transparent pass-through and nothing is gathered — so a program doing part of
   its arithmetic on the host reports a count below what its closed form predicts, with no
   diagnostic.

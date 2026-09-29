@@ -15,7 +15,7 @@ implements, and none ever need.
 
 .. seealso::
    :ref:`fptool overview <libcudacxx-extended-api-fp-fptool>` — the header shared with the
-   ``_stat`` types, and why neither is a type to ship in.
+   ``fpmp2_stat`` types, and why neither is a type to ship in.
 
 The type
 --------

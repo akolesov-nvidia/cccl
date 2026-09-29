@@ -53,7 +53,8 @@ At a high level, the component provides:
      - CCCL 3.6.0
      - CUDA 13.6
 
-The first two rows and ``fp64_custom`` change the arithmetic; the ``_stat`` types only observe it.
+The first two rows and ``fp64_custom`` change the arithmetic; the ``fpmp2_stat`` types only
+observe it.
 The first two are also available by including their header and nothing else, where ``fptool`` has
 to be asked for: it is a diagnostic instrument whose types keep state at namespace scope, so
 ``<cuda/fptool>`` does not compile until ``CCCL_ENABLE_FPTOOL`` is defined.
@@ -89,7 +90,7 @@ any hardware implements it. The widths are chosen independently, which is what s
 algorithm that needs precision from one that needs dynamic range.
 
 **Alongside the arithmetic.** When a result is not what was expected, native arithmetic keeps no
-record of how it got that way. The ``_stat`` types compute bit-identical results to their
+record of how it got that way. The ``fpmp2_stat`` types compute bit-identical results to their
 ``fpmp2`` counterparts while recording operation counts, cancellation and overflow events, and
 what the operands looked like.
 
