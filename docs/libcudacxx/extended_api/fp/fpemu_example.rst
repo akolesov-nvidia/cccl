@@ -48,8 +48,8 @@ for each the value, how many decimal digits of it are correct, and how long the 
 deliberately a poor numerical method and a good benchmark: five arithmetic operations per term with
 no memory traffic worth speaking of, so what it prices is arithmetic pipelines rather than
 bandwidth, and both runs execute identical code. That page carries the full listing and the
-measurement details — the warm-up launch, the reduction carried out more accurately than the type
-under test, and the double-double reference.
+measurement details — the warm-up launch, the reduction carried out in the type under test rather
+than in something wider, and the double-double reference.
 
 Nothing in it is specific to one sub-component. The kernel is written against a type parameter,
 and the conversions are written out because a narrowing conversion into these types has to be
@@ -99,20 +99,21 @@ On an RTX 6000 Ada, where FP64 runs at a fraction of FP32:
     on NVIDIA RTX 6000 Ada Generation, sm_89
 
     type                           value                    digits   time (ms)
-    double                         3.1415926535897936        16.28       1.296
-    cudax::fp64emu_unpacked        3.1415926535897936        16.29       0.881
+    double                         3.1415926535897984        14.78       1.297
+    cudax::fp64emu_unpacked        3.1415926535897936        16.10       0.881
 
-    cudax::fp64emu_unpacked is 1.47x the speed of native double, for +0.0 digits
+    cudax::fp64emu_unpacked is 1.47x the speed of native double, for +1.3 digits
 
-Software double precision, beating the hardware double precision on the same part, at the same
-accuracy. Rebuilding with ``-DPI_FP_T=cudax::fp64emu`` gives the packed form, which reproduces
+Software double precision, beating the hardware double precision on the same part on both axes —
+and the accuracy it gains is the summation error that its guard bits absorb and ``double`` has to
+round away. Rebuilding with ``-DPI_FP_T=cudax::fp64emu`` gives the packed form, which reproduces
 ``double`` bit for bit at about parity on time, and the ``_mid`` and ``_low`` names walk the
 accuracy levels. The :ref:`fpemu page <libcudacxx-extended-api-fp-fpemu>` collects those figures
 across the parts measured.
 
 Two things to expect when running it. Absolute times move with clocks and with what else is on the
 GPU, so the ratio is the stable quantity, not the milliseconds. And ``-DPI_LOG2_TERMS=nn`` is worth
-a look here in particular: it lengthens each thread's accumulation, which is what separates the
-accuracy levels — packed ``mid`` loses about 0.6 digits per 4× terms while the unpacked form holds
-its accuracy, for the reason given
+a look here in particular: as terms are added the unpacked form keeps gaining on ``double``, which
+stalls near 14 digits, while packed ``mid`` sits unmoved at 11.3 and ``low`` tracks plain ``float``
+down — for the reasons given
 :ref:`on the fpemu page <libcudacxx-extended-api-fp-fpemu-what-the-benchmark-separates>`.

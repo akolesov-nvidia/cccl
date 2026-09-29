@@ -331,11 +331,14 @@ computation the :ref:`fpmp <libcudacxx-extended-api-fp-fpmp>` and
 operations per term — run here through one emulated format after another, with the type alias as the
 only thing that changes. "Correct digits" means correct decimal digits of the computed integral.
 
-Two things about the method, since they bound what the numbers mean. The per-thread accumulation is
-the part that runs in the emulated format; the cross-thread reduction and the reference are
-``fp64mp2``, so the figures are about the integration loop rather than about the summation. And
-because the reduction is more accurate than the format under test, these are the *best* results each
-format can give on this algorithm, not the typical ones.
+Two things about the method, since they bound what the numbers mean, and since they are why the
+``fp64_custom<11, 52>`` row below does not match the ``double`` row on those other two pages. The
+per-thread accumulation is the part that runs in the emulated format; the cross-thread reduction
+and the reference are ``fp64mp2``, so the figures here are about the integration loop rather than
+about the summation, whereas the ``fpmp`` and ``fpemu`` measurements keep the reduction in the type
+as well. And because that reduction is more accurate than the format under test, these are the
+*best* results each format can give on this algorithm, not the typical ones — which is what a
+sensitivity study wants, the question being where a format starts to lose the *computation*.
 
 Start with the mantissa, holding the exponent at its native 11 bits so that nothing is clamped:
 

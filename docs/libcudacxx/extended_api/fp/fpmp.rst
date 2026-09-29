@@ -32,9 +32,9 @@ FP64 is rationed: a software binary128 is integer code and is not competing for 
 ``fp64mp2`` needs. ``fp32mp2`` is the mirror image, and wins exactly where ``fp64mp2`` struggles.
 
 On the parts :ref:`measured below <libcudacxx-extended-api-fp-fpmp-performance>`, that comes to an
-``fp32mp2`` within about a digit of ``double`` at six to sixteen times its throughput, depending on
-the accuracy level asked for, and an ``fp64mp2`` a digit past ``double`` for roughly five times its
-time.
+``fp32mp2`` within a few digits of ``double`` at six to sixteen times its throughput, how many of
+each depending on the accuracy level asked for, and an ``fp64mp2`` a couple of digits past
+``double`` for roughly five times its time.
 
 The types
 ---------
@@ -147,7 +147,7 @@ the trailing limb correct. The level is part of the type:
 
    * - ``fp32mp2``
      - ``fpmp2_accuracy::def``
-     - The default selector, equal to ``mid`` — not to ``high``
+     - The default selector, equal to ``mid``
 
 with the same four names for ``fp64mp2``. Three points are easy to miss. The default is ``mid``, so
 asking for ``high`` is a deliberate step up rather than the level you already have. The levels
@@ -197,7 +197,7 @@ Using the types
 
 One header carries the whole interface, the transcendental math functions included.
 
-The component lives in ``cuda::experimental``, to be promoted to ``cuda::`` later. Two spellings
+The component lives in ``cuda::experimental`` namespace. Two spellings
 then appear, and the convention below is worth following even though, for most of these functions,
 either one compiles. The standard-named math functions are left **unqualified**, found by
 argument-dependent lookup. The component's own functions have no counterpart for ``double``, so
@@ -397,7 +397,7 @@ FP64-throttled hardware, and ``fp32mp2`` is never limited by its backend: functi
 dedicated implementation evaluate in ``double`` and split into the pair, and binary64 already
 carries more significand than a float pair holds.
 
-``fp64mp2`` is the interesting case, because a double pair asks for more precision than binary64
+``fp64mp2`` is the different case, because a double pair asks for more precision than binary64
 can express. Those functions need a binary128 backend to be evaluated in, and whether one is
 active is decided per compilation pass rather than by an option:
 
@@ -456,10 +456,10 @@ Measured performance
 The figures below come from a midpoint-rule π integration — 2\ :sup:`26` terms, five arithmetic
 operations per term, no memory traffic worth speaking of — so they price arithmetic pipelines
 rather than bandwidth, and every type runs identical code. "Correct digits" means correct decimal
-digits of the computed integral, and the per-thread partial sums are reduced in ``fp64mp2`` rather
-than in the type being measured, so the figure reports the arithmetic in the loop rather than the
-summation after it. Native ``double`` is measured in the same run, as the baseline each row is
-reported against.
+digits of the computed integral, with every step carried out in the type being measured, the
+sequential reduction of the 131072 per-thread partials included: what is reported is therefore what
+a program written in that type costs end to end, not the loop in isolation. Native ``double`` is
+measured in the same run, as the baseline each row is reported against.
 
 .. seealso::
    :ref:`fpmp examples <libcudacxx-extended-api-fp-fpmp-example>` — the program behind these
@@ -481,53 +481,63 @@ reported — so it is one column for all of them:
      - **B300**
 
    * - ``float``
-     - 9.6
+     - 3.1
      - 28.2×
      - 25.4×
      - 32.3×
 
    * - ``fp32mp2``, ``low``
-     - 14.9
+     - 9.5
      - **15.8×**
      - **11.5×**
      - **16.0×**
 
    * - ``fp32mp2``, ``mid``
-     - 15.1
+     - 12.0
      - **9.9×**
      - **8.6×**
      - **10.8×**
 
    * - ``fp32mp2``, ``high``
-     - 15.1
+     - 12.7
      - **6.1×**
      - **5.5×**
      - **6.7×**
 
    * - ``double``
-     - 16.3
+     - 14.8
      - 1.0×
      - 1.0×
      - 1.0×
 
 Each GPU column is speed relative to native ``double`` on that part, which is why the ``double``
-row reads 1.0× in all of them. The pair comes within about a digit of ``double`` at several times
-its throughput, and on this workload the choice between the three levels costs more in speed than
-it returns in accuracy: ``low`` is within 0.2 digits of ``high`` while running two to two and a
-half times faster, because what separates the levels is the trailing limb and this integration is
-not sensitive to it. A workload that is sensitive to it will see the levels separate, which is the
-reason to measure a given computation rather than to assume, and the reason the program linked
-above takes its type from the build line.
+row reads 1.0× in all of them. A float pair lands within three digits of ``double`` at several
+times its throughput, and the three levels do separate here — but they separate very unevenly, and
+the shape of that is worth reading rather than the numbers alone.
 
-Plain ``float`` is not an alternative, and not merely because it is 6.7 digits behind. Its accuracy
-*peaks* near 10 digits at around 2\ :sup:`20` terms and then gets worse as terms are added — 10.2
-digits at 2\ :sup:`20` against 8.9 at 2\ :sup:`28` — because with 24 significand bits it can no
-longer place the grid points, so the refinement it is being asked for is finer than the format can
-resolve. ``double`` over the same range improves steadily, 13.6 digits to 17.3. That divergence is
-the wall these types exist to get past.
+The large step is from ``low`` to ``mid``: 2.5 digits, for 1.6× the time. It is not cancellation
+that does it, since every term of this integrand is positive. It is that ``low`` is the one level
+that omits the closing renormalization, so its two limbs are free to overlap, and the overlap
+compounds along a chain of 131072 additions until part of the trailing limb is no longer carrying
+information. ``mid`` and ``high`` both restore the invariant on every operation, and neither drifts.
+
+The step from ``mid`` to ``high`` is small by comparison — 0.7 digits, for another 1.6× — and that
+is what to expect on a sum of same-signed values. Both levels normalize; what ``high`` adds is the
+recovery of the rounding error committed when the two trailing limbs are added, and that error only
+grows into the result when something amplifies it. Cancellation is the usual amplifier and there is
+none here, so ``high`` collects a fraction of a digit. On a computation that does cancel, the same
+0.7 digits can be several. Which is the reason to measure a given computation rather than to assume
+from a table, and the reason the program linked above takes its type from the build line.
+
+Plain ``float`` is not an alternative, and not merely because it is 11.7 digits behind here. Its
+accuracy gets *worse* as terms are added — 5.2 digits at 2\ :sup:`20` against 2.8 at
+2\ :sup:`28` — so the extra work buys less answer rather than more. With 24 significand bits it can
+neither place the grid points at that spacing nor carry the sum across that many additions.
+``double`` holds near 14 digits over the same range. That divergence is the wall these types exist
+to get past.
 
 **Above** ``double``\ **.** The same program run with ``fp64mp2`` reaches 17.2 digits where
-``double`` reaches 16.3, and takes roughly five times ``double``'s time on all three parts above: a
+``double`` reaches 14.8, and takes roughly five times ``double``'s time on all three parts above: a
 pair operation is a run of operations on the limbs, and on these parts those are the rationed FP64
 ones.
 The digits past ``double`` are therefore bought at a real price, unlike the ones below it, and how

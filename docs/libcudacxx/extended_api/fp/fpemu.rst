@@ -265,9 +265,11 @@ Measured performance
 The figures below come from a midpoint-rule π integration — 2\ :sup:`26` terms, five arithmetic
 operations per term, no memory traffic worth speaking of — so they price arithmetic pipelines
 rather than bandwidth, and every type runs identical code. "Correct digits" means correct decimal
-digits of the computed integral. Native ``double`` is measured in the same run, as the baseline
-each row is reported against, and accuracy is a property of the arithmetic rather than of the GPU,
-so it is one column for all three parts:
+digits of the computed integral, with every step carried out in the type being measured, the
+sequential reduction of the 131072 per-thread partials included: what is reported is therefore what
+a program written in that type costs end to end, not the loop in isolation. Native ``double`` is
+measured in the same run, as the baseline each row is reported against, and accuracy is a property
+of the arithmetic rather than of the GPU, so it is one column for all three parts:
 
 .. seealso::
    :ref:`fpemu examples <libcudacxx-extended-api-fp-fpemu-example>` — the program behind these
@@ -284,53 +286,56 @@ so it is one column for all three parts:
      - **B300**
 
    * - ``double``
-     - 16.3
+     - 14.8
      - 1.00×
      - 1.00×
      - 1.00×
 
    * - ``fp64emu``
-     - 16.3
+     - 14.8
      - 1.02×
      - 1.12×
      - 0.98×
 
    * - ``fp64emu_unpacked``
-     - 16.3
+     - 16.1
      - **1.47×**
      - **1.65×**
      - **1.46×**
 
    * - ``fp64emu_mid``
-     - 13.6
+     - 11.3
      - 1.43×
      - 1.61×
      - 1.46×
 
    * - ``fp64emu_unpacked_mid``
-     - 17.2
+     - 14.0
      - **1.78×**
      - **1.96×**
      - **1.81×**
 
    * - ``fp64emu_low``
-     - 7.4
+     - 3.1
      - 1.72×
      - 1.95×
      - 1.76×
 
    * - ``fp64emu_unpacked_low``
-     - 7.4
+     - 3.1
      - 2.12×
      - 2.30×
      - 2.05×
 
 Two results to read off it. The packed form at the default accuracy reproduces ``double`` bit for
-bit while running at parity with it — 0.98× to 1.12× across the three — so exact FP64 semantics
-are available without using the FP64 pipe at all. And the unpacked form runs about 1.5× hardware
-``double`` at the same accuracy, which is the deferred rounding
-:ref:`described above <libcudacxx-extended-api-fp-fpemu-representations>`: the pack/unpack tax is
-paid once at the boundary rather than once per operation.
+bit — the two rows are not merely equal to the digit shown, they return the same value — while
+running at parity with it, 0.98× to 1.12× across the three, so exact FP64 semantics are available
+without using the FP64 pipe at all. And the unpacked form runs about 1.5× hardware ``double`` and
+comes out 1.3 digits *ahead* of it, which is the deferred rounding
+:ref:`described above <libcudacxx-extended-api-fp-fpemu-representations>` showing up twice over:
+the pack/unpack tax is paid once at the boundary rather than once per operation, and the guard bits
+that survive between operations absorb error that ``double`` has to round away — including the
+error of the long final summation, which is where most of it is.
 
 The emulation executes on the integer and FP32 pipes and never touches an FP64 unit, which has an
 interesting consequence on parts like these: the FP64 hardware sits idle while the emulation runs,
@@ -345,36 +350,36 @@ as a result.
 What this benchmark can and cannot separate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The accuracy column above is one integration at one term count, and the levels do not all behave
+The accuracy column above is one integration at one term count, and the rows do not all respond
 the same way as the chain of operations gets longer. Rerunning it from 2\ :sup:`22` to
-2\ :sup:`28` terms, which lengthens each thread's accumulation from 32 iterations to 2048:
+2\ :sup:`26` terms, which lengthens each thread's accumulation from 32 iterations to 512:
 
-- ``low`` stays at 7.4 digits throughout. Its per-operation error is large enough to swamp
-  everything else immediately, so the result does not depend on how long the chain is. That error
-  also has a **sign**: the fast path reaches 24 bits by truncating each operand's significand
-  rather than rounding it, so results are biased low rather than scattered about the exact value,
-  and a bias accumulates across a summation where rounding errors largely cancel. It is why
-  ``low`` lands below the 9.6 digits that ``float`` — narrower arithmetic — reports in the same
-  integration, and the term sweep separates the two mechanisms cleanly: ``float``'s error changes
-  sign and grows with the term count, from +2.9e−10 at 2\ :sup:`22` to −4.0e−9 at 2\ :sup:`28`,
-  while ``low``'s stays pinned at −1.2e−7. Where the terms are few, or where their errors are
-  independent for another reason, the two behave alike.
-- Packed ``mid`` *degrades* with chain length, from 16.0 digits at 2\ :sup:`22` to 13.0 at
-  2\ :sup:`28` — close to 0.6 digits per 4× terms, which is a per-operation error accumulating in
-  proportion to the number of operations. Its 13.6 above is a property of this chain length, not
-  of the type.
-- Unpacked ``mid`` does not degrade that way; it tracks the high-accuracy results, because its
-  1–2 ulp error lands in the guard bits below the stored significand rather than in the value that
-  survives.
-- At the default accuracy, packed and unpacked agree to within the last digit reported. That is
-  the one place the benchmark stops resolving: at this term count the midpoint rule's own
-  discretization error is already the size of what separates them, so differences of a fraction of
-  a digit there are the method talking, not the arithmetic.
+- ``low`` is indistinguishable from ``float`` — 3.3, 2.9 and 3.1 digits at the three term counts,
+  the same figures ``float`` reports, and at some of them the same value bit for bit. That is what
+  the level is: its fast path reaches 24 bits by truncating each operand's significand, so once a
+  computation carries its own summation rather than handing it to something wider, ``low`` is
+  ``float`` arithmetic with a wider exponent, and it degrades with term count for the same reason
+  ``float`` does. Packed and unpacked agree exactly here too, the guard bits having nothing left
+  to protect.
+- Packed ``mid`` is pinned at 11.3 digits at every term count, its error sitting at −1.7e−11
+  throughout. An error that does not move as the number of operations grows is a *relative* bias:
+  each term comes out short by about the same fraction, so their sum is short by that fraction
+  however many there are. A rounding error scattered about zero would instead grow with the chain.
+  The 11.3 above is therefore a property of the level, not of this chain length.
+- Unpacked ``mid`` is likewise flat, at 14.0, because its 1–2 ulp error lands in the guard bits
+  below the stored significand rather than in the value that survives. Flat is enough to win here:
+  ``double`` wanders between 13.7 and 14.8 over the same sweep, so unpacked ``mid`` is level with
+  it at 2\ :sup:`26` and slightly ahead beyond that.
+- At the default accuracy, packed ``fp64emu`` returns the same value as ``double`` at every term
+  count, while unpacked *improves* as terms are added — 14.8, 15.9, 16.1 — pulling further ahead
+  of ``double`` the longer the summation gets. The guard bits are absorbing summation error that
+  ``double`` has to round away at every step, and there is more of it to absorb at every term
+  count.
 
-Which is the general caution: measure the computation you have. The type that wins here is the one
-whose error is smallest against *this* integration's error budget, and a workload with a different
-budget will rank them differently. The same benchmark reduced *in the type under test*, which is
-how a computation written entirely in one type behaves, puts the unpacked form about 1.5 digits
-ahead of ``double`` at the default accuracy rather than level with it — the guard bits absorb the
-summation error that this page's measurement removes from both sides. The ``README`` beside the
-CCCL example reports it that way, which is why its digit counts differ from these.
+Which is the general caution: measure the computation you have, in the way you have it. These
+figures carry the reduction, so they describe a program written end to end in one type. Reduce in
+something wider instead — as a program would if it kept a more accurate accumulator — and most of
+what separates the rows goes with it: the summation error disappears from both sides, ``low``
+parts company with ``float``, and the unpacked form comes back level with ``double`` rather than
+ahead of it. Neither measurement is the truthful one in general. The one that applies is whichever
+matches where your accumulator lives.

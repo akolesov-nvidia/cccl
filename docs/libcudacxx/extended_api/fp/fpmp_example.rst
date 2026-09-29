@@ -46,10 +46,12 @@ number:
   launch, so timing it prices the load rather than the arithmetic. Left uncorrected it is worth
   tens of milliseconds — enough to make whichever type runs first look far slower than it is. Hence
   the short untimed run before the timed one.
-- **The partial sums are reduced in** ``fp64mp2``\ **, not in the type being measured.** A
-  sequential sum of 131072 values in the type under test contributes its own rounding error, around
-  two decimal digits of it here, and the reported accuracy would then describe the summation as
-  much as the integration.
+- **Every step stays in the type being measured, the final reduction included.** A sequential sum
+  of 131072 partials in the type under test contributes rounding error of its own, so a reduction
+  done in something wider would report the loop alone rather than what a program written in that
+  type actually costs. It is also the part of the run that separates the three ``fp32mp2`` accuracy
+  levels, since a long chain of additions is far more sensitive to the trailing limb than the five
+  operations of a single term are.
 - **The reference is a double-double**, since a ``double`` reference cannot rank types more
   accurate than a ``double``, which ``fp64mp2`` is.
 
@@ -58,7 +60,7 @@ number:
     #include <cuda/algorithm>
     #include <cuda/buffer>
     #include <cuda/devices>
-    #include <cuda/fpmp> // the reference and the reduction are fp64mp2, whatever is measured
+    #include <cuda/fpmp> // the reference is fp64mp2, whatever type is measured
     #include <cuda/launch>
     #include <cuda/std/span>
     #include <cuda/stream>
@@ -209,14 +211,18 @@ number:
       cuda::copy_bytes(stream, partials, cuda::std::span<T>{host.data(), host.size()});
       stream.sync();
 
-      // Reduced more accurately than the type being measured, so that the digits reported
-      // describe the loop rather than this summation.
-      cudax::fp64mp2 sum{0.0};
-      for (const T& partial : host)
+      // The partials are summed in T, not in a wider type. A reduction more accurate than the
+      // type being measured would report the loop alone, whereas a program written in T has to
+      // pay for its own summation too, so keeping every step in T is what the type costs end to
+      // end. It is also what separates the accuracy levels: the trailing limb matters far more
+      // to a chain of this many additions than to the five operations of a single term, and
+      // low, which is the level that skips the renormalization, is hit hardest.
+      T sum = host[0];
+      for (size_t i = 1; i < host.size(); ++i)
       {
-        sum += to_dd(partial);
+        sum = sum + host[i];
       }
-      const cudax::fp64mp2 value = sum * cudax::fp64mp2(1.0 / static_cast<double>(kTerms));
+      const cudax::fp64mp2 value = to_dd(sum) * cudax::fp64mp2(1.0 / static_cast<double>(kTerms));
 
       const auto elapsed = stop - start;
       return {static_cast<double>(value), correct_digits(value), elapsed.count() / 1.0e6};
@@ -287,20 +293,22 @@ On an RTX 6000 Ada, where FP64 runs at a fraction of FP32, the default type give
     on NVIDIA RTX 6000 Ada Generation, sm_89
 
     type                           value                    digits   time (ms)
-    double                         3.1415926535897936        16.28       1.295
-    cudax::fp32mp2                 3.1415926535897909        15.13       0.131
+    double                         3.1415926535897984        14.78       1.297
+    cudax::fp32mp2                 3.1415926535931646        11.97       0.132
 
-    cudax::fp32mp2 is 9.87x the speed of native double, for -1.2 digits
+    cudax::fp32mp2 is 9.82x the speed of native double, for -2.8 digits
 
-A digit of accuracy given up for ten times the throughput, on a computation that is nothing but
-arithmetic. Rebuilding with ``-DPI_FP_T=cudax::fp32mp2_low`` or ``...=cudax::fp32mp2_high`` walks
-the accuracy levels, ``-DPI_FP_T=float`` shows what the hardware does unaided, and
-``-DPI_FP_T=cudax::fp64mp2`` costs roughly five times ``double`` for about a digit more than it.
-The :ref:`fpmp page <libcudacxx-extended-api-fp-fpmp>` collects those figures across three
+Ten times the throughput of ``double`` for around three of its digits, on a computation that is
+nothing but arithmetic. Rebuilding with ``-DPI_FP_T=cudax::fp32mp2_low`` or
+``...=cudax::fp32mp2_high`` walks the accuracy levels — 9.5 and 12.7 digits respectively, at 16×
+and 6× — ``-DPI_FP_T=float`` shows what the hardware does unaided, and
+``-DPI_FP_T=cudax::fp64mp2`` costs roughly five times ``double`` for 2.4 digits more than it. The
+:ref:`fpmp page <libcudacxx-extended-api-fp-fpmp>` collects those figures across three
 architectures.
 
 Two things to expect when running it. Absolute times move with clocks and with what else is on the
 GPU, so the ratio is the stable quantity, not the milliseconds. And ``-DPI_LOG2_TERMS=nn`` is worth
-a look: as terms are added ``double`` keeps converging while ``float`` peaks near 10 correct digits
-around 2\ :sup:`20` terms and then *degrades*, since it can no longer place the grid points. That
+a look: ``double`` holds near 14 digits as terms are added, while ``float`` *degrades* — 5.2 digits
+at 2\ :sup:`20` terms against 2.8 at 2\ :sup:`28`, so the extra work buys less answer rather than
+more. With 24 significand bits it can neither place the grid points nor carry the sum. That
 divergence is the wall the component exists to get past, and it takes one rebuild to see.
