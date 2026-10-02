@@ -758,6 +758,41 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x4 __mul_128(__uint32x2 __a, __uint32x2 __
   return __res;
 }
 
+//! @brief Saturating 64-bit shifts
+//!
+//! Alignment by an exponent difference routinely shifts by more than 64 bits, and
+//! a C++ shift by >= 64 is undefined (x86 wraps the count modulo 64). These
+//! primitives define it as saturating: logical shifts yield 0 and the arithmetic
+//! shift yields the sign fill. The amount is taken as unsigned, so a negative
+//! amount saturates as well. PTX shl/shr have exactly these semantics, so on
+//! device each primitive is a single shift instruction; the host clamps.
+_CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shl_u64_sat(uint64_t __x, int __shift) noexcept {NV_IF_ELSE_TARGET(
+  NV_IS_DEVICE,
+  ({
+    uint64_t __r;
+    asm("shl.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
+    return __r;
+  }),
+  ({ return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x << __shift); }))} //__shl_u64_sat
+
+_CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shr_u64_sat(uint64_t __x, int __shift) noexcept {NV_IF_ELSE_TARGET(
+  NV_IS_DEVICE,
+  ({
+    uint64_t __r;
+    asm("shr.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
+    return __r;
+  }),
+  ({ return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x >> __shift); }))} //__shr_u64_sat
+
+_CCCL_TRIVIAL_HOST_DEVICE_API int64_t __sar_s64_sat(int64_t __x, int __shift) noexcept {NV_IF_ELSE_TARGET(
+  NV_IS_DEVICE,
+  ({
+    int64_t __r;
+    asm("shr.s64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
+    return __r;
+  }),
+  ({ return __x >> ((static_cast<uint32_t>(__shift) >= 64) ? 63 : __shift); }))} //__sar_s64_sat
+
 //! @brief Shift a 64-bit value left by a specified amount
 //!
 //! This function performs a logical left shift on a 64-bit value represented
@@ -776,16 +811,14 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __shl_64(__uint32x2 __man, int __shift)
 //! @brief Shift a 64-bit value right by a specified amount
 //!
 //! This function performs a logical right shift on a 64-bit value represented
-//! as two 32-bit integers. The shift amount can be positive or negative.
+//! as two 32-bit integers. Shifts of 64 or more yield zero.
 //!
 //! @param man The 64-bit value to shift as two 32-bit integers
-//! @param shift The number of bits to shift (positive for right shift)
+//! @param shift The number of bits to shift (non-negative)
 //! @return The shifted value as two 32-bit integers
 _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __shr_64(__uint32x2 __man, int __shift) noexcept
 {
-  uint64_t __man64 = ::cuda::std::bit_cast<uint64_t>(__man);
-  NV_IF_TARGET(NV_IS_HOST, ({ __shift = (__shift > 0) ? (__shift > 64) ? 64 : __shift : 0; }))
-  __man64 = __man64 >> __shift;
+  uint64_t __man64 = __shr_u64_sat(::cuda::std::bit_cast<uint64_t>(__man), __shift);
   return ::cuda::std::bit_cast<__uint32x2>(__man64);
 } //__shr_64
 
@@ -859,16 +892,16 @@ template <__fpemu_rounding _Rm = __fpemu_rounding::rn>
 _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __shr_64_rnd(__uint32x2 __man, int __shift, bool __sign = false) noexcept
 {
   uint64_t __man64 = ::cuda::std::bit_cast<uint64_t>(__man);
-  NV_IF_TARGET(NV_IS_HOST, ({ __shift = (__shift > 0) ? (__shift > 64) ? 64 : __shift : 0; }))
 
   if (__shift <= 0)
   {
     return __man;
   }
 
-  const uint64_t __discard_mask         = (__shift >= 64) ? ~0ULL : ((1ULL << __shift) - 1);
+  // Shifts of 64 or more discard every bit (the mask saturates to all ones).
+  const uint64_t __discard_mask         = __shl_u64_sat(1ULL, __shift) - 1;
   [[maybe_unused]] const bool __inexact = (__man64 & __discard_mask) != 0;
-  __man64 >>= __shift;
+  __man64                               = __shr_u64_sat(__man64, __shift);
 
   if constexpr (_Rm == __fpemu_rounding::ru)
   {
@@ -892,17 +925,24 @@ template <__fpemu_rounding _Rm = __fpemu_rounding::rn>
 _CCCL_TRIVIAL_HOST_DEVICE_API __fpemu_uint128
 __shr_128_rnd(__fpemu_uint128 __man, int __shift, bool __sign = false) noexcept
 {
-  NV_IF_TARGET(NV_IS_HOST, ({ __shift = (__shift > 0) ? ((__shift > 127) ? 127 : __shift) : 0; }))
-
   if (__shift <= 0)
   {
     return __man;
   }
 
-  const __fpemu_uint128 __discard_mask =
-    (__shift >= 128) ? ~(__fpemu_uint128) 0 : ((((__fpemu_uint128) 1) << __shift) - 1);
-  const bool __inexact = (__man & __discard_mask) != 0;
-  __man >>= __shift;
+  // Composed from the saturating 64-bit shifts: every term whose amount is out of
+  // range (including the negative ones) is 0, so no width checks are needed. A
+  // native 128-bit shift by >= 128 would be undefined.
+  __uint64x2 __v      = ::cuda::std::bit_cast<__uint64x2>(__man);
+  const uint64_t __lo = __v.x[0];
+  const uint64_t __hi = __v.x[1];
+  __v.x[0] = __shr_u64_sat(__lo, __shift) | __shl_u64_sat(__hi, 64 - __shift) | __shr_u64_sat(__hi, __shift - 64);
+  __v.x[1] = __shr_u64_sat(__hi, __shift);
+  const int __shift_hi = (__shift > 128) ? 128 : __shift;
+  const uint64_t __mlo = __shl_u64_sat(1ULL, __shift) - 1;
+  const uint64_t __mhi = __shr_u64_sat(~0ULL, 128 - __shift_hi);
+  const bool __inexact = ((__lo & __mlo) | (__hi & __mhi)) != 0;
+  __man                = ::cuda::std::bit_cast<__fpemu_uint128>(__v);
 
   if constexpr (_Rm == __fpemu_rounding::rn || _Rm == __fpemu_rounding::rz)
   {
@@ -938,19 +978,16 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __fpemu_uint128 __shr_128_jam(__fpemu_uint128 __ma
 //! @brief Arithmetic Shift a 64-bit value right with rounding
 //!
 //! This function performs a arithmetic right shift on a 64-bit value represented
-//! as two 32-bit integers, with rounding to the nearest value. The shift amount
-//! can be positive or negative.
+//! as two 32-bit integers, with rounding to the nearest value. Shifts of 64 or
+//! more saturate to the sign fill.
 //!
 //! @param man The 64-bit value to shift as two 32-bit integers
-//! @param shift The number of bits to shift (positive for right shift)
+//! @param shift The number of bits to shift (non-negative)
 //! @return The shifted and rounded value as two 32-bit integers
 template <fpemu_accuracy _Acc = fpemu_accuracy::high>
 _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __sar_64(__uint32x2 __man, int __shift) noexcept
 {
-  NV_IF_TARGET(NV_IS_HOST, ({ __shift = (__shift > 0) ? (__shift > 63) ? 63 : __shift : 0; }))
-
-  int64_t __man64  = ::cuda::std::bit_cast<int64_t>(__man);
-  __man64          = __man64 >> __shift;
+  int64_t __man64  = __sar_s64_sat(::cuda::std::bit_cast<int64_t>(__man), __shift);
   __uint32x2 __res = ::cuda::std::bit_cast<__uint32x2>(__man64);
   return __res;
 } //__sar_64_rnd
@@ -959,25 +996,24 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __sar_64(__uint32x2 __man, int __shift)
 //!
 //! This function performs a arithmetic right shift on a 64-bit value represented
 //! as two 32-bit integers, with rounding according to the specified mode.
-//! The shift amount can be positive or negative.
+//! Shifts of 64 or more saturate to the sign fill (the sticky bit then covers
+//! every bit).
 //!
 //! @tparam _Acc Accuracy level (sticky-bit preservation applies only for high)
 //! @tparam rm  Rounding mode (default: nearest-even)
 //! @param man  The 64-bit value to shift as two 32-bit integers
-//! @param shift The number of bits to shift (positive for right shift)
+//! @param shift The number of bits to shift (non-negative)
 //! @param sign Result sign (used for directed rounding modes ru/rd)
 //! @return The shifted and rounded value as two 32-bit integers
 template <fpemu_accuracy _Acc = fpemu_accuracy::high, __fpemu_rounding _Rm = __fpemu_rounding::rn>
 _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __sar_64_rnd(__uint32x2 __man, int __shift, bool __sign = false) noexcept
 {
-  NV_IF_TARGET(NV_IS_HOST, ({ __shift = (__shift > 0) ? (__shift > 63) ? 63 : __shift : 0; }))
-
   int64_t __man64     = ::cuda::std::bit_cast<int64_t>(__man);
-  int64_t __man64_res = __man64 >> __shift;
+  int64_t __man64_res = __sar_s64_sat(__man64, __shift);
   __uint32x2 __res    = ::cuda::std::bit_cast<__uint32x2>(__man64_res);
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    uint64_t __mask                = (1LLU << __shift) - 1;
+    uint64_t __mask                = __shl_u64_sat(1ULL, __shift) - 1;
     [[maybe_unused]] bool __sticky = (__man64 & __mask) != 0;
     if constexpr (_Rm == __fpemu_rounding::rn)
     {

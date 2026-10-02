@@ -124,12 +124,8 @@ __internal_fp64emu_fma_unpacked(__fpbits64_unpacked __a, __fpbits64_unpacked __b
   int32_t __delta_a = __exponent_r - __exponent_ab_new;
   int32_t __delta_b = __exponent_r - __exponent_c;
 
-  NV_IF_TARGET(NV_IS_HOST, ({
-                 __delta_a = (__delta_a > 127) ? 127 : __delta_a;
-                 __delta_b = (__delta_b > 127) ? 127 : __delta_b;
-               }))
-
-  // Shift mantissas with jam only (SoftFloat shiftRightJam*); round at pack
+  // Shift mantissas with jam only (SoftFloat shiftRightJam*); round at pack.
+  // __shr_128_jam saturates deltas of 128 or more, so no clamp is needed here.
   __mantissa_ab = __shr_128_jam(__mantissa_ab, __delta_a);
   __mantissa_c  = __shr_128_jam(__mantissa_c << 64, __delta_b);
 

@@ -137,13 +137,14 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __fpbits64 __internal_fp64emu_pack(__fpbits64_unpa
   int32_t __exponent  = __e > 0 ? __e : 0;
 
   int __shift = __e > 0 ? 0 : -__e;
-  NV_IF_TARGET(NV_IS_HOST, ({ __shift = (__shift > 0) ? (__shift > 63) ? 63 : __shift : 0; }))
 
   if (__shift > 0)
   {
-    const uint64_t __mask                 = (__shift >= 64) ? ~0ULL : ((1ULL << __shift) - 1);
+    // A deep underflow shifts by far more than 64 and discards every bit (the mask
+    // saturates to all ones).
+    const uint64_t __mask                 = __shl_u64_sat(1ULL, __shift) - 1;
     [[maybe_unused]] const bool __inexact = (__x.mantissa & __mask) != 0;
-    __x.mantissa >>= __shift;
+    __x.mantissa                          = __shr_u64_sat(__x.mantissa, __shift);
     if constexpr (_Rm == __fpemu_rounding::rn)
     {
       if (__inexact)
