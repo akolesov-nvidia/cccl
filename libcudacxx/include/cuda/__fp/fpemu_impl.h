@@ -766,32 +766,38 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x4 __mul_128(__uint32x2 __a, __uint32x2 __
 //! shift yields the sign fill. The amount is taken as unsigned, so a negative
 //! amount saturates as well. PTX shl/shr have exactly these semantics, so on
 //! device each primitive is a single shift instruction; the host clamps.
-_CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shl_u64_sat(uint64_t __x, int __shift) noexcept {NV_IF_ELSE_TARGET(
-  NV_IS_DEVICE,
-  ({
-    uint64_t __r;
-    asm("shl.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
-    return __r;
-  }),
-  ({ return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x << __shift); }))} //__shl_u64_sat
+_CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shl_u64_sat(uint64_t __x, int __shift) noexcept
+{
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    ({
+                      uint64_t __r;
+                      asm("shl.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
+                      return __r;
+                    }),
+                    (return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x << __shift);))
+} //__shl_u64_sat
 
-_CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shr_u64_sat(uint64_t __x, int __shift) noexcept {NV_IF_ELSE_TARGET(
-  NV_IS_DEVICE,
-  ({
-    uint64_t __r;
-    asm("shr.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
-    return __r;
-  }),
-  ({ return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x >> __shift); }))} //__shr_u64_sat
+_CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shr_u64_sat(uint64_t __x, int __shift) noexcept
+{
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    ({
+                      uint64_t __r;
+                      asm("shr.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
+                      return __r;
+                    }),
+                    (return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x >> __shift);))
+} //__shr_u64_sat
 
-_CCCL_TRIVIAL_HOST_DEVICE_API int64_t __sar_s64_sat(int64_t __x, int __shift) noexcept {NV_IF_ELSE_TARGET(
-  NV_IS_DEVICE,
-  ({
-    int64_t __r;
-    asm("shr.s64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
-    return __r;
-  }),
-  ({ return __x >> ((static_cast<uint32_t>(__shift) >= 64) ? 63 : __shift); }))} //__sar_s64_sat
+_CCCL_TRIVIAL_HOST_DEVICE_API int64_t __sar_s64_sat(int64_t __x, int __shift) noexcept
+{
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
+                    ({
+                      int64_t __r;
+                      asm("shr.s64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
+                      return __r;
+                    }),
+                    (return __x >> ((static_cast<uint32_t>(__shift) >= 64) ? 63 : __shift);))
+} //__sar_s64_sat
 
 //! @brief Shift a 64-bit value left by a specified amount
 //!
