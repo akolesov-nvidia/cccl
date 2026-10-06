@@ -142,7 +142,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __fpbits64 __internal_fp64emu_pack(__fpbits64_unpa
   {
     // A deep underflow shifts by far more than 64 and discards every bit (the mask
     // saturates to all ones).
-    const uint64_t __mask                 = __shl_u64_sat(1ULL, __shift) - 1;
+    const uint64_t __mask                 = ~__shl_u64_sat(~0ULL, __shift);
     [[maybe_unused]] const bool __inexact = (__x.mantissa & __mask) != 0;
     __x.mantissa                          = __shr_u64_sat(__x.mantissa, __shift);
     if constexpr (_Rm == __fpemu_rounding::rn)

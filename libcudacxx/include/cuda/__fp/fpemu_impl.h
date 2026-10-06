@@ -47,6 +47,8 @@
 #include <cuda/__fp/fpemu_common.h>
 #include <cuda/std/__bit/bit_cast.h>
 #include <cuda/std/__bit/countl.h>
+#include <cuda/std/__bit/shl.h>
+#include <cuda/std/__bit/shr.h>
 
 #include <nv/target>
 
@@ -761,42 +763,24 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x4 __mul_128(__uint32x2 __a, __uint32x2 __
 //! @brief Saturating 64-bit shifts
 //!
 //! Alignment by an exponent difference routinely shifts by more than 64 bits, and
-//! a C++ shift by >= 64 is undefined (x86 wraps the count modulo 64). These
-//! primitives define it as saturating: logical shifts yield 0 and the arithmetic
-//! shift yields the sign fill. The amount is taken as unsigned, so a negative
-//! amount saturates as well. PTX shl/shr have exactly these semantics, so on
-//! device each primitive is a single shift instruction; the host clamps.
+//! a C++ shift by >= 64 is undefined (x86 wraps the count modulo 64). These wrap
+//! cuda::std::shl/shr, which define it as saturating: logical shifts yield 0 and
+//! the arithmetic shift yields the sign fill. The amount is passed as unsigned, so
+//! a negative amount saturates as well; a signed amount would instead select the
+//! opposite direction, which costs a branch on device.
 _CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shl_u64_sat(uint64_t __x, int __shift) noexcept
 {
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    ({
-                      uint64_t __r;
-                      asm("shl.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
-                      return __r;
-                    }),
-                    (return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x << __shift);))
+  return ::cuda::std::shl(__x, static_cast<uint32_t>(__shift));
 } //__shl_u64_sat
 
 _CCCL_TRIVIAL_HOST_DEVICE_API uint64_t __shr_u64_sat(uint64_t __x, int __shift) noexcept
 {
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    ({
-                      uint64_t __r;
-                      asm("shr.b64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
-                      return __r;
-                    }),
-                    (return (static_cast<uint32_t>(__shift) >= 64) ? 0 : (__x >> __shift);))
+  return ::cuda::std::shr(__x, static_cast<uint32_t>(__shift));
 } //__shr_u64_sat
 
 _CCCL_TRIVIAL_HOST_DEVICE_API int64_t __sar_s64_sat(int64_t __x, int __shift) noexcept
 {
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE,
-                    ({
-                      int64_t __r;
-                      asm("shr.s64 %0, %1, %2;" : "=l"(__r) : "l"(__x), "r"(__shift));
-                      return __r;
-                    }),
-                    (return __x >> ((static_cast<uint32_t>(__shift) >= 64) ? 63 : __shift);))
+  return ::cuda::std::shr(__x, static_cast<uint32_t>(__shift));
 } //__sar_s64_sat
 
 //! @brief Shift a 64-bit value left by a specified amount
@@ -905,7 +889,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __shr_64_rnd(__uint32x2 __man, int __sh
   }
 
   // Shifts of 64 or more discard every bit (the mask saturates to all ones).
-  const uint64_t __discard_mask         = __shl_u64_sat(1ULL, __shift) - 1;
+  const uint64_t __discard_mask         = ~__shl_u64_sat(~0ULL, __shift);
   [[maybe_unused]] const bool __inexact = (__man64 & __discard_mask) != 0;
   __man64                               = __shr_u64_sat(__man64, __shift);
 
@@ -945,7 +929,7 @@ __shr_128_rnd(__fpemu_uint128 __man, int __shift, bool __sign = false) noexcept
   __v.x[0] = __shr_u64_sat(__lo, __shift) | __shl_u64_sat(__hi, 64 - __shift) | __shr_u64_sat(__hi, __shift - 64);
   __v.x[1] = __shr_u64_sat(__hi, __shift);
   const int __shift_hi = (__shift > 128) ? 128 : __shift;
-  const uint64_t __mlo = __shl_u64_sat(1ULL, __shift) - 1;
+  const uint64_t __mlo = ~__shl_u64_sat(~0ULL, __shift);
   const uint64_t __mhi = __shr_u64_sat(~0ULL, 128 - __shift_hi);
   const bool __inexact = ((__lo & __mlo) | (__hi & __mhi)) != 0;
   __man                = ::cuda::std::bit_cast<__fpemu_uint128>(__v);
@@ -1019,7 +1003,7 @@ _CCCL_TRIVIAL_HOST_DEVICE_API __uint32x2 __sar_64_rnd(__uint32x2 __man, int __sh
   __uint32x2 __res    = ::cuda::std::bit_cast<__uint32x2>(__man64_res);
   if constexpr (_Acc == fpemu_accuracy::high)
   {
-    uint64_t __mask                = __shl_u64_sat(1ULL, __shift) - 1;
+    uint64_t __mask                = ~__shl_u64_sat(~0ULL, __shift);
     [[maybe_unused]] bool __sticky = (__man64 & __mask) != 0;
     if constexpr (_Rm == __fpemu_rounding::rn)
     {
