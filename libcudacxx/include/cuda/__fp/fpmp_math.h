@@ -35,7 +35,7 @@
     Functions Provided:
     -------------------------------------------------------------------------
     Exponential/Logarithmic:
-    - exp(x)    : Exponential function (e^x) - dedicated fp32mp2
+    - exp(x)    : Exponential function (e^x) - dedicated fp32mp2 and fp64mp2
     - log(x)    : Natural logarithm ln(x) - dedicated fp32mp2
     - log2(x)   : Base-2 logarithm - dedicated fp32mp2
     - log10(x)  : Base-10 logarithm - dedicated fp32mp2
@@ -171,6 +171,16 @@
       Core: 14-term Taylor series for exp(r) in fp32mp2.
       Reconstruction: result * 2^n via IEEE-754 exponent manipulation.
       Accuracy: ~10^-10 - 10^-11 relative error.
+
+    exp(x) for fp64mp2:
+      Argument reduction: x = k*(ln2/8) + r, |r| <= ln2/16, with ln2/8 as a
+      Cody-Waite triple so the reduction is exact to ~2^-108 absolute.
+      Core: exp(r) - 1 = r*p(r), p a 16-coefficient 1/k! series evaluated by
+      the compensated Horner dispatcher (M = 8 high-degree terms in double).
+      Reconstruction: 2^(k div 8) * 2^(j/8) * (1 + r*p(r)), j = k mod 8, with
+      the eight 2^(j/8) values as double-double constants chosen by selects.
+      FP64 operations only; no binary128 backend. Accuracy: ~2.5 u^2 bound
+      (u = 2^-53), i.e. at least 104 of 106 bits.
 
     log(x) for fp32mp2:
       Range reduction: x = m*2^e, m  in  [1, sqrt2).
