@@ -58,8 +58,9 @@ Conventions
   both reciprocals are correctly rounded, while the device's ``rsqrt()`` is close to correctly
   rounded and the host's ``1/sqrt(x)`` carries two roundings. One Newton step leaves about
   ``(3/2)·ε²`` of a seed error ``ε``, which at double-word precision is visible: a 1u seed
-  leaves 1.5u², a 1.5u seed 3.4u², a 2u seed 6.5u². Where the sides differ, the tables quote
-  the device.
+  leaves 1.5u², a 1.5u seed 3.4u², a 2u seed 6.5u². ``sqrt`` corrects its seed once more
+  before the low limb is formed and is the same on both sides; ``div`` and ``rsqrt`` are
+  not, and where the sides differ, the tables quote the device.
 
 The bounds
 ----------
@@ -161,8 +162,8 @@ host against binary128 — whichever of the two is larger.
      - —
      - measured
      - ``x > 0``
-     - 9.5
-     - 2.9 [#seed]_
+     - 2.8
+     - 2.8
 
    * - ``rsqrt(x)``
      - ``mid``
@@ -177,10 +178,12 @@ host against binary128 — whichever of the two is larger.
    within the stated absolute bound — the largest observed is in the
    :ref:`regime table <libcudacxx-extended-api-fp-fpmp-error-bounds-regimes>` below.
 .. [#seed] Measured on the device against binary128 over 2\ :sup:`22` operands spanning 80
-   binades, with the host run on the same operands for comparison (``sqrt`` 5.8, ``rsqrt``
-   7.7): the host's two-rounding ``1/sqrt(x)`` seed costs it the difference, as the seed
-   floor in *Conventions* predicts. The specification's own ``fp64mp2`` table reports smaller
-   maxima for these two functions over its working range.
+   binades, with the host run on the same operands for comparison (``rsqrt`` 7.7 against 5.1
+   on the device): the host's two-rounding ``1/sqrt(x)`` seed costs it the difference, as the
+   seed floor in *Conventions* predicts. ``sqrt`` takes its Newton step on the exact residual
+   and refines the reciprocal root once more before forming its low limb, so its seed no
+   longer shows: 2.5 on both sides in the same run. The specification's own ``fp64mp2`` table
+   reports a smaller maximum for ``rsqrt`` over its working range.
 
 ``mad`` follows ``fma`` with slightly larger measured maxima (5.9 / 5.8 at ``mid``, 4.9 / 4.0
 at ``high``). ``low`` and ``mid`` addition, and ``low`` and ``mid`` ``fma``, compute the *same
