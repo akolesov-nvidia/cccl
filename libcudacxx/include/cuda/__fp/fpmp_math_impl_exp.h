@@ -348,14 +348,161 @@ __internal_fpmp2_exp(const float __x_hi, const float __x_lo, float* __res_hi, fl
 
 /*
  * --------------------------------------------------------------------
- * Exponential function (fp64mp2) - binary128 wrapper
+ * Exponential function (fp64mp2) - dedicated implementation
  * --------------------------------------------------------------------
+ * Compute exp(x) for double-double (fp64mp2) precision with FP64 operations only;
+ * no binary128 backend is involved, and host and device run the same sequence.
+ *
+ * Algorithm:
+ *   1. Argument reduction  x = k * (ln 2 / 8) + r,  |r| <= ln 2 / 16 ~= 0.0433.
+ *      ln 2 / 8 is a Cody-Waite triple (c_hi, c_mid, c_lo); c_hi carries 39
+ *      significant bits, so k * c_hi is exact for |k| < 2^14 (|k| <= 8601 over the
+ *      whole finite range |x_hi| <= 745.2) and x_hi - k * c_hi is exact by Sterbenz.
+ *      The remaining terms are folded in with error-free sums, which leaves r as a
+ *      normalized pair with an absolute error of about 0.2 u^2 (u = 2^-53).
+ *   2. exp(r) - 1 = r * p(r),  p(r) = Sum_{k=1}^{16} r^(k-1) / k!, whose first omitted
+ *      term is 7e-36. The compensated Horner dispatcher evaluates it with M = 8: the
+ *      eight highest-degree coefficients (k = 9..16, r^9/9! = 1.5e-18 < 2^-54) in
+ *      plain double, the remaining eight error-compensated. Because the polynomial
+ *      enters the result multiplied by r, its error contributes < 0.2 u^2.
+ *   3. exp(x) = 2^e * (T + T * q),  e = k div 8,  j = k mod 8,  T = 2^(j/8),  q = r * p(r).
+ *      T is one of eight double-double constants chosen with selects. The two pair
+ *      products are low-accuracy multiplies, their error being scaled by |q| <= 0.044;
+ *      the three-term sum T + T*q is arranged so that a single rounding of the low
+ *      word remains (<= 2 u^2). The 2^e scaling is exact and done in two halves so
+ *      that results near overflow and underflow do not overflow the intermediate.
+ *
+ * The bound that follows is about 2.5 u^2, i.e. at least 104 of the 106 bits; the
+ * measured maximum is in the specification.
  */
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_exp(const double __x_hi, const double __x_lo, double* __res_hi, double* __res_lo) noexcept
 {
-  _CCCL_FPMP_CALL_FP64MP2_MATH(exp, _CCCL_FPMP_EXPQ, __x_hi, __x_lo, __res_hi, __res_lo);
-}
+  using __dd_t = fp64mp2_low;
+
+  // ln 2 / 8 as a Cody-Waite triple (39 + 53 + 53 significant bits) and 8 / ln 2.
+  constexpr double __c_hi  = 0x1.62e42fefa4000p-4;
+  constexpr double __c_mid = -0x1.8432a1b0e2634p-46;
+  constexpr double __c_lo  = 0x1.f97b57a079a19p-106;
+  constexpr double __inv_c = 0x1.71547652b82fep+3;
+  // 1.5 * 2^52: adding it rounds x * inv_c to the nearest integer, which sits in the
+  // low bits of the sum's significand in two's complement.
+  constexpr double __shift = 0x1.8p+52;
+
+  // 2^(j/8), j = 0..7, as (hi, lo) pairs; j = 0 is exactly 1.
+  constexpr double __t_hi[8] = {
+    1.0,
+    0x1.172b83c7d517bp+0,
+    0x1.306fe0a31b715p+0,
+    0x1.4bfdad5362a27p+0,
+    0x1.6a09e667f3bcdp+0,
+    0x1.8ace5422aa0dbp+0,
+    0x1.ae89f995ad3adp+0,
+    0x1.d5818dcfba487p+0};
+  constexpr double __t_lo[8] = {
+    0.0,
+    -0x1.19041b9d78a76p-55,
+    0x1.6f46ad23182e4p-55,
+    0x1.d4397afec42e2p-56,
+    -0x1.bdd3413b26456p-54,
+    0x1.6e9f156864b27p-54,
+    0x1.7a1cd345dcc81p-54,
+    0x1.2ed02d75b3707p-55};
+
+  /* p(r) = (exp(r) - 1) / r: coefficients 1/k! for k = 1..16 in ascending degree.
+   * The eight highest (k = 9..16) are plain doubles, .lo() zero by construction, for
+   * the M = 8 split of the compensated Horner dispatcher. */
+  constexpr __dd_t __exp_c[16] = {
+    __dd_t(0x1.0000000000000p+0, 0.0), // [ 0] 1/1!
+    __dd_t(0x1.0000000000000p-1, 0.0), // [ 1] 1/2!
+    __dd_t(0x1.5555555555555p-3, 0x1.5555555555555p-57), // [ 2] 1/3!
+    __dd_t(0x1.5555555555555p-5, 0x1.5555555555555p-59), // [ 3] 1/4!
+    __dd_t(0x1.1111111111111p-7, 0x1.1111111111111p-63), // [ 4] 1/5!
+    __dd_t(0x1.6c16c16c16c17p-10, -0x1.f49f49f49f49fp-65), // [ 5] 1/6!
+    __dd_t(0x1.a01a01a01a01ap-13, 0x1.a01a01a01a01ap-73), // [ 6] 1/7!
+    __dd_t(0x1.a01a01a01a01ap-16, 0x1.a01a01a01a01ap-76), // [ 7] 1/8!
+    /* high-degree M = 8 entries: plain double */
+    __dd_t(0x1.71de3a556c734p-19), // [ 8] 1/9!
+    __dd_t(0x1.27e4fb7789f5cp-22), // [ 9] 1/10!
+    __dd_t(0x1.ae64567f544e4p-26), // [10] 1/11!
+    __dd_t(0x1.1eed8eff8d898p-29), // [11] 1/12!
+    __dd_t(0x1.6124613a86d09p-33), // [12] 1/13!
+    __dd_t(0x1.93974a8c07c9dp-37), // [13] 1/14!
+    __dd_t(0x1.ae7f3e733b81fp-41), // [14] 1/15!
+    __dd_t(0x1.ae7f3e733b81fp-45) // [15] 1/16!
+  };
+
+  // NaN propagates; the two thresholds are 1024 ln 2 (above it exp(x) >= 2^1024) and
+  // -1075 ln 2 (below it exp(x) < 2^-1075, which rounds to zero).
+  if (__x_hi != __x_hi)
+  {
+    *__res_hi = __x_hi;
+    *__res_lo = __x_hi;
+    return;
+  }
+  if (__x_hi > 0x1.62e42fefa39efp+9)
+  {
+    *__res_hi = ::cuda::std::__fp_inf<double>();
+    *__res_lo = 0.0;
+    return;
+  }
+  if (__x_hi < -0x1.74910d52d3052p+9)
+  {
+    *__res_hi = 0.0;
+    *__res_lo = 0.0;
+    return;
+  }
+
+  // Step 1: k = RN(x_hi * 8 / ln 2) through the shift-bias trick.
+  const double __t  = ::cuda::__fpmp_fma_rn(__x_hi, __inv_c, __shift);
+  const int32_t __k = static_cast<int32_t>(::cuda::std::bit_cast<int64_t>(__t));
+  const double __kf = __t - __shift;
+  const int32_t __j = __k & 7;
+  const int32_t __e = (__k - __j) / 8;
+
+  // r = x - k * (ln 2 / 8). The head product is exact and so is its subtraction; the
+  // middle product is split exactly; the low product, the low limb of x and the two
+  // sum errors are far enough below r to be added in plain double.
+  const double __r1 = ::cuda::__fpmp_fma_rn(-__kf, __c_hi, __x_hi);
+  double __pm_lo;
+  const double __pm_hi = ::cuda::__fpmp_two_mult_fma(__kf, __c_mid, &__pm_lo);
+  double __e1, __e2;
+  const double __s1   = ::cuda::__fpmp_two_sum(__r1, -__pm_hi, &__e1);
+  const double __s2   = ::cuda::__fpmp_two_sum(__s1, __x_lo, &__e2);
+  const double __tail = (__e1 + __e2) - ::cuda::__fpmp_fma_rn(__kf, __c_lo, __pm_lo);
+  double __r_lo;
+  const double __r_hi = ::cuda::__fpmp_two_sum(__s2, __tail, &__r_lo);
+  const __dd_t __r(__r_hi, __r_lo);
+
+  // Step 2: q = r * p(r) = exp(r) - 1.
+  const __dd_t __p = ::cuda::__fpmp_poly_eval<__fpmp_poly_method::horner_comp, 8>(__r, __exp_c);
+  const __dd_t __q = __r * __p;
+
+  // Step 3: T = 2^(j/8) by selects, then m = T + T * q with one rounding of the low word.
+  double __t_h = __t_hi[0];
+  double __t_l = __t_lo[0];
+  _CCCL_PRAGMA_UNROLL_FULL()
+  for (int __i = 1; __i < 8; ++__i)
+  {
+    __t_h = (__j == __i) ? __t_hi[__i] : __t_h;
+    __t_l = (__j == __i) ? __t_lo[__i] : __t_l;
+  }
+  const __dd_t __tq = __dd_t(__t_h, __t_l) * __q;
+  double __se, __l2;
+  const double __sh = ::cuda::__fpmp_two_sum(__t_h, __tq.hi(), &__se);
+  const double __l1 = ::cuda::__fpmp_two_sum(__se, __t_l, &__l2);
+  const double __lo = __l1 + (__l2 + __tq.lo());
+  double __m_lo;
+  const double __m_hi = ::cuda::__fpmp_fast_two_sum(__sh, __lo, &__m_lo);
+
+  // Scale by 2^e in two exact halves: |e| <= 1076, so each half is a normal power of two.
+  const int32_t __ea = __e / 2;
+  const int32_t __eb = __e - __ea;
+  const double __sa  = ::cuda::std::bit_cast<double>(static_cast<int64_t>(__ea + 1023) << 52);
+  const double __sb  = ::cuda::std::bit_cast<double>(static_cast<int64_t>(__eb + 1023) << 52);
+  *__res_hi          = (__m_hi * __sa) * __sb;
+  *__res_lo          = (__m_lo * __sa) * __sb;
+} // __internal_fpmp2_exp
 
 _CCCL_FPMP_MATH_DISPATCH_1A(exp)
 

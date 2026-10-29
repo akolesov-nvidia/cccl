@@ -421,8 +421,11 @@ dedicated implementation evaluate in ``double`` and split into the pair, and bin
 carries more significand than a float pair holds.
 
 ``fp64mp2`` is the different case, because a double pair asks for more precision than binary64
-can express. Those functions need a binary128 backend to be evaluated in, and whether one is
-active is decided per compilation pass rather than by an option:
+can express. Functions with a dedicated double-double implementation — currently ``exp`` — are
+evaluated in FP64 arithmetic alone, to at least 104 of the 106 bits, identically on host and
+device and without any binary128 dependency. The others need a binary128 backend to be
+evaluated in, and whether one is active is decided per compilation pass rather than by an
+option:
 
 .. list-table::
    :widths: 34 22 22 22
@@ -437,6 +440,11 @@ active is decided per compilation pass rather than by an option:
      - exact
      - exact
      - exact
+
+   * - Dedicated double-double (``exp``)
+     - float-float
+     - double-double
+     - double-double
 
    * - Transcendentals with a binary128 backend
      - float-float
