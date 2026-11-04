@@ -359,16 +359,13 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_ull(const uint64_t __i, _FpType* __res_hi,
 //     - fexp_a == 0xFF   : hi is +/-Inf or NaN
 //   Both ends of this range are extremely rare for typical fp32mp2 data.
 //
-//   Known limitation: the rounding happens at the resolution of hi's
-//   binade (step 2 rounds lo there, to nearest even, which is the
-//   double's own rounding since hi's mantissa is even at that scale).
-//   When hi is a power of two and lo is of the opposite sign, the value
-//   lies in the binade below, where the double has one more bit, and the
-//   result can be one double ulp above the correctly rounded value:
-//   {1, -2^-53} gives 1 rather than 1 - 2^-53. That is 2^-53 relative,
-//   five bits below the pair's own precision; the exact handling costs
-//   five instructions on a 42-instruction path and was left out. The
-//   FP64 path (CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=0) is exact.
+//   The result is the correctly rounded value of hi + lo: step 2 rounds lo
+//   to nearest even at the resolution of hi's binade, which is the
+//   double's own rounding there since hi's mantissa is even at that scale;
+//   when hi is a power of two and lo pulls below it (the binade below,
+//   one more bit), the product is doubled before the rounding and the
+//   borrow leaves the field in place, so {1, -2^-53} is 1 - 2^-53 exactly.
+//   Cost of that case: five instructions, 141 -> 147 clk/ev on the L4.
 //
 // Non-optimized path:
 //   static_cast<double>(x_hi) + static_cast<double>(x_lo)
@@ -452,11 +449,14 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
       // 2^(52 - fexp_a); both products are exact.
       const float __scale1 = ::cuda::std::bit_cast<float>((__sign_a << 31) | (254U << 23));
       const float __scale2 = ::cuda::std::bit_cast<float>((179U - __fexp_a) << 23);
-      const int32_t __r    = ::cuda::__fpmp_fp2int_rn((__x_lo * __scale1) * __scale2);
-      const int64_t __m    = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
-      uint64_t __mu        = (uint64_t) __m;
-      const uint64_t __ns  = ((__mu >> 52) & 1ULL) ^ 1ULL;
-      __mu <<= __ns;
+      const bool __below_c =
+        (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
+      const float __tc    = (__x_lo * __scale1) * __scale2;
+      const int32_t __r   = ::cuda::__fpmp_fp2int_rn(__below_c ? __tc + __tc : __tc);
+      const int64_t __m   = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
+      uint64_t __mu       = (uint64_t) __m;
+      const uint64_t __ns = (((__mu >> 52) & 1ULL) ^ 1ULL);
+      __mu <<= (__ns & (uint64_t) !__below_c);
       return ::cuda::std::bit_cast<double>(
         ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __ns) << 52)
         | (__mu & 0x000FFFFFFFFFFFFFULL));
@@ -468,10 +468,17 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
     // already lo's contribution relative to hi.
     float __scale = ::cuda::std::bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
 
-    // r exactly represents lo at hi's mantissa scale (signed). For
-    // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is
-    // exact (power-of-two scaling) and |r| <= 2^28.
-    int32_t __r = ::cuda::__fpmp_fp2int_rn(__x_lo * __scale);
+    // t exactly represents lo at hi's mantissa scale (signed): for
+    // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is exact
+    // (power-of-two scaling) and |t| <= 2^28. When hi is a power of two
+    // and lo pulls below it, the value lies in the binade below, where the
+    // double resolves one more bit: t is doubled (exactly) so that r comes
+    // out at that binade's scale, and the borrow below then leaves the
+    // field in place. r = round-to-nearest-even of t, |r| <= 2^29.
+    const bool __below =
+      (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
+    const float __t = __x_lo * __scale;
+    int32_t __r     = ::cuda::__fpmp_fp2int_rn(__below ? __t + __t : __t);
 
     // M = (hi's 53-bit mantissa with implicit 1, at bit 52)
     //     + (signed lo contribution at the same scale).
@@ -479,11 +486,13 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
     int64_t __m = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
 
     // Subtraction can borrow at most one bit (|r| << 2^52), so the
-    // implicit-1 lands at bit 52 (no shift) or bit 51 (shift up by 1).
-    // Single conditional shift, no __clzll on the critical path.
+    // implicit-1 lands at bit 52 (no shift) or bit 51 (shift up by 1,
+    // unless the pair was handled at the lower binade's scale, where the
+    // field is already right and only the exponent moves). Single
+    // conditional shift, no __clzll on the critical path.
     uint64_t __mu         = (uint64_t) __m;
     uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
-    __mu <<= __need_shift;
+    __mu <<= (__need_shift & (uint64_t) !__below);
 
     return ::cuda::std::bit_cast<double>(
       ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)

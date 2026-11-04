@@ -283,14 +283,8 @@ Two things are worth knowing about the ``fp32mp2`` conversions, both of which ru
 FP32 instructions by default (``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`` and
 ``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE``, on unless defined as 0), on their rare paths as well, so
 that no FP64 instruction appears in a kernel because of them. The conversion to ``double`` is the
-correctly rounded value of hi + lo, exact whenever that sum fits in 53 bits, with one known
-limitation: when hi is a power of two and lo pulls the value below it, the result lies in the
-binade below hi, where ``double`` has one more bit than the integer path resolves, and the result
-can be one ``double`` ulp above the correctly rounded value -- ``{1, -2^-53}`` converts to ``1``
-rather than ``1 - 2^-53``. That is 2^-53 relative, five bits below the pair's own precision. It is
-left as it is because every exact handling costs the common case; code for which that last bit
-matters should define ``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE=0`` and take the FP64 path, which is
-exact. Conversions from ``double`` keep the sign of zero and the infinities in the head
+correctly rounded value of hi + lo, exact whenever that sum fits in 53 bits (``{1, -2^-53}``
+converts to ``1 - 2^-53``), on both paths. Conversions from ``double`` keep the sign of zero and the infinities in the head
 with a zero tail, round a ``double`` below the float range to the float denormal the cast gives,
 and always yield a finite pair for a ``double`` within the float range: the 16 doubles right below
 the float overflow threshold convert to ``{FLT_MAX, 2^103}``.

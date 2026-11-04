@@ -5,12 +5,9 @@
 //
 //  Unit test: rounding corners of the double <-> fp32mp2 conversions.
 //
-//  fp32mp2 -> double is the correctly rounded value of hi + lo (what the FP64
-//  sum (double) hi + (double) lo gives) whenever the value stays in hi's
-//  binade, ties included. When hi is a power of two and lo pulls below it the
-//  integer-only path may be one double ulp above the correctly rounded value
-//  (documented limitation: {1, -2^-53} gives 1); that case is checked to one
-//  ulp here.
+//  fp32mp2 -> double is the correctly rounded value of hi + lo, what the FP64
+//  sum (double) hi + (double) lo gives: ties included, and the binade below a
+//  power-of-two head included ({1, -2^-53} is 1 - 2^-53).
 //
 //  double -> fp32mp2 must stay finite for every finite double that rounds to
 //  a finite float head: just below the float overflow threshold the head is
@@ -65,16 +62,7 @@ TEST_HOST_DEVICE_FUNC void test_to_double_corners()
   };
   for (const auto& p : pairs)
   {
-    const double got = static_cast<double>(ffloat(p[0], p[1]));
-    const double ref = ref_to_double(p[0], p[1]);
-    if (::cuda::std::ldexp(1.0f, ::cuda::std::ilogb(p[0])) == ::cuda::std::fabs(p[0]) && (p[0] < 0.0f) != (p[1] < 0.0f))
-    {
-      assert(::cuda::std::fabs(got - ref) <= ::cuda::std::ldexp(1.0, ::cuda::std::ilogb(ref) - 52)); // one ulp
-    }
-    else
-    {
-      assert(same_bits(got, ref));
-    }
+    assert(same_bits(static_cast<double>(ffloat(p[0], p[1])), ref_to_double(p[0], p[1])));
   }
 }
 
@@ -118,16 +106,7 @@ TEST_HOST_DEVICE_FUNC void test_to_double_sweep()
         lo = ((r & 0x2000u) ? -0.5f : 0.5f) * ulp;
         break;
     }
-    const double got = static_cast<double>(ffloat(hi, lo));
-    const double ref = ref_to_double(hi, lo);
-    if (::cuda::std::fabs(hi) == ::cuda::std::ldexp(1.0f, e) && (hi < 0.0f) != (lo < 0.0f) && lo != 0.0f)
-    {
-      assert(::cuda::std::fabs(got - ref) <= ::cuda::std::ldexp(1.0, ::cuda::std::ilogb(ref) - 52)); // one ulp
-    }
-    else
-    {
-      assert(same_bits(got, ref));
-    }
+    assert(same_bits(static_cast<double>(ffloat(hi, lo)), ref_to_double(hi, lo)));
   }
 }
 
