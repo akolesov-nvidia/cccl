@@ -161,10 +161,10 @@ __internal_fpmp2_modf_decompose(float __hi, float __lo, unsigned long long* __m,
  * divisor - and the two residues are combined; the quotient's low 64 bits
  * come along.  Exact as long as the divisor fits 126 bits in that frame
  * (tails down to 2^-102 ulp(hi) when |x| >= |y|); beyond that the 53-bit
- * kernel takes over.  Dense pairs never come here.  fmod and remainder take
- * this path in fpmp2_accuracy::high only, where every result is the nearest
- * pair; mid and low keep the 53-bit window and the 48-bit result rounding of
- * the original code (see the cores).  remquo still goes through double.
+ * kernel takes over.  Dense pairs never come here.  fmod, remainder and
+ * remquo take this path in fpmp2_accuracy::high only, where every result is
+ * the nearest pair; mid and low keep the 53-bit window and the 48-bit result
+ * rounding of the original code (see the cores).
  */
 struct __fpmp2_u128
 {
@@ -806,8 +806,7 @@ _CCCL_FPMP_MATH_DISPATCH_2A(high_fmod)
  * --------------------------------------------------------------------
  * remainder(x, y): IEEE remainder, |result| <= |y|/2, round-to-nearest
  * with ties to even quotient.  The core also hands out the integer
- * quotient rint(|x| / |y|) (its low 64 bits; nothing consumes it here, remquo
- * is a double fallback on this branch).  With exact set
+ * quotient rint(|x| / |y|) (its low 64 bits) for remquo.  With exact set
  * (fpmp2_accuracy::high) a sparse operand takes the wide reduction and the
  * result is the nearest pair; otherwise (mid, low) the operands are rounded
  * to the 53-bit window and the result to 48 bits as before, which keeps the
@@ -842,12 +841,14 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder_core(
   {
     *__res_hi = ::cuda::std::__fp_nan<float>();
     *__res_lo = ::cuda::std::__fp_nan<float>();
+    *__n      = 0ULL;
     return;
   }
   if (__y_inf) /* remainder(finite, inf) = x */
   {
     *__res_hi = __x_hi;
     *__res_lo = __x_lo;
+    *__n      = 0ULL;
     return;
   }
 
@@ -868,10 +869,11 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder_core(
     __c = 0;
   }
 
-  if (__c == 0) /* |x| == |y| -> remainder 0 (sign of x) */
+  if (__c == 0) /* |x| == |y| -> remainder 0 (sign of x), quotient 1 */
   {
     *__res_hi = __xneg ? -0.0f : 0.0f;
     *__res_lo = 0.0f;
+    *__n      = 1ULL;
     return;
   }
 
@@ -898,8 +900,9 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder_core(
     {
       *__res_hi = __x_hi;
       *__res_lo = __x_lo;
+      *__n      = 0ULL;
       return;
-    } /* r = x */
+    } /* r = x, quotient 0 */
 
     /* 2|x| > |y|: r = |x| - |y|  (negative in the |x| frame) */
     if (__exact
@@ -927,6 +930,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder_core(
     }
     *__res_hi = __rh;
     *__res_lo = __rl;
+    *__n      = 1ULL;
     return;
   }
 
@@ -1519,10 +1523,31 @@ __fpmp2_nearbyint(const _FpType __x_hi, const _FpType __x_lo, _FpType* __res_hi,
 
 /*
  * --------------------------------------------------------------------
- * Remainder and quotient remquo(x, y, &q) (fp32mp2) - double fallback
+ * Remainder and quotient remquo(x, y, &q) (fp32mp2) - exact on the limb pair
  * --------------------------------------------------------------------
- * remquo: compute remainder and part of quotient
+ * The remainder is remainder's, bit for bit (same core); the quotient is
+ * the low bits of rint(x / y) with the sign of x / y, taken modulo the
+ * modulus the platform's own remquo uses (2^3 on the device, as CUDA's,
+ * 2^31 on the host, as glibc's; C requires at least 2^3), so that the
+ * fp32mp2 and the scalar / fp64mp2 results agree on each platform.
  */
+_CCCL_FPMP_CORE_API void __internal_fpmp2_remquo_core(
+  const float __x_hi,
+  const float __x_lo,
+  const float __y_hi,
+  const float __y_lo,
+  float* __res_hi,
+  float* __res_lo,
+  int* __quo,
+  const bool __exact) noexcept
+{
+  unsigned long long __n;
+  ::cuda::__internal_fpmp2_remainder_core(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, &__n, __exact);
+  int __q;
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (__q = static_cast<int>(__n & 7ULL);), (__q = static_cast<int>(__n & 0x7FFFFFFFULL);))
+  const bool __neg = (__x_hi < 0.0f) != (__y_hi < 0.0f);
+  *__quo           = __neg ? -__q : __q;
+}
 _CCCL_FPMP_CORE_API void __internal_fpmp2_remquo(
   const float __x_hi,
   const float __x_lo,
@@ -1532,12 +1557,19 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remquo(
   float* __res_lo,
   int* __quo) noexcept
 {
-  using __mp2_t = fpmp2<float>;
-  double __r    = ::cuda::std::remquo(
-    static_cast<double>(__mp2_t(__x_hi, __x_lo)), static_cast<double>(__mp2_t(__y_hi, __y_lo)), __quo);
-  __mp2_t __result(__r);
-  *__res_hi = __result.hi();
-  *__res_lo = __result.lo();
+  ::cuda::__internal_fpmp2_remquo_core(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, __quo, false);
+}
+/* fpmp2_accuracy::high: exact on sparse pairs as well */
+_CCCL_FPMP_CORE_API void __internal_fpmp2_high_remquo(
+  const float __x_hi,
+  const float __x_lo,
+  const float __y_hi,
+  const float __y_lo,
+  float* __res_hi,
+  float* __res_lo,
+  int* __quo) noexcept
+{
+  ::cuda::__internal_fpmp2_remquo_core(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, __quo, true);
 }
 
 /*
@@ -1560,7 +1592,20 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remquo(
     __res_lo);
 }
 
+/* fp64mp2 has one remquo for every level */
+_CCCL_FPMP_CORE_API void __internal_fpmp2_high_remquo(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo,
+  int* __quo) noexcept
+{
+  ::cuda::__internal_fpmp2_remquo(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, __quo);
+}
 _CCCL_FPMP_MATH_DISPATCH_2A_QUO(remquo)
+_CCCL_FPMP_MATH_DISPATCH_2A_QUO(high_remquo)
 
 #endif // _CCCL_FPMP_USE_LIB
 _CCCL_END_NAMESPACE_CUDA

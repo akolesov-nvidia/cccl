@@ -139,7 +139,7 @@
     Remainder:
     - fmod(x,y) : Floating-point remainder - dedicated fp32mp2
     - remainder(x,y): IEEE remainder - dedicated fp32mp2
-    - remquo(x,y,*q): Remainder with quotient bits - placeholder
+    - remquo(x,y,*q): Remainder with quotient bits - dedicated fp32mp2 (remainder's reduction)
 
     Distance:
     - hypot(x,y): Hypotenuse sqrt(x^2+y^2) - placeholder
@@ -297,13 +297,13 @@
       arithmetic.  Dense pairs never take that path.  In that level every
       result is the nearest pair (head and tail each rounded to nearest
       even), so a result whose head has few bits keeps the tail bits the
-      pair can hold.  fmod and remainder take the exact path in
+      pair can hold.  fmod, remainder and remquo take the exact path in
       fpmp2_accuracy::high only; mid and low round the operands to the
       53-bit window and the result to 48 bits as before, which keeps
       their size (fmod 277 against 1087 SASS lines, 22 against 32
       registers) and speed (remainder 210 against 239 clk/ev) where they
       were - the exact block weighs on a caller's register budget even
-      when it is never entered.  remquo still goes through double.
+      when it is never entered.
       remainder adds the round-to-
       nearest-even step (compare 2*ia vs My, ties broken by the parity of
       the accumulated quotient) and the |x| < |y| short-circuit.  Special
@@ -368,6 +368,13 @@
     Placeholder functions:
     - Delegate to standard double-precision system functions
     - Intended as API stubs; they do not provide full multi-precision accuracy yet
+
+    remquo for fp32mp2:
+      Shares remainder's integer reduction (no FP64) and reports the low
+      bits of rint(x / y) with the sign of x / y, modulo what the
+      platform's own remquo uses (2^3 on the device as CUDA's, 2^31 on
+      the host as glibc's), so that the fp32mp2 and the scalar / fp64mp2
+      results agree on each platform.
 
     fp64mp2 implementations:
     - When _CCCL_FPMP_FP128_MATH_FALLBACK=1, route through __float128 (libquadmath
@@ -1086,7 +1093,14 @@ _CCCL_HOST_DEVICE_API inline fpmp2<_FpType, _TypeAcc>
 remquo(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y, int* __quo) noexcept
 {
   _FpType __res_hi, __res_lo;
-  ::cuda::__fpmp2_remquo(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo, __quo);
+  if constexpr (_TypeAcc == fpmp2_accuracy::high)
+  {
+    ::cuda::__fpmp2_high_remquo(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo, __quo);
+  }
+  else
+  {
+    ::cuda::__fpmp2_remquo(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo, __quo);
+  }
   return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo);
 }
 
