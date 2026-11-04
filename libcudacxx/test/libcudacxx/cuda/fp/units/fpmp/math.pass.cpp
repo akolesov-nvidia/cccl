@@ -33,6 +33,7 @@
 #include <cuda/fpmp>
 #include <cuda/std/cassert>
 #include <cuda/std/cmath>
+#include <cuda/std/type_traits>
 
 #include "test_macros.h"
 
@@ -187,6 +188,37 @@ TEST_HOST_DEVICE_FUNC void test_host_device(double tol)
     const double ref = ::remquo(x_val, y_val, &ref_quo);
     assert(check(static_cast<double>(res), ref, tol));
     assert(check_int(quo, ref_quo));
+  }
+
+  // fmod is exact on sparse pairs (a tail far below the head, more than 53
+  // significant bits in all) in every level; remainder is exact on them in
+  // fp32mp2_high and computes on the pair rounded to 53 bits in the other
+  // levels, where rounding the input moves the remainder by the amount
+  // dropped. (remquo still goes through double here.)
+  //   x = 2^60 + 2^-20 (81 bits), y = 3: 2^60 = 3 k + 1, so both remainders
+  //   are 1 + 2^-20 (the 53-bit route gives 1).
+  //   x = 2^40 - (2^8 + 2^-14) (55 bits), y = 768 = 3 * 2^8: 2^40 = 768 k' +
+  //   2^8, so x = 768 k' - 2^-14: fmod is 768 - 2^-14, remainder -2^-14 (the
+  //   53-bit route rounds the 2^-14 away).
+  if constexpr (::cuda::std::is_same_v<MP2, cuda::fp32mp2>)
+  {
+    using HP = cuda::fp32mp2_high;
+    const MP2 xs(0x1p+60f, 0x1p-20f);
+    const MP2 ys(3.0f, 0.0f);
+    const HP xsh(0x1p+60f, 0x1p-20f);
+    const HP ysh(3.0f, 0.0f);
+    assert(static_cast<double>(fmod(xs, ys)) == 1.0 + 0x1p-20);
+    assert(static_cast<double>(fmod(xsh, ysh)) == 1.0 + 0x1p-20);
+    assert(static_cast<double>(remainder(xsh, ysh)) == 1.0 + 0x1p-20);
+    assert(static_cast<double>(remainder(xs, ys)) == 1.0); // the 53-bit route
+
+    const MP2 xb(0x1p+40f, -(0x1p+8f + 0x1p-14f));
+    const MP2 yb(768.0f, 0.0f);
+    const HP xbh(0x1p+40f, -(0x1p+8f + 0x1p-14f));
+    const HP ybh(768.0f, 0.0f);
+    assert(static_cast<double>(fmod(xb, yb)) == 768.0 - 0x1p-14);
+    assert(static_cast<double>(fmod(xbh, ybh)) == 768.0 - 0x1p-14);
+    assert(static_cast<double>(remainder(xbh, ybh)) == -0x1p-14);
   }
 
 #undef CHECK_1A

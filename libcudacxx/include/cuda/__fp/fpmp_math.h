@@ -286,7 +286,23 @@
       the former ::fmod(double,double) round-trip bit-for-bit - but
       without any fp64 instructions.  (A 48-bit window rounded away the
       bottom of lo, which fmod's inherent cancellation then amplified to
-      ~27-bit results.)  remainder adds the round-to-
+      ~27-bit results.)  A sparse pair - a tail more than 29 binades below
+      the head, as arithmetic leaves it when a head lands on a power of
+      two - carries more than 53 bits, and rounding it would move the
+      remainder by the whole amount dropped; such an operand takes an
+      exact reduction instead: the divisor and the running remainder on
+      two 64-bit words in the frame of the finer operand (the divisor
+      fits 126 bits there for tails down to 2^-102 ulp(hi); beyond that
+      the 53-bit window applies), the dividend limb by limb in 64-bit
+      arithmetic.  Dense pairs never take that path.  Every path ends in
+      the same rounding to the nearest pair (head and tail each to
+      nearest even), so a result whose head has few bits keeps the tail
+      bits the pair can hold.  fmod takes the exact path in every accuracy
+      level (it costs the dense path nothing measurable); remainder takes
+      it in fpmp2_accuracy::high only, and rounds the operands to the
+      53-bit window in mid and low as before, where the exact path cost
+      14 % latency and a resident block per SM (registers).
+      remainder adds the round-to-
       nearest-even step (compare 2*ia vs My, ties broken by the parity of
       the accumulated quotient) and the |x| < |y| short-circuit.  Special
       cases: NaN or x = +-inf or y = 0 -> NaN; y = +-inf -> x.
@@ -999,7 +1015,14 @@ _CCCL_HOST_DEVICE_API inline fpmp2<_FpType, _TypeAcc>
 remainder(const fpmp2<_FpType, _TypeAcc>& __x, const fpmp2<_FpType, _TypeAcc>& __y) noexcept
 {
   _FpType __res_hi, __res_lo;
-  ::cuda::__fpmp2_remainder(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo);
+  if constexpr (_TypeAcc == fpmp2_accuracy::high)
+  {
+    ::cuda::__fpmp2_high_remainder(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo);
+  }
+  else
+  {
+    ::cuda::__fpmp2_remainder(__x.hi(), __x.lo(), __y.hi(), __y.lo(), &__res_hi, &__res_lo);
+  }
   return fpmp2<_FpType, _TypeAcc>(__res_hi, __res_lo);
 }
 
