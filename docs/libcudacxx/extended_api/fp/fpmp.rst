@@ -279,15 +279,28 @@ The same rule governs the way **out**. ``fp32mp2`` converts to ``double`` implic
 ``double`` holds the whole pair; ``fp64mp2`` does not, because the conversion drops the low limb.
 ``float`` and the integer types need the cast from either.
 
-Two things are worth knowing about the ``fp32mp2`` conversions, both of which run on integer and
-FP32 instructions by default (``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`` and
-``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE``, on unless defined as 0), on their rare paths as well, so
-that no FP64 instruction appears in a kernel because of them. The conversion to ``double`` is the
-correctly rounded value of hi + lo, exact whenever that sum fits in 53 bits (``{1, -2^-53}``
-converts to ``1 - 2^-53``), on both paths. Conversions from ``double`` keep the sign of zero and the infinities in the head
-with a zero tail, round a ``double`` below the float range to the float denormal the cast gives,
-and always yield a finite pair for a ``double`` within the float range: the 16 doubles right below
-the float overflow threshold convert to ``{FLT_MAX, 2^103}``.
+Two things are worth knowing about the ``fp32mp2`` conversions, which run on integer and FP32
+instructions by default (``CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP`` and
+``CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE``, on unless defined as 0) so that no FP64 instruction
+appears in a kernel because of them. Their corner cases depend on the accuracy level of the type:
+
+* ``fp32mp2_high`` converts exactly, on its rare paths as well. The conversion to ``double`` is
+  the correctly rounded value of hi + lo (``{1, -2^-53}`` converts to ``1 - 2^-53``). The
+  conversion from ``double`` keeps the sign of zero and the infinities in the head with a zero
+  tail, rounds a ``double`` below the float range to the float denormal the cast gives, and
+  always yields a finite pair for a ``double`` within the float range: the 16 doubles right below
+  the float overflow threshold convert to ``{FLT_MAX, 2^103}``.
+* ``fp32mp2`` (mid) and ``fp32mp2_low`` keep the faster conversions. The conversion to ``double``
+  is exact except below a power-of-two head, where it can be one ``double`` ulp above the
+  correctly rounded value (``{1, -2^-53}`` converts to ``1``). The conversion from ``double``
+  gives ``{±inf, 0}`` for the infinities and for every ``double`` at or beyond the float overflow
+  threshold, never a NaN or an infinite tail; within 8 float ulps of ``FLT_MAX`` it flushes the
+  tail (those 16 doubles convert to ``{FLT_MAX, 0}``), and it converts ``-0`` to ``{-0, +0}``.
+
+Code that needs the exact corners in a ``fp32mp2`` or ``fp32mp2_low`` value can convert through
+``fp32mp2_high`` (``fp32mp2{fp32mp2_high{x}}``, ``double{fp32mp2_high{v}}``: conversions between
+accuracy levels copy the pair), or define the two macros as 0 to select the FP64 cast-based
+conversions everywhere.
 
 Taken together that is the C++23 rule for extended floating-point types (P1467R9) — implicit
 where the conversion is value-preserving, written out where it is not — arrived at here from the

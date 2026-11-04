@@ -37,6 +37,7 @@
         * __fpmp2_to_int, __fpmp2_to_uint, __fpmp2_to_ll, __fpmp2_to_ull
         * __fpmp2_from_double supports CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP (integer-only, no FP64)
         * __fpmp2_to_double supports CCCL_FPMP_OPTIMIZED_FPMP_TO_DOUBLE (integer-only, no FP64)
+        * __fpmp2_high_from_double, __fpmp2_high_to_double: the exact versions, used by fpmp2_accuracy::high
 
     - Basic Arithmetic:
         * Addition: __fpmp2_add, __fpmp2_low_add, __fpmp2_high_add

@@ -109,7 +109,8 @@
         * __fpmp2_low_add, __fpmp2_high_add : Method-specific variants
         * __fpmp2_fma, __fpmp2_mad : Fused multiply-add and multiply-add operations
         * __fpmp2_sqrt, __fpmp2_rsqrt : Square root and reciprocal square root
-        * __fpmp2_from_double, __fpmp2_to_double : Type conversions
+        * __fpmp2_from_double, __fpmp2_to_double : Type conversions (low, mid)
+        * __fpmp2_high_from_double, __fpmp2_high_to_double : Type conversions (high, exact)
         * __fpmp2_cmp_eq, __fpmp2_cmp_lt, etc. : Comparison operations
         * __fpmp2_atomicAdd, __fpmp2_atomicSub : Atomic operations (CUDA only, slower than hardware atomics)
         * __shfl_sync, __shfl_xor_sync, __shfl_down_sync, __shfl_up_sync :
@@ -541,8 +542,16 @@ public:
     float __a_lo;
     float __b_hi;
     float __b_lo;
-    ::cuda::__fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
-    ::cuda::__fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+    if constexpr (_TypeAcc == fpmp2_accuracy::high)
+    {
+      ::cuda::__fpmp2_high_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+      ::cuda::__fpmp2_high_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+    }
+    else
+    {
+      ::cuda::__fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+      ::cuda::__fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+    }
     ::cuda::__fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &__mp2_hi_, &__mp2_lo_);
   }
 
@@ -562,8 +571,16 @@ public:
     float __a_lo;
     float __b_hi;
     float __b_lo;
-    ::cuda::__fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
-    ::cuda::__fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+    if constexpr (_TypeAcc == fpmp2_accuracy::high)
+    {
+      ::cuda::__fpmp2_high_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+      ::cuda::__fpmp2_high_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+    }
+    else
+    {
+      ::cuda::__fpmp2_from_double<float>(__src.hi(), &__a_hi, &__a_lo);
+      ::cuda::__fpmp2_from_double<float>(__src.lo(), &__b_hi, &__b_lo);
+    }
     ::cuda::__fpmp2_add<float>(__a_hi, __a_lo, __b_hi, __b_lo, &__mp2_hi_, &__mp2_lo_);
     return *this;
   }
@@ -764,25 +781,53 @@ public:
   _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
   _CCCL_HOST_DEVICE_API operator double() const noexcept
   {
-    return ::cuda::__fpmp2_to_double(__mp2_hi_, __mp2_lo_);
+    if constexpr (_TypeAcc == fpmp2_accuracy::high)
+    {
+      return ::cuda::__fpmp2_high_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
+    else
+    {
+      return ::cuda::__fpmp2_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
   }
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp32_v<_Up>)
   _CCCL_HOST_DEVICE_API operator double() const volatile noexcept
   {
-    return ::cuda::__fpmp2_to_double(__mp2_hi_, __mp2_lo_);
+    if constexpr (_TypeAcc == fpmp2_accuracy::high)
+    {
+      return ::cuda::__fpmp2_high_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
+    else
+    {
+      return ::cuda::__fpmp2_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
   }
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
   _CCCL_HOST_DEVICE_API explicit operator double() const noexcept
   {
-    return ::cuda::__fpmp2_to_double(__mp2_hi_, __mp2_lo_);
+    if constexpr (_TypeAcc == fpmp2_accuracy::high)
+    {
+      return ::cuda::__fpmp2_high_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
+    else
+    {
+      return ::cuda::__fpmp2_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
   }
   _CCCL_TEMPLATE(typename _Up = _FpType)
   _CCCL_REQUIRES(__fpmp2_is_fp64_v<_Up>)
   _CCCL_HOST_DEVICE_API explicit operator double() const volatile noexcept
   {
-    return ::cuda::__fpmp2_to_double(__mp2_hi_, __mp2_lo_);
+    if constexpr (_TypeAcc == fpmp2_accuracy::high)
+    {
+      return ::cuda::__fpmp2_high_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
+    else
+    {
+      return ::cuda::__fpmp2_to_double<_FpType>(__mp2_hi_, __mp2_lo_);
+    }
   }
 
   // Explicit conversions to other types
@@ -1162,7 +1207,14 @@ private:
     {
       _FpType __hi{};
       _FpType __lo{};
-      ::cuda::__fpmp2_from_double(__d, &__hi, &__lo);
+      if constexpr (_TypeAcc == fpmp2_accuracy::high)
+      {
+        ::cuda::__fpmp2_high_from_double<_FpType>(__d, &__hi, &__lo);
+      }
+      else
+      {
+        ::cuda::__fpmp2_from_double<_FpType>(__d, &__hi, &__lo);
+      }
       return fpmp2{__hi, __lo};
     }
   }

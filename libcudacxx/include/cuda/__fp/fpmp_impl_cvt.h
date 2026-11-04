@@ -51,6 +51,17 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 // Splits a 64-bit double into two FpType components such that:
 //   x ≈ hi + lo    (with hi carrying the leading bits, lo the remainder)
 //
+// Two versions, selected by the accuracy level of the fpmp2 type:
+//   __fpmp2_high_from_double (fpmp2_accuracy::high): the exact one, described
+//     first, with an integer-only cold branch for zero, denormals, the top
+//     float binade, inf and NaN and the finite / signed corners;
+//   __fpmp2_from_double (low, mid, the default): the original fast one, the
+//     hot path covers 2^-126 <= |x| < 2^128 - 2^107, an FP64 cast fallback
+//     with a zero tail takes the rest. So +-inf give {+-inf, 0}, -0 gives
+//     {-0, +0}, and the tail is flushed within 8 float ulps of the overflow
+//     threshold (where the Fast2Sum of the hot path could overflow).
+// Both are __internal_fpmp2_from_double<_FpType, _Exact>.
+//
 // When CCCL_FPMP_OPTIMIZED_DOUBLE_TO_FPMP == 1 and FpType == float:
 //   Uses integer bit manipulation to extract the hi and lo components
 //   directly from the IEEE 754 double bit pattern, avoiding all FP64
@@ -86,135 +97,201 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 //   - lo: bottom 29 bits → second float  (bits [0:28] of double mantissa)
 // -----------------------------------------------------------------------
 */
-template <typename _FpType>
-_CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
+template <typename _FpType, bool _Exact>
+_CCCL_FPMP_CORE_API void __internal_fpmp2_from_double(const double __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
 {
 #  if _CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
   if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
-    uint64_t __dbits = ::cuda::std::bit_cast<uint64_t>(__x);
-    uint32_t __sign  = (uint32_t) (__dbits >> 63);
-    uint32_t __d_exp = (uint32_t) ((__dbits >> 52) & 0x7FFU);
-    uint64_t __mant  = __dbits & 0x000FFFFFFFFFFFFFULL;
-
-    // hi biased exponent in float space: f_exp = (d_exp - 1023) + 127.
-    int32_t __f_exp = (int32_t) __d_exp - 896;
-
-    // Hot path for f_exp in [1, 253], i.e. |x| in [2^-126, 2^127): the head
-    // is a normal float and cannot round up to inf. One compare; the cold
-    // branch below takes zero and the double denormals (d_exp == 0), the
-    // float underflow range (f_exp <= 0), the top float binade (f_exp ==
-    // 254, where the head may carry into inf and the Fast2Sum could
-    // overflow) and inf / NaN (f_exp >= 255) -- all without FP64.
-    if (_CCCL_BUILTIN_EXPECT((uint32_t) (__f_exp - 1) < 253U, 1))
+    if constexpr (_Exact)
     {
-      // hi mantissa: top 23 explicit bits with round-to-nearest,
-      // ties away from zero. (((mant >> 28) + 1) >> 1) takes the
-      // top 24 bits of mant, adds 1 at the round position, then
-      // drops it. The carry can ripple into the exponent (when
-      // hi_round == 0x800000), so we use '+' (not '|') to merge
-      // hi_round into the shifted exponent field.
-      uint32_t __hi_round = (((uint32_t) (__mant >> 28)) + 1U) >> 1;
-      uint32_t __hi_bits  = (__sign << 31) | (((uint32_t) __f_exp << 23) + __hi_round);
-      *__res_hi           = ::cuda::std::bit_cast<float>(__hi_bits);
+      uint64_t __dbits = ::cuda::std::bit_cast<uint64_t>(__x);
+      uint32_t __sign  = (uint32_t) (__dbits >> 63);
+      uint32_t __d_exp = (uint32_t) ((__dbits >> 52) & 0x7FFU);
+      uint64_t __mant  = __dbits & 0x000FFFFFFFFFFFFFULL;
 
-      // Encode the residual as a signed 32-bit integer with the
-      // round bit placed at the sign position. Bottom 32 bits of
-      // mant are bits [31:0]; shifting left by 3 in 32-bit
-      // arithmetic discards bits [31:29] (already absorbed into
-      // hi) and places bit 28 (the round bit) at bit 31. When the
-      // round bit is 1 (hi was rounded up), rsd is negative in
-      // two's complement, exactly representing the signed residual
-      // x - hi at mantissa scale * 2^3.
-      int32_t __rsd = (int32_t) ((uint32_t) __mant << 3);
+      // hi biased exponent in float space: f_exp = (d_exp - 1023) + 127.
+      int32_t __f_exp = (int32_t) __d_exp - 896;
 
-      // Convert rsd to float with round-to-nearest-even (default for
-      // host int->float and CUDA cvt.rn.f32.s32). Then scale:
-      //   * 2^-55  : undoes the << 3 (-3) and the mantissa-position
-      //              offset (-52) to recover residual at unit scale.
-      //   * scale  : 2^(f_exp - 127) with the sign of x. Both
-      //              multiplications are exact (powers of two).
-      float __scale = ::cuda::std::bit_cast<float>((__sign << 31) | ((uint32_t) __f_exp << 23));
-      *__res_lo     = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
+      // Hot path for f_exp in [1, 253], i.e. |x| in [2^-126, 2^127): the head
+      // is a normal float and cannot round up to inf. One compare; the cold
+      // branch below takes zero and the double denormals (d_exp == 0), the
+      // float underflow range (f_exp <= 0), the top float binade (f_exp ==
+      // 254, where the head may carry into inf and the Fast2Sum could
+      // overflow) and inf / NaN (f_exp >= 255) -- all without FP64.
+      if (_CCCL_BUILTIN_EXPECT((uint32_t) (__f_exp - 1) < 253U, 1))
+      {
+        // hi mantissa: top 23 explicit bits with round-to-nearest,
+        // ties away from zero. (((mant >> 28) + 1) >> 1) takes the
+        // top 24 bits of mant, adds 1 at the round position, then
+        // drops it. The carry can ripple into the exponent (when
+        // hi_round == 0x800000), so we use '+' (not '|') to merge
+        // hi_round into the shifted exponent field.
+        uint32_t __hi_round = (((uint32_t) (__mant >> 28)) + 1U) >> 1;
+        uint32_t __hi_bits  = (__sign << 31) | (((uint32_t) __f_exp << 23) + __hi_round);
+        *__res_hi           = ::cuda::std::bit_cast<float>(__hi_bits);
 
-      // Fast2Sum to enforce canonical form fl(hi+lo) == hi.
-      // Required because round-to-nearest on r can leave |lo|
-      // exactly at ulp(hi)/2; if hi has an odd low mantissa bit,
-      // fl(hi+lo) would otherwise round away from hi.
-      *__res_hi = ::cuda::__fpmp_fast_two_sum(*__res_hi, *__res_lo, __res_lo);
-    }
-    else
-    {
-      // Cold branch, integer only. The tail is a zero with the head's
-      // sign in every case but the top binade: -0 -> {-0, -0}, +-inf ->
-      // {+-inf, +-0}.
-      const float __szero = ::cuda::std::bit_cast<float>(__sign << 31);
-      if (__d_exp == 0U)
-      {
-        // zero and the double denormals (< 2^-1022, far below float)
-        *__res_hi = __szero;
-        *__res_lo = __szero;
-      }
-      else if (__d_exp == 0x7FFU)
-      {
-        // +-inf, or NaN (quiet, keeping the top 23 payload bits)
-        const uint32_t __nan = (__mant != 0ULL) ? (0x400000U | (uint32_t) (__mant >> 29)) : 0U;
-        *__res_hi            = ::cuda::std::bit_cast<float>((__sign << 31) | 0x7F800000U | __nan);
-        *__res_lo            = __szero;
-      }
-      else if (__f_exp <= 0)
-      {
-        // float underflow: |x| < 2^-126, the head is the float denormal
-        // round-to-nearest-even of x in units of 2^-149, i.e. the 53-bit
-        // significand shifted right by 30 - f_exp (>= 30; the shift is
-        // clamped at 63, where the result is 0 anyway); a field of 2^23
-        // is the smallest normal, which the encoding gives for free.
-        const uint64_t __m53 = __mant | (1ULL << 52);
-        const uint32_t __sh  = (uint32_t) (30 - __f_exp) < 63U ? (uint32_t) (30 - __f_exp) : 63U;
-        uint64_t __q         = __m53 >> __sh;
-        const uint64_t __rem = __m53 - (__q << __sh);
-        const uint64_t __hlf = 1ULL << (__sh - 1);
-        __q += (uint64_t) ((__rem > __hlf) || (__rem == __hlf && (__q & 1ULL)));
-        *__res_hi = ::cuda::std::bit_cast<float>((__sign << 31) | (uint32_t) __q);
-        *__res_lo = __szero;
-      }
-      else if (__f_exp >= 255)
-      {
-        // |x| >= 2^128: past the float range
-        *__res_hi = ::cuda::std::bit_cast<float>((__sign << 31) | 0x7F800000U);
-        *__res_lo = __szero;
+        // Encode the residual as a signed 32-bit integer with the
+        // round bit placed at the sign position. Bottom 32 bits of
+        // mant are bits [31:0]; shifting left by 3 in 32-bit
+        // arithmetic discards bits [31:29] (already absorbed into
+        // hi) and places bit 28 (the round bit) at bit 31. When the
+        // round bit is 1 (hi was rounded up), rsd is negative in
+        // two's complement, exactly representing the signed residual
+        // x - hi at mantissa scale * 2^3.
+        int32_t __rsd = (int32_t) ((uint32_t) __mant << 3);
+
+        // Convert rsd to float with round-to-nearest-even (default for
+        // host int->float and CUDA cvt.rn.f32.s32). Then scale:
+        //   * 2^-55  : undoes the << 3 (-3) and the mantissa-position
+        //              offset (-52) to recover residual at unit scale.
+        //   * scale  : 2^(f_exp - 127) with the sign of x. Both
+        //              multiplications are exact (powers of two).
+        float __scale = ::cuda::std::bit_cast<float>((__sign << 31) | ((uint32_t) __f_exp << 23));
+        *__res_lo     = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
+
+        // Fast2Sum to enforce canonical form fl(hi+lo) == hi.
+        // Required because round-to-nearest on r can leave |lo|
+        // exactly at ulp(hi)/2; if hi has an odd low mantissa bit,
+        // fl(hi+lo) would otherwise round away from hi.
+        *__res_hi = ::cuda::__fpmp_fast_two_sum(*__res_hi, *__res_lo, __res_lo);
       }
       else
       {
-        // the top float binade, f_exp == 254: |x| in [2^127, 2^128), the
-        // hot path's arithmetic, except that the head may carry into inf
-        // (x >= 2^128 - 2^103: {+-inf, +-0}) and that for the 16 doubles
-        // right below that threshold the head is +-FLT_MAX with a tail of
-        // +-ulp/2, whose Fast2Sum would overflow (FLT_MAX is odd, the tie
-        // rounds to 2^128): the finite pair is kept as it is there.
-        const uint32_t __hi_round = (((uint32_t) (__mant >> 28)) + 1U) >> 1;
-        const uint32_t __hi_mag   = (254U << 23) + __hi_round;
-        if (__hi_mag >= 0x7F800000U)
+        // Cold branch, integer only. The tail is a zero with the head's
+        // sign in every case but the top binade: -0 -> {-0, -0}, +-inf ->
+        // {+-inf, +-0}.
+        const float __szero = ::cuda::std::bit_cast<float>(__sign << 31);
+        if (__d_exp == 0U)
         {
+          // zero and the double denormals (< 2^-1022, far below float)
+          *__res_hi = __szero;
+          *__res_lo = __szero;
+        }
+        else if (__d_exp == 0x7FFU)
+        {
+          // +-inf, or NaN (quiet, keeping the top 23 payload bits)
+          const uint32_t __nan = (__mant != 0ULL) ? (0x400000U | (uint32_t) (__mant >> 29)) : 0U;
+          *__res_hi            = ::cuda::std::bit_cast<float>((__sign << 31) | 0x7F800000U | __nan);
+          *__res_lo            = __szero;
+        }
+        else if (__f_exp <= 0)
+        {
+          // float underflow: |x| < 2^-126, the head is the float denormal
+          // round-to-nearest-even of x in units of 2^-149, i.e. the 53-bit
+          // significand shifted right by 30 - f_exp (>= 30; the shift is
+          // clamped at 63, where the result is 0 anyway); a field of 2^23
+          // is the smallest normal, which the encoding gives for free.
+          const uint64_t __m53 = __mant | (1ULL << 52);
+          const uint32_t __sh  = (uint32_t) (30 - __f_exp) < 63U ? (uint32_t) (30 - __f_exp) : 63U;
+          uint64_t __q         = __m53 >> __sh;
+          const uint64_t __rem = __m53 - (__q << __sh);
+          const uint64_t __hlf = 1ULL << (__sh - 1);
+          __q += (uint64_t) ((__rem > __hlf) || (__rem == __hlf && (__q & 1ULL)));
+          *__res_hi = ::cuda::std::bit_cast<float>((__sign << 31) | (uint32_t) __q);
+          *__res_lo = __szero;
+        }
+        else if (__f_exp >= 255)
+        {
+          // |x| >= 2^128: past the float range
           *__res_hi = ::cuda::std::bit_cast<float>((__sign << 31) | 0x7F800000U);
           *__res_lo = __szero;
         }
         else
         {
-          const int32_t __rsd = (int32_t) ((uint32_t) __mant << 3);
-          const float __scale = ::cuda::std::bit_cast<float>((__sign << 31) | (254U << 23));
-          const float __hi_f  = ::cuda::std::bit_cast<float>((__sign << 31) | __hi_mag);
-          const float __lo_f  = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
-          if (__hi_mag == 0x7F7FFFFFU && __rsd > 0)
+          // the top float binade, f_exp == 254: |x| in [2^127, 2^128), the
+          // hot path's arithmetic, except that the head may carry into inf
+          // (x >= 2^128 - 2^103: {+-inf, +-0}) and that for the 16 doubles
+          // right below that threshold the head is +-FLT_MAX with a tail of
+          // +-ulp/2, whose Fast2Sum would overflow (FLT_MAX is odd, the tie
+          // rounds to 2^128): the finite pair is kept as it is there.
+          const uint32_t __hi_round = (((uint32_t) (__mant >> 28)) + 1U) >> 1;
+          const uint32_t __hi_mag   = (254U << 23) + __hi_round;
+          if (__hi_mag >= 0x7F800000U)
           {
-            *__res_hi = __hi_f;
-            *__res_lo = __lo_f;
+            *__res_hi = ::cuda::std::bit_cast<float>((__sign << 31) | 0x7F800000U);
+            *__res_lo = __szero;
           }
           else
           {
-            *__res_hi = ::cuda::__fpmp_fast_two_sum(__hi_f, __lo_f, __res_lo);
+            const int32_t __rsd = (int32_t) ((uint32_t) __mant << 3);
+            const float __scale = ::cuda::std::bit_cast<float>((__sign << 31) | (254U << 23));
+            const float __hi_f  = ::cuda::std::bit_cast<float>((__sign << 31) | __hi_mag);
+            const float __lo_f  = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
+            if (__hi_mag == 0x7F7FFFFFU && __rsd > 0)
+            {
+              *__res_hi = __hi_f;
+              *__res_lo = __lo_f;
+            }
+            else
+            {
+              *__res_hi = ::cuda::__fpmp_fast_two_sum(__hi_f, __lo_f, __res_lo);
+            }
           }
         }
+      }
+    }
+    else
+    {
+      uint64_t __dbits = ::cuda::std::bit_cast<uint64_t>(__x);
+      uint32_t __sign  = (uint32_t) (__dbits >> 63);
+      uint64_t __mant  = __dbits & 0x000FFFFFFFFFFFFFULL;
+      // top 32 bits of |x|: (d_exp << 20) | the top 20 mantissa bits
+      const uint32_t __top = (uint32_t) (__dbits >> 32) & 0x7FFFFFFFU;
+
+      // hi biased exponent in float space: f_exp = (d_exp - 1023) + 127.
+      int32_t __f_exp = (int32_t) (__top >> 20) - 896;
+
+      // The hot path takes 2^-126 <= |x| < 2^128 - 2^107, one range test on
+      // __top: d_exp in [897, 1150] without the top 8 float ulps of the top
+      // binade, where the Fast2Sum below could overflow (the head carries into
+      // inf, or is FLT_MAX with a tail of +ulp/2, giving {inf, NaN} or
+      // {inf, -inf}). Zero, the double denormals, float underflow, those top
+      // ulps, inf and NaN take the cast with a zero tail: +-inf give
+      // {+-inf, 0}, and the tail is flushed only where (float) x is within 8
+      // ulps of FLT_MAX or infinite. (One instruction over the plain exponent
+      // test; a test on the rounded head instead would delay the branch.)
+      if (__top - 0x38100000U >= 0x0FDFFFFFU)
+      {
+        *__res_hi = (float) __x;
+        *__res_lo = 0.0f;
+      }
+      else
+      {
+        // hi mantissa: top 23 explicit bits with round-to-nearest,
+        // ties away from zero. (((mant >> 28) + 1) >> 1) takes the
+        // top 24 bits of mant, adds 1 at the round position, then
+        // drops it. The carry can ripple into the exponent (when
+        // hi_round == 0x800000), so we use '+' (not '|') to merge
+        // hi_round into the shifted exponent field.
+        uint32_t __hi_round = (((uint32_t) (__mant >> 28)) + 1U) >> 1;
+        uint32_t __hi_bits  = (__sign << 31) | (((uint32_t) __f_exp << 23) + __hi_round);
+        *__res_hi           = ::cuda::std::bit_cast<float>(__hi_bits);
+
+        // Encode the residual as a signed 32-bit integer with the
+        // round bit placed at the sign position. Bottom 32 bits of
+        // mant are bits [31:0]; shifting left by 3 in 32-bit
+        // arithmetic discards bits [31:29] (already absorbed into
+        // hi) and places bit 28 (the round bit) at bit 31. When the
+        // round bit is 1 (hi was rounded up), rsd is negative in
+        // two's complement, exactly representing the signed residual
+        // x - hi at mantissa scale * 2^3.
+        int32_t __rsd = (int32_t) ((uint32_t) __mant << 3);
+
+        // Convert rsd to float with round-to-nearest-even (default for
+        // host int->float and CUDA cvt.rn.f32.s32). Then scale:
+        //   * 2^-55  : undoes the << 3 (-3) and the mantissa-position
+        //              offset (-52) to recover residual at unit scale.
+        //   * scale  : 2^(f_exp - 127) with the sign of x. Both
+        //              multiplications are exact (powers of two).
+        float __scale = ::cuda::std::bit_cast<float>((__sign << 31) | ((uint32_t) __f_exp << 23));
+        *__res_lo     = (static_cast<float>(__rsd) * 0x1p-55f) * __scale;
+
+        // Fast2Sum to enforce canonical form fl(hi+lo) == hi.
+        // Required because round-to-nearest on r can leave |lo|
+        // exactly at ulp(hi)/2; if hi has an odd low mantissa bit,
+        // fl(hi+lo) would otherwise round away from hi.
+        *__res_hi = ::cuda::__fpmp_fast_two_sum(*__res_hi, *__res_lo, __res_lo);
       }
     }
   }
@@ -266,7 +343,19 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi
     }
   }
 #  endif // !_CCCL_FPMP_USE_OPT_FROM_DOUBLE == 1
-} // __fpmp2_from_double
+} // __internal_fpmp2_from_double
+
+// double -> (hi, lo): the entry points of the accuracy levels (see above)
+template <typename _FpType>
+_CCCL_FPMP_CORE_API void __fpmp2_from_double(const double __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
+{
+  ::cuda::__internal_fpmp2_from_double<_FpType, false>(__x, __res_hi, __res_lo);
+}
+template <typename _FpType>
+_CCCL_FPMP_CORE_API void __fpmp2_high_from_double(const double __x, _FpType* __res_hi, _FpType* __res_lo) noexcept
+{
+  ::cuda::__internal_fpmp2_from_double<_FpType, true>(__x, __res_hi, __res_lo);
+}
 
 // int -> (hi, lo) conversions
 template <typename _FpType>
@@ -311,6 +400,17 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_ull(const uint64_t __i, _FpType* __res_hi,
 }
 
 // (hi, lo) -> double conversions
+//
+// Two versions, selected by the accuracy level of the fpmp2 type:
+//   __fpmp2_high_to_double (fpmp2_accuracy::high): the one described here,
+//     correctly rounded for every pair (the binade below a power-of-two head
+//     included) with an integer-only cold path;
+//   __fpmp2_to_double (low, mid, the default): the original fast one, the
+//     same hot path without the lower-binade handling, so that below a
+//     power-of-two head the result can be one double ulp above the correctly
+//     rounded value ({1, -2^-53} gives 1), and an FP64 cold path (two
+//     conversions and a sum).
+// Both are __internal_fpmp2_to_double<_FpType, _Exact>.
 //
 // Optimized path (_CCCL_FPMP_USE_OPT_TO_DOUBLE == 1):
 //   Reconstructs the IEEE 754 double bit pattern from two float
@@ -371,132 +471,189 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_ull(const uint64_t __i, _FpType* __res_hi,
 //   static_cast<double>(x_hi) + static_cast<double>(x_lo)
 //   (2x F2D + 1x DADD = 3 FP64 operations)
 //
-template <typename _FpType>
-_CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpType __x_lo_in) noexcept
+template <typename _FpType, bool _Exact>
+_CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, const _FpType __x_lo_in) noexcept
 {
 #  if _CCCL_FPMP_USE_OPT_TO_DOUBLE == 1
   if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
-    // Renormalize input to canonical form. See "Step 0" in the
-    // function's docstring for why this is required for the integer
-    // path to be safe on non-canonical pairs (e.g. produced by
-    // add_fast / long FAST accumulator chains).
-    float __x_lo;
-    float __x_hi = ::cuda::__fpmp_two_sum(__x_hi_in, __x_lo_in, &__x_lo);
-
-    uint32_t __hi_bits = ::cuda::std::bit_cast<uint32_t>(__x_hi);
-    uint32_t __sign_a  = __hi_bits >> 31;
-    uint32_t __fexp_a  = (__hi_bits >> 23) & 0xFFU;
-    uint32_t __fmant_a = __hi_bits & 0x7FFFFFU;
-
-    // Cold fallback for hi outside the FP32-scale-representable range:
-    // zero/subnormal, very tiny normal (fexp_a in [1, 51]), Inf, NaN.
-    // NB: sum the ORIGINAL inputs, not the 2Sum-renormalized (__x_hi, __x_lo).
-    // The 2Sum prologue exists only to canonicalize finite operands for the
-    // integer hot path; on special values it poisons the low word (e.g.
-    // two_sum(inf, 0) yields lo = inf - inf = NaN), which would turn a clean
-    // (inf, 0) / (nan, 0) into NaN here. The plain double sum of the originals
-    // handles inf/nan/zero/subnormal correctly.
-    if (__fexp_a < 52U || __fexp_a == 0xFFU)
+    if constexpr (_Exact)
     {
-      // Cold path, integer only (no FP64 even here).
-      if (__fexp_a == 0xFFU)
+      // Renormalize input to canonical form. See "Step 0" in the
+      // function's docstring for why this is required for the integer
+      // path to be safe on non-canonical pairs (e.g. produced by
+      // add_fast / long FAST accumulator chains).
+      float __x_lo;
+      float __x_hi = ::cuda::__fpmp_two_sum(__x_hi_in, __x_lo_in, &__x_lo);
+
+      uint32_t __hi_bits = ::cuda::std::bit_cast<uint32_t>(__x_hi);
+      uint32_t __sign_a  = __hi_bits >> 31;
+      uint32_t __fexp_a  = (__hi_bits >> 23) & 0xFFU;
+      uint32_t __fmant_a = __hi_bits & 0x7FFFFFU;
+
+      // Cold fallback for hi outside the FP32-scale-representable range:
+      // zero/subnormal, very tiny normal (fexp_a in [1, 51]), Inf, NaN.
+      // NB: sum the ORIGINAL inputs, not the 2Sum-renormalized (__x_hi, __x_lo).
+      // The 2Sum prologue exists only to canonicalize finite operands for the
+      // integer hot path; on special values it poisons the low word (e.g.
+      // two_sum(inf, 0) yields lo = inf - inf = NaN), which would turn a clean
+      // (inf, 0) / (nan, 0) into NaN here. The plain double sum of the originals
+      // handles inf/nan/zero/subnormal correctly.
+      if (__fexp_a < 52U || __fexp_a == 0xFFU)
       {
-        const uint32_t __hb = ::cuda::std::bit_cast<uint32_t>(__x_hi_in);
-        const uint32_t __lb = ::cuda::std::bit_cast<uint32_t>(__x_lo_in);
-        if ((__hb & 0x7F800000U) != 0x7F800000U)
+        // Cold path, integer only (no FP64 even here).
+        if (__fexp_a == 0xFFU)
         {
-          // The 2Sum overflowed on finite limbs: |hi| ~ FLT_MAX with a tail of
-          // +-ulp/2 or more (the pair of the 16 doubles right below the float
-          // overflow threshold). The value is finite and the hot path's
-          // arithmetic holds on the original limbs.
-          const uint32_t __sg = __hb >> 31, __fe = (__hb >> 23) & 0xFFU, __fm = __hb & 0x7FFFFFU;
-          const float __sc    = ::cuda::std::bit_cast<float>((__sg << 31) | ((306U - __fe) << 23));
-          const int32_t __r0  = ::cuda::__fpmp_fp2int_rn(__x_lo_in * __sc);
-          uint64_t __m0       = (uint64_t) ((int64_t) (((uint64_t) (0x800000U | __fm)) << 29) + (int64_t) __r0);
-          const uint64_t __n0 = ((__m0 >> 52) & 1ULL) ^ 1ULL;
-          __m0 <<= __n0;
-          return ::cuda::std::bit_cast<double>(
-            ((uint64_t) __sg << 63) | ((uint64_t) (__fe + 896U - (uint32_t) __n0) << 52)
-            | (__m0 & 0x000FFFFFFFFFFFFFULL));
+          const uint32_t __hb = ::cuda::std::bit_cast<uint32_t>(__x_hi_in);
+          const uint32_t __lb = ::cuda::std::bit_cast<uint32_t>(__x_lo_in);
+          if ((__hb & 0x7F800000U) != 0x7F800000U)
+          {
+            // The 2Sum overflowed on finite limbs: |hi| ~ FLT_MAX with a tail of
+            // +-ulp/2 or more (the pair of the 16 doubles right below the float
+            // overflow threshold). The value is finite and the hot path's
+            // arithmetic holds on the original limbs.
+            const uint32_t __sg = __hb >> 31, __fe = (__hb >> 23) & 0xFFU, __fm = __hb & 0x7FFFFFU;
+            const float __sc    = ::cuda::std::bit_cast<float>((__sg << 31) | ((306U - __fe) << 23));
+            const int32_t __r0  = ::cuda::__fpmp_fp2int_rn(__x_lo_in * __sc);
+            uint64_t __m0       = (uint64_t) ((int64_t) (((uint64_t) (0x800000U | __fm)) << 29) + (int64_t) __r0);
+            const uint64_t __n0 = ((__m0 >> 52) & 1ULL) ^ 1ULL;
+            __m0 <<= __n0;
+            return ::cuda::std::bit_cast<double>(
+              ((uint64_t) __sg << 63) | ((uint64_t) (__fe + 896U - (uint32_t) __n0) << 52)
+              | (__m0 & 0x000FFFFFFFFFFFFFULL));
+          }
+          // +-inf or NaN head, from the original limbs (the 2Sum above poisons
+          // the tail on these): hi + lo in IEEE terms, i.e. NaN for a NaN head,
+          // a NaN tail or the opposite infinity, +-inf otherwise (quiet NaN,
+          // the head's payload kept).
+          const uint64_t __hm  = __hb & 0x7FFFFFU;
+          const bool __lo_nan  = (__lb & 0x7FFFFFFFU) > 0x7F800000U;
+          const bool __opp_inf = ((__lb & 0x7FFFFFFFU) == 0x7F800000U) && (((__lb ^ __hb) >> 31) != 0U);
+          const uint64_t __pl =
+            (__hm != 0ULL) ? ((1ULL << 51) | (__hm << 29)) : ((__lo_nan || __opp_inf) ? (1ULL << 51) : 0ULL);
+          return ::cuda::std::bit_cast<double>(((uint64_t) (__hb >> 31) << 63) | (0x7FFULL << 52) | __pl);
         }
-        // +-inf or NaN head, from the original limbs (the 2Sum above poisons
-        // the tail on these): hi + lo in IEEE terms, i.e. NaN for a NaN head,
-        // a NaN tail or the opposite infinity, +-inf otherwise (quiet NaN,
-        // the head's payload kept).
-        const uint64_t __hm  = __hb & 0x7FFFFFU;
-        const bool __lo_nan  = (__lb & 0x7FFFFFFFU) > 0x7F800000U;
-        const bool __opp_inf = ((__lb & 0x7FFFFFFFU) == 0x7F800000U) && (((__lb ^ __hb) >> 31) != 0U);
-        const uint64_t __pl =
-          (__hm != 0ULL) ? ((1ULL << 51) | (__hm << 29)) : ((__lo_nan || __opp_inf) ? (1ULL << 51) : 0ULL);
-        return ::cuda::std::bit_cast<double>(((uint64_t) (__hb >> 31) << 63) | (0x7FFULL << 52) | __pl);
-      }
-      if (__fexp_a == 0U)
-      {
-        // +-0 or a float denormal head; the tail of a canonical pair is 0
-        // there (|lo| <= 2^-150 is no float), so the double is the head:
-        // its field normalized with the leading one at bit 52.
-        if (__fmant_a == 0U)
+        if (__fexp_a == 0U)
         {
-          return ::cuda::std::bit_cast<double>((uint64_t) __sign_a << 63);
+          // +-0 or a float denormal head; the tail of a canonical pair is 0
+          // there (|lo| <= 2^-150 is no float), so the double is the head:
+          // its field normalized with the leading one at bit 52.
+          if (__fmant_a == 0U)
+          {
+            return ::cuda::std::bit_cast<double>((uint64_t) __sign_a << 63);
+          }
+          const uint32_t __lz  = (uint32_t) ::cuda::std::countl_zero(__fmant_a) - 9U; /* within the 23-bit field */
+          const uint64_t __m52 = ((uint64_t) __fmant_a << (30U + __lz)) & 0x000FFFFFFFFFFFFFULL;
+          return ::cuda::std::bit_cast<double>(((uint64_t) __sign_a << 63) | ((uint64_t) (896U - __lz) << 52) | __m52);
         }
-        const uint32_t __lz  = (uint32_t) ::cuda::std::countl_zero(__fmant_a) - 9U; /* within the 23-bit field */
-        const uint64_t __m52 = ((uint64_t) __fmant_a << (30U + __lz)) & 0x000FFFFFFFFFFFFFULL;
-        return ::cuda::std::bit_cast<double>(((uint64_t) __sign_a << 63) | ((uint64_t) (896U - __lz) << 52) | __m52);
+        // fexp_a in [1, 51]: the hot path's arithmetic with the scale
+        // 2^(179 - fexp_a), which is no float, split into +-2^127 and
+        // 2^(52 - fexp_a); both products are exact.
+        const float __scale1 = ::cuda::std::bit_cast<float>((__sign_a << 31) | (254U << 23));
+        const float __scale2 = ::cuda::std::bit_cast<float>((179U - __fexp_a) << 23);
+        const bool __below_c =
+          (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
+        const float __tc    = (__x_lo * __scale1) * __scale2;
+        const int32_t __r   = ::cuda::__fpmp_fp2int_rn(__below_c ? __tc + __tc : __tc);
+        const int64_t __m   = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
+        uint64_t __mu       = (uint64_t) __m;
+        const uint64_t __ns = (((__mu >> 52) & 1ULL) ^ 1ULL);
+        __mu <<= (__ns & (uint64_t) !__below_c);
+        return ::cuda::std::bit_cast<double>(
+          ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __ns) << 52)
+          | (__mu & 0x000FFFFFFFFFFFFFULL));
       }
-      // fexp_a in [1, 51]: the hot path's arithmetic with the scale
-      // 2^(179 - fexp_a), which is no float, split into +-2^127 and
-      // 2^(52 - fexp_a); both products are exact.
-      const float __scale1 = ::cuda::std::bit_cast<float>((__sign_a << 31) | (254U << 23));
-      const float __scale2 = ::cuda::std::bit_cast<float>((179U - __fexp_a) << 23);
-      const bool __below_c =
+
+      // scale = (sign_a ? -1 : +1) * 2^(179 - fexp_a). Always a normal
+      // float for fexp_a in [52, 254] (biased scale_exp = 306 - fexp_a
+      // in [52, 254]). Sign of hi baked in so the signed r below is
+      // already lo's contribution relative to hi.
+      float __scale = ::cuda::std::bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
+
+      // t exactly represents lo at hi's mantissa scale (signed): for
+      // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is exact
+      // (power-of-two scaling) and |t| <= 2^28. When hi is a power of two
+      // and lo pulls below it, the value lies in the binade below, where the
+      // double resolves one more bit: t is doubled (exactly) so that r comes
+      // out at that binade's scale, and the borrow below then leaves the
+      // field in place. r = round-to-nearest-even of t, |r| <= 2^29.
+      const bool __below =
         (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
-      const float __tc    = (__x_lo * __scale1) * __scale2;
-      const int32_t __r   = ::cuda::__fpmp_fp2int_rn(__below_c ? __tc + __tc : __tc);
-      const int64_t __m   = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
-      uint64_t __mu       = (uint64_t) __m;
-      const uint64_t __ns = (((__mu >> 52) & 1ULL) ^ 1ULL);
-      __mu <<= (__ns & (uint64_t) !__below_c);
+      const float __t = __x_lo * __scale;
+      int32_t __r     = ::cuda::__fpmp_fp2int_rn(__below ? __t + __t : __t);
+
+      // M = (hi's 53-bit mantissa with implicit 1, at bit 52)
+      //     + (signed lo contribution at the same scale).
+      // Range: [2^52 - 2^28, 2^53 - 2^29 + 2^28]. Always positive.
+      int64_t __m = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
+
+      // Subtraction can borrow at most one bit (|r| << 2^52), so the
+      // implicit-1 lands at bit 52 (no shift) or bit 51 (shift up by 1,
+      // unless the pair was handled at the lower binade's scale, where the
+      // field is already right and only the exponent moves). Single
+      // conditional shift, no __clzll on the critical path.
+      uint64_t __mu         = (uint64_t) __m;
+      uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
+      __mu <<= (__need_shift & (uint64_t) !__below);
+
       return ::cuda::std::bit_cast<double>(
-        ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __ns) << 52)
+        ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)
         | (__mu & 0x000FFFFFFFFFFFFFULL));
     }
+    else
+    {
+      // Renormalize input to canonical form. See "Step 0" in the
+      // function's docstring for why this is required for the integer
+      // path to be safe on non-canonical pairs (e.g. produced by
+      // add_fast / long FAST accumulator chains).
+      float __x_lo;
+      float __x_hi = ::cuda::__fpmp_two_sum(__x_hi_in, __x_lo_in, &__x_lo);
 
-    // scale = (sign_a ? -1 : +1) * 2^(179 - fexp_a). Always a normal
-    // float for fexp_a in [52, 254] (biased scale_exp = 306 - fexp_a
-    // in [52, 254]). Sign of hi baked in so the signed r below is
-    // already lo's contribution relative to hi.
-    float __scale = ::cuda::std::bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
+      uint32_t __hi_bits = ::cuda::std::bit_cast<uint32_t>(__x_hi);
+      uint32_t __sign_a  = __hi_bits >> 31;
+      uint32_t __fexp_a  = (__hi_bits >> 23) & 0xFFU;
+      uint32_t __fmant_a = __hi_bits & 0x7FFFFFU;
 
-    // t exactly represents lo at hi's mantissa scale (signed): for
-    // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is exact
-    // (power-of-two scaling) and |t| <= 2^28. When hi is a power of two
-    // and lo pulls below it, the value lies in the binade below, where the
-    // double resolves one more bit: t is doubled (exactly) so that r comes
-    // out at that binade's scale, and the borrow below then leaves the
-    // field in place. r = round-to-nearest-even of t, |r| <= 2^29.
-    const bool __below =
-      (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
-    const float __t = __x_lo * __scale;
-    int32_t __r     = ::cuda::__fpmp_fp2int_rn(__below ? __t + __t : __t);
+      // Cold fallback for hi outside the FP32-scale-representable range:
+      // zero/subnormal, very tiny normal (fexp_a in [1, 51]), Inf, NaN.
+      // NB: sum the ORIGINAL inputs, not the 2Sum-renormalized (__x_hi, __x_lo).
+      // The 2Sum prologue exists only to canonicalize finite operands for the
+      // integer hot path; on special values it poisons the low word (e.g.
+      // two_sum(inf, 0) yields lo = inf - inf = NaN), which would turn a clean
+      // (inf, 0) / (nan, 0) into NaN here. The plain double sum of the originals
+      // handles inf/nan/zero/subnormal correctly.
+      if (__fexp_a < 52U || __fexp_a == 0xFFU)
+      {
+        return static_cast<double>(__x_hi_in) + static_cast<double>(__x_lo_in);
+      }
 
-    // M = (hi's 53-bit mantissa with implicit 1, at bit 52)
-    //     + (signed lo contribution at the same scale).
-    // Range: [2^52 - 2^28, 2^53 - 2^29 + 2^28]. Always positive.
-    int64_t __m = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
+      // scale = (sign_a ? -1 : +1) * 2^(179 - fexp_a). Always a normal
+      // float for fexp_a in [52, 254] (biased scale_exp = 306 - fexp_a
+      // in [52, 254]). Sign of hi baked in so the signed r below is
+      // already lo's contribution relative to hi.
+      float __scale = ::cuda::std::bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
 
-    // Subtraction can borrow at most one bit (|r| << 2^52), so the
-    // implicit-1 lands at bit 52 (no shift) or bit 51 (shift up by 1,
-    // unless the pair was handled at the lower binade's scale, where the
-    // field is already right and only the exponent moves). Single
-    // conditional shift, no __clzll on the critical path.
-    uint64_t __mu         = (uint64_t) __m;
-    uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
-    __mu <<= (__need_shift & (uint64_t) !__below);
+      // r exactly represents lo at hi's mantissa scale (signed). For
+      // canonical fp32mp2 (|lo| <= ulp(hi)/2) the multiplication is
+      // exact (power-of-two scaling) and |r| <= 2^28.
+      int32_t __r = ::cuda::__fpmp_fp2int_rn(__x_lo * __scale);
 
-    return ::cuda::std::bit_cast<double>(
-      ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)
-      | (__mu & 0x000FFFFFFFFFFFFFULL));
+      // M = (hi's 53-bit mantissa with implicit 1, at bit 52)
+      //     + (signed lo contribution at the same scale).
+      // Range: [2^52 - 2^28, 2^53 - 2^29 + 2^28]. Always positive.
+      int64_t __m = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
+
+      // Subtraction can borrow at most one bit (|r| << 2^52), so the
+      // implicit-1 lands at bit 52 (no shift) or bit 51 (shift up by 1).
+      // Single conditional shift, no __clzll on the critical path.
+      uint64_t __mu         = (uint64_t) __m;
+      uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
+      __mu <<= __need_shift;
+
+      return ::cuda::std::bit_cast<double>(
+        ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)
+        | (__mu & 0x000FFFFFFFFFFFFFULL));
+    }
   }
   else
   {
@@ -505,6 +662,18 @@ _CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi_in, const _FpT
 #  else
   return static_cast<double>(__x_hi_in) + static_cast<double>(__x_lo_in);
 #  endif
+} // __internal_fpmp2_to_double
+
+// (hi, lo) -> double: the entry points of the accuracy levels (see above)
+template <typename _FpType>
+_CCCL_FPMP_CORE_API double __fpmp2_to_double(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  return ::cuda::__internal_fpmp2_to_double<_FpType, false>(__x_hi, __x_lo);
+}
+template <typename _FpType>
+_CCCL_FPMP_CORE_API double __fpmp2_high_to_double(const _FpType __x_hi, const _FpType __x_lo) noexcept
+{
+  return ::cuda::__internal_fpmp2_to_double<_FpType, true>(__x_hi, __x_lo);
 }
 
 // (hi, lo) -> float conversions (returns the sum as single FpType)
@@ -626,11 +795,17 @@ _CCCL_FPMP_FP128_CORE_API __fpmp_fp128 __fpmp2_to_quad(const _FpType __x_hi, con
 
 // -- fp32 (single precision) built-in declarations --
 _CCCL_FPMP_BUILTIN_DECL void __fp32mp2_from_double(const double __x, float* __res_hi, float* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_mid_from_double(const double __x, float* __res_hi, float* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_low_from_double(const double __x, float* __res_hi, float* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp32mp2_high_from_double(const double __x, float* __res_hi, float* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp32mp2_from_int(const int32_t __i, float* __res_hi, float* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp32mp2_from_uint(const uint32_t __i, float* __res_hi, float* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp32mp2_from_ll(const int64_t __i, float* __res_hi, float* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp32mp2_from_ull(const uint64_t __i, float* __res_hi, float* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL double __fp32mp2_to_double(const float __x_hi, const float __x_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL double __fp32mp2_mid_to_double(const float __x_hi, const float __x_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL double __fp32mp2_low_to_double(const float __x_hi, const float __x_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL double __fp32mp2_high_to_double(const float __x_hi, const float __x_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL float __fp32mp2_to_float(const float __x_hi, const float __x_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL int32_t __fp32mp2_to_int(const float __x_hi, const float __x_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL uint32_t __fp32mp2_to_uint(const float __x_hi, const float __x_lo) noexcept;
@@ -639,11 +814,17 @@ _CCCL_FPMP_BUILTIN_DECL uint64_t __fp32mp2_to_ull(const float __x_hi, const floa
 
 // -- fp64 (double precision) built-in declarations --
 _CCCL_FPMP_BUILTIN_DECL void __fp64mp2_from_double(const double __x, double* __res_hi, double* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_mid_from_double(const double __x, double* __res_hi, double* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_low_from_double(const double __x, double* __res_hi, double* __res_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL void __fp64mp2_high_from_double(const double __x, double* __res_hi, double* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp64mp2_from_int(const int32_t __i, double* __res_hi, double* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp64mp2_from_uint(const uint32_t __i, double* __res_hi, double* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp64mp2_from_ll(const int64_t __i, double* __res_hi, double* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL void __fp64mp2_from_ull(const uint64_t __i, double* __res_hi, double* __res_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL double __fp64mp2_to_double(const double __x_hi, const double __x_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL double __fp64mp2_mid_to_double(const double __x_hi, const double __x_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL double __fp64mp2_low_to_double(const double __x_hi, const double __x_lo) noexcept;
+_CCCL_FPMP_BUILTIN_DECL double __fp64mp2_high_to_double(const double __x_hi, const double __x_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL float __fp64mp2_to_float(const double __x_hi, const double __x_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL int32_t __fp64mp2_to_int(const double __x_hi, const double __x_lo) noexcept;
 _CCCL_FPMP_BUILTIN_DECL uint32_t __fp64mp2_to_uint(const double __x_hi, const double __x_lo) noexcept;
@@ -659,6 +840,12 @@ _CCCL_FPMP_FP128_BUILTIN_DECL __fpmp_fp128 __fp64mp2_to_quad(const double __x_hi
 template <typename _Tp>
 _CCCL_HOST_DEVICE_API inline void __fpmp2_from_double(const double __x, _Tp* __res_hi, _Tp* __res_lo) noexcept;
 template <typename _Tp>
+_CCCL_HOST_DEVICE_API inline void __fpmp2_mid_from_double(const double __x, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+template <typename _Tp>
+_CCCL_HOST_DEVICE_API inline void __fpmp2_low_from_double(const double __x, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+template <typename _Tp>
+_CCCL_HOST_DEVICE_API inline void __fpmp2_high_from_double(const double __x, _Tp* __res_hi, _Tp* __res_lo) noexcept;
+template <typename _Tp>
 _CCCL_HOST_DEVICE_API inline void __fpmp2_from_int(const int32_t __i, _Tp* __res_hi, _Tp* __res_lo) noexcept;
 template <typename _Tp>
 _CCCL_HOST_DEVICE_API inline void __fpmp2_from_uint(const uint32_t __i, _Tp* __res_hi, _Tp* __res_lo) noexcept;
@@ -668,6 +855,12 @@ template <typename _Tp>
 _CCCL_HOST_DEVICE_API inline void __fpmp2_from_ull(const uint64_t __i, _Tp* __res_hi, _Tp* __res_lo) noexcept;
 template <typename _Tp>
 _CCCL_HOST_DEVICE_API inline double __fpmp2_to_double(const _Tp __x_hi, const _Tp __x_lo) noexcept;
+template <typename _Tp>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_mid_to_double(const _Tp __x_hi, const _Tp __x_lo) noexcept;
+template <typename _Tp>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_low_to_double(const _Tp __x_hi, const _Tp __x_lo) noexcept;
+template <typename _Tp>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_high_to_double(const _Tp __x_hi, const _Tp __x_lo) noexcept;
 template <typename _Tp>
 _CCCL_HOST_DEVICE_API inline float __fpmp2_to_float(const _Tp __x_hi, const _Tp __x_lo) noexcept;
 template <typename _Tp>
@@ -690,6 +883,24 @@ template <>
 _CCCL_HOST_DEVICE_API inline void __fpmp2_from_double<float>(const double __x, float* __res_hi, float* __res_lo) noexcept
 {
   ::cuda::__fp32mp2_from_double(__x, __res_hi, __res_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline void
+__fpmp2_mid_from_double<float>(const double __x, float* __res_hi, float* __res_lo) noexcept
+{
+  ::cuda::__fp32mp2_mid_from_double(__x, __res_hi, __res_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline void
+__fpmp2_low_from_double<float>(const double __x, float* __res_hi, float* __res_lo) noexcept
+{
+  ::cuda::__fp32mp2_low_from_double(__x, __res_hi, __res_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline void
+__fpmp2_high_from_double<float>(const double __x, float* __res_hi, float* __res_lo) noexcept
+{
+  ::cuda::__fp32mp2_high_from_double(__x, __res_hi, __res_lo);
 }
 template <>
 _CCCL_HOST_DEVICE_API inline void __fpmp2_from_int<float>(const int32_t __i, float* __res_hi, float* __res_lo) noexcept
@@ -715,6 +926,21 @@ template <>
 _CCCL_HOST_DEVICE_API inline double __fpmp2_to_double<float>(const float __x_hi, const float __x_lo) noexcept
 {
   return ::cuda::__fp32mp2_to_double(__x_hi, __x_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_mid_to_double<float>(const float __x_hi, const float __x_lo) noexcept
+{
+  return ::cuda::__fp32mp2_mid_to_double(__x_hi, __x_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_low_to_double<float>(const float __x_hi, const float __x_lo) noexcept
+{
+  return ::cuda::__fp32mp2_low_to_double(__x_hi, __x_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_high_to_double<float>(const float __x_hi, const float __x_lo) noexcept
+{
+  return ::cuda::__fp32mp2_high_to_double(__x_hi, __x_lo);
 }
 template <>
 _CCCL_HOST_DEVICE_API inline float __fpmp2_to_float<float>(const float __x_hi, const float __x_lo) noexcept
@@ -751,6 +977,24 @@ __fpmp2_from_double<double>(const double __x, double* __res_hi, double* __res_lo
 }
 template <>
 _CCCL_HOST_DEVICE_API inline void
+__fpmp2_mid_from_double<double>(const double __x, double* __res_hi, double* __res_lo) noexcept
+{
+  ::cuda::__fp64mp2_mid_from_double(__x, __res_hi, __res_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline void
+__fpmp2_low_from_double<double>(const double __x, double* __res_hi, double* __res_lo) noexcept
+{
+  ::cuda::__fp64mp2_low_from_double(__x, __res_hi, __res_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline void
+__fpmp2_high_from_double<double>(const double __x, double* __res_hi, double* __res_lo) noexcept
+{
+  ::cuda::__fp64mp2_high_from_double(__x, __res_hi, __res_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline void
 __fpmp2_from_int<double>(const int32_t __i, double* __res_hi, double* __res_lo) noexcept
 {
   ::cuda::__fp64mp2_from_int(__i, __res_hi, __res_lo);
@@ -776,6 +1020,21 @@ template <>
 _CCCL_HOST_DEVICE_API inline double __fpmp2_to_double<double>(const double __x_hi, const double __x_lo) noexcept
 {
   return ::cuda::__fp64mp2_to_double(__x_hi, __x_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_mid_to_double<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::cuda::__fp64mp2_mid_to_double(__x_hi, __x_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_low_to_double<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::cuda::__fp64mp2_low_to_double(__x_hi, __x_lo);
+}
+template <>
+_CCCL_HOST_DEVICE_API inline double __fpmp2_high_to_double<double>(const double __x_hi, const double __x_lo) noexcept
+{
+  return ::cuda::__fp64mp2_high_to_double(__x_hi, __x_lo);
 }
 template <>
 _CCCL_HOST_DEVICE_API inline float __fpmp2_to_float<double>(const double __x_hi, const double __x_lo) noexcept
