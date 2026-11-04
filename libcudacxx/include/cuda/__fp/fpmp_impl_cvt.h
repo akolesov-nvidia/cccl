@@ -53,8 +53,11 @@ _CCCL_BEGIN_NAMESPACE_CUDA
 //
 // Two versions, selected by the accuracy level of the fpmp2 type:
 //   __fpmp2_high_from_double (fpmp2_accuracy::high): the exact one, described
-//     first, with an integer-only cold branch for zero, denormals, the top
-//     float binade, inf and NaN and the finite / signed corners;
+//     first, with an integer-only cold branch for zero, denormals, the band
+//     where the tail is a float denormal (rounded once there, where the hot
+//     path would round it twice), the top float binade, inf and NaN and the
+//     finite / signed corners: the pair has the value of the FP64 cast path's
+//     pair on every input, in canonical form;
 //   __fpmp2_from_double (low, mid, the default): the original fast one, the
 //     hot path covers 2^-126 <= |x| < 2^128 - 2^107, an FP64 cast fallback
 //     with a zero tail takes the rest. So +-inf give {+-inf, 0}, -0 gives
@@ -113,13 +116,17 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_from_double(const double __x, _FpType*
       // hi biased exponent in float space: f_exp = (d_exp - 1023) + 127.
       int32_t __f_exp = (int32_t) __d_exp - 896;
 
-      // Hot path for f_exp in [1, 253], i.e. |x| in [2^-126, 2^127): the head
-      // is a normal float and cannot round up to inf. One compare; the cold
-      // branch below takes zero and the double denormals (d_exp == 0), the
-      // float underflow range (f_exp <= 0), the top float binade (f_exp ==
-      // 254, where the head may carry into inf and the Fast2Sum could
-      // overflow) and inf / NaN (f_exp >= 255) -- all without FP64.
-      if (_CCCL_BUILTIN_EXPECT((uint32_t) (__f_exp - 1) < 253U, 1))
+      // Hot path for f_exp in [29, 253], i.e. |x| in [2^-98, 2^127): the head
+      // is a normal float and cannot round up to inf, and the tail is a
+      // normal float whenever the int -> float conversion of the residual
+      // below has to round (a residual of 2^24 units or more is 2^(e-28) or
+      // more, above 2^-126 for e >= -98), so it is rounded once. One compare;
+      // the cold branch below takes zero and the double denormals (d_exp ==
+      // 0), the float underflow range (f_exp <= 0), the band where the tail
+      // can be a float denormal (f_exp in [1, 28]), the top float binade
+      // (f_exp == 254, where the head may carry into inf and the Fast2Sum
+      // could overflow) and inf / NaN (f_exp >= 255) -- all without FP64.
+      if (_CCCL_BUILTIN_EXPECT((uint32_t) (__f_exp - 29) < 225U, 1))
       {
         // hi mantissa: top 23 explicit bits with round-to-nearest,
         // ties away from zero. (((mant >> 28) + 1) >> 1) takes the
@@ -190,6 +197,51 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_from_double(const double __x, _FpType*
           __q += (uint64_t) ((__rem > __hlf) || (__rem == __hlf && (__q & 1ULL)));
           *__res_hi = ::cuda::std::bit_cast<float>((__sign << 31) | (uint32_t) __q);
           *__res_lo = __szero;
+        }
+        else if (__f_exp <= 28)
+        {
+          // 2^-126 <= |x| < 2^-98: the tail can be a float denormal, which the
+          // hot path's two-step scaling would round twice. Head and tail come
+          // from the integer significand, each rounded once to nearest even:
+          // the head at 24 bits (a carry to 2^24 moves it to the next binade
+          // through the '+' into the exponent field); the tail -- the signed
+          // residual r in units of 2^(e - 52), |r| <= 2^28 -- as a normal
+          // float through the int -> float conversion and two exact scalings
+          // when it is 2^-126 or more (|r| >= 2^(53 - f_exp)), else on the
+          // 2^-149 grid, r / 2^(30 - f_exp): t <= 2^23 is then the denormal
+          // encoding of t * 2^-149 (t == 2^23 is the smallest normal, which
+          // the encoding gives for free). A zero tail takes the head's sign.
+          const uint64_t __m53 = __mant | (1ULL << 52);
+          uint64_t __q         = __m53 >> 29;
+          const uint64_t __rem = __m53 & ((1ULL << 29) - 1);
+          __q += (uint64_t) ((__rem > (1ULL << 28)) || (__rem == (1ULL << 28) && (__q & 1ULL)));
+          const int64_t __r     = (int64_t) __m53 - (int64_t) (__q << 29);
+          const uint64_t __ar   = (uint64_t) (__r < 0 ? -__r : __r);
+          const uint32_t __tneg = (uint32_t) ((__r < 0) != (__sign != 0U)) << 31;
+          uint32_t __lo_bits;
+          if (__ar >= (1ULL << (53 - __f_exp)))
+          {
+            const float __tn = (static_cast<float>((int32_t) __ar) * 0x1p-53f)
+                             * ::cuda::std::bit_cast<float>((uint32_t) (__f_exp + 1) << 23);
+            __lo_bits = __tneg | ::cuda::std::bit_cast<uint32_t>(__tn);
+          }
+          else
+          {
+            const uint32_t __s    = 30U - (uint32_t) __f_exp;
+            uint64_t __t          = __ar >> __s;
+            const uint64_t __trem = __ar & ((1ULL << __s) - 1);
+            const uint64_t __th   = 1ULL << (__s - 1);
+            __t += (uint64_t) ((__trem > __th) || (__trem == __th && (__t & 1ULL)));
+            __lo_bits = ((__t == 0ULL) ? (__sign << 31) : __tneg) | (uint32_t) __t;
+          }
+          // Fast2Sum for the canonical form fl(hi + lo) == hi, as on the hot
+          // path: a tail rounded up to exactly half an ulp beside an odd head
+          // moves to {hi + ulp, -ulp/2}, the same value (the cast path keeps
+          // the first form).
+          const float __hi_r =
+            ::cuda::std::bit_cast<float>((__sign << 31) | ((((uint32_t) __f_exp - 1U) << 23) + (uint32_t) __q));
+          const float __lo_r = ::cuda::std::bit_cast<float>(__lo_bits);
+          *__res_hi          = ::cuda::__fpmp_fast_two_sum(__hi_r, __lo_r, __res_lo);
         }
         else if (__f_exp >= 255)
         {

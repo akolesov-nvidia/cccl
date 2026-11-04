@@ -238,6 +238,45 @@ TEST_HOST_DEVICE_FUNC void test_from_double_corners()
     assert(same_bits(static_cast<double>(q), static_cast<double>(c)));
   }
 
+  // Doubles whose tail is a float denormal (2^-126 <= |x| < 2^-98): the exact
+  // level gives the value of the cast's pair (head and tail each rounded
+  // once) in canonical form; the fast levels may be one 2^-149 off.
+  const double small[] = {
+    0x1.40a6aaa000000p-121, // the harness's pattern input: tail -10 * 2^-149 exactly
+    -0x1.40a6aaa000000p-121,
+    0x1.ba636333e7ea7p-103, // tails the hot path rounds twice
+    0x1.34e6e94142f7bp-105,
+    -0x1.4bf0c4be52502p-106,
+    0x1.5263017bdeb56p-102,
+    0x1.ffffffp-101, // head rounds up into the next binade
+    0x1.000001p-126,
+    -0x1.0000018p-126,
+    0x1.fffffep-99 + 0x1p-123, // tie at half an ulp
+    0x1.0000008p-126,
+    0x1.0000008000001p-120,
+  };
+  for (double x : small)
+  {
+    const MP2 q(x);
+    const float ch = static_cast<float>(x);
+    const float cl = static_cast<float>(x - static_cast<double>(ch));
+    const double v = static_cast<double>(q.hi()) + static_cast<double>(q.lo());
+    if constexpr (Exact)
+    {
+      // the value of the cast's pair, in canonical form (fl(hi + lo) == hi)
+      assert(v == static_cast<double>(ch) + static_cast<double>(cl));
+      assert(q.hi() + q.lo() == q.hi());
+    }
+    else
+    {
+      // the fast levels round the tail twice, and a tail that underflows to
+      // zero no longer renormalizes a head rounded half away: the pair is
+      // within one 2^-149 of x
+      const double d = v > x ? v - x : x - v;
+      assert(d <= 0x1p-149);
+    }
+  }
+
   // Pair -> double with a denormal or tiny head (the cold path of both levels).
   const float cold[][2] = {
     {0x1p-149f, 0.0f},
