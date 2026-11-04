@@ -643,7 +643,8 @@ _CCCL_TRIVIAL_HOST_DEVICE_API int32_t __fpmp_fp2int_rz(float __x) noexcept
 }
 _CCCL_TRIVIAL_HOST_DEVICE_API int32_t __fpmp_fp2int_rn(float __x) noexcept
 {
-  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return ::__float2int_rn(__x);), (return static_cast<int32_t>(::roundf(__x));))
+  // rintf, not roundf: ties to even on the host as __float2int_rn rounds on the device
+  NV_IF_ELSE_TARGET(NV_IS_DEVICE, (return ::__float2int_rn(__x);), (return static_cast<int32_t>(::rintf(__x));))
 }
 _CCCL_TRIVIAL_HOST_DEVICE_API uint32_t __fpmp_fp2uint_rz(float __x) noexcept
 {
@@ -818,8 +819,9 @@ _CCCL_TRIVIAL_HOST_DEVICE_API int32_t __fpmp_fp2int_rz(double __x) noexcept
 }
 _CCCL_TRIVIAL_HOST_DEVICE_API int32_t __fpmp_fp2int_rn(double __x) noexcept
 {
+  // rint, not round: ties to even on the host as __double2int_rn rounds on the device
   NV_IF_ELSE_TARGET(
-    NV_IS_DEVICE, (return ::__double2int_rn(__x);), (return static_cast<int32_t>(::cuda::std::round(__x));))
+    NV_IS_DEVICE, (return ::__double2int_rn(__x);), (return static_cast<int32_t>(::cuda::std::rint(__x));))
 }
 _CCCL_TRIVIAL_HOST_DEVICE_API uint32_t __fpmp_fp2uint_rz(double __x) noexcept
 {
