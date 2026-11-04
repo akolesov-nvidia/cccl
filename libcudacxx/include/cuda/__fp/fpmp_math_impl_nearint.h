@@ -161,10 +161,10 @@ __internal_fpmp2_modf_decompose(float __hi, float __lo, unsigned long long* __m,
  * divisor - and the two residues are combined; the quotient's low 64 bits
  * come along.  Exact as long as the divisor fits 126 bits in that frame
  * (tails down to 2^-102 ulp(hi) when |x| >= |y|); beyond that the 53-bit
- * kernel takes over.  Dense pairs never come here, but every path ends in
- * the same rounding to the nearest pair.  fmod takes it in every accuracy
- * level (it costs the dense path nothing measurable); remainder only in
- * fpmp2_accuracy::high (see its core).
+ * kernel takes over.  Dense pairs never come here.  fmod and remainder take
+ * this path in fpmp2_accuracy::high only, where every result is the nearest
+ * pair; mid and low keep the 53-bit window and the 48-bit result rounding of
+ * the original code (see the cores).  remquo still goes through double.
  */
 struct __fpmp2_u128
 {
@@ -519,9 +519,64 @@ _CCCL_FPMP_CORE_API bool __internal_fpmp2_fmod_kernel_wide(
   return true;
 }
 
-/* Build the fp32mp2 nearest to  (neg ? -1 : 1) * mag * 2^E  from a mag of
- * up to 53 significant bits. */
+/* Build a renormalized fp32mp2 from  (neg ? -1 : 1) * mag * 2^E.
+ * mag may carry up to 53 significant bits; it is first rounded
+ * (round-half-to-even) down to the 48 bits an fp32mp2 can hold, then split
+ * into two <= 24-bit halves so each casts to float exactly. */
 _CCCL_FPMP_CORE_API void __internal_fpmp2_modf_reconstruct(
+  unsigned long long __mag, int __e, bool __neg, float* __res_hi, float* __res_lo) noexcept
+{
+  if (__mag == 0ULL)
+  {
+    *__res_hi = __neg ? -0.0f : 0.0f;
+    *__res_lo = 0.0f;
+    return;
+  }
+
+  /* Round mag down to <= 48 significant bits. */
+  int __extra = 0;
+  for (unsigned long long __t = __mag; __t >= (1ULL << 48); __t >>= 1)
+  {
+    ++__extra;
+  }
+  if (__extra > 0)
+  {
+    const unsigned long long __half = 1ULL << (__extra - 1);
+    const unsigned long long __frac = __mag & ((1ULL << __extra) - 1ULL);
+    unsigned long long __q          = __mag >> __extra;
+    if (__frac > __half || (__frac == __half && (__q & 1ULL) != 0ULL))
+    {
+      ++__q;
+    }
+    __mag = __q;
+    __e += __extra;
+    if ((__mag >> 48) != 0ULL)
+    {
+      __mag >>= 1;
+      ++__e;
+    } /* rounding carried out */
+  }
+
+  const unsigned __hipart = static_cast<unsigned>(__mag >> 24); /* < 2^24 */
+  const unsigned __lopart = static_cast<unsigned>(__mag & 0xFFFFFFULL); /* < 2^24 */
+  float __rhi             = ::cuda::__internal_fpmp2_scale2_scalar(static_cast<float>(__hipart), __e + 24);
+  float __rlo             = ::cuda::__internal_fpmp2_scale2_scalar(static_cast<float>(__lopart), __e);
+  if (__neg)
+  {
+    __rhi = -__rhi;
+    __rlo = -__rlo;
+  }
+
+  float __lo;
+  const float __hi = ::cuda::__fpmp_two_sum(__rhi, __rlo, &__lo); /* exact, no magnitude assumption */
+  *__res_hi        = __hi;
+  *__res_lo        = __lo;
+}
+
+/* The same for fpmp2_accuracy::high: the pair nearest to mag * 2^E (head and
+ * tail each rounded to nearest even) -- the window above drops tail bits the
+ * pair can hold whenever the head has few bits, up to 2^-48 relative. */
+_CCCL_FPMP_CORE_API void __internal_fpmp2_modf_reconstruct_exact(
   unsigned long long __mag, int __e, bool __neg, float* __res_hi, float* __res_lo) noexcept
 {
   __fpmp2_u128 __v;
@@ -586,15 +641,22 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_fmod_kernel(
  * --------------------------------------------------------------------
  * Remainder fmod(x, y) (fp32mp2) - dedicated implementation
  * --------------------------------------------------------------------
- * fmod(x, y): result has the sign of x and magnitude in [0, |y|).
+ * fmod(x, y): result has the sign of x and magnitude in [0, |y|).  With
+ * exact set (fpmp2_accuracy::high) a sparse operand takes the wide reduction
+ * and the result is the nearest pair; otherwise (mid, low) the operands are
+ * rounded to the 53-bit window and the result to 48 bits as before, which
+ * keeps the function's size where it was (277 against 1087 SASS lines and
+ * 22 against 32 registers: the exact block weighs on a caller's register
+ * budget even when it is never entered).
  */
-_CCCL_FPMP_CORE_API void __internal_fpmp2_fmod(
+_CCCL_FPMP_CORE_API void __internal_fpmp2_fmod_core(
   const float __x_hi,
   const float __x_lo,
   const float __y_hi,
   const float __y_lo,
   float* __res_hi,
-  float* __res_lo) noexcept
+  float* __res_lo,
+  const bool __exact) noexcept
 {
   /* (hi + lo) != (hi + lo) also catches a degenerate (+inf, -inf) limb
    * pair, which the fp128 reference widens to inf + (-inf) = NaN. */
@@ -649,7 +711,8 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_fmod(
     return;
   }
 
-  if (::cuda::__internal_fpmp2_pair_sparse(__axh, __axl) || ::cuda::__internal_fpmp2_pair_sparse(__ayh, __ayl))
+  if (__exact
+      && (::cuda::__internal_fpmp2_pair_sparse(__axh, __axl) || ::cuda::__internal_fpmp2_pair_sparse(__ayh, __ayl)))
   {
     __fpmp2_u128 __r;
     __fpmp2_u128 __y;
@@ -667,7 +730,37 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_fmod(
   unsigned long long __quo;
   int __ey;
   ::cuda::__internal_fpmp2_fmod_kernel(__axh, __axl, __ayh, __ayl, &__ia, &__my, &__ey, &__quo);
-  ::cuda::__internal_fpmp2_modf_reconstruct(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
+  if (__exact)
+  {
+    ::cuda::__internal_fpmp2_modf_reconstruct_exact(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
+  }
+  else
+  {
+    ::cuda::__internal_fpmp2_modf_reconstruct(__ia, __ey, (__x_hi < 0.0f), __res_hi, __res_lo);
+  }
+}
+
+_CCCL_FPMP_CORE_API void __internal_fpmp2_fmod(
+  const float __x_hi,
+  const float __x_lo,
+  const float __y_hi,
+  const float __y_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept
+{
+  ::cuda::__internal_fpmp2_fmod_core(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, false);
+}
+
+/* fpmp2_accuracy::high: exact on sparse pairs as well, nearest-pair result */
+_CCCL_FPMP_CORE_API void __internal_fpmp2_high_fmod(
+  const float __x_hi,
+  const float __x_lo,
+  const float __y_hi,
+  const float __y_lo,
+  float* __res_hi,
+  float* __res_lo) noexcept
+{
+  ::cuda::__internal_fpmp2_fmod_core(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo, true);
 }
 
 /*
@@ -686,7 +779,20 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_fmod(
   _CCCL_FPMP_CALL_FP64MP2_MATH_2A(fmod, _CCCL_FPMP_FMODQ, __x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
 }
 
+/* fp64mp2 has one fmod for every level */
+_CCCL_FPMP_CORE_API void __internal_fpmp2_high_fmod(
+  const double __x_hi,
+  const double __x_lo,
+  const double __y_hi,
+  const double __y_lo,
+  double* __res_hi,
+  double* __res_lo) noexcept
+{
+  ::cuda::__internal_fpmp2_fmod(__x_hi, __x_lo, __y_hi, __y_lo, __res_hi, __res_lo);
+}
+
 _CCCL_FPMP_MATH_DISPATCH_2A(fmod)
+_CCCL_FPMP_MATH_DISPATCH_2A(high_fmod)
 
 /*
  * ====================================================================
@@ -703,10 +809,11 @@ _CCCL_FPMP_MATH_DISPATCH_2A(fmod)
  * quotient rint(|x| / |y|) (its low 64 bits; nothing consumes it here, remquo
  * is a double fallback on this branch).  With exact set
  * (fpmp2_accuracy::high) a sparse operand takes the wide reduction and the
- * result is exact; otherwise (mid, low) the operands are rounded to the
- * 53-bit window as before, which keeps the function's size and speed where
- * they were (the wide block, present or not, costs the dense path ~14 %
- * latency and a resident block per SM through its registers).
+ * result is the nearest pair; otherwise (mid, low) the operands are rounded
+ * to the 53-bit window and the result to 48 bits as before, which keeps the
+ * function's size and speed where they were (the wide block, present or
+ * not, costs the dense path ~14 % latency and a resident block per SM
+ * through its registers).
  */
 _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder_core(
   const float __x_hi,
@@ -870,7 +977,16 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder_core(
     __neg_xframe = false;
   }
 
-  ::cuda::__internal_fpmp2_modf_reconstruct(__mag, __ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
+  *__n = __quo + (__round_up ? 1ULL : 0ULL); /* rint(|x| / |y|), low 64 bits */
+  if (__exact)
+  {
+    ::cuda::__internal_fpmp2_modf_reconstruct_exact(
+      __mag, __ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
+  }
+  else
+  {
+    ::cuda::__internal_fpmp2_modf_reconstruct(__mag, __ey, static_cast<bool>(__neg_xframe ^ __xneg), __res_hi, __res_lo);
+  }
 }
 
 _CCCL_FPMP_CORE_API void __internal_fpmp2_remainder(
