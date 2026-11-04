@@ -12,7 +12,8 @@
 //    - All standard integer types (short/int/long/long long + unsigned) construct
 //      and convert back, and same-width types agree with the fixed-width path.
 //    - fp32mp2 -> int truncates toward zero, summing hi+lo first (so values like
-//      19.99999991... -> {20.0, -8.77e-8} truncate to 19, not 20).
+//      19.99999991... -> {20.0, -8.77e-8} truncate to 19, not 20), including on
+//      the integer path for heads of 2^24 and beyond ({2^24, -0.75} -> 2^24 - 1).
 //
 //===----------------------------------------------------------------------===//
 
@@ -143,6 +144,26 @@ TEST_HOST_DEVICE_FUNC void run_test()
       ffloat x(vals[i]);
       assert(static_cast<int32_t>(x) == expect[i]);
     }
+  }
+
+  // Heads of 2^24 and beyond take the integer path (the float sum could not
+  // hold the result): hi is an integer there, and a tail of the opposite sign
+  // with a fractional part moves the truncation one step toward zero -
+  // 2^24 - 0.75 truncates to 2^24 - 1, not 2^24. A tail of the same sign or
+  // an integer tail leaves hi + trunc(lo) as it is.
+  {
+    assert(static_cast<int32_t>(ffloat(0x1p24f, -0.75f)) == 16777215);
+    assert(static_cast<uint32_t>(ffloat(0x1p24f, -0.75f)) == 16777215u);
+    assert(static_cast<int64_t>(ffloat(0x1p24f, -0.75f)) == 16777215ll);
+    assert(static_cast<uint64_t>(ffloat(0x1p24f, -0.75f)) == 16777215ull);
+    assert(static_cast<int32_t>(ffloat(-0x1p24f, 0.75f)) == -16777215);
+    assert(static_cast<int64_t>(ffloat(-0x1p24f, 0.75f)) == -16777215ll);
+    assert(static_cast<int64_t>(ffloat(0x1p25f, -0.5f)) == 33554431ll);
+    assert(static_cast<uint64_t>(ffloat(0x1p25f, -0.5f)) == 33554431ull);
+    assert(static_cast<int64_t>(ffloat(-0x1p30f, 2.5f)) == -1073741821ll); // -2^30 + 2.5 = -1073741821.5
+    assert(static_cast<int32_t>(ffloat(0x1p24f, 0.75f)) == 16777216); // same sign
+    assert(static_cast<int32_t>(ffloat(0x1p24f, -1.0f)) == 16777215); // integer tail
+    assert(static_cast<int32_t>(ffloat(0x1p24f, 1.0f)) == 16777217);
   }
 
   // Negative low part: hi+lo must be summed before truncation.

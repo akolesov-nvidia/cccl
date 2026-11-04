@@ -751,9 +751,16 @@ _CCCL_FPMP_CORE_API int32_t __fpmp2_to_int(const _FpType __x_hi, const _FpType _
   }
   else
   {
-    // Large value: use integer addition to preserve exactness
+    // Large value: integer addition. hi is an integer here (|hi| >= 2^24 for
+    // float, 2^53 for double), so the truncation of hi + lo is hi + trunc(lo),
+    // one step toward zero less when lo has the opposite sign and a
+    // fractional part (2^24 - 0.75 truncates to 2^24 - 1)
     int32_t __hi_int = ::cuda::__fpmp_fp2int_rz(__x_hi);
     int32_t __lo_int = ::cuda::__fpmp_fp2int_rz(__x_lo);
+    if ((static_cast<_FpType>(__lo_int) != __x_lo) && ((__x_lo < _FpType(0)) != (__x_hi < _FpType(0))))
+    {
+      __hi_int += (__x_hi < _FpType(0)) ? 1 : -1;
+    }
     return __hi_int + __lo_int;
   }
 } // __fpmp2_to_int
@@ -773,9 +780,14 @@ _CCCL_FPMP_CORE_API uint32_t __fpmp2_to_uint(const _FpType __x_hi, const _FpType
   }
   else
   {
-    // Large value: use integer addition to preserve exactness
+    // Large value: integer addition; a negative tail with a fractional part
+    // takes the truncation one step down (see __fpmp2_to_int)
     uint32_t __hi_uint = ::cuda::__fpmp_fp2uint_rz(__x_hi);
     int32_t __lo_int   = ::cuda::__fpmp_fp2int_rz(__x_lo);
+    if ((__x_lo < _FpType(0)) && (static_cast<_FpType>(__lo_int) != __x_lo))
+    {
+      __hi_uint -= 1u;
+    }
     return __hi_uint + __lo_int;
   }
 } // __fpmp2_to_uint
@@ -796,9 +808,15 @@ _CCCL_FPMP_CORE_API int64_t __fpmp2_to_ll(const _FpType __x_hi, const _FpType __
   }
   else
   {
-    // Large value: use integer addition to preserve exactness
+    // Large value: integer addition; a tail of the opposite sign with a
+    // fractional part takes the truncation one step toward zero (see
+    // __fpmp2_to_int)
     int64_t __hi_ll = ::cuda::__fpmp_fp2ll_rz(__x_hi);
     int64_t __lo_ll = ::cuda::__fpmp_fp2ll_rz(__x_lo);
+    if ((static_cast<_FpType>(__lo_ll) != __x_lo) && ((__x_lo < _FpType(0)) != (__x_hi < _FpType(0))))
+    {
+      __hi_ll += (__x_hi < _FpType(0)) ? 1 : -1;
+    }
     return __hi_ll + __lo_ll;
   }
 } // __fpmp2_to_ll
@@ -818,9 +836,14 @@ _CCCL_FPMP_CORE_API uint64_t __fpmp2_to_ull(const _FpType __x_hi, const _FpType 
   }
   else
   {
-    // Large value: use integer addition to preserve exactness
+    // Large value: integer addition; a negative tail with a fractional part
+    // takes the truncation one step down (see __fpmp2_to_int)
     uint64_t __hi_ull = ::cuda::__fpmp_fp2ull_rz(__x_hi);
     int64_t __lo_ll   = ::cuda::__fpmp_fp2ll_rz(__x_lo);
+    if ((__x_lo < _FpType(0)) && (static_cast<_FpType>(__lo_ll) != __x_lo))
+    {
+      __hi_ull -= 1u;
+    }
     return __hi_ull + __lo_ll;
   }
 } // __fpmp2_to_ull
