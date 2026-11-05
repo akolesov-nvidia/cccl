@@ -104,6 +104,32 @@ TEST_HOST_DEVICE_FUNC void test_to_double_corners()
   }
 }
 
+// fp32mp2 -> double on the limbs that leave the hot path: special limbs
+// (hi + lo in IEEE terms, in both levels, a NaN limb giving a NaN), and finite
+// limbs whose float sum overflows, canonical ({FLT_MAX, 2^103}) or not
+// ({FLT_MAX, 2^104}, {FLT_MAX, FLT_MAX}), whose value is a finite double.
+template <typename MP2>
+TEST_HOST_DEVICE_FUNC void test_to_double_specials()
+{
+  const float inf = ::cuda::std::numeric_limits<float>::infinity();
+  const float nan = ::cuda::std::numeric_limits<float>::quiet_NaN();
+  const float fm  = 0x1.fffffep+127f;
+  assert(same_bits(static_cast<double>(MP2(inf, 0.0f)), ref_to_double(inf, 0.0f)));
+  assert(same_bits(static_cast<double>(MP2(-inf, 1.0f)), ref_to_double(-inf, 1.0f)));
+  assert(same_bits(static_cast<double>(MP2(0.0f, inf)), ref_to_double(0.0f, inf)));
+  assert(same_bits(static_cast<double>(MP2(1.0f, -inf)), ref_to_double(1.0f, -inf)));
+  assert(::cuda::std::isnan(static_cast<double>(MP2(inf, -inf))));
+  assert(::cuda::std::isnan(static_cast<double>(MP2(nan, 0.0f))));
+  assert(::cuda::std::isnan(static_cast<double>(MP2(0.0f, nan))));
+  assert(::cuda::std::isnan(static_cast<double>(MP2(inf, nan))));
+  assert(same_bits(static_cast<double>(MP2(fm, 0x1p+103f)), ref_to_double(fm, 0x1p+103f)));
+  assert(same_bits(static_cast<double>(MP2(fm, 0x1p+104f)), ref_to_double(fm, 0x1p+104f)));
+  assert(same_bits(static_cast<double>(MP2(-fm, -0x1p+104f)), ref_to_double(-fm, -0x1p+104f)));
+  assert(same_bits(static_cast<double>(MP2(fm, fm)), ref_to_double(fm, fm)));
+  assert(same_bits(static_cast<double>(MP2(fm, -fm)), 0.0));
+  assert(same_bits(static_cast<double>(MP2(0x1p+127f, 0x1p+127f)), 0x1p+128));
+}
+
 // fp32mp2 -> double: a deterministic sweep of canonical pairs, including
 // heads that are powers of two with tails of either sign and tails at exactly
 // half an ulp.
@@ -299,6 +325,7 @@ template <typename MP2, bool Exact>
 TEST_HOST_DEVICE_FUNC void test_level()
 {
   test_to_double_corners<MP2, Exact>();
+  test_to_double_specials<MP2>();
   test_to_double_sweep<MP2, Exact>();
   test_from_double_corners<MP2, Exact>();
 }

@@ -502,13 +502,20 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_ull(const uint64_t __i, _FpType* __res_hi,
 //        implicit-1 down to bit 51). Single conditional shift; no CLZ.
 //     5. Splice sign / biased-exponent / mantissa into the double.
 //
-//   Cold path (integer only as well, no FP64 anywhere) covers the cases
-//   where the FP32 scale would overflow / be ill-defined:
-//     - fexp_a == 0      : hi is +/-0 or subnormal (the tail is then 0)
-//     - fexp_a in [1,51] : 2^(179 - fexp_a) overflows float (need biased
-//                          exponent <= 254 ⇒ fexp_a >= 52); the scale is
-//                          applied in two exact products instead
-//     - fexp_a == 0xFF   : hi is +/-Inf or NaN
+//   Cold path (integer and FP32 only, no FP64 anywhere, in every level)
+//   covers the cases where the FP32 scale would overflow / be ill-defined
+//   by moving the pair into the hot range with an exact power-of-two
+//   scaling and running the same reconstruction with the exponent offset
+//   moved back (one cold copy, the helper above the function):
+//     - fexp_a == 0      : +-0 returns at once; a subnormal head (tail 0)
+//                          and the tiny normal heads fexp_a in [1,51] are
+//                          scaled by 2^100 (head to [2^-49, 2^25), tail
+//                          exact, never underflows)
+//     - fexp_a == 0xFF   : a special limb returns the 2Sum's head, which
+//                          is hi + lo in IEEE terms, widened by its bits;
+//                          finite limbs whose float sum overflowed are
+//                          scaled by 2^-100 and renormalized there,
+//                          canonical or not
 //   Both ends of this range are extremely rare for typical fp32mp2 data.
 //
 //   The result is the correctly rounded value of hi + lo: step 2 rounds lo
@@ -523,6 +530,36 @@ _CCCL_FPMP_CORE_API void __fpmp2_from_ull(const uint64_t __i, _FpType* __res_hi,
 //   static_cast<double>(x_hi) + static_cast<double>(x_lo)
 //   (2x F2D + 1x DADD = 3 FP64 operations)
 //
+// The reconstruction of __internal_fpmp2_to_double (fp32 pairs) for the cold
+// cases: a canonical pair whose head has a biased exponent in [52, 254],
+// given as the head's bits, the tail, and the exponent offset of the result
+// (896 for an unscaled head; the cold cases rescale by 2^+-100 and pass
+// 896 -+ 100). The same arithmetic as the hot path, which keeps its own
+// copy written out.
+template <bool _Exact>
+_CCCL_FPMP_CORE_API double
+__internal_fpmp2_to_double_assemble(const uint32_t __hi_bits, const float __x_lo, const uint32_t __exp_off) noexcept
+{
+  const uint32_t __sign_a  = __hi_bits >> 31;
+  const uint32_t __fexp_a  = (__hi_bits >> 23) & 0xFFU;
+  const uint32_t __fmant_a = __hi_bits & 0x7FFFFFU;
+  const float __scale      = ::cuda::std::bit_cast<float>((__sign_a << 31) | ((306U - __fexp_a) << 23));
+  const float __t          = __x_lo * __scale;
+  bool __below             = false;
+  if constexpr (_Exact)
+  {
+    __below = (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
+  }
+  const int32_t __r           = ::cuda::__fpmp_fp2int_rn(__below ? __t + __t : __t);
+  const int64_t __m           = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
+  uint64_t __mu               = (uint64_t) __m;
+  const uint64_t __need_shift = ((__mu >> 52) & 1ULL) ^ 1ULL;
+  __mu <<= (__need_shift & (uint64_t) !__below);
+  return ::cuda::std::bit_cast<double>(
+    ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + __exp_off - (uint32_t) __need_shift) << 52)
+    | (__mu & 0x000FFFFFFFFFFFFFULL));
+}
+
 template <typename _FpType, bool _Exact>
 _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, const _FpType __x_lo_in) noexcept
 {
@@ -545,75 +582,64 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
 
       // Cold fallback for hi outside the FP32-scale-representable range:
       // zero/subnormal, very tiny normal (fexp_a in [1, 51]), Inf, NaN.
-      // NB: sum the ORIGINAL inputs, not the 2Sum-renormalized (__x_hi, __x_lo).
-      // The 2Sum prologue exists only to canonicalize finite operands for the
-      // integer hot path; on special values it poisons the low word (e.g.
-      // two_sum(inf, 0) yields lo = inf - inf = NaN), which would turn a clean
-      // (inf, 0) / (nan, 0) into NaN here. The plain double sum of the originals
-      // handles inf/nan/zero/subnormal correctly.
       if (__fexp_a < 52U || __fexp_a == 0xFFU)
       {
-        // Cold path, integer only (no FP64 even here).
+        // Cold cases, integer and FP32 only (no FP64 anywhere): a head
+        // outside the range where the hot path's scale 2^(179 - fexp_a) is a
+        // float. A zero and the special limbs return directly; the others
+        // rescale the pair into that range by an exact power of two, move
+        // the result's exponent offset the other way, and go through one
+        // cold copy of the reconstruction (the helper above the function),
+        // the exact one in every level: the results are those of the FP64
+        // sum of the limbs that stood here before.
+        float __c_hi, __c_lo;
+        uint32_t __c_off;
         if (__fexp_a == 0xFFU)
         {
+          // Infinite or NaN after the 2Sum: a special limb, or finite limbs
+          // whose float sum overflowed (|hi| ~ FLT_MAX with a tail); the
+          // original limbs tell which.
           const uint32_t __hb = ::cuda::std::bit_cast<uint32_t>(__x_hi_in);
           const uint32_t __lb = ::cuda::std::bit_cast<uint32_t>(__x_lo_in);
-          if ((__hb & 0x7F800000U) != 0x7F800000U)
+          if (((__hb << 1) >= 0xFF000000U) || ((__lb << 1) >= 0xFF000000U))
           {
-            // The 2Sum overflowed on finite limbs: |hi| ~ FLT_MAX with a tail of
-            // +-ulp/2 or more (the pair of the 16 doubles right below the float
-            // overflow threshold). The value is finite and the hot path's
-            // arithmetic holds on the original limbs.
-            const uint32_t __sg = __hb >> 31, __fe = (__hb >> 23) & 0xFFU, __fm = __hb & 0x7FFFFFU;
-            const float __sc    = ::cuda::std::bit_cast<float>((__sg << 31) | ((306U - __fe) << 23));
-            const int32_t __r0  = ::cuda::__fpmp_fp2int_rn(__x_lo_in * __sc);
-            uint64_t __m0       = (uint64_t) ((int64_t) (((uint64_t) (0x800000U | __fm)) << 29) + (int64_t) __r0);
-            const uint64_t __n0 = ((__m0 >> 52) & 1ULL) ^ 1ULL;
-            __m0 <<= __n0;
+            // A special limb: the 2Sum's head is already hi + lo in IEEE
+            // terms (+-inf, or the adder's quiet NaN for a NaN limb or two
+            // opposite infinities); widen it by its bits.
             return ::cuda::std::bit_cast<double>(
-              ((uint64_t) __sg << 63) | ((uint64_t) (__fe + 896U - (uint32_t) __n0) << 52)
-              | (__m0 & 0x000FFFFFFFFFFFFFULL));
+              ((uint64_t) (__hi_bits >> 31) << 63) | (0x7FFULL << 52) | ((uint64_t) (__hi_bits & 0x7FFFFFU) << 29));
           }
-          // +-inf or NaN head, from the original limbs (the 2Sum above poisons
-          // the tail on these): hi + lo in IEEE terms, i.e. NaN for a NaN head,
-          // a NaN tail or the opposite infinity, +-inf otherwise (quiet NaN,
-          // the head's payload kept).
-          const uint64_t __hm  = __hb & 0x7FFFFFU;
-          const bool __lo_nan  = (__lb & 0x7FFFFFFFU) > 0x7F800000U;
-          const bool __opp_inf = ((__lb & 0x7FFFFFFFU) == 0x7F800000U) && (((__lb ^ __hb) >> 31) != 0U);
-          const uint64_t __pl =
-            (__hm != 0ULL) ? ((1ULL << 51) | (__hm << 29)) : ((__lo_nan || __opp_inf) ? (1ULL << 51) : 0ULL);
-          return ::cuda::std::bit_cast<double>(((uint64_t) (__hb >> 31) << 63) | (0x7FFULL << 52) | __pl);
+          // Finite limbs: scale both by 2^-100 (exact), renormalize there
+          // (no overflow possible); the exponent moves back up by 100.
+          // Right for any finite limbs, canonical or not.
+          __c_hi  = ::cuda::__fpmp_two_sum(__x_hi_in * 0x1p-100f, __x_lo_in * 0x1p-100f, &__c_lo);
+          __c_off = 896U + 100U;
         }
-        if (__fexp_a == 0U)
+        else
         {
-          // +-0 or a float denormal head; the tail of a canonical pair is 0
-          // there (|lo| <= 2^-150 is no float), so the double is the head:
-          // its field normalized with the leading one at bit 52.
-          if (__fmant_a == 0U)
+          // Zero, subnormal or tiny normal head (|hi| < 2^-75). The pair is
+          // canonical here, and a zero or subnormal head has a zero tail
+          // (the float sum of the limbs was exact). The test reads the
+          // sign and mantissa fields rather than the head's bits so that
+          // the compiler keeps extracting them before the branch, where the
+          // hot path wants them (sunk past the branch they cost it 8 %).
+          if ((__fexp_a == 0U) && (__fmant_a == 0U))
           {
             return ::cuda::std::bit_cast<double>((uint64_t) __sign_a << 63);
           }
-          const uint32_t __lz  = (uint32_t) ::cuda::std::countl_zero(__fmant_a) - 9U; /* within the 23-bit field */
-          const uint64_t __m52 = ((uint64_t) __fmant_a << (30U + __lz)) & 0x000FFFFFFFFFFFFFULL;
-          return ::cuda::std::bit_cast<double>(((uint64_t) __sign_a << 63) | ((uint64_t) (896U - __lz) << 52) | __m52);
+          // Scale by 2^100, exact: the head lands in [2^-49, 2^25) as a
+          // normal float, the tail keeps its place below ulp(hi)/2 and never
+          // underflows. The exponent moves back down by 100.
+          __c_hi  = __x_hi * 0x1p100f;
+          __c_lo  = __x_lo * 0x1p100f;
+          __c_off = 896U - 100U;
         }
-        // fexp_a in [1, 51]: the hot path's arithmetic with the scale
-        // 2^(179 - fexp_a), which is no float, split into +-2^127 and
-        // 2^(52 - fexp_a); both products are exact.
-        const float __scale1 = ::cuda::std::bit_cast<float>((__sign_a << 31) | (254U << 23));
-        const float __scale2 = ::cuda::std::bit_cast<float>((179U - __fexp_a) << 23);
-        const bool __below_c =
-          (__fmant_a == 0U) && (static_cast<int32_t>(::cuda::std::bit_cast<uint32_t>(__x_lo) ^ __hi_bits) < 0);
-        const float __tc    = (__x_lo * __scale1) * __scale2;
-        const int32_t __r   = ::cuda::__fpmp_fp2int_rn(__below_c ? __tc + __tc : __tc);
-        const int64_t __m   = (int64_t) (((uint64_t) (0x800000U | __fmant_a)) << 29) + (int64_t) __r;
-        uint64_t __mu       = (uint64_t) __m;
-        const uint64_t __ns = (((__mu >> 52) & 1ULL) ^ 1ULL);
-        __mu <<= (__ns & (uint64_t) !__below_c);
-        return ::cuda::std::bit_cast<double>(
-          ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __ns) << 52)
-          | (__mu & 0x000FFFFFFFFFFFFFULL));
+        // The cold copy always resolves the binade below a power-of-two head
+        // (the exact reconstruction): these are the values the FP64 sum of
+        // the limbs gave here before, in every level, and the fast levels
+        // keep them bit for bit.
+        return ::cuda::__internal_fpmp2_to_double_assemble<true>(
+          ::cuda::std::bit_cast<uint32_t>(__c_hi), __c_lo, __c_off);
       }
 
       // scale = (sign_a ? -1 : +1) * 2^(179 - fexp_a). Always a normal
@@ -668,15 +694,64 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
 
       // Cold fallback for hi outside the FP32-scale-representable range:
       // zero/subnormal, very tiny normal (fexp_a in [1, 51]), Inf, NaN.
-      // NB: sum the ORIGINAL inputs, not the 2Sum-renormalized (__x_hi, __x_lo).
-      // The 2Sum prologue exists only to canonicalize finite operands for the
-      // integer hot path; on special values it poisons the low word (e.g.
-      // two_sum(inf, 0) yields lo = inf - inf = NaN), which would turn a clean
-      // (inf, 0) / (nan, 0) into NaN here. The plain double sum of the originals
-      // handles inf/nan/zero/subnormal correctly.
       if (__fexp_a < 52U || __fexp_a == 0xFFU)
       {
-        return static_cast<double>(__x_hi_in) + static_cast<double>(__x_lo_in);
+        // Cold cases, integer and FP32 only (no FP64 anywhere): a head
+        // outside the range where the hot path's scale 2^(179 - fexp_a) is a
+        // float. A zero and the special limbs return directly; the others
+        // rescale the pair into that range by an exact power of two, move
+        // the result's exponent offset the other way, and go through one
+        // cold copy of the reconstruction (the helper above the function),
+        // the exact one in every level: the results are those of the FP64
+        // sum of the limbs that stood here before.
+        float __c_hi, __c_lo;
+        uint32_t __c_off;
+        if (__fexp_a == 0xFFU)
+        {
+          // Infinite or NaN after the 2Sum: a special limb, or finite limbs
+          // whose float sum overflowed (|hi| ~ FLT_MAX with a tail); the
+          // original limbs tell which.
+          const uint32_t __hb = ::cuda::std::bit_cast<uint32_t>(__x_hi_in);
+          const uint32_t __lb = ::cuda::std::bit_cast<uint32_t>(__x_lo_in);
+          if (((__hb << 1) >= 0xFF000000U) || ((__lb << 1) >= 0xFF000000U))
+          {
+            // A special limb: the 2Sum's head is already hi + lo in IEEE
+            // terms (+-inf, or the adder's quiet NaN for a NaN limb or two
+            // opposite infinities); widen it by its bits.
+            return ::cuda::std::bit_cast<double>(
+              ((uint64_t) (__hi_bits >> 31) << 63) | (0x7FFULL << 52) | ((uint64_t) (__hi_bits & 0x7FFFFFU) << 29));
+          }
+          // Finite limbs: scale both by 2^-100 (exact), renormalize there
+          // (no overflow possible); the exponent moves back up by 100.
+          // Right for any finite limbs, canonical or not.
+          __c_hi  = ::cuda::__fpmp_two_sum(__x_hi_in * 0x1p-100f, __x_lo_in * 0x1p-100f, &__c_lo);
+          __c_off = 896U + 100U;
+        }
+        else
+        {
+          // Zero, subnormal or tiny normal head (|hi| < 2^-75). The pair is
+          // canonical here, and a zero or subnormal head has a zero tail
+          // (the float sum of the limbs was exact). The test reads the
+          // sign and mantissa fields rather than the head's bits so that
+          // the compiler keeps extracting them before the branch, where the
+          // hot path wants them (sunk past the branch they cost it 8 %).
+          if ((__fexp_a == 0U) && (__fmant_a == 0U))
+          {
+            return ::cuda::std::bit_cast<double>((uint64_t) __sign_a << 63);
+          }
+          // Scale by 2^100, exact: the head lands in [2^-49, 2^25) as a
+          // normal float, the tail keeps its place below ulp(hi)/2 and never
+          // underflows. The exponent moves back down by 100.
+          __c_hi  = __x_hi * 0x1p100f;
+          __c_lo  = __x_lo * 0x1p100f;
+          __c_off = 896U - 100U;
+        }
+        // The cold copy always resolves the binade below a power-of-two head
+        // (the exact reconstruction): these are the values the FP64 sum of
+        // the limbs gave here before, in every level, and the fast levels
+        // keep them bit for bit.
+        return ::cuda::__internal_fpmp2_to_double_assemble<true>(
+          ::cuda::std::bit_cast<uint32_t>(__c_hi), __c_lo, __c_off);
       }
 
       // scale = (sign_a ? -1 : +1) * 2^(179 - fexp_a). Always a normal
