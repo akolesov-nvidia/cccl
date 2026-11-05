@@ -566,6 +566,9 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
 #  if _CCCL_FPMP_USE_OPT_TO_DOUBLE == 1
   if constexpr (__fpmp2_is_fp32_v<_FpType>)
   {
+    // =======================================================
+    // High accuracy path
+    // =======================================================
     if constexpr (_Exact)
     {
       // Renormalize input to canonical form. See "Step 0" in the
@@ -678,6 +681,9 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
         ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)
         | (__mu & 0x000FFFFFFFFFFFFFULL));
     }
+    // =======================================================
+    // Mid & Low accuracy path
+    // =======================================================
     else
     {
       // Renormalize input to canonical form. See "Step 0" in the
@@ -726,8 +732,8 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
           // Right for any finite limbs, canonical or not.
           __c_hi  = ::cuda::__fpmp_two_sum(__x_hi_in * 0x1p-100f, __x_lo_in * 0x1p-100f, &__c_lo);
           __c_off = 896U + 100U;
-        }
-        else
+        } // Infinite or NaN after the 2Sum end
+        else // Zero, subnormal or tiny normal head (|hi| < 2^-75)
         {
           // Zero, subnormal or tiny normal head (|hi| < 2^-75). The pair is
           // canonical here, and a zero or subnormal head has a zero tail
@@ -745,7 +751,8 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
           __c_hi  = __x_hi * 0x1p100f;
           __c_lo  = __x_lo * 0x1p100f;
           __c_off = 896U - 100U;
-        }
+        } // Zero, subnormal or tiny normal head (|hi| < 2^-75) end
+
         // The cold copy always resolves the binade below a power-of-two head
         // (the exact reconstruction): these are the values the FP64 sum of
         // the limbs gave here before, in every level, and the fast levels
@@ -780,12 +787,12 @@ _CCCL_FPMP_CORE_API double __internal_fpmp2_to_double(const _FpType __x_hi_in, c
       return ::cuda::std::bit_cast<double>(
         ((uint64_t) __sign_a << 63) | ((uint64_t) (__fexp_a + 896U - (uint32_t) __need_shift) << 52)
         | (__mu & 0x000FFFFFFFFFFFFFULL));
-    }
-  }
-  else
+    } // Mid & Low accuracy path end
+  } // FpType is fp32 end
+  else // FpType is fp64
   {
     return static_cast<double>(__x_hi_in) + static_cast<double>(__x_lo_in);
-  }
+  } // FpType is fp64 end
 #  else
   return static_cast<double>(__x_hi_in) + static_cast<double>(__x_lo_in);
 #  endif
