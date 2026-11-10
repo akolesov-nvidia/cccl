@@ -1263,7 +1263,7 @@ __internal_fpmp2_asin(const float __x_hi, const float __x_lo, float* __res_hi, f
      *   asin(|x|) = pi/2 - 2*sqrty*(1 + y*P(y))
      * sqrt(y) returns NaN for y < 0 (i.e., |x| > 1), so NaN
      * propagates through the rest of the chain naturally. */
-    __ffloat __y = __ffloat(float(0.5f)) - __absx * __ffloat(float(0.5f));
+    __ffloat __y = 0.5f - __absx * 0.5f;
     float __sy_hi, __sy_lo;
     ::cuda::__fpmp2_sqrt(__y.hi(), __y.lo(), &__sy_hi, &__sy_lo);
     __ffloat __sy(__sy_hi, __sy_lo);
@@ -1354,8 +1354,8 @@ __internal_fpmp2_acos(const float __x_hi, const float __x_lo, float* __res_hi, f
      * Polynomial P(y) is evaluated by `__internal_fpmp2_acos_poly`
      * (analogous to `__internal_fpmp2_asin_poly` used by the small
      *  branch and by asin). */
-    __ffloat __y     = __ffloat(float(1)) - __absx;
-    __ffloat __two_y = __ffloat(float(2)) * __y;
+    __ffloat __y     = 1.0f - __absx;
+    __ffloat __two_y = __y * 2.0f;
     float __s_hi, __s_lo;
     ::cuda::__fpmp2_sqrt(__two_y.hi(), __two_y.lo(), &__s_hi, &__s_lo);
     __ffloat __s(__s_hi, __s_lo);
