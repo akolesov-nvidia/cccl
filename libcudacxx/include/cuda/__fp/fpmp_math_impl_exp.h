@@ -282,7 +282,7 @@ _CCCL_FPMP_CORE_API void __internal_fpmp2_exp_core(
   __p = __p * __r_scale + __fscale_lo;
 
   // Scale the result by the high part of the scale
-  __p               = __p * __ffloat(__fscale);
+  __p               = __p * __fscale;
   __ffloat __result = renormalize(__p);
 
   *__res_hi = __result.hi();
@@ -1261,7 +1261,7 @@ __internal_fpmp2_expm1(const float __x_hi, const float __x_lo, float* __res_hi, 
     return;
   }
 
-  __ffloat __result = sub<fpmp2_accuracy::high>(__ffloat(__e_hi, __e_lo), __ffloat(1.0f));
+  __ffloat __result = sub<fpmp2_accuracy::high>(__ffloat(__e_hi, __e_lo), 1.0f);
   *__res_hi         = __result.hi();
   *__res_lo         = __result.lo();
 } // __internal_fpmp2_expm1
