@@ -41,8 +41,8 @@ public:
   using result_type = _UIntType;
 
 private:
-  using _Engine_result_type = typename _Engine::result_type;
-  using _Working_result_type =
+  using _Engine_result_type _CCCL_NODEBUG = typename _Engine::result_type;
+  using _Working_result_type _CCCL_NODEBUG =
     conditional_t<sizeof(_Engine_result_type) <= sizeof(result_type), result_type, _Engine_result_type>;
 
   _Engine& __e_;
@@ -172,7 +172,6 @@ public:
 
   class param_type
   {
-  private:
     result_type __a_ = result_type{0};
     result_type __b_ = numeric_limits<result_type>::max();
 
