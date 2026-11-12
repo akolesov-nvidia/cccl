@@ -940,13 +940,6 @@ __internal_fpmp2_atan(const float __x_hi, const float __x_lo, float* __res_hi, f
 {
   using __ffloat = fp32mp2_low;
 
-  /* NaN propagates; the reciprocal range below would otherwise return pi/2 for it. */
-  if (__x_hi != __x_hi)
-  {
-    *__res_hi = __x_hi;
-    *__res_lo = __x_hi;
-    return;
-  }
   const bool __is_neg = __x_hi < float(0);
   __ffloat __x(__x_hi, __x_lo);
   __ffloat __absx = __is_neg ? -__x : __x;
@@ -964,8 +957,10 @@ __internal_fpmp2_atan(const float __x_hi, const float __x_lo, float* __res_hi, f
   const float __ah  = __absx.hi();
   const float __al  = __absx.lo();
   const bool __fold = (__ah > __sqrt13) && (__ah < __sqrt3);
-  const bool __inv  = !(__ah < __sqrt3);
-  const bool __cap  = !(__ah < 0x1p64f);
+  /* Written so that NaN selects the direct range (every comparison false) and flows through to
+   * the result; the negated forms sent it to the reciprocal range, whose cap made it pi/2. */
+  const bool __inv  = __ah >= __sqrt3;
+  const bool __cap  = __ah >= 0x1p64f;
 
   float __nl, __de;
   const float __nh = ::cuda::__fpmp_fast_two_sum(::cuda::__fpmp_sub_rn(__ah, 1.0f), __al, &__nl);
