@@ -610,9 +610,38 @@ __internal_fpmp2_log_finish(const fp32mp2_low __log_m, const int __e, float* __r
  * Does not handle NaN, +-0, or negative inputs.
  * --------------------------------------------------------------------
  */
+/*
+ * log, log2 and log10 outside (0, +inf): +-0 -> -inf, +inf -> +inf, a negative argument or NaN -> NaN
+ * (C99 Annex F). Kept out of the shared core, which assumes a positive finite input.
+ */
+_CCCL_FPMP_CORE_API void
+__internal_fpmp2_log_special(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
+{
+  float __r;
+  if (__x_hi == 0.0f)
+  {
+    __r = -::cuda::std::__fp_inf<float>();
+  }
+  else if (__x_hi == ::cuda::std::__fp_inf<float>())
+  {
+    __r = __x_hi;
+  }
+  else
+  {
+    __r = (__x_hi != __x_hi) ? __x_hi + __x_lo : ::cuda::std::__fp_nan<float>();
+  }
+  *__res_hi = __r;
+  *__res_lo = (__r != __r) ? __r : 0.0f;
+}
+
 _CCCL_FPMP_CORE_API void
 __internal_fpmp2_log(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
+  if (!(__x_hi > 0.0f && __x_hi < ::cuda::std::__fp_inf<float>()))
+  {
+    ::cuda::__internal_fpmp2_log_special(__x_hi, __x_lo, __res_hi, __res_lo);
+    return;
+  }
   int __e;
   const fp32mp2_low __log_m = ::cuda::__internal_fpmp2_log_core(__x_hi, __x_lo, 0.0f, &__e);
   ::cuda::__internal_fpmp2_log_finish(__log_m, __e, __res_hi, __res_lo);
@@ -827,6 +856,11 @@ _CCCL_FPMP_CORE_API void
 __internal_fpmp2_log2(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   using __ffloat = fp32mp2_low;
+  if (!(__x_hi > 0.0f && __x_hi < ::cuda::std::__fp_inf<float>()))
+  {
+    ::cuda::__internal_fpmp2_log_special(__x_hi, __x_lo, __res_hi, __res_lo);
+    return;
+  }
 
   /* 1/ln(2) ~= 1.4426950408889634073599... */
   constexpr __ffloat __inv_ln2(0x1.71547652b82fep+0);
@@ -872,6 +906,11 @@ _CCCL_FPMP_CORE_API void
 __internal_fpmp2_log10(const float __x_hi, const float __x_lo, float* __res_hi, float* __res_lo) noexcept
 {
   using __ffloat = fp32mp2_low;
+  if (!(__x_hi > 0.0f && __x_hi < ::cuda::std::__fp_inf<float>()))
+  {
+    ::cuda::__internal_fpmp2_log_special(__x_hi, __x_lo, __res_hi, __res_lo);
+    return;
+  }
 
   /* 1/ln(10) ~= 0.4342944819032518276511289... */
   constexpr __ffloat __inv_ln10(0x1.bcb7b1526e50ep-2);

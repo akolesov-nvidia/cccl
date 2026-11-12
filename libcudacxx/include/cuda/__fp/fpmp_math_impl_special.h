@@ -770,6 +770,13 @@ __internal_fpmp2_boys_f0(const float __a_hi, const float __a_lo, float* __res_hi
 
   const __ffloat __a(__a_hi, __a_lo);
 
+  if (__a_hi < -94.0f)
+  {
+    /* F0(a) >= exp(-a) / (2 |a|) for a < 0 passes FLT_MAX near a = -94: +inf from there to -inf. */
+    *__res_hi = ::cuda::std::__fp_inf<float>();
+    *__res_lo = 0.0f;
+    return;
+  }
   if (__a_hi < 2.0f)
   {
     /* degree 13 in x = a - 1 (fit error 2^-54.9, terms sum to 1.67 x the value) */
@@ -1025,13 +1032,23 @@ __internal_fpmp2_normcdfinv(const float __x_hi, const float __x_lo, float* __res
   const __ffloat __p = renormalize(__ffloat(__x_hi, __x_lo));
 
   /* normcdfinv(0) = -inf, normcdfinv(1) = +inf, both limbs read */
-  if (__p.hi() < 0.0f || (__p.hi() == 0.0f && __p.lo() <= 0.0f))
+  /* Domain: p in [0, 1]. Outside it, or NaN, the result is NaN; the ends give -inf and +inf. */
+  const bool __below = __p.hi() < 0.0f || (__p.hi() == 0.0f && __p.lo() < 0.0f);
+  const bool __above = __p.hi() > 1.0f || (__p.hi() == 1.0f && __p.lo() > 0.0f);
+  if (__below || __above || __p.hi() != __p.hi())
+  {
+    const float __nan_val = (__p.hi() != __p.hi()) ? __p.hi() + __p.lo() : ::cuda::std::__fp_nan<float>();
+    *__res_hi             = __nan_val;
+    *__res_lo             = __nan_val;
+    return;
+  }
+  if (__p.hi() == 0.0f && __p.lo() == 0.0f)
   {
     *__res_hi = -::cuda::std::__fp_inf<float>();
     *__res_lo = 0.0f;
     return;
   }
-  if (__p.hi() > 1.0f || (__p.hi() == 1.0f && __p.lo() >= 0.0f))
+  if (__p.hi() == 1.0f && __p.lo() == 0.0f)
   {
     *__res_hi = ::cuda::std::__fp_inf<float>();
     *__res_lo = 0.0f;
