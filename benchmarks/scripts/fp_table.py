@@ -196,16 +196,16 @@ def merge(exe, csv_path, rows):
 
 
 def fmt(k, v):
+    """Four significant digits for the measured quantities: two decimals would quantize the
+    small fp64mp2 throughputs (0.08 ev/clk/SM) to 12%, more than the noise a comparison looks for."""
     try:
         x = float(v)
     except (TypeError, ValueError):
         return v if v is not None else ""
-    if k in ("u2", "ev/clk/SM"):
-        return f"{x:.2f}"
-    if k == "clk/ev":
-        return f"{x:.1f}"
+    if k in ("u2", "ev/clk/SM", "clk/ev"):
+        return f"{x:.4g}"
     if k in ("Elem/s", "GPU Time (s)"):
-        return f"{x:.3e}"
+        return f"{x:.4e}"
     return str(v)
 
 
