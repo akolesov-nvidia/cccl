@@ -222,9 +222,10 @@ __device__ __forceinline__ T random_pair(uint32_t& s, const input_range& r)
 
 // ---- the dependency chain of the timing kernels -------------------------------------------
 // Consecutive evaluations are made dependent by folding one bit of each limb of the result
-// into the input, which moves each limb by at most one ulp (the trick of the cccl-fpdev
-// suite). Both limbs take part: with the high limb alone the low limb's arithmetic of the
-// `low` level, whose high limb does not depend on it, is dead code.
+// into every operand, which moves each limb by at most one ulp (the trick of the cccl-fpdev
+// suite, applied to all operands rather than the first). Both limbs take part: with the high
+// limb alone the low limb's arithmetic of the `low` level, whose high limb does not depend on
+// it, is dead code.
 template <class T>
 __device__ __forceinline__ void chain_bits(const T& r, T& a)
 {
@@ -239,6 +240,24 @@ __device__ __forceinline__ void chain_bits(const T& r, T& a)
   else
   {
     a = cuda::std::bit_cast<L>(cuda::std::bit_cast<U>(a) ^ (cuda::std::bit_cast<U>(r) & U{1}));
+  }
+}
+
+// the second and third operands take the bit in the high limb only: everything that depends on
+// them is loop-variant then, at one op instead of two (their low limb does no work on its own
+// in these functions, so nothing is left for the compiler to hoist)
+template <class T>
+__device__ __forceinline__ void chain_bit_hi(const T& r, T& x)
+{
+  if constexpr (is_pair<T>)
+  {
+    using L = limb_t<T>;
+    using U = cuda::std::conditional_t<sizeof(L) == 4, uint32_t, uint64_t>;
+    x = T(cuda::std::bit_cast<L>(cuda::std::bit_cast<U>(x.hi()) ^ (cuda::std::bit_cast<U>(r.hi()) & U{1})), x.lo());
+  }
+  else
+  {
+    chain_bits(r, x);
   }
 }
 
@@ -305,14 +324,25 @@ __global__ void chain_kernel(float start, float stride, int reps, unsigned char*
   using L       = limb_t<T>;
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
   T a(static_cast<L>(start + static_cast<float>(tid) * stride + 0.0002f));
-  const T b(static_cast<L>(1.5f + static_cast<float>(tid) * 0.0007f));
-  const T c(static_cast<L>(0.5f));
+  T b(static_cast<L>(1.5f + static_cast<float>(tid) * 0.0007f));
+  T c(static_cast<L>(0.5f));
   T r = a;
 #pragma unroll 16
   for (int i = 0; i < reps; ++i)
   {
     r = eval<Op, T>(a, b, c);
+    // every operand the operation reads depends on the result: with a loop-invariant operand
+    // the compiler hoists what depends on it alone out of the loop, and a division by an
+    // invariant divisor measures as a multiplication by its hoisted reciprocal
     chain_bits(r, a);
+    if constexpr (Op::arity >= 2)
+    {
+      chain_bit_hi(r, b);
+    }
+    if constexpr (Op::arity >= 3)
+    {
+      chain_bit_hi(r, c);
+    }
   }
   // the sink reads both limbs, or the compiler drops the low-limb chain of the `low` level
   if (never)

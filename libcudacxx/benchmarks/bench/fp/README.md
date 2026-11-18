@@ -87,8 +87,13 @@ double reference, the accuracy input range of each argument (`fpb::lin(lo, hi)` 
 (`FPB_PERF_DEFAULT` is the suite's `1 + tid * 1e-4`; give the function's own start and stride when
 that leaves its domain), then add it to the family's `type_list`.
 
-Two things the shared header (`fpmp_bench.cuh`) gets right that are easy to break: the chain
+Three things the shared header (`fpmp_bench.cuh`) gets right that are easy to break: the chain
 feeds both limbs of the result into the next input and the final sink reads both limbs, or the
 compiler deletes the low-limb arithmetic of the `low` level (whose high limb does not depend on
-it) and `low` add measures as one FADD; and `nvbench::state::add_summary` returns a reference into
-a vector, so each summary is filled before the next one is added.
+it) and `low` add measures as one FADD; the chain feeds the result into every operand the
+function reads, not only the first (into the high limb of the second and third, which is enough
+to keep them loop-variant at one op each), or whatever depends on a loop-invariant operand alone
+is hoisted out of the loop, and `div` by an invariant divisor measures as a multiplication by its
+hoisted reciprocal (the SASS count of the bare function is unaffected, the chain is); and
+`nvbench::state::add_summary` returns a reference into a vector, so each summary is filled before
+the next one is added.
