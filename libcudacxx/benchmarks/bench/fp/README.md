@@ -17,20 +17,28 @@ executable per file:
 
 Every executable holds two benchmarks, `throughput` and `latency`, over the type axes `Func`,
 `Type` (`fp32mp2`, `fp64mp2`) and `Accuracy` (`low`, `mid`, `high`), so a row of the CSV output is
-one (function, type, level) cell:
+one (function, type, level) cell, and two more, `ref_throughput` and `ref_latency`, that time the
+reference precision over `Func` alone:
 
 - **throughput**: 2048 × 256 threads, each a chain of 1024 dependent evaluations. nvbench reports
   the GPU time and elements per second; the summary `ev/clk/SM` is evaluations per SM clock per SM,
   from the mean GPU time and the device's default SM clock.
 - **latency**: one thread, a chain of 4096 dependent evaluations; `clk/ev` is SM clocks per evaluation.
+- **ref_throughput, ref_latency**: the same chains on the reference precision, the double
+  expression of the declaration on a `double` (Type `fp64`), which is what fp32mp2 stands in for
+  on a device whose fp64 rate is low. fp64mp2 would be compared with binary128, which the device
+  does not have yet. The table turns them into **Gain tp** (the cell's `ev/clk/SM` over the
+  reference's) and **Gain lat** (the reference's `clk/ev` over the cell's): both above 1 when the
+  pair is faster than the reference precision.
 - **u2**: the maximum relative error over 2^20 random normalized pairs against a double reference,
   in units of u² = 2^-48, the fp32mp2 pair's own half-ulp (the unit of the fpmp error-bounds page).
   The fp64mp2 types would need a binary128 reference, which the device does not have yet: they are
   checked against double, show `-` here and cap `Bits` at 53.
 - **Bits**: -log2 of that maximum relative error.
 - **Regs**: registers per thread of the chain kernel.
-- **Worst at**: the arguments of the sample that gave the maximum relative error (in the CSV
-  and JSON only), to see where an accuracy change comes from.
+- **Worst at**: the arguments of the sample that gave the maximum relative error, as C99
+  hexadecimal floats (`0x1.8p+1`, exact; in the CSV and JSON only), to see where an accuracy
+  change comes from.
 
 The CUDA double math library is accurate to a few ulps of a double, which is about a tenth of a
 u²: the accuracy column is for tracking regressions, not for the last digit of the specification.
@@ -60,8 +68,11 @@ done
 python3 benchmarks/scripts/fp_table.py --bin-dir build/libcudacxx-benchmark/bin --csv-dir out --out out/fpmp.csv --md out/fpmp.md
 ```
 
-giving one row per cell: `Func, Type, Accuracy, u2, Bits, ev/clk/SM, clk/ev, SASS, Regs, Elem/s,
-GPU Time (s), Worst at, Family, Device`. The JSON files are what `ci/bench` compares between two refs.
+giving one row per cell: `Func, Type, Accuracy, u2, Bits, ev/clk/SM, Gain tp, clk/ev, Gain lat,
+SASS, Regs, Worst at, Family, Device`, plus one row per function for the reference precision
+(Type `fp64`, Accuracy `-`, with its own `SASS` and `Regs`). nvbench's own columns (GPU time,
+elements per second) stay in the per-family CSVs. The JSON files are what `ci/bench` compares
+between two refs.
 
 ## Adding a function
 

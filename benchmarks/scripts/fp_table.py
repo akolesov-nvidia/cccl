@@ -17,6 +17,12 @@ it calls as labelled blocks (`$<kernel>$<function>:`); the SASS column is the nu
 instructions of the bare function's block, label to RET, i.e. the instructions one evaluation of
 the operation takes, without its CALL/RET pair and without the kernel's loads and stores. Where a
 cubin holds several architectures the largest count is kept.
+
+Each executable also carries `ref_throughput` and `ref_latency`: the same timing of the reference
+precision, the double expression of the declaration on a double (fp32mp2's reference; fp64mp2
+waits for a binary128 type on the device). Their rows have Type `fp64` and Accuracy `-`, and every
+pair cell gets `Gain tp` (its ev/clk/SM over the reference's) and `Gain lat` (the reference's
+clk/ev over its own), both above 1 when the pair is faster than the reference precision.
 """
 
 import argparse
@@ -34,6 +40,11 @@ TYP = {"float": "fp32mp2", "double": "fp64mp2"}
 BARE_RE = re.compile(
     r"fpb::bare<fpb::op_(\w+), cuda::(?:__\d+::)?fpmp2<(float|double), \(cuda::(?:__\d+::)?fpmp2_accuracy\)(\d)>"
 )
+# the bare function of the reference precision: a plain scalar
+BARE_REF_RE = re.compile(r"fpb::bare<fpb::op_(\w+), (float|double)>")
+REF_TYP = {"float": "fp32", "double": "fp64"}
+# the reference precision of each pair type, as the Type of its ref_* rows
+REF_OF = {"fp32mp2": "fp64", "fp64mp2": "fp128"}
 COLS = [
     "Func",
     "Type",
@@ -41,16 +52,25 @@ COLS = [
     "u2",
     "Bits",
     "ev/clk/SM",
+    "Gain tp",
     "clk/ev",
+    "Gain lat",
     "SASS",
     "Regs",
-    "Elem/s",
-    "GPU Time (s)",
     "Worst at",
     "Family",
     "Device",
 ]
-ACC_ORDER = {"low": 0, "mid": 1, "high": 2}
+MD_COLS = COLS[:11]
+TYPE_ORDER = {"fp32mp2": 0, "fp64mp2": 1, "fp64": 2, "fp128": 3}
+ACC_ORDER = {"low": 0, "mid": 1, "high": 2, "-": 3}
+
+
+def num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
 
 
 def sass_counts(exe):
@@ -118,10 +138,15 @@ def sass_counts(exe):
             pretty = dict(zip(kernels + locals_, demangle(kernels + locals_)))
             # pass 2: count
             for sym, lines in sections.items():
-                m = BARE_RE.search(pretty[sym].replace("bare_kernel", "bare"))
-                if not m:
-                    continue
-                key = (m.group(1), TYP[m.group(2)], ACC[m.group(3)])
+                name = pretty[sym].replace("bare_kernel", "bare")
+                m = BARE_RE.search(name)
+                if m:
+                    key = (m.group(1), TYP[m.group(2)], ACC[m.group(3)])
+                else:
+                    m = BARE_REF_RE.search(name)
+                    if not m:
+                        continue
+                    key = (m.group(1), REF_TYP[m.group(2)], "-")
                 kind, label, count = "kernel", None, 0
                 for line in lines:
                     lm = re.match(r"^\$\S+\$(\S+):\s*$", line)
@@ -171,7 +196,8 @@ def merge(exe, csv_path, rows):
         for r in csv.DictReader(f):
             if r.get("Skipped", "No") == "Yes":
                 continue
-            key = (r["Func"], r["Type"], r["Accuracy"])
+            # the reference rows have no Accuracy axis
+            key = (r["Func"], r["Type"], r.get("Accuracy") or "-")
             row = rows.setdefault(
                 key,
                 {
@@ -182,17 +208,36 @@ def merge(exe, csv_path, rows):
                     "Device": r.get("Device Name", ""),
                 },
             )
-            if r["Benchmark"] == "throughput":
-                row["u2"] = r.get("u2", "")
-                row["Bits"] = r.get("Bits", "")
+            bench = r["Benchmark"]
+            if bench in ("throughput", "ref_throughput"):
                 row["Regs"] = r.get("Regs", "")
                 row["ev/clk/SM"] = r.get("ev/clk/SM", "")
-                row["Elem/s"] = r.get("Elem/s (elem/sec)", r.get("Elem/s", ""))
-                row["GPU Time (s)"] = r.get("GPU Time (sec)", "")
-                row["Worst at"] = r.get("Worst at", "")
-            elif r["Benchmark"] == "latency":
+                if bench == "throughput":
+                    row["u2"] = r.get("u2", "")
+                    row["Bits"] = r.get("Bits", "")
+                    row["Worst at"] = r.get("Worst at", "")
+                else:  # the reference has no accuracy to measure
+                    row["u2"] = row["Bits"] = row["Worst at"] = "-"
+            elif bench in ("latency", "ref_latency"):
                 row["clk/ev"] = r.get("clk/ev", "")
             row["SASS"] = sass.get(key, "")
+
+
+def add_gains(rows):
+    """Gain tp and Gain lat of each pair cell against the reference-precision row of its
+    function: throughput as pair over reference, latency as reference over pair, so both read
+    above 1 when the pair is faster. '-' without a reference row (fp64mp2 until binary128)."""
+    for row in rows.values():
+        row["Gain tp"] = row["Gain lat"] = "-"
+        ref = rows.get((row["Func"], REF_OF.get(row["Type"], ""), "-"))
+        if ref is None:
+            continue
+        tp, rtp = num(row.get("ev/clk/SM")), num(ref.get("ev/clk/SM"))
+        if tp and rtp:
+            row["Gain tp"] = tp / rtp
+        lat, rlat = num(row.get("clk/ev")), num(ref.get("clk/ev"))
+        if lat and rlat:
+            row["Gain lat"] = rlat / lat
 
 
 def fmt(k, v):
@@ -204,8 +249,8 @@ def fmt(k, v):
         return v if v is not None else ""
     if k in ("u2", "ev/clk/SM", "clk/ev"):
         return f"{x:.4g}"
-    if k in ("Elem/s", "GPU Time (s)"):
-        return f"{x:.4e}"
+    if k in ("Gain tp", "Gain lat"):
+        return f"{x:.3g}"
     return str(v)
 
 
@@ -247,12 +292,13 @@ def main():
     rows = {}
     for exe, c in pairs:
         merge(exe, c, rows)
+    add_gains(rows)
     table = sorted(
         rows.values(),
         key=lambda r: (
             r["Family"],
             r["Func"],
-            r["Type"],
+            TYPE_ORDER.get(r["Type"], 9),
             ACC_ORDER.get(r["Accuracy"], 9),
         ),
     )
@@ -265,7 +311,7 @@ def main():
     if a.out:
         out.close()
     if a.md:
-        md_cols = COLS[:9]
+        md_cols = MD_COLS
         with open(a.md, "w") as f:
             f.write("| " + " | ".join(md_cols) + " |\n")
             f.write("|" + "---|" * len(md_cols) + "\n")

@@ -75,9 +75,39 @@ using pair_t = cuda::fpmp2<typename Type::limb, Acc::value>;
 using fp_types = nvbench::type_list<type_fp32mp2, type_fp64mp2>;
 using fp_accs  = nvbench::type_list<acc_low, acc_mid, acc_high>;
 
+// the reference precision: the scalar a pair type stands in for. The ref_* benchmarks time the
+// double expression of the declaration on it, for the gain columns of the table. fp32mp2 is
+// compared with double; fp64mp2 waits for a binary128 type on the device.
+struct type_fp64
+{
+  using value = double;
+};
+template <class Type>
+using ref_t     = typename Type::value;
+using ref_types = nvbench::type_list<type_fp64>;
+
 // ---- limb helpers ----------------------------------------------------------------------
+// the chain and the bare function also run on the reference scalar, which is its own limb
 template <class T>
-using limb_t = cuda::std::remove_cvref_t<decltype(cuda::std::declval<T>().hi())>;
+constexpr bool is_pair = !cuda::std::is_floating_point_v<T>;
+
+template <class T>
+struct limb_of
+{
+  using type = cuda::std::remove_cvref_t<decltype(cuda::std::declval<T>().hi())>;
+};
+template <>
+struct limb_of<float>
+{
+  using type = float;
+};
+template <>
+struct limb_of<double>
+{
+  using type = double;
+};
+template <class T>
+using limb_t = typename limb_of<T>::type;
 
 template <class T>
 constexpr bool has_float_limbs = cuda::std::is_same_v<limb_t<T>, float>;
@@ -188,30 +218,36 @@ __device__ __forceinline__ T random_pair(uint32_t& s, const input_range& r)
 template <class T>
 __device__ __forceinline__ void chain_bits(const T& r, T& a)
 {
-  using L    = limb_t<T>;
-  using U    = cuda::std::conditional_t<sizeof(L) == 4, uint32_t, uint64_t>;
-  const U hi = cuda::std::bit_cast<U>(a.hi()) ^ (cuda::std::bit_cast<U>(r.hi()) & U{1});
-  const U lo = cuda::std::bit_cast<U>(a.lo()) ^ (cuda::std::bit_cast<U>(r.lo()) & U{1});
-  a          = T(cuda::std::bit_cast<L>(hi), cuda::std::bit_cast<L>(lo));
-}
-
-// ---- the operation, by arity -------------------------------------------------------------
-template <class Op, class T>
-__device__ __forceinline__ T eval(const T& a, const T& b, const T& c)
-{
-  if constexpr (Op::arity == 1)
+  using L = limb_t<T>;
+  using U = cuda::std::conditional_t<sizeof(L) == 4, uint32_t, uint64_t>;
+  if constexpr (is_pair<T>)
   {
-    return Op::apply(a);
-  }
-  else if constexpr (Op::arity == 2)
-  {
-    return Op::apply(a, b);
+    const U hi = cuda::std::bit_cast<U>(a.hi()) ^ (cuda::std::bit_cast<U>(r.hi()) & U{1});
+    const U lo = cuda::std::bit_cast<U>(a.lo()) ^ (cuda::std::bit_cast<U>(r.lo()) & U{1});
+    a          = T(cuda::std::bit_cast<L>(hi), cuda::std::bit_cast<L>(lo));
   }
   else
   {
-    return Op::apply(a, b, c);
+    a = cuda::std::bit_cast<L>(cuda::std::bit_cast<U>(a) ^ (cuda::std::bit_cast<U>(r) & U{1}));
   }
 }
+
+// both limbs of a result folded into one word, for the sink of the chain
+template <class T>
+__device__ __forceinline__ uint32_t fold_bits(const T& r)
+{
+  if constexpr (is_pair<T>)
+  {
+    return cuda::std::bit_cast<uint32_t>(static_cast<float>(r.hi()))
+         ^ cuda::std::bit_cast<uint32_t>(static_cast<float>(r.lo()));
+  }
+  else
+  {
+    return cuda::std::bit_cast<uint32_t>(static_cast<float>(r));
+  }
+}
+
+// ---- the operation, by arity -------------------------------------------------------------
 template <class Op>
 __device__ __forceinline__ double eval_ref(double a, double b, double c)
 {
@@ -226,6 +262,27 @@ __device__ __forceinline__ double eval_ref(double a, double b, double c)
   else
   {
     return Op::ref(a, b, c);
+  }
+}
+// on a pair the pair expression, on the reference scalar the double expression
+template <class Op, class T>
+__device__ __forceinline__ T eval(const T& a, const T& b, const T& c)
+{
+  if constexpr (!is_pair<T>)
+  {
+    return eval_ref<Op>(a, b, c);
+  }
+  else if constexpr (Op::arity == 1)
+  {
+    return Op::apply(a);
+  }
+  else if constexpr (Op::arity == 2)
+  {
+    return Op::apply(a, b);
+  }
+  else
+  {
+    return Op::apply(a, b, c);
   }
 }
 
@@ -250,8 +307,7 @@ __global__ void chain_kernel(float start, float stride, int reps, unsigned char*
   // the sink reads both limbs, or the compiler drops the low-limb chain of the `low` level
   if (never)
   {
-    sink[tid] = static_cast<unsigned char>(cuda::std::bit_cast<uint32_t>(static_cast<float>(r.hi()))
-                                           ^ cuda::std::bit_cast<uint32_t>(static_cast<float>(r.lo())));
+    sink[tid] = static_cast<unsigned char>(fold_bits(r));
   }
 }
 
@@ -357,24 +413,26 @@ void add_accuracy_summary(nvbench::state& state)
     bits.set_int64("value", value < cap ? value : cap);
   }
   {
-    // the arguments of the worst sample, for a look at where an accuracy change comes from
+    // the arguments of the worst sample, for a look at where an accuracy change comes from;
+    // C99 hexadecimal floats (0x1.8p+1) are exact and read back without rounding
     char buf[160];
     if (Op::arity == 1)
     {
-      std::snprintf(buf, sizeof(buf), "%.9g", worst[0]);
+      std::snprintf(buf, sizeof(buf), "%a", worst[0]);
     }
     else if (Op::arity == 2)
     {
-      std::snprintf(buf, sizeof(buf), "%.9g; %.9g", worst[0], worst[1]);
+      std::snprintf(buf, sizeof(buf), "%a; %a", worst[0], worst[1]);
     }
     else
     {
-      std::snprintf(buf, sizeof(buf), "%.9g; %.9g; %.9g", worst[0], worst[1], worst[2]);
+      std::snprintf(buf, sizeof(buf), "%a; %a; %a", worst[0], worst[1], worst[2]);
     }
     auto& w = state.add_summary("fp/accuracy/worst_args");
     w.set_string("name", "Worst at");
     w.set_string("description",
-                 "The arguments (as doubles, ';'-separated) of the sample with the maximum relative error");
+                 "The arguments (as doubles in C99 hexadecimal format, ';'-separated) of the sample with the "
+                 "maximum relative error");
     w.set_string("value", rel > 0.0 ? buf : "-");
   }
 }
@@ -431,14 +489,13 @@ inline void add_clock_summary(nvbench::state& state, std::size_t evals, bool per
 }
 
 // ---- benchmarks -----------------------------------------------------------------------------
-template <class Op, class Type, class Acc>
-void throughput(nvbench::state& state)
+// the timing of a type T, a pair or the reference scalar
+template <class Op, class T>
+void time_throughput(nvbench::state& state)
 {
-  using T              = pair_t<Type, Acc>;
   constexpr int blocks = 2048, threads = 256, reps = 1024;
   const std::size_t evals = static_cast<std::size_t>(blocks) * threads * reps;
 
-  add_accuracy_summary<Op, T>(state);
   add_regs_summary(state, reinterpret_cast<const void*>(chain_kernel<Op, T>));
   static_cast<void>(reinterpret_cast<const void*>(bare_kernel<Op, T>)); // emitted, never launched
 
@@ -452,10 +509,9 @@ void throughput(nvbench::state& state)
   add_clock_summary(state, evals, true);
 }
 
-template <class Op, class Type, class Acc>
-void latency(nvbench::state& state)
+template <class Op, class T>
+void time_latency(nvbench::state& state)
 {
-  using T            = pair_t<Type, Acc>;
   constexpr int reps = 4096;
   thrust::device_vector<unsigned char> sink(1);
   unsigned char* d_sink = thrust::raw_pointer_cast(sink.data());
@@ -466,10 +522,38 @@ void latency(nvbench::state& state)
   });
   add_clock_summary(state, reps, false);
 }
+
+template <class Op, class Type, class Acc>
+void throughput(nvbench::state& state)
+{
+  using T = pair_t<Type, Acc>;
+  add_accuracy_summary<Op, T>(state);
+  time_throughput<Op, T>(state);
+}
+
+template <class Op, class Type, class Acc>
+void latency(nvbench::state& state)
+{
+  time_latency<Op, pair_t<Type, Acc>>(state);
+}
+
+// the reference precision has no accuracy to measure: it is the reference
+template <class Op, class Type>
+void ref_throughput(nvbench::state& state)
+{
+  time_throughput<Op, ref_t<Type>>(state);
+}
+
+template <class Op, class Type>
+void ref_latency(nvbench::state& state)
+{
+  time_latency<Op, ref_t<Type>>(state);
+}
 } // namespace fpb
 
 NVBENCH_DECLARE_TYPE_STRINGS(fpb::type_fp32mp2, "fp32mp2", "cuda::fp32mp2 (float pair)");
 NVBENCH_DECLARE_TYPE_STRINGS(fpb::type_fp64mp2, "fp64mp2", "cuda::fp64mp2 (double pair)");
+NVBENCH_DECLARE_TYPE_STRINGS(fpb::type_fp64, "fp64", "double, the reference precision of fp32mp2");
 NVBENCH_DECLARE_TYPE_STRINGS(fpb::acc_low, "low", "fpmp2_accuracy::low");
 NVBENCH_DECLARE_TYPE_STRINGS(fpb::acc_mid, "mid", "fpmp2_accuracy::mid (default)");
 NVBENCH_DECLARE_TYPE_STRINGS(fpb::acc_high, "high", "fpmp2_accuracy::high");
@@ -485,6 +569,16 @@ template <class Op, class Type, class Acc>
 void fpmp_latency(nvbench::state& state, nvbench::type_list<Op, Type, Acc>)
 {
   fpb::latency<Op, Type, Acc>(state);
+}
+template <class Op, class Type>
+void fpmp_ref_throughput(nvbench::state& state, nvbench::type_list<Op, Type>)
+{
+  fpb::ref_throughput<Op, Type>(state);
+}
+template <class Op, class Type>
+void fpmp_ref_latency(nvbench::state& state, nvbench::type_list<Op, Type>)
+{
+  fpb::ref_latency<Op, Type>(state);
 }
 
 // ---- declaring the operations of a family --------------------------------------------------
@@ -570,11 +664,18 @@ void fpmp_latency(nvbench::state& state, nvbench::type_list<Op, Type, Acc>)
 // the suite's default performance input: a = 1 + tid * 1e-4 (up to 53.4 over the 2^19 threads)
 #define FPB_PERF_DEFAULT (fpb::perf(1.0f, 1e-4f))
 
-// the two benchmarks over the operations OPS (an nvbench::type_list) and every type and level
+// the two benchmarks over the operations OPS (an nvbench::type_list) and every type and level,
+// and the two of the reference precision over the operations alone
 #define FPB_REGISTER(OPS)                                                                   \
   NVBENCH_BENCH_TYPES(fpmp_throughput, NVBENCH_TYPE_AXES(OPS, fpb::fp_types, fpb::fp_accs)) \
     .set_name("throughput")                                                                 \
     .set_type_axes_names({"Func", "Type", "Accuracy"});                                     \
   NVBENCH_BENCH_TYPES(fpmp_latency, NVBENCH_TYPE_AXES(OPS, fpb::fp_types, fpb::fp_accs))    \
     .set_name("latency")                                                                    \
-    .set_type_axes_names({"Func", "Type", "Accuracy"})
+    .set_type_axes_names({"Func", "Type", "Accuracy"});                                     \
+  NVBENCH_BENCH_TYPES(fpmp_ref_throughput, NVBENCH_TYPE_AXES(OPS, fpb::ref_types))          \
+    .set_name("ref_throughput")                                                             \
+    .set_type_axes_names({"Func", "Type"});                                                 \
+  NVBENCH_BENCH_TYPES(fpmp_ref_latency, NVBENCH_TYPE_AXES(OPS, fpb::ref_types))             \
+    .set_name("ref_latency")                                                                \
+    .set_type_axes_names({"Func", "Type"})
