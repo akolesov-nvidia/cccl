@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One row per (Func, Type, Accuracy) from the CSV output of the fpmp benchmark executables
+"""One row per (Func, Type, Accuracy), with the family second, from the CSV output of the fpmp benchmark executables
 (libcudacxx/benchmarks/bench/fp/fpmp/*.cu), with the SASS instruction count of one evaluation
 joined in from each executable.
 
@@ -50,6 +50,7 @@ REF_TYP = {"float": "fp32", "double": "fp64"}
 REF_OF = {"fp32mp2": "fp64", "fp64mp2": "fp128"}
 COLS = [
     "Func",
+    "Family",
     "Type",
     "Accuracy",
     "u2",
@@ -62,10 +63,9 @@ COLS = [
     "SASS",
     "Regs",
     "Worst at",
-    "Family",
     "Device",
 ]
-MD_COLS = COLS[:12]
+MD_COLS = COLS[:13]
 TYPE_ORDER = {"fp32mp2": 0, "fp64mp2": 1, "fp64": 2, "fp128": 3}
 ACC_ORDER = {"low": 0, "mid": 1, "high": 2, "-": 3}
 

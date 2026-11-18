@@ -73,8 +73,8 @@ done
 python3 benchmarks/scripts/fp_table.py --bin-dir build/libcudacxx-benchmark/bin --csv-dir out --out out/fpmp.csv --md out/fpmp.md
 ```
 
-giving one row per cell: `Func, Type, Accuracy, u2, Bits, Check, ev/clk/SM, Gain tp, clk/ev,
-Gain lat, SASS, Regs, Worst at, Family, Device`, plus one row per function for the reference precision
+giving one row per cell: `Func, Family, Type, Accuracy, u2, Bits, Check, ev/clk/SM, Gain tp,
+clk/ev, Gain lat, SASS, Regs, Worst at, Device`, plus one row per function for the reference precision
 (Type `fp64`, Accuracy `-`, with its own `SASS` and `Regs`). nvbench's own columns (GPU time,
 elements per second) stay in the per-family CSVs. The JSON files are what `ci/bench` compares
 between two refs.
