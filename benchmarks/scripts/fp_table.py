@@ -23,6 +23,9 @@ precision, the double expression of the declaration on a double (fp32mp2's refer
 waits for a binary128 type on the device). Their rows have Type `fp64` and Accuracy `-`, and every
 pair cell gets `Gain tp` (its ev/clk/SM over the reference's) and `Gain lat` (the reference's
 clk/ev over its own), both above 1 when the pair is faster than the reference precision.
+
+`Check` is the benchmark's own verdict on the accuracy, PASS, WARN or FAIL against the thresholds
+of the cccl-fpdev ts/fpmp suite (see the README); the table carries it over.
 """
 
 import argparse
@@ -51,6 +54,7 @@ COLS = [
     "Accuracy",
     "u2",
     "Bits",
+    "Check",
     "ev/clk/SM",
     "Gain tp",
     "clk/ev",
@@ -61,7 +65,7 @@ COLS = [
     "Family",
     "Device",
 ]
-MD_COLS = COLS[:11]
+MD_COLS = COLS[:12]
 TYPE_ORDER = {"fp32mp2": 0, "fp64mp2": 1, "fp64": 2, "fp128": 3}
 ACC_ORDER = {"low": 0, "mid": 1, "high": 2, "-": 3}
 
@@ -215,9 +219,10 @@ def merge(exe, csv_path, rows):
                 if bench == "throughput":
                     row["u2"] = r.get("u2", "")
                     row["Bits"] = r.get("Bits", "")
+                    row["Check"] = r.get("Check", "")
                     row["Worst at"] = r.get("Worst at", "")
                 else:  # the reference has no accuracy to measure
-                    row["u2"] = row["Bits"] = row["Worst at"] = "-"
+                    row["u2"] = row["Bits"] = row["Check"] = row["Worst at"] = "-"
             elif bench in ("latency", "ref_latency"):
                 row["clk/ev"] = r.get("clk/ev", "")
             row["SASS"] = sass.get(key, "")

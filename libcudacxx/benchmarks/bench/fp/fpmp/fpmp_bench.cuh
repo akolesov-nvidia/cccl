@@ -112,6 +112,16 @@ using limb_t = typename limb_of<T>::type;
 template <class T>
 constexpr bool has_float_limbs = cuda::std::is_same_v<limb_t<T>, float>;
 
+// the accuracy verdict thresholds of the cccl-fpdev ts/fpmp suite, on the maximum relative
+// error: above `warn` the pair lost a noticeable part of its extended precision, above `fail`
+// all of it. The suite's fp64mp2 WARN level, 1e-28, needs its binary128 reference: against a
+// double, whose own error is about 1e-16, every cell would be a WARN, so fp64mp2 has no WARN
+// level here and PASSes or FAILs.
+template <class T>
+constexpr double accuracy_fail_rel = has_float_limbs<T> ? 1e-7 : 1e-15;
+template <class T>
+constexpr double accuracy_warn_rel = has_float_limbs<T> ? 1e-13 : accuracy_fail_rel<T>;
+
 template <class T>
 __device__ __forceinline__ double wide(const T& x)
 {
@@ -324,11 +334,12 @@ __global__ void bare_kernel(const T* in, T* out)
   out[threadIdx.x] = bare<Op, T>(in[3 * threadIdx.x], in[3 * threadIdx.x + 1], in[3 * threadIdx.x + 2]);
 }
 
-// the maximum relative error against the double reference, as the bits of a non-negative
-// double (which order like integers, so atomicMax works). A second pass with `worst` set
-// records the arguments of a sample that reached the maximum.
+// acc[0]: the maximum relative error against the double reference, as the bits of a non-negative
+// double (which order like integers, so atomicMax works); acc[1]: the samples whose result is
+// not finite where the reference is. A second pass with `worst` set records the arguments of a
+// sample that reached the maximum.
 template <class Op, class T>
-__global__ void accuracy_kernel(unsigned long long* max_bits, int n, double* worst)
+__global__ void accuracy_kernel(unsigned long long* acc, int n, double* worst)
 {
   const int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i >= n)
@@ -342,16 +353,24 @@ __global__ void accuracy_kernel(unsigned long long* max_bits, int n, double* wor
   const T r        = eval<Op, T>(a, b, c);
   const double ref = eval_ref<Op>(wide(a), wide(b), wide(c));
   const double res = wide(r);
-  if (!isfinite(ref) || ref == 0.0 || !isfinite(res))
+  if (!isfinite(ref) || ref == 0.0)
   {
+    return;
+  }
+  if (!isfinite(res))
+  {
+    if (worst == nullptr)
+    {
+      atomicAdd(acc + 1, 1ull);
+    }
     return;
   }
   const double rel = fabs(res - ref) / fabs(ref);
   if (worst == nullptr)
   {
-    atomicMax(max_bits, static_cast<unsigned long long>(__double_as_longlong(rel)));
+    atomicMax(acc, static_cast<unsigned long long>(__double_as_longlong(rel)));
   }
-  else if (static_cast<unsigned long long>(__double_as_longlong(rel)) == *max_bits)
+  else if (static_cast<unsigned long long>(__double_as_longlong(rel)) == acc[0])
   {
     worst[0] = wide(a);
     worst[1] = wide(b);
@@ -368,24 +387,25 @@ template <class Op, class T>
 void add_accuracy_summary(nvbench::state& state)
 {
   constexpr int n           = 1 << 20;
-  unsigned long long* d_max = nullptr;
+  unsigned long long* d_acc = nullptr;
   double* d_worst           = nullptr;
-  unsigned long long b      = 0ull;
+  unsigned long long acc[2] = {}; // max relative error bits, non-finite results
   double worst[5]           = {};
-  NVBENCH_CUDA_CALL(cudaMalloc(&d_max, sizeof(unsigned long long)));
+  NVBENCH_CUDA_CALL(cudaMalloc(&d_acc, sizeof(acc)));
   NVBENCH_CUDA_CALL(cudaMalloc(&d_worst, sizeof(worst)));
-  NVBENCH_CUDA_CALL(cudaMemset(d_max, 0, sizeof(unsigned long long)));
+  NVBENCH_CUDA_CALL(cudaMemset(d_acc, 0, sizeof(acc)));
   NVBENCH_CUDA_CALL(cudaMemset(d_worst, 0, sizeof(worst)));
-  accuracy_kernel<Op, T><<<n / 256, 256>>>(d_max, n, nullptr);
+  accuracy_kernel<Op, T><<<n / 256, 256>>>(d_acc, n, nullptr);
   NVBENCH_CUDA_CALL(cudaGetLastError());
-  accuracy_kernel<Op, T><<<n / 256, 256>>>(d_max, n, d_worst);
+  accuracy_kernel<Op, T><<<n / 256, 256>>>(d_acc, n, d_worst);
   NVBENCH_CUDA_CALL(cudaGetLastError());
   NVBENCH_CUDA_CALL(cudaDeviceSynchronize());
-  NVBENCH_CUDA_CALL(cudaMemcpy(&b, d_max, sizeof(unsigned long long), cudaMemcpyDeviceToHost));
+  NVBENCH_CUDA_CALL(cudaMemcpy(acc, d_acc, sizeof(acc), cudaMemcpyDeviceToHost));
   NVBENCH_CUDA_CALL(cudaMemcpy(worst, d_worst, sizeof(worst), cudaMemcpyDeviceToHost));
-  NVBENCH_CUDA_CALL(cudaFree(d_max));
+  NVBENCH_CUDA_CALL(cudaFree(d_acc));
   NVBENCH_CUDA_CALL(cudaFree(d_worst));
-  const double rel = cuda::std::bit_cast<double>(static_cast<long long>(b));
+  const double rel             = cuda::std::bit_cast<double>(static_cast<long long>(acc[0]));
+  const unsigned long long bad = acc[1];
 
   {
     auto& u2 = state.add_summary("fp/accuracy/u2");
@@ -411,6 +431,20 @@ void add_accuracy_summary(nvbench::state& state)
     constexpr int cap = has_float_limbs<T> ? 48 : 53;
     const int value   = rel > 0.0 ? static_cast<int>(std::floor(-std::log2(rel))) : cap;
     bits.set_int64("value", value < cap ? value : cap);
+  }
+  {
+    // the rough verdict of the ts/fpmp suite: the maximum relative error against the thresholds
+    // of the limb type, and no non-finite result where the reference is finite
+    auto& chk = state.add_summary("fp/accuracy/check");
+    chk.set_string("name", "Check");
+    chk.set_string("description",
+                   "PASS, WARN or FAIL: the maximum relative error against the thresholds of the cccl-fpdev ts/fpmp "
+                   "suite (fp32mp2: WARN above 1e-13, FAIL above 1e-7; fp64mp2: FAIL above 1e-15, no WARN level "
+                   "until a binary128 reference), FAIL also when a result is not finite where the reference is");
+    chk.set_string("value",
+                   (bad > 0 || rel > accuracy_fail_rel<T>) ? "FAIL"
+                   : rel > accuracy_warn_rel<T>            ? "WARN"
+                                                           : "PASS");
   }
   {
     // the arguments of the worst sample, for a look at where an accuracy change comes from;

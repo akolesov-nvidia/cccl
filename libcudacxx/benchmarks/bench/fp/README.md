@@ -35,6 +35,11 @@ reference precision over `Func` alone:
   The fp64mp2 types would need a binary128 reference, which the device does not have yet: they are
   checked against double, show `-` here and cap `Bits` at 53.
 - **Bits**: -log2 of that maximum relative error.
+- **Check**: a rough verdict on that error with the thresholds of the cccl-fpdev ts/fpmp suite:
+  `FAIL` above 1e-7 for fp32mp2 (the extended precision is gone) and above 1e-15 for fp64mp2,
+  `WARN` above 1e-13 for fp32mp2 (the fp64mp2 WARN level, 1e-28, needs the binary128 reference),
+  `PASS` otherwise; a result that is not finite where the reference is finite also fails. The
+  check catches a broken function; a regression below these levels shows in `u2` between runs.
 - **Regs**: registers per thread of the chain kernel.
 - **Worst at**: the arguments of the sample that gave the maximum relative error, as C99
   hexadecimal floats (`0x1.8p+1`, exact; in the CSV and JSON only), to see where an accuracy
@@ -68,8 +73,8 @@ done
 python3 benchmarks/scripts/fp_table.py --bin-dir build/libcudacxx-benchmark/bin --csv-dir out --out out/fpmp.csv --md out/fpmp.md
 ```
 
-giving one row per cell: `Func, Type, Accuracy, u2, Bits, ev/clk/SM, Gain tp, clk/ev, Gain lat,
-SASS, Regs, Worst at, Family, Device`, plus one row per function for the reference precision
+giving one row per cell: `Func, Type, Accuracy, u2, Bits, Check, ev/clk/SM, Gain tp, clk/ev,
+Gain lat, SASS, Regs, Worst at, Family, Device`, plus one row per function for the reference precision
 (Type `fp64`, Accuracy `-`, with its own `SASS` and `Regs`). nvbench's own columns (GPU time,
 elements per second) stay in the per-family CSVs. The JSON files are what `ci/bench` compares
 between two refs.
