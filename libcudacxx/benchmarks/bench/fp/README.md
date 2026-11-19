@@ -84,6 +84,24 @@ clk/ev, Gain lat, SASS, Regs, Worst at, Device`, plus one row per function for t
 elements per second) stay in the per-family CSVs. The JSON files are what `ci/bench` compares
 between two refs.
 
+## In CI
+
+Nothing in CI runs a benchmark on its own; the fpmp benchmarks are hooked in three ways:
+
+- **SASS diff** (`sass:` entry `libcudacxx-fpmp-benchmarks` of `ci/matrix.yaml`): whenever a PR
+  touches libcu++, the `SASS Diff` job builds the family executables at the merge base and at the
+  PR on a CPU runner, disassembles them and comments on the PR when the machine code changed.
+  Since each cell is a `__noinline__` function of its own, the comment names the function, type
+  and level whose code changed. No GPU, no timing, never a failure.
+- **Accuracy** runs as lit tests, `libcudacxx/test/libcudacxx/cuda/fp/units/fpmp/math_sampling_<family>.pass.cpp`,
+  in every libcu++ GPU test job: the same function list, input ranges and generator as the
+  `Check` column, failing at the gross-error thresholds (1e-7 for fp32mp2, 1e-15 for fp64mp2) or
+  on a result that is not finite where the reference is. The sampling is deterministic, so the
+  tests cannot flake. Keep the two function lists in step when adding a function.
+- **Throughput and latency** are measured on request: in the PR, add
+  `'^libcudacxx\.bench\.fp\.fpmp\.'` under `benchmarks.filters.cpp` in `ci/bench.yaml` and enable
+  a GPU, push, read the comparison, and reset the file before merging.
+
 ## Adding a function
 
 Declare it in its family file with `FPB_OP1`, `FPB_OP2` or `FPB_OP3`: the pair expression, the
