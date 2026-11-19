@@ -15,10 +15,11 @@ executable per file:
 | `libcudacxx.bench.fp.fpmp.special.base` | erf, erfc, erfcx, erfinv, erfcinv, normcdf, normcdfinv, boys_f0 |
 | `libcudacxx.bench.fp.fpmp.rounding.base` | floor, ceil, round, trunc, rint, nearbyint, fmod, remainder |
 
-Every executable holds two benchmarks, `throughput` and `latency`, over the type axes `Func`,
-`Type` (`fp32mp2`, `fp64mp2`) and `Accuracy` (`low`, `mid`, `high`), so a row of the CSV output is
-one (function, type, level) cell, and two more, `ref_throughput` and `ref_latency`, that time the
-reference precision over `Func` alone:
+Every executable holds two benchmarks, `throughput` and `latency`, over the type axes `Func{ct}`,
+`Type{ct}` (`fp32mp2`, `fp64mp2`) and `Accuracy{ct}` (`low`, `mid`, `high`; the `{ct}` suffix marks
+a compile-time axis for the benchmark tooling, and the joined table drops it), so a row of the CSV
+output is one (function, type, level) cell, and two more, `ref_throughput` and `ref_latency`, that
+time the reference precision over `Func{ct}` alone:
 
 - **throughput**: 2048 × 256 threads, each a chain of 1024 dependent evaluations. nvbench reports
   the GPU time and elements per second; the summary `ev/clk/SM` is evaluations per SM clock per SM,
@@ -57,7 +58,7 @@ build/libcudacxx-benchmark/bin/libcudacxx.bench.fp.fpmp.arith.base --csv out/ari
 ```
 
 A family takes 7 to 20 seconds to run; `--min-time 0.1 --max-noise 2` is enough for a quick look.
-Single cells: `-b throughput -a Func=div -a Type=fp32mp2 -a Accuracy=mid`.
+Single cells: `-b throughput -a 'Func{ct}=div' -a 'Type{ct}=fp32mp2' -a 'Accuracy{ct}=mid'`.
 
 ## The table
 

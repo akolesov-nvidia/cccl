@@ -197,7 +197,10 @@ def merge(exe, csv_path, rows):
     sass = sass_counts(exe)
     fam = family_of(exe)
     with open(csv_path, newline="") as f:
-        for r in csv.DictReader(f):
+        for raw in csv.DictReader(f):
+            # the type axes carry the {ct} suffix of the benchmark infrastructure
+            # (compile-time axes); the table's columns do not
+            r = {k.replace("{ct}", ""): v for k, v in raw.items()}
             if r.get("Skipped", "No") == "Yes":
                 continue
             # the reference rows have no Accuracy axis

@@ -38,18 +38,21 @@
 
 #include <cuda/fpmp>
 #include <cuda/std/bit>
+#include <cuda/std/cmath>
+#include <cuda/std/cstddef>
 #include <cuda/std/cstdint>
 #include <cuda/std/type_traits>
 
-#include <cmath>
-#include <cstdint>
 #include <cstdio>
-#include <string>
 
 #include "nvbench_helper.cuh"
 
 namespace fpb
 {
+using cuda::std::size_t;
+using cuda::std::uint32_t;
+using cuda::std::uint64_t;
+
 // ---- axes: limb type and accuracy level ----------------------------------------------
 struct type_fp32mp2
 {
@@ -89,7 +92,7 @@ using ref_types = nvbench::type_list<type_fp64>;
 // ---- limb helpers ----------------------------------------------------------------------
 // the chain and the bare function also run on the reference scalar, which is its own limb
 template <class T>
-constexpr bool is_pair = !cuda::std::is_floating_point_v<T>;
+inline constexpr bool is_pair = !cuda::std::is_floating_point_v<T>;
 
 template <class T>
 struct limb_of
@@ -110,7 +113,7 @@ template <class T>
 using limb_t = typename limb_of<T>::type;
 
 template <class T>
-constexpr bool has_float_limbs = cuda::std::is_same_v<limb_t<T>, float>;
+inline constexpr bool has_float_limbs = cuda::std::is_same_v<limb_t<T>, float>;
 
 // the accuracy verdict thresholds of the cccl-fpdev ts/fpmp suite, on the maximum relative
 // error: above `warn` the pair lost a noticeable part of its extended precision, above `fail`
@@ -118,12 +121,12 @@ constexpr bool has_float_limbs = cuda::std::is_same_v<limb_t<T>, float>;
 // double, whose own error is about 1e-16, every cell would be a WARN, so fp64mp2 has no WARN
 // level here and PASSes or FAILs.
 template <class T>
-constexpr double accuracy_fail_rel = has_float_limbs<T> ? 1e-7 : 1e-15;
+inline constexpr double accuracy_fail_rel = has_float_limbs<T> ? 1e-7 : 1e-15;
 template <class T>
-constexpr double accuracy_warn_rel = has_float_limbs<T> ? 1e-13 : accuracy_fail_rel<T>;
+inline constexpr double accuracy_warn_rel = has_float_limbs<T> ? 1e-13 : accuracy_fail_rel<T>;
 
 template <class T>
-__device__ __forceinline__ double wide(const T& x)
+[[nodiscard]] __device__ __forceinline__ double wide(const T& x)
 {
   return static_cast<double>(x.hi()) + static_cast<double>(x.lo());
 }
@@ -138,11 +141,11 @@ struct input_range
   bool log_scale;
   bool with_sign;
 };
-__host__ __device__ constexpr input_range lin(double lo, double hi)
+[[nodiscard]] __host__ __device__ constexpr input_range lin(double lo, double hi)
 {
   return {lo, hi, false, false};
 }
-__host__ __device__ constexpr input_range logr(double lo, double hi, bool with_sign = false)
+[[nodiscard]] __host__ __device__ constexpr input_range logr(double lo, double hi, bool with_sign = false)
 {
   return {lo, hi, true, with_sign};
 }
@@ -153,19 +156,19 @@ struct perf_input
   float start;
   float stride;
 };
-__host__ __device__ constexpr perf_input perf(float start, float stride)
+[[nodiscard]] __host__ __device__ constexpr perf_input perf(float start, float stride)
 {
   return {start, stride};
 }
 
 // ---- random normalized pairs -----------------------------------------------------------
-__device__ __forceinline__ uint32_t lcg(uint32_t& s)
+[[nodiscard]] __device__ __forceinline__ uint32_t lcg(uint32_t& s)
 {
   s = s * 1664525u + 1013904223u;
   return s;
 }
 // a float with its exponent in [emin, emax] and a random mantissa; the sign from a bit
-__device__ __forceinline__ float rnd_float(uint32_t& s, int emin, int emax, bool with_sign)
+[[nodiscard]] __device__ __forceinline__ float rnd_float(uint32_t& s, int emin, int emax, bool with_sign)
 {
   const uint32_t r    = lcg(s);
   const int e         = emin + static_cast<int>((r >> 23) % static_cast<uint32_t>(emax - emin + 1));
@@ -178,7 +181,7 @@ __device__ __forceinline__ float rnd_float(uint32_t& s, int emin, int emax, bool
 // double and the reference sees the same argument: one more binade would make the
 // reference round the argument, which near a zero of sin or a pole of erfinv shows up as a
 // huge relative error that is the reference's, not the function's.
-__device__ __forceinline__ float rnd_tail(uint32_t& s, int e_head, int below)
+[[nodiscard]] __device__ __forceinline__ float rnd_tail(uint32_t& s, int e_head, int below)
 {
   const uint32_t r = lcg(s);
   const int e      = e_head - below - static_cast<int>(r % 5u);
@@ -189,7 +192,7 @@ __device__ __forceinline__ float rnd_tail(uint32_t& s, int e_head, int below)
   return cuda::std::bit_cast<float>(
     (r & 0x80000000u) | (static_cast<uint32_t>(e + 127) << 23) | ((r >> 3) & 0x7FFFFFu));
 }
-__device__ __forceinline__ double rnd_value(uint32_t& s, const input_range& r)
+[[nodiscard]] __device__ __forceinline__ double rnd_value(uint32_t& s, const input_range& r)
 {
   const double u = static_cast<double>(lcg(s) >> 8) * 0x1p-24; // 24 random bits in [0, 1)
   double v       = r.log_scale ? r.lo * exp2(u * log2(r.hi / r.lo)) : r.lo + u * (r.hi - r.lo);
@@ -200,7 +203,7 @@ __device__ __forceinline__ double rnd_value(uint32_t& s, const input_range& r)
   return v;
 }
 template <class T>
-__device__ __forceinline__ T random_pair(uint32_t& s, const input_range& r)
+[[nodiscard]] __device__ __forceinline__ T random_pair(uint32_t& s, const input_range& r)
 {
   using L        = limb_t<T>;
   const double v = rnd_value(s, r);
@@ -263,7 +266,7 @@ __device__ __forceinline__ void chain_bit_hi(const T& r, T& x)
 
 // both limbs of a result folded into one word, for the sink of the chain
 template <class T>
-__device__ __forceinline__ uint32_t fold_bits(const T& r)
+[[nodiscard]] __device__ __forceinline__ uint32_t fold_bits(const T& r)
 {
   if constexpr (is_pair<T>)
   {
@@ -278,7 +281,7 @@ __device__ __forceinline__ uint32_t fold_bits(const T& r)
 
 // ---- the operation, by arity -------------------------------------------------------------
 template <class Op>
-__device__ __forceinline__ double eval_ref(double a, double b, double c)
+[[nodiscard]] __device__ __forceinline__ double eval_ref(double a, double b, double c)
 {
   if constexpr (Op::arity == 1)
   {
@@ -295,7 +298,7 @@ __device__ __forceinline__ double eval_ref(double a, double b, double c)
 }
 // on a pair the pair expression, on the reference scalar the double expression
 template <class Op, class T>
-__device__ __forceinline__ T eval(const T& a, const T& b, const T& c)
+[[nodiscard]] __device__ __forceinline__ T eval(const T& a, const T& b, const T& c)
 {
   if constexpr (!is_pair<T>)
   {
@@ -354,7 +357,7 @@ __global__ void chain_kernel(float start, float stride, int reps, unsigned char*
 // one evaluation on its own, for the instruction count: __noinline__ keeps it a separate
 // labelled block in the SASS, and bare_kernel makes the compiler emit it (it is never launched)
 template <class Op, class T>
-__device__ __noinline__ T bare(const T& a, const T& b, const T& c)
+[[nodiscard]] __device__ __noinline__ T bare(const T& a, const T& b, const T& c)
 {
   return eval<Op, T>(a, b, c);
 }
@@ -459,7 +462,7 @@ void add_accuracy_summary(nvbench::state& state)
                     "Correct bits, -log2 of the maximum relative error; capped at 53 for the double-double types, "
                     "whose reference is a double for now");
     constexpr int cap = has_float_limbs<T> ? 48 : 53;
-    const int value   = rel > 0.0 ? static_cast<int>(std::floor(-std::log2(rel))) : cap;
+    const int value   = rel > 0.0 ? static_cast<int>(cuda::std::floor(-cuda::std::log2(rel))) : cap;
     bits.set_int64("value", value < cap ? value : cap);
   }
   {
@@ -515,7 +518,7 @@ inline void add_regs_summary(nvbench::state& state, const void* kernel)
 
 // evaluations per clock per SM (throughput) or clocks per evaluation (latency), from the mean
 // cold GPU time and the device's default SM clock
-inline void add_clock_summary(nvbench::state& state, std::size_t evals, bool per_sm)
+inline void add_clock_summary(nvbench::state& state, size_t evals, bool per_sm)
 {
   if (state.is_skipped() || !state.get_device().has_value())
   {
@@ -558,12 +561,12 @@ template <class Op, class T>
 void time_throughput(nvbench::state& state)
 {
   constexpr int blocks = 2048, threads = 256, reps = 1024;
-  const std::size_t evals = static_cast<std::size_t>(blocks) * threads * reps;
+  const size_t evals = static_cast<size_t>(blocks) * threads * reps;
 
   add_regs_summary(state, reinterpret_cast<const void*>(chain_kernel<Op, T>));
   static_cast<void>(reinterpret_cast<const void*>(bare_kernel<Op, T>)); // emitted, never launched
 
-  thrust::device_vector<unsigned char> sink(static_cast<std::size_t>(blocks) * threads);
+  thrust::device_vector<unsigned char> sink(static_cast<size_t>(blocks) * threads, thrust::no_init);
   unsigned char* d_sink = thrust::raw_pointer_cast(sink.data());
 
   state.add_element_count(evals, "Evaluations");
@@ -577,7 +580,7 @@ template <class Op, class T>
 void time_latency(nvbench::state& state)
 {
   constexpr int reps = 4096;
-  thrust::device_vector<unsigned char> sink(1);
+  thrust::device_vector<unsigned char> sink(1, thrust::no_init);
   unsigned char* d_sink = thrust::raw_pointer_cast(sink.data());
 
   state.add_element_count(reps, "Evaluations");
@@ -652,77 +655,77 @@ void fpmp_ref_latency(nvbench::state& state, nvbench::type_list<Op, Type>)
 // commas: (fpb::lin(-1.0, 1.0)), (fpb::perf(-0.9995f, 3.8e-6f)) or FPB_PERF_DEFAULT.
 // the ranges are functions: a static constexpr data member of class type has no definition
 // the device code could refer to
-#define FPB_OP_COMMON(NAME, ARITY, PERF, IN0, IN1, IN2)       \
-  static constexpr int arity            = ARITY;              \
-  static constexpr fpb::perf_input perf = PERF;               \
-  __host__ __device__ static constexpr fpb::input_range in0() \
-  {                                                           \
-    return IN0;                                               \
-  }                                                           \
-  __host__ __device__ static constexpr fpb::input_range in1() \
-  {                                                           \
-    return IN1;                                               \
-  }                                                           \
-  __host__ __device__ static constexpr fpb::input_range in2() \
-  {                                                           \
-    return IN2;                                               \
+#define FPB_OP_COMMON(NAME, ARITY, PERF, IN0, IN1, IN2)                     \
+  static constexpr int arity            = ARITY;                            \
+  static constexpr fpb::perf_input perf = PERF;                             \
+  [[nodiscard]] __host__ __device__ static constexpr fpb::input_range in0() \
+  {                                                                         \
+    return IN0;                                                             \
+  }                                                                         \
+  [[nodiscard]] __host__ __device__ static constexpr fpb::input_range in1() \
+  {                                                                         \
+    return IN1;                                                             \
+  }                                                                         \
+  [[nodiscard]] __host__ __device__ static constexpr fpb::input_range in2() \
+  {                                                                         \
+    return IN2;                                                             \
   }
 
-#define FPB_OP1(NAME, PAIR_EXPR, REF_EXPR, IN0, PERF) \
-  namespace fpb                                       \
-  {                                                   \
-  struct op_##NAME                                    \
-  {                                                   \
-    FPB_OP_COMMON(NAME, 1, PERF, IN0, IN0, IN0)       \
-    template <class T>                                \
-    __device__ static T apply(const T& a)             \
-    {                                                 \
-      return PAIR_EXPR;                               \
-    }                                                 \
-    __device__ static double ref(double a)            \
-    {                                                 \
-      return REF_EXPR;                                \
-    }                                                 \
-  };                                                  \
-  }                                                   \
+#define FPB_OP1(NAME, PAIR_EXPR, REF_EXPR, IN0, PERF)    \
+  namespace fpb                                          \
+  {                                                      \
+  struct op_##NAME                                       \
+  {                                                      \
+    FPB_OP_COMMON(NAME, 1, PERF, IN0, IN0, IN0)          \
+    template <class T>                                   \
+    [[nodiscard]] __device__ static T apply(const T& a)  \
+    {                                                    \
+      return PAIR_EXPR;                                  \
+    }                                                    \
+    [[nodiscard]] __device__ static double ref(double a) \
+    {                                                    \
+      return REF_EXPR;                                   \
+    }                                                    \
+  };                                                     \
+  }                                                      \
   NVBENCH_DECLARE_TYPE_STRINGS(fpb::op_##NAME, #NAME, "cuda::" #NAME)
 
-#define FPB_OP2(NAME, PAIR_EXPR, REF_EXPR, IN0, IN1, PERF) \
-  namespace fpb                                            \
-  {                                                        \
-  struct op_##NAME                                         \
-  {                                                        \
-    FPB_OP_COMMON(NAME, 2, PERF, IN0, IN1, IN1)            \
-    template <class T>                                     \
-    __device__ static T apply(const T& a, const T& b)      \
-    {                                                      \
-      return PAIR_EXPR;                                    \
-    }                                                      \
-    __device__ static double ref(double a, double b)       \
-    {                                                      \
-      return REF_EXPR;                                     \
-    }                                                      \
-  };                                                       \
-  }                                                        \
+#define FPB_OP2(NAME, PAIR_EXPR, REF_EXPR, IN0, IN1, PERF)          \
+  namespace fpb                                                     \
+  {                                                                 \
+  struct op_##NAME                                                  \
+  {                                                                 \
+    FPB_OP_COMMON(NAME, 2, PERF, IN0, IN1, IN1)                     \
+    template <class T>                                              \
+    [[nodiscard]] __device__ static T apply(const T& a, const T& b) \
+    {                                                               \
+      return PAIR_EXPR;                                             \
+    }                                                               \
+    [[nodiscard]] __device__ static double ref(double a, double b)  \
+    {                                                               \
+      return REF_EXPR;                                              \
+    }                                                               \
+  };                                                                \
+  }                                                                 \
   NVBENCH_DECLARE_TYPE_STRINGS(fpb::op_##NAME, #NAME, "cuda::" #NAME)
 
-#define FPB_OP3(NAME, PAIR_EXPR, REF_EXPR, IN0, IN1, IN2, PERF)   \
-  namespace fpb                                                   \
-  {                                                               \
-  struct op_##NAME                                                \
-  {                                                               \
-    FPB_OP_COMMON(NAME, 3, PERF, IN0, IN1, IN2)                   \
-    template <class T>                                            \
-    __device__ static T apply(const T& a, const T& b, const T& c) \
-    {                                                             \
-      return PAIR_EXPR;                                           \
-    }                                                             \
-    __device__ static double ref(double a, double b, double c)    \
-    {                                                             \
-      return REF_EXPR;                                            \
-    }                                                             \
-  };                                                              \
-  }                                                               \
+#define FPB_OP3(NAME, PAIR_EXPR, REF_EXPR, IN0, IN1, IN2, PERF)                 \
+  namespace fpb                                                                 \
+  {                                                                             \
+  struct op_##NAME                                                              \
+  {                                                                             \
+    FPB_OP_COMMON(NAME, 3, PERF, IN0, IN1, IN2)                                 \
+    template <class T>                                                          \
+    [[nodiscard]] __device__ static T apply(const T& a, const T& b, const T& c) \
+    {                                                                           \
+      return PAIR_EXPR;                                                         \
+    }                                                                           \
+    [[nodiscard]] __device__ static double ref(double a, double b, double c)    \
+    {                                                                           \
+      return REF_EXPR;                                                          \
+    }                                                                           \
+  };                                                                            \
+  }                                                                             \
   NVBENCH_DECLARE_TYPE_STRINGS(fpb::op_##NAME, #NAME, "cuda::" #NAME)
 
 // the suite's default performance input: a = 1 + tid * 1e-4 (up to 53.4 over the 2^19 threads)
@@ -733,13 +736,13 @@ void fpmp_ref_latency(nvbench::state& state, nvbench::type_list<Op, Type>)
 #define FPB_REGISTER(OPS)                                                                   \
   NVBENCH_BENCH_TYPES(fpmp_throughput, NVBENCH_TYPE_AXES(OPS, fpb::fp_types, fpb::fp_accs)) \
     .set_name("throughput")                                                                 \
-    .set_type_axes_names({"Func", "Type", "Accuracy"});                                     \
+    .set_type_axes_names({"Func{ct}", "Type{ct}", "Accuracy{ct}"});                         \
   NVBENCH_BENCH_TYPES(fpmp_latency, NVBENCH_TYPE_AXES(OPS, fpb::fp_types, fpb::fp_accs))    \
     .set_name("latency")                                                                    \
-    .set_type_axes_names({"Func", "Type", "Accuracy"});                                     \
+    .set_type_axes_names({"Func{ct}", "Type{ct}", "Accuracy{ct}"});                         \
   NVBENCH_BENCH_TYPES(fpmp_ref_throughput, NVBENCH_TYPE_AXES(OPS, fpb::ref_types))          \
     .set_name("ref_throughput")                                                             \
-    .set_type_axes_names({"Func", "Type"});                                                 \
+    .set_type_axes_names({"Func{ct}", "Type{ct}"});                                         \
   NVBENCH_BENCH_TYPES(fpmp_ref_latency, NVBENCH_TYPE_AXES(OPS, fpb::ref_types))             \
     .set_name("ref_latency")                                                                \
-    .set_type_axes_names({"Func", "Type"})
+    .set_type_axes_names({"Func{ct}", "Type{ct}"})
