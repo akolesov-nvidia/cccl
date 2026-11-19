@@ -65,7 +65,11 @@ Single cells: `-b throughput -a 'Func{ct}=div' -a 'Type{ct}=fp32mp2' -a 'Accurac
 The SASS instruction count of one evaluation is not a run-time quantity. Each cell also compiles
 a `__noinline__` function with exactly one evaluation, which `nvdisasm` lists as a labelled block
 of its own, and `benchmarks/scripts/fp_table.py` counts its instructions from the executable and
-joins them to the CSV, merging the throughput and latency rows:
+joins them to the CSV, merging the throughput and latency rows. The count leaves out the call
+bookkeeping, the `RET` and the one `MOV` that completes the return address before it, so that it
+is the operation itself; a standalone compilation of the same function (as the cccl-fpdev suite
+does, with `-dc`) carries a `RET` and up to one ABI move of the result instead, and ptxas may pick
+a slightly different instruction sequence for the standalone function than inside a kernel.
 
 ```bash
 for f in arith explog pow trig invtrig hyperbolic special rounding; do

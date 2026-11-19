@@ -134,6 +134,25 @@ def test_fmt_keeps_four_digits_for_the_timings_and_three_for_the_gains():
     assert fp_table.fmt("Worst at", None) == ""
 
 
+def test_count_operation_drops_the_call_bookkeeping():
+    # the bare function of fp32mp2 `low` mul as nvdisasm lists it: five FP instructions, the
+    # return-address setup, the return
+    block = [
+        "FMUL R8, R4, R6 ;",
+        "MOV R3, 0x0 ;",
+        "FFMA R0, R4, R6, -R8 ;",
+        "FFMA R0, R5, R7, R0 ;",
+        "FFMA R0, R4, R7, R0 ;",
+        "FFMA R9, R5, R6, R0 ;",
+        "RET.REL.NODEC R2 `(_ZN3fpb11bare_kernel) ;",
+    ]
+    assert fp_table.count_operation(block) == 5
+    # a MOV of zero into any other register is an instruction of the operation
+    assert fp_table.count_operation(["MOV R7, 0x0 ;", "RET.REL.NODEC R2 `(k) ;"]) == 1
+    # an ABI return without a register does not name a setup instruction
+    assert fp_table.count_operation(["MOV R3, 0x0 ;", "RET.ABS.NODEC R20 0x0 ;"]) == 1
+
+
 def test_column_order_starts_with_the_key_and_the_family():
     assert fp_table.COLS[:4] == ["Func", "Family", "Type", "Accuracy"]
     assert fp_table.MD_COLS == fp_table.COLS[:13]

@@ -15,8 +15,8 @@ Each executable compiles a __noinline__ function `fpb::bare<Op, cuda::fpmp2<L, A
 cuobjdump extracts the cubins and nvdisasm lists every kernel's section with the local functions
 it calls as labelled blocks (`$<kernel>$<function>:`); the SASS column is the number of
 instructions of the bare function's block, label to RET, i.e. the instructions one evaluation of
-the operation takes, without its CALL/RET pair and without the kernel's loads and stores. Where a
-cubin holds several architectures the largest count is kept.
+the operation takes, without its CALL/RET pair, the return-address setup before the RET and the
+kernel's loads and stores. Where a cubin holds several architectures the largest count is kept.
 
 Each executable also carries `ref_throughput` and `ref_latency`: the same timing of the reference
 precision, the double expression of the declaration on a double (fp32mp2's reference; fp64mp2
@@ -151,7 +151,8 @@ def sass_counts(exe):
                     if not m:
                         continue
                     key = (m.group(1), REF_TYP[m.group(2)], "-")
-                kind, label, count = "kernel", None, 0
+                kind, label = "kernel", None
+                bodies = []  # the instructions of the bare function and its helpers
                 for line in lines:
                     lm = re.match(r"^\$\S+\$(\S+):\s*$", line)
                     if lm:
@@ -175,17 +176,31 @@ def sass_counts(exe):
                     ):
                         continue
                     body = line.split("*/", 1)[1].strip()
-                    if body.startswith("NOP") or re.match(r"^RET\b", body):
+                    if body.startswith("NOP"):
                         continue
-                    if (
-                        re.match(r"^BRA\s+`\((\S+)\)", body)
-                        and label
-                        and re.match(r"^BRA\s+`\((\S+)\)", body).group(1) == label
-                    ):
+                    bm = re.match(r"^BRA\s+`\((\S+)\)", body)
+                    if bm and label and bm.group(1) == label:
                         continue  # the self-loop after the last RET
-                    count += 1
-                out[key] = max(out.get(key, 0), count)
+                    bodies.append(body)
+                out[key] = max(out.get(key, 0), count_operation(bodies))
     return out
+
+
+def count_operation(bodies):
+    """The instructions of one evaluation: the block without its call bookkeeping. `RET` returns
+    to the caller, and the `MOV R<k+1>, 0x0` before a `RET.REL.NODEC R<k>` only completes the
+    64-bit return address the caller passed in R<k>; neither belongs to the operation. What is
+    left agrees with a standalone compilation of the function up to its own ABI moves."""
+    rets = [
+        m.group(1)
+        for b in bodies
+        for m in [re.match(r"^RET\.REL\.NODEC R(\d+)", b)]
+        if m
+    ]
+    skip = {f"MOV R{int(r) + 1}, 0x0" for r in rets}
+    return sum(
+        1 for b in bodies if not re.match(r"^RET\b", b) and b.rstrip(" ;") not in skip
+    )
 
 
 def family_of(exe):
